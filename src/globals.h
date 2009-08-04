@@ -38,11 +38,11 @@
 #  define GCC_PACK
 #endif
 
-#include "oscam-config.h"
+#include "config.h"
 #ifndef USE_CMAKE
-#  include "oscam-ostype.h"
+#  include "ostype.h"
 #endif
-#include "oscam-types.h"
+#include "types.h"
 
 #ifndef CS_CONFDIR
 #define CS_CONFDIR 		"/usr/local/etc"
@@ -164,7 +164,7 @@ extern char *RDR_CD_TXT[];
 
 #define CS_ANTICASC
 
-// moved from reader-common.h
+// moved from CAM/common.h
 #define CARD_INSERTED  1
 #define CARD_NEED_INIT 2
 #define CARD_FAILURE   4
@@ -581,7 +581,7 @@ typedef struct emm_packet_t
   int   cidx;
 } GCC_PACK EMM_PACKET;
 
-// oscam-simples
+// simples.c
 extern char *remote_txt(void);
 extern char *trim(char *);
 extern char *strtolower(char *);
@@ -636,7 +636,7 @@ extern int use_ac_log;
 #endif
 
 
-// oscam
+// oscam.c
 extern char *cs_platform(char *);
 extern int recv_from_udpipe(uchar *, int);
 extern char* username(int);
@@ -681,10 +681,10 @@ extern void ac_init_client(struct s_auth *);
 extern void ac_chk(ECM_REQUEST*, int);
 #endif
 
-// oscam-nano
+// nano.c
 extern int chk_class(ECM_REQUEST *, CLASSTAB*, const char*, const char*);
 
-// oscam-config
+// config.c
 extern int  init_config(void);
 extern int  init_userdb(void);
 extern int  init_readerdb(void);
@@ -694,14 +694,14 @@ extern int  search_boxkey(ushort, ulong, char *);
 extern void init_len4caid(void);
 extern int  init_irdeto_guess_tab(void);
 
-// oscam-reader
+// reader.c
 extern int ridx, logfd;
 extern void cs_ri_brk(int);
 extern void cs_ri_log(char *,...);
 extern void start_cardreader(void);
 extern void reader_card_info(void);
 
-// oscam-log
+// log.c
 extern int  cs_init_log(char *);
 extern void cs_log(char *,...);
 extern void cs_debug(char *,...);
@@ -711,43 +711,45 @@ extern int  cs_init_statistics(char *);
 extern void cs_statistics(int);
 extern void cs_dump(uchar *, int, char *, ...);
 
-// oscam-aes
+// aes
 extern void aes_set_key(char *);
 extern void aes_encrypt_idx(int, uchar *, int);
 extern void aes_decrypt(uchar *, int);
 #define aes_encrypt(b, n) aes_encrypt_idx(cs_idx, b, n)
 
-// reader-common
+// CAM/
+
+// common
 extern int reader_device_init(char *, int);
 extern int reader_checkhealth(void);
 extern int reader_ecm(ECM_REQUEST *);
 extern int reader_emm(EMM_PACKET *);
 
-// reader-irdeto
+// irdeto
 extern int irdeto_card_init(uchar *, int);
 extern int irdeto_do_ecm(ECM_REQUEST *);
 extern int irdeto_do_emm(EMM_PACKET *);
 extern int irdeto_card_info(void);
 
-// reader-viaccess
+// viaccess
 extern int viaccess_card_init(uchar *, int);
 extern int viaccess_do_ecm(ECM_REQUEST *);
 extern int viaccess_do_emm(EMM_PACKET *);
 extern int viaccess_card_info(void);
 
-// reader-videoguard
+// videoguard
 extern int videoguard_card_init(uchar *, int);
 extern int videoguard_do_ecm(ECM_REQUEST *);
 extern int videoguard_do_emm(EMM_PACKET *);
 extern int videoguard_card_info(void);
 
-// reader-cryptoworks
+// cryptoworks
 extern int cryptoworks_card_init(uchar *, int);
 extern int cryptoworks_do_ecm(ECM_REQUEST *);
 extern int cryptoworks_do_emm(EMM_PACKET *);
 extern int cryptoworks_card_info(void);
 
-// reader-seca
+// seca
 extern int seca_card_init(uchar *, int);
 extern int seca_do_ecm(ECM_REQUEST *);
 extern int seca_do_emm(EMM_PACKET *);

@@ -834,9 +834,9 @@ static int newcamd_auth_client(in_addr_t ip)
                     // first 2 Byte always 00
                     mbuf[8]=0x00; //serial only 4 bytes
                     mbuf[9]=0x00; //serial only 4 bytes
-                    // 1 Byte Hex Base (see reader-irdeto.c how this is stored in "reader[au].hexserial")
+                    // 1 Byte Hex Base (se irdeto.c how this is stored in "reader[au].hexserial")
                     mbuf[10]=reader[au].hexserial[3];
-                    // 3 Bytes Hex Serial (see reader-irdeto.c how this is stored in "reader[au].hexserial")
+                    // 3 Bytes Hex Serial (see irdeto.c how this is stored in "reader[au].hexserial")
                     mbuf[11]=reader[au].hexserial[0];
                     mbuf[12]=reader[au].hexserial[1];
                     mbuf[13]=reader[au].hexserial[2];

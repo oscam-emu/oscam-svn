@@ -1,5 +1,5 @@
 #include "globals.h"
-#include "reader-common.h"
+#include "common.h"
 
 static uchar ISK[0x40];
 static uchar cwexp[] = { 1, 0 , 1};

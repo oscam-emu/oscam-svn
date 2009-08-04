@@ -1,5 +1,5 @@
 #include "globals.h"
-#include "reader-common.h"
+#include "common.h"
 
 #include <termios.h>
 #include <unistd.h>

@@ -1,6 +1,6 @@
 #include "globals.h"
 #ifdef CS_WITH_BOXKEYS
-#  include "oscam-boxkeys.np"
+#  include "boxkeys.np"
 #endif
 
 static char *cs_conf="oscam.conf";

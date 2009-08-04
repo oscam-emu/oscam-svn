@@ -1,5 +1,5 @@
 #include "globals.h"
-#include "reader-common.h"
+#include "common.h"
 
 extern uchar cta_cmd[], cta_res[];
 extern ushort cta_lr;

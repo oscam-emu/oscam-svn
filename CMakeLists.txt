@@ -106,25 +106,25 @@ add_subdirectory (cscrypt)
 
 #----------------------- file groups ------------------------------
 
-file (GLOB csmodules_srcs "src/module-*.c")
-file (GLOB csmodules_hdrs "src/module-*.h")
-file (GLOB csreaders_srcs "src/reader-*.c")
-file (GLOB csreaders_hdrs "src/reader-*.h")
-file (GLOB csoscam_srcs "src/oscam-*.c")
-file (GLOB csoscam_hdrs "src/oscam-*.h")
+file (GLOB cscams_srcs "src/CAM/*.c")
+file (GLOB cscams_hdrs "src/CAM/*.h")
+file (GLOB cssharing_srcs "src/sharing/*.c")
+file (GLOB cssharing_hdrs "src/sharing/*.h")
+file (GLOB csoscam_srcs "src/*.c")
+file (GLOB csoscam_hdrs "src/*.h")
 file (GLOB exe_srcs "src/oscam.c")
 file (GLOB exe_hdrs "src/globals.h")
-file (GLOB all_srcs ${csmodules_srcs} ${csreaders_srcs} ${csoscam_srcs} ${exe_srcs})
+file (GLOB all_srcs ${cssharing_srcs} ${cscams_srcs} ${csoscam_srcs} ${exe_srcs})
 
 #----------------------- modules ------------------------------
 
-set (csmodules "csmodules")
-add_library (${csmodules} STATIC ${csmodules_srcs} ${csmodules_hdrs})
+set (cssharing "cssharing")
+add_library (${cssharing} STATIC ${cssharing_srcs} ${cssharing_hdrs})
 
 #----------------------- readers ------------------------------
 
-set (csreaders "csreaders")
-add_library (${csreaders} STATIC ${csreaders_srcs} ${csreaders_hdrs})
+set (cscams "cscams")
+add_library (${cscams} STATIC ${cscams_srcs} ${cscams_hdrs})
 
 #----------------------- other oscam files ------------------------------
 
@@ -135,11 +135,11 @@ add_library (${csoscam} STATIC ${csoscam_srcs} ${csoscam_hdrs})
 
 set (exe_name "oscam")
 add_executable (${exe_name} ${exe_srcs} ${exe_hdrs})
-target_link_libraries (${exe_name} ${csoscam} ${csmodules} ${csreaders} csctapi cscrypt pthread)
+target_link_libraries (${exe_name} ${csoscam} ${cssharing} ${cscams} csctapi cscrypt pthread)
 if (HAVE_AES)
     target_link_libraries (${exe_name} crypto)
 endif (HAVE_AES)
-add_dependencies (${exe_name} ${csoscam} ${csreaders} ${csmodules})
+add_dependencies (${exe_name} ${csoscam} ${cscams} ${cssharing})
 
 #----------------------- specific options ------------------------------
 
