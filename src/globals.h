@@ -39,7 +39,7 @@
 #endif
 
 #include "config.h"
-#include "types.h"
+#include "os-types.h"
 
 #ifndef CS_CONFDIR
 #define CS_CONFDIR 		"/usr/local/etc"
