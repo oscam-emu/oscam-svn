@@ -106,14 +106,14 @@ add_subdirectory (cscrypt)
 
 #----------------------- file groups ------------------------------
 
-file (GLOB csmodules_srcs "module-*.c")
-file (GLOB csmodules_hdrs "module-*.h")
-file (GLOB csreaders_srcs "reader-*.c")
-file (GLOB csreaders_hdrs "reader-*.h")
-file (GLOB csoscam_srcs "oscam-*.c")
-file (GLOB csoscam_hdrs "oscam-*.h")
-file (GLOB exe_srcs "oscam.c")
-file (GLOB exe_hdrs "globals.h")
+file (GLOB csmodules_srcs "src/module-*.c")
+file (GLOB csmodules_hdrs "src/module-*.h")
+file (GLOB csreaders_srcs "src/reader-*.c")
+file (GLOB csreaders_hdrs "src/reader-*.h")
+file (GLOB csoscam_srcs "src/oscam-*.c")
+file (GLOB csoscam_hdrs "src/oscam-*.h")
+file (GLOB exe_srcs "src/oscam.c")
+file (GLOB exe_hdrs "src/globals.h")
 file (GLOB all_srcs ${csmodules_srcs} ${csreaders_srcs} ${csoscam_srcs} ${exe_srcs})
 
 #----------------------- modules ------------------------------
@@ -166,9 +166,9 @@ set (CMAKE_EXE_LINKER_FLAGS "-s")
 #----------------------- installation -----------------------------
 
 file (GLOB config_files "${CMAKE_CURRENT_SOURCE_DIR}/Distribution/oscam.*")
-file (GLOB doc_files "${CMAKE_CURRENT_SOURCE_DIR}/Distribution/doc/txt/*.txt")
-file (GLOB man1_files "${CMAKE_CURRENT_SOURCE_DIR}/Distribution/doc/man/*.1")
-file (GLOB man5_files "${CMAKE_CURRENT_SOURCE_DIR}/Distribution/doc/man/*.5")
+file (GLOB doc_files "${CMAKE_CURRENT_SOURCE_DIR}/Documentation/txt/*.txt")
+file (GLOB man1_files "${CMAKE_CURRENT_SOURCE_DIR}/Documentation/man/*.1")
+file (GLOB man5_files "${CMAKE_CURRENT_SOURCE_DIR}/Documentation/man/*.5")
 
 install (PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/${exe_name}${CMAKE_EXECUTABLE_SUFFIX} DESTINATION bin COMPONENT bin)
 install (FILES ${config_files} DESTINATION etc COMPONENT config)
@@ -179,7 +179,7 @@ install (FILES ${man5_files} DESTINATION share/man/man5 COMPONENT doc)
 #----------------------- we can use CPack to build pacakges --------------------------
 
 # get version from source file
-execute_process (COMMAND grep CS_VERSION ${CMAKE_CURRENT_SOURCE_DIR}/globals.h
+execute_process (COMMAND grep CS_VERSION ${CMAKE_CURRENT_SOURCE_DIR}/src/globals.h
     OUTPUT_VARIABLE CS_VERSION)
 string (REGEX REPLACE ".*\"\(.*\)\".*" "\\1" CS_VERSION ${CS_VERSION})
 string (REGEX REPLACE "\(.*\)\\..*\\..*" "\\1" CPACK_PACKAGE_VERSION_MAJOR ${CS_VERSION})

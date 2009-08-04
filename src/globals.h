@@ -26,6 +26,8 @@
 
 #include <pthread.h>
 
+#include <cscrypt.h>
+
 #ifndef CS_GLOBALS
 #define CS_GLOBALS
 #define CS_VERSION		"0.99.4svn"
@@ -41,7 +43,6 @@
 #  include "oscam-ostype.h"
 #endif
 #include "oscam-types.h"
-#include "cscrypt/cscrypt.h"
 
 #ifndef CS_CONFDIR
 #define CS_CONFDIR 		"/usr/local/etc"
