@@ -42,4 +42,4 @@
 /* MAJOR NUM OF DEVICE DRVIER */
 #define MAJOR_NUM			169
 
-#endif /* _sci_inf_h_ */
+#endif				/* _sci_inf_h_ */

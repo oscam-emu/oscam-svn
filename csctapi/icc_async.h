@@ -42,52 +42,47 @@
  * Exported types definition
  */
 
-typedef struct
-{
-  unsigned block_delay;          /* Delay (ms) after starting to transmit */
-  unsigned char_delay;           /* Delay (ms) after transmiting each sucesive char*/
-  unsigned block_timeout;        /* Max timeout (ms) to receive first char */
-  unsigned char_timeout;         /* Max timeout (ms) to receive sucesive characters */
-}
-ICC_Async_Timings;
+typedef struct {
+	unsigned block_delay;	/* Delay (ms) after starting to transmit */
+	unsigned char_delay;	/* Delay (ms) after transmiting each sucesive char */
+	unsigned block_timeout;	/* Max timeout (ms) to receive first char */
+	unsigned char_timeout;	/* Max timeout (ms) to receive sucesive characters */
+} ICC_Async_Timings;
 
-typedef struct
-{
-  IFD *ifd;                     /* Interface device */
-  ATR *atr;                     /* Answer to reset of this ICC */
-  int convention;               /* Convention of this ICC */
-  unsigned long baudrate;	/* Current baudrate (bps) for transmiting to this ICC */
-  ICC_Async_Timings timings;    /* Current timings for transmiting to this ICC */
-  BYTE protocol_type;		/* Type of protocol */
-}
-ICC_Async;
+typedef struct {
+	IFD *ifd;		/* Interface device */
+	ATR *atr;		/* Answer to reset of this ICC */
+	int convention;		/* Convention of this ICC */
+	unsigned long baudrate;	/* Current baudrate (bps) for transmiting to this ICC */
+	ICC_Async_Timings timings;	/* Current timings for transmiting to this ICC */
+	BYTE protocol_type;	/* Type of protocol */
+} ICC_Async;
 
 /*
  * Exported functions declaration
  */
 
 /* Creation and Deletion */
-extern ICC_Async * ICC_Async_New (void);
-extern void ICC_Async_Delete (ICC_Async * icc);
+extern ICC_Async *ICC_Async_New(void);
+extern void ICC_Async_Delete(ICC_Async * icc);
 
 /* Initialization and Deactivation */
-extern int ICC_Async_Init (ICC_Async * icc, IFD * ifd);
-extern int ICC_Async_Close (ICC_Async * icc);
+extern int ICC_Async_Init(ICC_Async * icc, IFD * ifd);
+extern int ICC_Async_Close(ICC_Async * icc);
 
 /* Attributes */
-extern int ICC_Async_SetTimings (ICC_Async * icc, ICC_Async_Timings * timings);
-extern int ICC_Async_GetTimings (ICC_Async * icc, ICC_Async_Timings * timings);
-extern int ICC_Async_SetBaudrate (ICC_Async * icc, unsigned long baudrate);
-extern int ICC_Async_GetBaudrate (ICC_Async * icc, unsigned long * baudrate);
-extern ATR *ICC_Async_GetAtr (ICC_Async * icc);
-extern IFD *ICC_Async_GetIFD (ICC_Async * icc);
-extern unsigned long ICC_Async_GetClockRate (ICC_Async * icc);
+extern int ICC_Async_SetTimings(ICC_Async * icc, ICC_Async_Timings * timings);
+extern int ICC_Async_GetTimings(ICC_Async * icc, ICC_Async_Timings * timings);
+extern int ICC_Async_SetBaudrate(ICC_Async * icc, unsigned long baudrate);
+extern int ICC_Async_GetBaudrate(ICC_Async * icc, unsigned long *baudrate);
+extern ATR *ICC_Async_GetAtr(ICC_Async * icc);
+extern IFD *ICC_Async_GetIFD(ICC_Async * icc);
+extern unsigned long ICC_Async_GetClockRate(ICC_Async * icc);
 
 /* Operations */
-extern int ICC_Async_BeginTransmission (ICC_Async * icc);
-extern int ICC_Async_Transmit (ICC_Async * icc, unsigned size, BYTE * buffer);
-extern int ICC_Async_Receive (ICC_Async * icc, unsigned size, BYTE * buffer);
-extern int ICC_Async_EndTransmission (ICC_Async * icc);
+extern int ICC_Async_BeginTransmission(ICC_Async * icc);
+extern int ICC_Async_Transmit(ICC_Async * icc, unsigned size, BYTE * buffer);
+extern int ICC_Async_Receive(ICC_Async * icc, unsigned size, BYTE * buffer);
+extern int ICC_Async_EndTransmission(ICC_Async * icc);
 
-#endif /* _ICC_ASYNC_ */
-
+#endif				/* _ICC_ASYNC_ */

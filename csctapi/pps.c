@@ -48,32 +48,31 @@
  * Not exported funtions declaration
  */
 
-static int PPS_Exchange (PPS * pps, BYTE * params, unsigned *length);
+static int PPS_Exchange(PPS * pps, BYTE * params, unsigned *length);
 
-static bool PPS_Match (BYTE * request, unsigned len_request, BYTE * reply, unsigned len_reply);
+static bool PPS_Match(BYTE * request, unsigned len_request, BYTE * reply, unsigned len_reply);
 
-static unsigned PPS_GetLength (BYTE * block);
+static unsigned PPS_GetLength(BYTE * block);
 
-static int PPS_InitICC (PPS * pps);
+static int PPS_InitICC(PPS * pps);
 
-static int PPS_InitProtocol (PPS * pps);
+static int PPS_InitProtocol(PPS * pps);
 
-static void PPS_SelectFirstProtocol (PPS * pps);
+static void PPS_SelectFirstProtocol(PPS * pps);
 
-static BYTE PPS_GetPCK (BYTE * block, unsigned length);
+static BYTE PPS_GetPCK(BYTE * block, unsigned length);
 
 /*
  * Exported functions definition
  */
 
-PPS * PPS_New (ICC_Async * icc)
+PPS *PPS_New(ICC_Async * icc)
 {
 	PPS *pps;
-	
-	pps = (PPS *) malloc (sizeof (PPS));
-	
-	if (pps != NULL)
-	{
+
+	pps = (PPS *) malloc(sizeof(PPS));
+
+	if (pps != NULL) {
 		pps->icc = icc;
 		pps->protocol = NULL;
 		pps->parameters.t = PPS_DEFAULT_PROTOCOL;
@@ -81,89 +80,80 @@ PPS * PPS_New (ICC_Async * icc)
 		pps->parameters.d = ATR_DEFAULT_D;
 		pps->parameters.n = ATR_DEFAULT_N;
 	}
-	
+
 	return pps;
 }
 
-int PPS_Perform (PPS * pps, BYTE * params, unsigned *length)
+int PPS_Perform(PPS * pps, BYTE * params, unsigned *length)
 {
 	ATR *atr;
 	int ret;
-	
+
 	/* Perform PPS Exchange if requested */
-	if ((*length) > 0)
-	{
-		ret = PPS_Exchange (pps, params, length);
-		
+	if ((*length) > 0) {
+		ret = PPS_Exchange(pps, params, length);
+
 		/* Get parameters from PPS handsake */
-		if (ret == PPS_OK)
-		{
+		if (ret == PPS_OK) {
 			pps->parameters.t = params[1] & 0x0F;
-			
-			if (PPS_HAS_PPS1 (params))
-			{
+
+			if (PPS_HAS_PPS1(params)) {
 				pps->parameters.f = atr_f_table[(params[2] >> 4)];
 				pps->parameters.d = atr_d_table[(params[2] & 0x0F)];
 			}
-			
-			ret  = PPS_InitICC(pps);
-			
+
+			ret = PPS_InitICC(pps);
+
 			if (ret != PPS_OK)
 				return ret;
-		}
-		else
-		{
+		} else {
 			return ret;
 		}
-	}
-	else /* Get parameters from ATR */
-	{
-		PPS_SelectFirstProtocol (pps);
-		
+	} else {		/* Get parameters from ATR */
+
+		PPS_SelectFirstProtocol(pps);
+
 #ifndef PPS_USE_DEFAULT_TIMINGS
-		atr = ICC_Async_GetAtr (pps->icc);
-		
-		ATR_GetParameter (atr, ATR_PARAMETER_N, &(pps->parameters.n));
-		ATR_GetParameter (atr, ATR_PARAMETER_D, &(pps->parameters.d));
-		ATR_GetParameter (atr, ATR_PARAMETER_F, &(pps->parameters.f));
+		atr = ICC_Async_GetAtr(pps->icc);
+
+		ATR_GetParameter(atr, ATR_PARAMETER_N, &(pps->parameters.n));
+		ATR_GetParameter(atr, ATR_PARAMETER_D, &(pps->parameters.d));
+		ATR_GetParameter(atr, ATR_PARAMETER_F, &(pps->parameters.f));
 #endif
 	}
-	
+
 #ifdef DEBUG_PROTOCOL
-	printf("PPS: T=%X, F=%.0f, D=%.6f, N=%.0f\n", 
-	pps->parameters.t, 
-	pps->parameters.f, 
-	pps->parameters.d, 
-	pps->parameters.n);
+	printf("PPS: T=%X, F=%.0f, D=%.6f, N=%.0f\n",
+	       pps->parameters.t, pps->parameters.f, pps->parameters.d, pps->parameters.n);
 #endif
-	
+
 	/* Initialize selected protocol with selected parameters */
-	ret = PPS_InitProtocol (pps);
-	
+	ret = PPS_InitProtocol(pps);
+
 	return ret;
 }
 
-void * PPS_GetProtocol (PPS * pps)
+void *PPS_GetProtocol(PPS * pps)
 {
 	return pps->protocol;
 }
 
-PPS_ProtocolParameters *PPS_GetProtocolParameters (PPS * pps)
+PPS_ProtocolParameters *PPS_GetProtocolParameters(PPS * pps)
 {
 	/* User must Remember not to reference this struct after removing PPS */
 	return &(pps->parameters);
 }
 
-void PPS_Delete (PPS * pps)
+void PPS_Delete(PPS * pps)
 {
-	free (pps);
+	free(pps);
 }
 
 /*
  * Not exported funtions definition
  */
 
-static int PPS_Exchange (PPS * pps, BYTE * params, unsigned *length)
+static int PPS_Exchange(PPS * pps, BYTE * params, unsigned *length)
 {
 	BYTE confirm[PPS_MAX_LENGTH];
 	unsigned len_request, len_confirm;
@@ -171,194 +161,184 @@ static int PPS_Exchange (PPS * pps, BYTE * params, unsigned *length)
 #ifdef DEBUG_PROTOCOL
 	int i;
 #endif
-	
-	len_request = PPS_GetLength (params);
+
+	len_request = PPS_GetLength(params);
 	params[len_request - 1] = PPS_GetPCK(params, len_request - 1);
-	
+
 #ifdef DEBUG_PROTOCOL
-	printf ("PPS: Sending request: ");
+	printf("PPS: Sending request: ");
 	for (i = 0; i < len_request; i++)
-		printf ("%X ", params[i]);
-	printf ("\n");
+		printf("%X ", params[i]);
+	printf("\n");
 #endif
-	
+
 	/* Send PPS request */
-	if (ICC_Async_Transmit (pps->icc, len_request, params) != ICC_ASYNC_OK)
+	if (ICC_Async_Transmit(pps->icc, len_request, params) != ICC_ASYNC_OK)
 		return PPS_ICC_ERROR;
-	
+
 	/* Get PPS confirm */
-	if (ICC_Async_Receive (pps->icc, 2, confirm) != ICC_ASYNC_OK)
+	if (ICC_Async_Receive(pps->icc, 2, confirm) != ICC_ASYNC_OK)
 		return PPS_ICC_ERROR;
-	
-	len_confirm = PPS_GetLength (confirm);
-	
-	if (ICC_Async_Receive (pps->icc, len_confirm - 2, confirm + 2) != ICC_ASYNC_OK)
+
+	len_confirm = PPS_GetLength(confirm);
+
+	if (ICC_Async_Receive(pps->icc, len_confirm - 2, confirm + 2) != ICC_ASYNC_OK)
 		return PPS_ICC_ERROR;
-	
+
 #ifdef DEBUG_PROTOCOL
-	printf ("PPS: Receivig confirm: ");
+	printf("PPS: Receivig confirm: ");
 	for (i = 0; i < len_confirm; i++)
-		printf ("%X ", confirm[i]);
-	printf ("\n");
+		printf("%X ", confirm[i]);
+	printf("\n");
 #endif
-	
-	if (!PPS_Match (params, len_request, confirm, len_confirm))
+
+	if (!PPS_Match(params, len_request, confirm, len_confirm))
 		ret = PPS_HANDSAKE_ERROR;
 	else
 		ret = PPS_OK;
-	
+
 	/* Copy PPS handsake */
-	memcpy (params, confirm, len_confirm);
+	memcpy(params, confirm, len_confirm);
 	(*length) = len_confirm;
-	
+
 	return ret;
 }
 
-static bool PPS_Match (BYTE * request, unsigned len_request, BYTE * confirm, unsigned len_confirm)
+static bool PPS_Match(BYTE * request, unsigned len_request, BYTE * confirm, unsigned len_confirm)
 {
 	/* See if the reply differs from request */
-	if ((len_request != len_confirm) || (!memcmp (request, confirm, len_request)))
-	{
+	if ((len_request != len_confirm) || (!memcmp(request, confirm, len_request))) {
 		/* See if the card specifies other than default FI and D */
-		if ((PPS_HAS_PPS1 (confirm)) && (confirm[2] != request[2]))
+		if ((PPS_HAS_PPS1(confirm)) && (confirm[2] != request[2]))
 			return FALSE;
 	}
-	
+
 	return TRUE;
 }
 
-static unsigned PPS_GetLength (BYTE * block)
+static unsigned PPS_GetLength(BYTE * block)
 {
 	unsigned length = 3;
-	
-	if (PPS_HAS_PPS1 (block))
-	length++;
-	
-	if (PPS_HAS_PPS2 (block))
-	length++;
-	
-	if (PPS_HAS_PPS3 (block))
-	length++;
-	
+
+	if (PPS_HAS_PPS1(block))
+		length++;
+
+	if (PPS_HAS_PPS2(block))
+		length++;
+
+	if (PPS_HAS_PPS3(block))
+		length++;
+
 	return length;
 }
 
-static int PPS_InitICC (PPS * pps)
+static int PPS_InitICC(PPS * pps)
 {
 	unsigned long baudrate;
 	long double work_etu;
-	
+
 	/* Work etu = (1/D) * (F/fs) * 1000 milliseconds */
-	work_etu = (1000 * pps->parameters.f) / (pps->parameters.d * ICC_Async_GetClockRate (pps->icc));
-	
+	work_etu = (1000 * pps->parameters.f) / (pps->parameters.d * ICC_Async_GetClockRate(pps->icc));
+
 	/* Baudrate = 1000 / etu bps */
 	baudrate = (long unsigned int) (1000 / work_etu);
-	
+
 #ifdef DEBUG_PROTOCOL
-	printf ("PPS: Baudrate = %d\n", (int)baudrate);
+	printf("PPS: Baudrate = %d\n", (int) baudrate);
 #endif
-	
-	if (ICC_Async_SetBaudrate (pps->icc, baudrate) != ICC_ASYNC_OK)
+
+	if (ICC_Async_SetBaudrate(pps->icc, baudrate) != ICC_ASYNC_OK)
 		return PPS_ICC_ERROR;
-	
+
 	return PPS_OK;
 }
 
-static int PPS_InitProtocol (PPS * pps)
+static int PPS_InitProtocol(PPS * pps)
 {
 	int ret;
-	
-	if (pps->parameters.t == ATR_PROTOCOL_TYPE_T0)
-	{
-		pps->protocol = Protocol_T0_New ();
-		
-		if ((pps->protocol) != NULL)
-		{
-			ret = Protocol_T0_Init ((Protocol_T0 *) pps->protocol, (ICC_Async *) pps->icc, &(pps->parameters));
-			
-			if (ret != PROTOCOL_T0_OK)
-			{
-				Protocol_T0_Delete ((Protocol_T0 *) pps->protocol);
+
+	if (pps->parameters.t == ATR_PROTOCOL_TYPE_T0) {
+		pps->protocol = Protocol_T0_New();
+
+		if ((pps->protocol) != NULL) {
+			ret =
+			    Protocol_T0_Init((Protocol_T0 *) pps->protocol, (ICC_Async *) pps->icc, &(pps->parameters));
+
+			if (ret != PROTOCOL_T0_OK) {
+				Protocol_T0_Delete((Protocol_T0 *) pps->protocol);
 				pps->protocol = NULL;
 				return PPS_PROTOCOL_ERROR;
 			}
-			
-			return PPS_OK;
-		}		
-	}
-	else if (pps->parameters.t == ATR_PROTOCOL_TYPE_T1)
-	{
-		pps->protocol = Protocol_T1_New ();
-		
-		if (pps->protocol != NULL)
-		{
-			ret = Protocol_T1_Init ((Protocol_T1 *) pps->protocol, (ICC_Async *) pps->icc, &(pps->parameters));
-			
-			if (ret != PROTOCOL_T1_OK)
-			{
-				Protocol_T1_Delete ((Protocol_T1 *) pps->protocol);
-				pps->protocol = NULL;
-				return PPS_PROTOCOL_ERROR;
-			}
-			
+
 			return PPS_OK;
 		}
-	}
-	else if (pps->parameters.t == ATR_PROTOCOL_TYPE_T14)
-	{
-		pps->protocol = Protocol_T14_New ();
-		
-		if ((pps->protocol) != NULL)
-		{
-			ret = Protocol_T14_Init ((Protocol_T14 *) pps->protocol, (ICC_Async *) pps->icc, &(pps->parameters));
-			
-			if (ret != PROTOCOL_T14_OK)
-			{
-				Protocol_T14_Delete ((Protocol_T14 *) pps->protocol);
+	} else if (pps->parameters.t == ATR_PROTOCOL_TYPE_T1) {
+		pps->protocol = Protocol_T1_New();
+
+		if (pps->protocol != NULL) {
+			ret =
+			    Protocol_T1_Init((Protocol_T1 *) pps->protocol, (ICC_Async *) pps->icc, &(pps->parameters));
+
+			if (ret != PROTOCOL_T1_OK) {
+				Protocol_T1_Delete((Protocol_T1 *) pps->protocol);
 				pps->protocol = NULL;
 				return PPS_PROTOCOL_ERROR;
 			}
-			
+
 			return PPS_OK;
-		}		
-	}
-	else
-	{
+		}
+	} else if (pps->parameters.t == ATR_PROTOCOL_TYPE_T14) {
+		pps->protocol = Protocol_T14_New();
+
+		if ((pps->protocol) != NULL) {
+			ret =
+			    Protocol_T14_Init((Protocol_T14 *) pps->protocol, (ICC_Async *) pps->icc,
+					      &(pps->parameters));
+
+			if (ret != PROTOCOL_T14_OK) {
+				Protocol_T14_Delete((Protocol_T14 *) pps->protocol);
+				pps->protocol = NULL;
+				return PPS_PROTOCOL_ERROR;
+			}
+
+			return PPS_OK;
+		}
+	} else {
 		pps->protocol = NULL;
 	}
-	
+
 	return PPS_PROTOCOL_ERROR;
 }
 
-static void PPS_SelectFirstProtocol (PPS * pps)
+static void PPS_SelectFirstProtocol(PPS * pps)
 {
-	ATR *atr = ICC_Async_GetAtr (pps->icc);
+	ATR *atr = ICC_Async_GetAtr(pps->icc);
 	unsigned np;
-	
+
 	pps->parameters.t = ATR_PROTOCOL_TYPE_T0;
-	
-	ATR_GetNumberOfProtocols (atr, &np);
-	
+
+	ATR_GetNumberOfProtocols(atr, &np);
+
 	/* 
-	* Get protocol offered by interface bytes T*2 if available, 
-	* (that is, if TD1 is available), * otherwise use default T=0
-	*/
-	if (np>1)
-		ATR_GetProtocolType (atr, 2, &(pps->parameters.t));
-	
+	 * Get protocol offered by interface bytes T*2 if available, 
+	 * (that is, if TD1 is available), * otherwise use default T=0
+	 */
+	if (np > 1)
+		ATR_GetProtocolType(atr, 2, &(pps->parameters.t));
+
 #ifdef DEBUG_PROTOCOL
-	printf ("PPS: Protocol T=%d selected\n", pps->parameters.t);
+	printf("PPS: Protocol T=%d selected\n", pps->parameters.t);
 #endif
 }
 
-static BYTE PPS_GetPCK (BYTE * block, unsigned length)
+static BYTE PPS_GetPCK(BYTE * block, unsigned length)
 {
 	BYTE pck;
 	unsigned i;
-	
+
 	pck = block[0];
 	for (i = 1; i < length; i++)
 		pck ^= block[i];
-	
+
 	return pck;
 }
