@@ -39,9 +39,6 @@
 #endif
 
 #include "config.h"
-#ifndef USE_CMAKE
-#  include "ostype.h"
-#endif
 #include "types.h"
 
 #ifndef CS_CONFDIR
