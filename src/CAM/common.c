@@ -1,5 +1,5 @@
 #include "globals.h"
-#include "common.h"
+#include "CAM/common.h"
 
 char oscam_device[128];
 int  oscam_card_detect;

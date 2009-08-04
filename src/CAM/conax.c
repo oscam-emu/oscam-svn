@@ -1,5 +1,5 @@
 #include "globals.h"
-#include "common.h"
+#include "CAM/common.h"
 
 extern uchar cta_cmd[], cta_res[];
 extern ushort cta_lr;

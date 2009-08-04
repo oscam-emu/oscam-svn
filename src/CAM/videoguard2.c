@@ -1,5 +1,5 @@
 #include "globals.h"
-#include "common.h"
+#include "CAM/common.h"
 
 #include <termios.h>
 #include <unistd.h>

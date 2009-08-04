@@ -53,6 +53,7 @@ set (OPTIONAL_INCLUDE_DIR "" CACHE STRING "Some optional include directories")
 include_directories (
     ${CMAKE_CURRENT_SOURCE_DIR}/csctapi
     ${CMAKE_CURRENT_SOURCE_DIR}/cscrypt
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${OPTIONAL_INCLUDE_DIR}
     )
 link_directories (${OPTIONAL_LINK_DIR})
@@ -106,13 +107,13 @@ add_subdirectory (cscrypt)
 #----------------------- file groups ------------------------------
 
 file (GLOB cscams_srcs "src/CAM/*.c")
-file (GLOB cscams_hdrs "src/CAM/*.h")
+file (GLOB cscams_hdrs "include/CAM/*.h")
 file (GLOB cssharing_srcs "src/sharing/*.c")
-file (GLOB cssharing_hdrs "src/sharing/*.h")
+file (GLOB cssharing_hdrs "include/sharing/*.h")
 file (GLOB csoscam_srcs "src/*.c")
-file (GLOB csoscam_hdrs "src/*.h")
+file (GLOB csoscam_hdrs "include/*.h")
 file (GLOB exe_srcs "src/oscam.c")
-file (GLOB exe_hdrs "src/globals.h")
+file (GLOB exe_hdrs "include/globals.h")
 file (GLOB all_srcs ${cssharing_srcs} ${cscams_srcs} ${csoscam_srcs} ${exe_srcs})
 
 #----------------------- modules ------------------------------
@@ -178,7 +179,7 @@ install (FILES ${man5_files} DESTINATION share/man/man5 COMPONENT doc)
 #----------------------- we can use CPack to build pacakges --------------------------
 
 # get version from source file
-execute_process (COMMAND grep CS_VERSION ${CMAKE_CURRENT_SOURCE_DIR}/src/globals.h
+execute_process (COMMAND grep CS_VERSION ${CMAKE_CURRENT_SOURCE_DIR}/include/globals.h
     OUTPUT_VARIABLE CS_VERSION)
 string (REGEX REPLACE ".*\"\(.*\)\".*" "\\1" CS_VERSION ${CS_VERSION})
 string (REGEX REPLACE "\(.*\)\\..*\\..*" "\\1" CPACK_PACKAGE_VERSION_MAJOR ${CS_VERSION})

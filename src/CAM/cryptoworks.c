@@ -1,5 +1,5 @@
 #include "globals.h"
-#include "common.h"
+#include "CAM/common.h"
 
 static uchar ISK[0x40];
 static uchar cwexp[] = { 1, 0 , 1};
