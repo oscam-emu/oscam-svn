@@ -1,3 +1,4 @@
+
 /*
     ct_slot.h
     Card Terminal Slot handling definitions
@@ -23,96 +24,80 @@
 */
 
 #ifndef _CT_SLOT_
-#define _CT_SLOT_
+#  define _CT_SLOT_
 
-#include "defines.h"
-#include "apdu.h"
-#include "ctapi.h"
-#include "ctbcs.h"
-#include "ifd_towitoko.h"
+#  include "defines.h"
+#  include "apdu.h"
+#  include "ctapi.h"
+#  include "ctbcs.h"
+#  include "ifd_towitoko.h"
 
 /* 
  * Exported constats definition
  */
 
 /* Type of protocol and ICC */
-#define CT_SLOT_PROTOCOL_T0	0
-#define CT_SLOT_PROTOCOL_T1	1
-#define CT_SLOT_PROTOCOL_T14	14
-#define CT_SLOT_PROTOCOL_SYNC	16	
-#define CT_SLOT_ICC_ASYNC	0
-#define CT_SLOT_ICC_SYNC	1
-#define CT_SLOT_NULL		-1
+#  define CT_SLOT_PROTOCOL_T0	0
+#  define CT_SLOT_PROTOCOL_T1	1
+#  define CT_SLOT_PROTOCOL_T14	14
+#  define CT_SLOT_PROTOCOL_SYNC	16
+#  define CT_SLOT_ICC_ASYNC	0
+#  define CT_SLOT_ICC_SYNC	1
+#  define CT_SLOT_NULL		-1
 
 /*
  * Exported datatypes definition 
  */
 
-typedef struct
-{
-  IFD * ifd;		/* Interface device */
-  void * icc;		/* Integrated circuit card */
-  void * protocol;	/* Protocol handler */
-  int icc_type;		/* Type of ICC */
-  int protocol_type;	/* Type of protocol */
-}
-CT_Slot;
+typedef struct {
+	IFD *ifd;		/* Interface device */
+	void *icc;		/* Integrated circuit card */
+	void *protocol;		/* Protocol handler */
+	int icc_type;		/* Type of ICC */
+	int protocol_type;	/* Type of protocol */
+} CT_Slot;
 
 /*
  * Exported functions declaration
  */
 
 /* Cretate a new CT_Slot */
-extern CT_Slot *
-CT_Slot_New ();
+extern CT_Slot *CT_Slot_New();
 
 /* Intialice a CT_Slot */
-extern char 
-CT_Slot_Init (CT_Slot * slot, IO_Serial * io, int sn);
+extern char CT_Slot_Init(CT_Slot * slot, IO_Serial * io, int sn);
 
 /* Check for card inserted */
-extern char
-CT_Slot_Check (CT_Slot * slot, int timeout, bool * card, bool * change);
+extern char CT_Slot_Check(CT_Slot * slot, int timeout, bool * card, bool * change);
 
 /* Probe ICC type and protocol */
-extern char
-CT_Slot_Probe (CT_Slot * slot, BYTE * userdata, unsigned length);
+extern char CT_Slot_Probe(CT_Slot * slot, BYTE * userdata, unsigned length);
 
 /* Release status information */
-extern char
-CT_Slot_Release (CT_Slot * slot);
+extern char CT_Slot_Release(CT_Slot * slot);
 
 /* Send a command to and ICC */
-extern char
-CT_Slot_Command (CT_Slot * slot, APDU_Cmd * cmd, APDU_Rsp ** rsp);
+extern char CT_Slot_Command(CT_Slot * slot, APDU_Cmd * cmd, APDU_Rsp ** rsp);
 
 /* Return ICC type */
-extern int
-CT_Slot_GetICCType (CT_Slot * slot);
+extern int CT_Slot_GetICCType(CT_Slot * slot);
 
 /* Return a reference to the ICC */
-extern void *
-CT_Slot_GetICC (CT_Slot * slot);
+extern void *CT_Slot_GetICC(CT_Slot * slot);
 
 /* Get answer to reset of the card */
-extern void *
-CT_Slot_GetAtr (CT_Slot * slot);
+extern void *CT_Slot_GetAtr(CT_Slot * slot);
 
 /* Says if this slot is last */
-extern bool
-CT_Slot_IsLast (CT_Slot * slot);
+extern bool CT_Slot_IsLast(CT_Slot * slot);
 
 /* Return slot type */
-extern void
-CT_Slot_GetType (CT_Slot * slot, BYTE * buffer, int len);
+extern void CT_Slot_GetType(CT_Slot * slot, BYTE * buffer, int len);
 
 /* Close a CT_Slot */
-extern char 
-CT_Slot_Close (CT_Slot * slot);
+extern char CT_Slot_Close(CT_Slot * slot);
 
 /* Delete a CT_Slot */
-extern void 
-CT_Slot_Delete (CT_Slot * slot);
+extern void CT_Slot_Delete(CT_Slot * slot);
 
 #endif
-

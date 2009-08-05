@@ -1,3 +1,4 @@
+
 /*
     protocol_t1.h
     ISO 7816 T=1 Transport Protocol definitions 
@@ -23,63 +24,56 @@
 */
 
 #ifndef _PROTOCOL_T1_
-#define _PROTOCOL_T1_
+#  define _PROTOCOL_T1_
 
-#include "defines.h"
-#include "icc_async.h"
-#include "apdu.h"
-#include "pps.h"
+#  include "defines.h"
+#  include "icc_async.h"
+#  include "apdu.h"
+#  include "pps.h"
 
 /*
  * Exported constants definition
  */
 
 /* Return codes */
-#define PROTOCOL_T1_OK                  0       /* Command OK */
-#define PROTOCOL_T1_ICC_ERROR           2       /* ICC comunication error */
-#define PROTOCOL_T1_ERROR               4       /* T=1 Protocol Error */
-#define PROTOCOL_T1_NOT_IMPLEMENTED     7       /* Feture not implemented */
+#  define PROTOCOL_T1_OK                  0	/* Command OK */
+#  define PROTOCOL_T1_ICC_ERROR           2	/* ICC comunication error */
+#  define PROTOCOL_T1_ERROR               4	/* T=1 Protocol Error */
+#  define PROTOCOL_T1_NOT_IMPLEMENTED     7	/* Feture not implemented */
 
 /*
  * Exported datatypes definition
  */
 
 /* T=1 Protocol context */
-typedef struct
-{
-  ICC_Async *icc;       /* Asynchronous integrated cirtuit card */
-  unsigned short ifsc;  /* Information field size for the ICC */
-  unsigned short ifsd;  /* Information field size for the IFD */
-  unsigned short bgt;   /* Block guard time */
-  unsigned short bwt;   /* Block waiting time */
-  unsigned short cwt;   /* Character waiting time */
-  int edc;              /* Type of error detection code */
-  BYTE ns;              /* Send sequence number */
-}
-Protocol_T1;
+typedef struct {
+	ICC_Async *icc;		/* Asynchronous integrated cirtuit card */
+	unsigned short ifsc;	/* Information field size for the ICC */
+	unsigned short ifsd;	/* Information field size for the IFD */
+	unsigned short bgt;	/* Block guard time */
+	unsigned short bwt;	/* Block waiting time */
+	unsigned short cwt;	/* Character waiting time */
+	int edc;		/* Type of error detection code */
+	BYTE ns;		/* Send sequence number */
+} Protocol_T1;
 
 /*
  * Exported functions declaration
  */
 
 /* Create a new protocol handler */
-extern Protocol_T1 * 
-Protocol_T1_New (void);
+extern Protocol_T1 *Protocol_T1_New(void);
 
 /* Delete a protocol handler */
-extern void 
-Protocol_T1_Delete (Protocol_T1 * t1);
+extern void Protocol_T1_Delete(Protocol_T1 * t1);
 
 /* Initialise a protocol handler */
-extern int 
-Protocol_T1_Init (Protocol_T1 * t1, ICC_Async * icc, PPS_ProtocolParameters * params);
+extern int Protocol_T1_Init(Protocol_T1 * t1, ICC_Async * icc, PPS_ProtocolParameters * params);
 
 /* Send a command and return a response */
-extern int
-Protocol_T1_Command (Protocol_T1 * t1, APDU_Cmd * cmd, APDU_Rsp ** rsp);
+extern int Protocol_T1_Command(Protocol_T1 * t1, APDU_Cmd * cmd, APDU_Rsp ** rsp);
 
 /* Close a protocol handler */
-extern int 
-Protocol_T1_Close (Protocol_T1 * t1);
+extern int Protocol_T1_Close(Protocol_T1 * t1);
 
-#endif /* _PROTOCOL_T1_ */
+#endif				/* _PROTOCOL_T1_ */

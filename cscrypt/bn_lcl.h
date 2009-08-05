@@ -1,4 +1,6 @@
+
 /* crypto/bn/bn_lcl.h */
+
 /* Copyright (C) 1995-1998 Eric Young (eay@cryptsoft.com)
  * All rights reserved.
  *
@@ -55,6 +57,7 @@
  * copied and put under another distribution licence
  * [including the GNU Public Licence.]
  */
+
 /* ====================================================================
  * Copyright (c) 1998-2000 The OpenSSL Project.  All rights reserved.
  *
@@ -110,13 +113,13 @@
  */
 
 #ifndef HEADER_BN_LCL_H
-#define HEADER_BN_LCL_H
+#  define HEADER_BN_LCL_H
 
-#include "bn.h"
+#  include "bn.h"
 
-#ifdef  __cplusplus
+#  ifdef  __cplusplus
 extern "C" {
-#endif
+#  endif
 
 
 /*
@@ -144,34 +147,37 @@ extern "C" {
  * (with draws in between).  Very small exponents are often selected
  * with low Hamming weight, so we use  w = 1  for b <= 23.
  */
-#if 1
-#define BN_window_bits_for_exponent_size(b) \
+#  if 1
+#    define BN_window_bits_for_exponent_size(b) \
 		((b) > 671 ? 6 : \
 		 (b) > 239 ? 5 : \
 		 (b) >  79 ? 4 : \
 		 (b) >  23 ? 3 : 1)
-#else
+#  else
+
 /* Old SSLeay/OpenSSL table.
  * Maximum window size was 5, so this table differs for b==1024;
  * but it coincides for other interesting values (b==160, b==512).
  */
-#define BN_window_bits_for_exponent_size(b) \
+#    define BN_window_bits_for_exponent_size(b) \
 		((b) > 255 ? 5 : \
 		 (b) > 127 ? 4 : \
 		 (b) >  17 ? 3 : 1)
-#endif	 
+#  endif
 
 
 
 /* Pentium pro 16,16,16,32,64 */
-/* Alpha       16,16,16,16.64 */
-#define BN_MULL_SIZE_NORMAL			(16) /* 32 */
-#define BN_MUL_RECURSIVE_SIZE_NORMAL		(16) /* 32 less than */
-#define BN_SQR_RECURSIVE_SIZE_NORMAL		(16) /* 32 */
-#define BN_MUL_LOW_RECURSIVE_SIZE_NORMAL	(32) /* 32 */
-#define BN_MONT_CTX_SET_SIZE_WORD		(64) /* 32 */
 
-#if !defined(NO_ASM) && !defined(NO_INLINE_ASM) && !defined(PEDANTIC)
+/* Alpha       16,16,16,16.64 */
+#  define BN_MULL_SIZE_NORMAL			(16)	/* 32 */
+#  define BN_MUL_RECURSIVE_SIZE_NORMAL		(16)	/* 32 less than */
+#  define BN_SQR_RECURSIVE_SIZE_NORMAL		(16)	/* 32 */
+#  define BN_MUL_LOW_RECURSIVE_SIZE_NORMAL	(32)	/* 32 */
+#  define BN_MONT_CTX_SET_SIZE_WORD		(64)	/* 32 */
+
+#  if !defined(NO_ASM) && !defined(NO_INLINE_ASM) && !defined(PEDANTIC)
+
 /*
  * BN_UMULT_HIGH section.
  *
@@ -195,53 +201,53 @@ extern "C" {
  *
  *					<appro@fy.chalmers.se>
  */
-# if defined(__alpha) && (defined(SIXTY_FOUR_BIT_LONG) || defined(SIXTY_FOUR_BIT))
-#  if defined(__DECC)
-#   include <c_asm.h>
-#   define BN_UMULT_HIGH(a,b)	(BN_ULONG)asm("umulh %a0,%a1,%v0",(a),(b))
-#  elif defined(__GNUC__)
-#   define BN_UMULT_HIGH(a,b)	({	\
+#    if defined(__alpha) && (defined(SIXTY_FOUR_BIT_LONG) || defined(SIXTY_FOUR_BIT))
+#      if defined(__DECC)
+#        include <c_asm.h>
+#        define BN_UMULT_HIGH(a,b)	(BN_ULONG)asm("umulh %a0,%a1,%v0",(a),(b))
+#      elif defined(__GNUC__)
+#        define BN_UMULT_HIGH(a,b)	({	\
 	register BN_ULONG ret;		\
 	asm ("umulh	%1,%2,%0"	\
 	     : "=r"(ret)		\
 	     : "r"(a), "r"(b));		\
 	ret;			})
-#  endif	/* compiler */
-# elif defined(_ARCH_PPC) && defined(__64BIT__) && defined(SIXTY_FOUR_BIT_LONG)
-#  if defined(__GNUC__)
-#   define BN_UMULT_HIGH(a,b)	({	\
+#      endif			/* compiler */
+#    elif defined(_ARCH_PPC) && defined(__64BIT__) && defined(SIXTY_FOUR_BIT_LONG)
+#      if defined(__GNUC__)
+#        define BN_UMULT_HIGH(a,b)	({	\
 	register BN_ULONG ret;		\
 	asm ("mulhdu	%0,%1,%2"	\
 	     : "=r"(ret)		\
 	     : "r"(a), "r"(b));		\
 	ret;			})
-#  endif	/* compiler */
-# endif		/* cpu */
-#endif		/* NO_ASM */
+#      endif			/* compiler */
+#    endif			/* cpu */
+#  endif			/* NO_ASM */
 
 /*************************************************************
  * Using the long long type
  */
-#define Lw(t)    (((BN_ULONG)(t))&BN_MASK2)
-#define Hw(t)    (((BN_ULONG)((t)>>BN_BITS2))&BN_MASK2)
+#  define Lw(t)    (((BN_ULONG)(t))&BN_MASK2)
+#  define Hw(t)    (((BN_ULONG)((t)>>BN_BITS2))&BN_MASK2)
 
 /* This is used for internal error checking and is not normally used */
-#ifdef BN_DEBUG
-# include <assert.h>
-# define bn_check_top(a) assert ((a)->top >= 0 && (a)->top <= (a)->dmax);
-#else
-# define bn_check_top(a)
-#endif
+#  ifdef BN_DEBUG
+#    include <assert.h>
+#    define bn_check_top(a) assert ((a)->top >= 0 && (a)->top <= (a)->dmax);
+#  else
+#    define bn_check_top(a)
+#  endif
 
 /* This macro is to add extra stuff for development checking */
-#ifdef BN_DEBUG
-#define	bn_set_max(r) ((r)->max=(r)->top,BN_set_flags((r),BN_FLG_STATIC_DATA))
-#else
-#define	bn_set_max(r)
-#endif
+#  ifdef BN_DEBUG
+#    define	bn_set_max(r) ((r)->max=(r)->top,BN_set_flags((r),BN_FLG_STATIC_DATA))
+#  else
+#    define	bn_set_max(r)
+#  endif
 
 /* These macros are used to 'take' a section of a bignum for read only use */
-#define bn_set_low(r,a,n) \
+#  define bn_set_low(r,a,n) \
 	{ \
 	(r)->top=((a)->top > (n))?(n):(a)->top; \
 	(r)->d=(a)->d; \
@@ -250,7 +256,7 @@ extern "C" {
 	bn_set_max(r); \
 	}
 
-#define bn_set_high(r,a,n) \
+#  define bn_set_high(r,a,n) \
 	{ \
 	if ((a)->top > (n)) \
 		{ \
@@ -264,30 +270,30 @@ extern "C" {
 	bn_set_max(r); \
 	}
 
-#ifdef BN_LLONG
-#define mul_add(r,a,w,c) { \
+#  ifdef BN_LLONG
+#    define mul_add(r,a,w,c) { \
 	BN_ULLONG t; \
 	t=(BN_ULLONG)w * (a) + (r) + (c); \
 	(r)= Lw(t); \
 	(c)= Hw(t); \
 	}
 
-#define mul(r,a,w,c) { \
+#    define mul(r,a,w,c) { \
 	BN_ULLONG t; \
 	t=(BN_ULLONG)w * (a) + (c); \
 	(r)= Lw(t); \
 	(c)= Hw(t); \
 	}
 
-#define sqr(r0,r1,a) { \
+#    define sqr(r0,r1,a) { \
 	BN_ULLONG t; \
 	t=(BN_ULLONG)(a)*(a); \
 	(r0)=Lw(t); \
 	(r1)=Hw(t); \
 	}
 
-#elif defined(BN_UMULT_HIGH)
-#define mul_add(r,a,w,c) {		\
+#  elif defined(BN_UMULT_HIGH)
+#    define mul_add(r,a,w,c) {		\
 	BN_ULONG high,low,ret,tmp=(a);	\
 	ret =  (r);			\
 	high=  BN_UMULT_HIGH(w,tmp);	\
@@ -300,7 +306,7 @@ extern "C" {
 	(r) =  ret;			\
 	}
 
-#define mul(r,a,w,c)	{		\
+#    define mul(r,a,w,c)	{		\
 	BN_ULONG high,low,ret,ta=(a);	\
 	low =  (w) * ta;		\
 	high=  BN_UMULT_HIGH(w,ta);	\
@@ -310,26 +316,27 @@ extern "C" {
 	(r) =  ret;			\
 	}
 
-#define sqr(r0,r1,a)	{		\
+#    define sqr(r0,r1,a)	{		\
 	BN_ULONG tmp=(a);		\
 	(r0) = tmp * tmp;		\
 	(r1) = BN_UMULT_HIGH(tmp,tmp);	\
 	}
 
-#else
+#  else
+
 /*************************************************************
  * No long long type
  */
 
-#define LBITS(a)	((a)&BN_MASK2l)
-#define HBITS(a)	(((a)>>BN_BITS4)&BN_MASK2l)
-#define	L2HBITS(a)	((BN_ULONG)((a)&BN_MASK2l)<<BN_BITS4)
+#    define LBITS(a)	((a)&BN_MASK2l)
+#    define HBITS(a)	(((a)>>BN_BITS4)&BN_MASK2l)
+#    define	L2HBITS(a)	((BN_ULONG)((a)&BN_MASK2l)<<BN_BITS4)
 
-#define LLBITS(a)	((a)&BN_MASKl)
-#define LHBITS(a)	(((a)>>BN_BITS2)&BN_MASKl)
-#define	LL2HBITS(a)	((BN_ULLONG)((a)&BN_MASKl)<<BN_BITS2)
+#    define LLBITS(a)	((a)&BN_MASKl)
+#    define LHBITS(a)	(((a)>>BN_BITS2)&BN_MASKl)
+#    define	LL2HBITS(a)	((BN_ULLONG)((a)&BN_MASKl)<<BN_BITS2)
 
-#define mul64(l,h,bl,bh) \
+#    define mul64(l,h,bl,bh) \
 	{ \
 	BN_ULONG m,m1,lt,ht; \
  \
@@ -347,7 +354,7 @@ extern "C" {
 	(h)=ht; \
 	}
 
-#define sqr64(lo,ho,in) \
+#    define sqr64(lo,ho,in) \
 	{ \
 	BN_ULONG l,h,m; \
  \
@@ -364,7 +371,7 @@ extern "C" {
 	(ho)=h; \
 	}
 
-#define mul_add(r,a,bl,bh,c) { \
+#    define mul_add(r,a,bl,bh,c) { \
 	BN_ULONG l,h; \
  \
 	h= (a); \
@@ -380,7 +387,7 @@ extern "C" {
 	(r)=l; \
 	}
 
-#define mul(r,a,bl,bh,c) { \
+#    define mul(r,a,bl,bh,c) { \
 	BN_ULONG l,h; \
  \
 	h= (a); \
@@ -393,27 +400,23 @@ extern "C" {
 	(c)=h&BN_MASK2; \
 	(r)=l&BN_MASK2; \
 	}
-#endif /* !BN_LLONG */
+#  endif			/* !BN_LLONG */
 
-void bn_mul_normal(BN_ULONG *r,BN_ULONG *a,int na,BN_ULONG *b,int nb);
-void bn_mul_comba8(BN_ULONG *r,BN_ULONG *a,BN_ULONG *b);
-void bn_mul_comba4(BN_ULONG *r,BN_ULONG *a,BN_ULONG *b);
-void bn_sqr_normal(BN_ULONG *r, BN_ULONG *a, int n, BN_ULONG *tmp);
-void bn_sqr_comba8(BN_ULONG *r,BN_ULONG *a);
-void bn_sqr_comba4(BN_ULONG *r,BN_ULONG *a);
-int bn_cmp_words(BN_ULONG *a,BN_ULONG *b,int n);
-void bn_mul_recursive(BN_ULONG *r,BN_ULONG *a,BN_ULONG *b,int n2,BN_ULONG *t);
-void bn_mul_part_recursive(BN_ULONG *r,BN_ULONG *a,BN_ULONG *b,
-	int tn, int n,BN_ULONG *t);
-void bn_sqr_recursive(BN_ULONG *r,BN_ULONG *a, int n2, BN_ULONG *t);
-void bn_mul_low_normal(BN_ULONG *r,BN_ULONG *a,BN_ULONG *b, int n);
-void bn_mul_low_recursive(BN_ULONG *r,BN_ULONG *a,BN_ULONG *b,int n2,
-	BN_ULONG *t);
-void bn_mul_high(BN_ULONG *r,BN_ULONG *a,BN_ULONG *b,BN_ULONG *l,int n2,
-	BN_ULONG *t);
+	void bn_mul_normal(BN_ULONG * r, BN_ULONG * a, int na, BN_ULONG * b, int nb);
+	void bn_mul_comba8(BN_ULONG * r, BN_ULONG * a, BN_ULONG * b);
+	void bn_mul_comba4(BN_ULONG * r, BN_ULONG * a, BN_ULONG * b);
+	void bn_sqr_normal(BN_ULONG * r, BN_ULONG * a, int n, BN_ULONG * tmp);
+	void bn_sqr_comba8(BN_ULONG * r, BN_ULONG * a);
+	void bn_sqr_comba4(BN_ULONG * r, BN_ULONG * a);
+	int bn_cmp_words(BN_ULONG * a, BN_ULONG * b, int n);
+	void bn_mul_recursive(BN_ULONG * r, BN_ULONG * a, BN_ULONG * b, int n2, BN_ULONG * t);
+	void bn_mul_part_recursive(BN_ULONG * r, BN_ULONG * a, BN_ULONG * b, int tn, int n, BN_ULONG * t);
+	void bn_sqr_recursive(BN_ULONG * r, BN_ULONG * a, int n2, BN_ULONG * t);
+	void bn_mul_low_normal(BN_ULONG * r, BN_ULONG * a, BN_ULONG * b, int n);
+	void bn_mul_low_recursive(BN_ULONG * r, BN_ULONG * a, BN_ULONG * b, int n2, BN_ULONG * t);
+	void bn_mul_high(BN_ULONG * r, BN_ULONG * a, BN_ULONG * b, BN_ULONG * l, int n2, BN_ULONG * t);
 
-#ifdef  __cplusplus
+#  ifdef  __cplusplus
 }
-#endif
-
+#  endif
 #endif

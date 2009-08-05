@@ -1,3 +1,4 @@
+
 /*
     defines.h
 
@@ -22,36 +23,37 @@
 */
 
 #ifndef DEFINES_H
-#define DEFINES_H
+#  define DEFINES_H
 
 /*
  * Get configuration information
  */
 
 // #ifdef HAVE_CONFIG_H
-#include "config.h"
+#  include "config.h"
 // #endif
 
 /*
  * Boolean constants
  */
 
-#ifndef TRUE
-#define TRUE	1
-#endif
+#  ifndef TRUE
+#    define TRUE	1
+#  endif
 
-#ifndef FALSE
-#define FALSE	0
-#endif
+#  ifndef FALSE
+#    define FALSE	0
+#  endif
 
 /*
  * Type definitions
  */
 
 typedef unsigned char BYTE;
-#ifndef __cplusplus
+
+#  ifndef __cplusplus
 typedef int bool;
-#endif
+#  endif
 typedef unsigned short USHORT;
 typedef unsigned char UCHAR;
 typedef unsigned char *PUCHAR;
@@ -66,17 +68,17 @@ typedef void *PVOID;
  * Utility macros
  */
 
-#ifndef MAX
-#define MAX(a,b)	((a)>(b)?(a):(b))
-#endif
+#  ifndef MAX
+#    define MAX(a,b)	((a)>(b)?(a):(b))
+#  endif
 
-#ifndef MIN
-#define MIN(a,b)	((a)<(b)?(a):(b))
-#endif
+#  ifndef MIN
+#    define MIN(a,b)	((a)<(b)?(a):(b))
+#  endif
 
 /* Invert order of bits in a byte: b7->b0, b0->b7 */
-#ifndef INVERT_BYTE
-#define INVERT_BYTE(a)		((((a) << 7) & 0x80) | \
+#  ifndef INVERT_BYTE
+#    define INVERT_BYTE(a)		((((a) << 7) & 0x80) | \
 				(((a) << 5) & 0x40) | \
 				(((a) << 3) & 0x20) | \
 				(((a) << 1) & 0x10) | \
@@ -84,11 +86,11 @@ typedef void *PVOID;
 				(((a) >> 3) & 0x04) | \
 				(((a) >> 5) & 0x02) | \
 				(((a) >> 7) & 0x01))
-#endif
+#  endif
 
-#define	RTYP_STD	1
-#define RTYP_SCI	2
-#define RTYP_DB2COM1	3
-#define RTYP_DB2COM2	4
-#define RTYP_SMART	5
-#endif /* DEFINES_H */
+#  define	RTYP_STD	1
+#  define RTYP_SCI	2
+#  define RTYP_DB2COM1	3
+#  define RTYP_DB2COM2	4
+#  define RTYP_SMART	5
+#endif				/* DEFINES_H */

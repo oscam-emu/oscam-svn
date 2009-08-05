@@ -1,3 +1,4 @@
+
 /*
     pps.h
     Protocol Parameters Selection
@@ -23,58 +24,56 @@
  */
 
 #ifndef _PPS_
-#define _PPS_
+#  define _PPS_
 
-#include "defines.h"
-#include "icc_async.h"
+#  include "defines.h"
+#  include "icc_async.h"
 
 /*
  * Exported constants definition
  */
 
-#define PPS_OK			0	/* Negotiation OK */
-#define PPS_ICC_ERROR		1	/* Comunication error */
-#define PPS_HANDSAKE_ERROR	2	/* Agreement not reached */
-#define PPS_PROTOCOL_ERROR	3	/* Error starting protocol */
-#define PPS_MAX_LENGTH		6
+#  define PPS_OK			0
+					/* Negotiation OK */
+#  define PPS_ICC_ERROR		1	/* Comunication error */
+#  define PPS_HANDSAKE_ERROR	2	/* Agreement not reached */
+#  define PPS_PROTOCOL_ERROR	3	/* Error starting protocol */
+#  define PPS_MAX_LENGTH		6
+
 /*
  * Exported data types definition
  */
 
-typedef struct
-{
-  double f;
-  double d;
-  double n;
-  BYTE t;
-}
-PPS_ProtocolParameters;
+typedef struct {
+	double f;
+	double d;
+	double n;
+	BYTE t;
+} PPS_ProtocolParameters;
 
-typedef struct
-{
-  ICC_Async *icc;
-  void *protocol;
-  PPS_ProtocolParameters parameters;
-}
-PPS;
+typedef struct {
+	ICC_Async *icc;
+	void *protocol;
+	PPS_ProtocolParameters parameters;
+} PPS;
 
 /*
  * Exported functions declaration
  */
 
 /* Create PPS context */
-extern PPS *PPS_New (ICC_Async * icc);
+extern PPS *PPS_New(ICC_Async * icc);
 
 /* Perform protcol type selection and return confirm */
-extern int PPS_Perform (PPS * pps, BYTE * params, unsigned *length);
+extern int PPS_Perform(PPS * pps, BYTE * params, unsigned *length);
 
 /* Get protocol handler */
-extern void *PPS_GetProtocol (PPS * pps);
+extern void *PPS_GetProtocol(PPS * pps);
 
 /* Get protocol parameters */
-extern PPS_ProtocolParameters *PPS_GetProtocolParameters (PPS * pps);
+extern PPS_ProtocolParameters *PPS_GetProtocolParameters(PPS * pps);
 
 /* Delete PPS context */
-extern void PPS_Delete (PPS * pps);
+extern void PPS_Delete(PPS * pps);
 
-#endif /* _PPS_ */
+#endif				/* _PPS_ */

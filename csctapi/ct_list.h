@@ -1,3 +1,4 @@
+
 /*
     cl_list.c
     Definition of a linked list of card-terminals
@@ -23,59 +24,49 @@
 */
 
 #ifndef _CT_LIST_
-#define _CT_LIST_
+#  define _CT_LIST_
 
-#include "defines.h"
-#include "cardterminal.h"
+#  include "defines.h"
+#  include "cardterminal.h"
 
 /* 
  * Exported datatypes definition 
  */
 
 /* Node of the list */
-struct CT_List_Node
-{
-  unsigned short ctn;		/* Card Terminal number */
-  CardTerminal *ct;		/* Card Terminal reference */
-  struct CT_List_Node *next;	/* Next node of the list */
+struct CT_List_Node {
+	unsigned short ctn;	/* Card Terminal number */
+	CardTerminal *ct;	/* Card Terminal reference */
+	struct CT_List_Node *next;	/* Next node of the list */
 };
 
 /* Linked list of card-terminals */
-typedef struct
-{
-  struct CT_List_Node *first;	/* First element */
-  struct CT_List_Node *last;	/* Last element */
-  int elements;			/* Number of elements */
-}
-CT_List;
+typedef struct {
+	struct CT_List_Node *first;	/* First element */
+	struct CT_List_Node *last;	/* Last element */
+	int elements;		/* Number of elements */
+} CT_List;
 
 /* 
  * Exported functions declaration 
  */
 
 /* Creates a new list of CardTerminals */
-extern CT_List *
-CT_List_New (void);
+extern CT_List *CT_List_New(void);
 
 /* Adds a CardTerminal to a existing list */
-extern bool
-CT_List_AddCardTerminal (CT_List * list, CardTerminal * ct, unsigned short ctn);
+extern bool CT_List_AddCardTerminal(CT_List * list, CardTerminal * ct, unsigned short ctn);
 
 /* Returns a CardTerminal by its number or NULL if not found */
-extern CardTerminal * 
-CT_List_GetCardTerminal (CT_List * list, unsigned short ctn);
+extern CardTerminal *CT_List_GetCardTerminal(CT_List * list, unsigned short ctn);
 
 /* Returns the number of CardTerminals in a list */
-extern int 
-CT_List_GetNumberOfElements (CT_List * list);
+extern int CT_List_GetNumberOfElements(CT_List * list);
 
 /* Removes a CardTerminal from a list by its number */
-extern bool 
-CT_List_RemoveCardTerminal (CT_List * list, unsigned short ctn);
+extern bool CT_List_RemoveCardTerminal(CT_List * list, unsigned short ctn);
 
 /* Empties and removes a list */
-extern void 
-CT_List_Delete (CT_List * list);
+extern void CT_List_Delete(CT_List * list);
 
-#endif /* _CT_LIST_ */
-
+#endif				/* _CT_LIST_ */

@@ -1,3 +1,4 @@
+
 /*
     cardterminal.h
     Card Terminal handling definitions
@@ -23,71 +24,62 @@
 */
 
 #ifndef _CARDTERMINAL_
-#define _CARDTERMINAL_
+#  define _CARDTERMINAL_
 
-#include "defines.h"
-#include "ct_slot.h"
-#include "io_serial.h"
-#include "apdu.h"
-#include "ctapi.h"
-#include "ctbcs.h"
-#ifdef HAVE_PTHREAD_H
-#include "pthread.h"
-#endif
+#  include "defines.h"
+#  include "ct_slot.h"
+#  include "io_serial.h"
+#  include "apdu.h"
+#  include "ctapi.h"
+#  include "ctbcs.h"
+#  ifdef HAVE_PTHREAD_H
+#    include "pthread.h"
+#  endif
 
 /* 
  * Exported constats definition
  */
 
 /* Maximum number of slots in a cardterminal */
-#define CARDTERMINAL_MAX_SLOTS		2
+#  define CARDTERMINAL_MAX_SLOTS		2
 
 /*
  * Exported datatypes definition 
  */
 
-typedef struct
-{
-  IO_Serial * io;				/* Serial device */
-  CT_Slot * slots[CARDTERMINAL_MAX_SLOTS];	/* Array of CT_Slot's */
-  int num_slots;				/* Number of CT_Slot's */
-#ifdef HAVE_PTHREAD_H
-  pthread_mutex_t mutex;
-#endif
-}
-CardTerminal;
+typedef struct {
+	IO_Serial *io;		/* Serial device */
+	CT_Slot *slots[CARDTERMINAL_MAX_SLOTS];	/* Array of CT_Slot's */
+	int num_slots;		/* Number of CT_Slot's */
+#  ifdef HAVE_PTHREAD_H
+	pthread_mutex_t mutex;
+#  endif
+} CardTerminal;
 
 /*
  * Exported functions declaration
  */
 
 /* Cretate a new CardTerminal */
-extern CardTerminal *
-CardTerminal_New ();
+extern CardTerminal *CardTerminal_New();
 
 /* Intialice a CardTerminal in a given port */
-extern char 
-CardTerminal_Init (CardTerminal * ct, unsigned short pn, int reader_type);
+extern char CardTerminal_Init(CardTerminal * ct, unsigned short pn, int reader_type);
 
 /* Send a CT-BCS command to a CardTerminal */
-extern char
-CardTerminal_Command (CardTerminal * ct, APDU_Cmd * cmd, APDU_Rsp ** rsp);
+extern char CardTerminal_Command(CardTerminal * ct, APDU_Cmd * cmd, APDU_Rsp ** rsp);
 
 /* Return the reference to a slot */
-extern CT_Slot *
-CardTerminal_GetSlot (CardTerminal * ct, int number);
+extern CT_Slot *CardTerminal_GetSlot(CardTerminal * ct, int number);
 
 /* Close a CardTerminal */
-extern char
-CardTerminal_Close (CardTerminal * cn);
+extern char CardTerminal_Close(CardTerminal * cn);
 
 /* Delete a CardTerminal */
-extern void 
-CardTerminal_Delete (CardTerminal * ct);
+extern void CardTerminal_Delete(CardTerminal * ct);
 
-#ifdef HAVE_PTHREAD_H
-extern pthread_mutex_t *
-CardTerminal_GetMutex (CardTerminal * ct);
-#endif
+#  ifdef HAVE_PTHREAD_H
+extern pthread_mutex_t *CardTerminal_GetMutex(CardTerminal * ct);
+#  endif
 
 #endif

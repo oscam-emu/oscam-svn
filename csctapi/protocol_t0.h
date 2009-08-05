@@ -1,3 +1,4 @@
+
 /*
     protocol_t0.h
     ISO 7816 T=0 Transport Protocol definitions 
@@ -23,74 +24,75 @@
 */
 
 #ifndef _PROTOCOL_T0_
-#define _PROTOCOL_T0_
+#  define _PROTOCOL_T0_
 
-#include "defines.h"
-#include "icc_async.h"
-#include "apdu.h"
-#include "pps.h"
+#  include "defines.h"
+#  include "icc_async.h"
+#  include "apdu.h"
+#  include "pps.h"
 
 /*
  * Exported constants definition
  */
 
 /* Return codes */
-#define PROTOCOL_T0_OK			0	/* Command OK */
-#define PROTOCOL_T0_NULL_ERROR		1	/* Maximum NULL's reachec */
-#define PROTOCOL_T0_ICC_ERROR		2	/* ICC comunication error */
-#define PROTOCOL_T0_IFD_ERROR		3	/* IFD comunication error */
-#define PROTOCOL_T0_ERROR		4	/* T=0 Protocol Error */
+#  define PROTOCOL_T0_OK			0
+						/* Command OK */
+#  define PROTOCOL_T0_NULL_ERROR		1
+						/* Maximum NULL's reachec */
+#  define PROTOCOL_T0_ICC_ERROR		2	/* ICC comunication error */
+#  define PROTOCOL_T0_IFD_ERROR		3	/* IFD comunication error */
+#  define PROTOCOL_T0_ERROR		4	/* T=0 Protocol Error */
 
 /* Return codes */
-#define PROTOCOL_T14_OK			0	/* Command OK */
-#define PROTOCOL_T14_NULL_ERROR		1	/* Maximum NULL's reachec */
-#define PROTOCOL_T14_ICC_ERROR		2	/* ICC comunication error */
-#define PROTOCOL_T14_IFD_ERROR		3	/* IFD comunication error */
-#define PROTOCOL_T14_ERROR		4	/* T=0 Protocol Error */
+#  define PROTOCOL_T14_OK			0
+						/* Command OK */
+#  define PROTOCOL_T14_NULL_ERROR		1
+						/* Maximum NULL's reachec */
+#  define PROTOCOL_T14_ICC_ERROR		2
+						/* ICC comunication error */
+#  define PROTOCOL_T14_IFD_ERROR		3
+						/* IFD comunication error */
+#  define PROTOCOL_T14_ERROR		4	/* T=0 Protocol Error */
 
 /*
  * Exported datatypes definition
  */
 
 /* T=0 Protocol handler */
-typedef struct
-{
-  ICC_Async *icc;		/* Asynchrosous integrated cirtuit card */
-  unsigned long wwt;		/* Work waiting time (ms) */
-}
-Protocol_T0;
+typedef struct {
+	ICC_Async *icc;		/* Asynchrosous integrated cirtuit card */
+	unsigned long wwt;	/* Work waiting time (ms) */
+} Protocol_T0;
 
 /* T=14 Protocol handler */
-typedef struct
-{
-  ICC_Async *icc;		/* Asynchrosous integrated cirtuit card */
-  unsigned long wwt;		/* Work waiting time (ms) */
-}
-Protocol_T14;
+typedef struct {
+	ICC_Async *icc;		/* Asynchrosous integrated cirtuit card */
+	unsigned long wwt;	/* Work waiting time (ms) */
+} Protocol_T14;
 
 /*
  * Exported functions declaration
  */
 
 /* Create a new protocol handler */
-extern Protocol_T0 *Protocol_T0_New (void);
-extern Protocol_T14 *Protocol_T14_New (void);
+extern Protocol_T0 *Protocol_T0_New(void);
+extern Protocol_T14 *Protocol_T14_New(void);
 
 /* Delete a protocol handler */
-extern void Protocol_T0_Delete (Protocol_T0 * t0);
-extern void Protocol_T14_Delete (Protocol_T14 * t14);
+extern void Protocol_T0_Delete(Protocol_T0 * t0);
+extern void Protocol_T14_Delete(Protocol_T14 * t14);
 
 /* Initialise a protocol handler */
-extern int Protocol_T0_Init (Protocol_T0 * t0, ICC_Async * icc, PPS_ProtocolParameters * params);
-extern int Protocol_T14_Init (Protocol_T14 * t14, ICC_Async * icc, PPS_ProtocolParameters * params);
+extern int Protocol_T0_Init(Protocol_T0 * t0, ICC_Async * icc, PPS_ProtocolParameters * params);
+extern int Protocol_T14_Init(Protocol_T14 * t14, ICC_Async * icc, PPS_ProtocolParameters * params);
 
 /* Send a command and return a response */
-extern int Protocol_T0_Command (Protocol_T0 * t0, APDU_Cmd * cmd, APDU_Rsp ** rsp);
-extern int Protocol_T14_Command (Protocol_T14 * t14, APDU_Cmd * cmd, APDU_Rsp ** rsp);
+extern int Protocol_T0_Command(Protocol_T0 * t0, APDU_Cmd * cmd, APDU_Rsp ** rsp);
+extern int Protocol_T14_Command(Protocol_T14 * t14, APDU_Cmd * cmd, APDU_Rsp ** rsp);
 
 /* Close a protocol handler */
-extern int Protocol_T0_Close (Protocol_T0 * t0);
-extern int Protocol_T14_Close (Protocol_T14 * t14);
+extern int Protocol_T0_Close(Protocol_T0 * t0);
+extern int Protocol_T14_Close(Protocol_T14 * t14);
 
-#endif /* _PROTOCOL_T0_ */
-
+#endif				/* _PROTOCOL_T0_ */

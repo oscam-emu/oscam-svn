@@ -1,3 +1,4 @@
+
 /*****************************************************************
 /
 / File   :   pcscdefines.h
@@ -11,27 +12,26 @@
 ******************************************************************/
 
 #ifndef _pcscdefines_h_
-#define _pcscdefines_h_
+#  define _pcscdefines_h_
 
-#ifdef __cplusplus
+#  ifdef __cplusplus
 extern "C" {
-#endif 
+#  endif
 
 /* Defines a list of pseudo types. */
 
-  typedef unsigned long      DWORD;
-  typedef unsigned long*     PDWORD;
-  typedef unsigned char      UCHAR;
-  typedef unsigned char*     PUCHAR;
-  typedef char*              LPSTR;
-  typedef long               RESPONSECODE;
-  typedef void               VOID;
+	typedef unsigned long DWORD;
+	typedef unsigned long *PDWORD;
+	typedef unsigned char UCHAR;
+	typedef unsigned char *PUCHAR;
+	typedef char *LPSTR;
+	typedef long RESPONSECODE;
+	typedef void VOID;
 
-  #define MAX_RESPONSE_SIZE  264
-  #define MAX_ATR_SIZE       33
+#  define MAX_RESPONSE_SIZE  264
+#  define MAX_ATR_SIZE       33
 
-#ifdef __cplusplus
+#  ifdef __cplusplus
 }
-#endif
-
-#endif /* _pcscdefines_h_ */
+#  endif
+#endif				/* _pcscdefines_h_ */
