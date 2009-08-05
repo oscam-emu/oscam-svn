@@ -498,7 +498,7 @@ static int camd35_recv_log(ushort * caid, ulong * provid, ushort * srvid)
  *	module definitions
  */
 
-void module_camd35(struct s_module *ph)
+void sharing_camd35_module_udp(struct s_module *ph)
 {
 	static PTAB ptab;
 
@@ -522,7 +522,7 @@ void module_camd35(struct s_module *ph)
 	ph->c_recv_log = camd35_recv_log;
 }
 
-void module_camd35_tcp(struct s_module *ph)
+void sharing_camd35_module_tcp(struct s_module *ph)
 {
 	strcpy(ph->desc, "cs378x");
 	ph->type = MOD_CONN_TCP;

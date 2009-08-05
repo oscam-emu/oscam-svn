@@ -132,7 +132,7 @@ static void radegast_server()
 	cs_disconnect_client();
 }
 
-void module_radegast(struct s_module *ph)
+void sharing_radegast_module(struct s_module *ph)
 {
 	static PTAB ptab;
 

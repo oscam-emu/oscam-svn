@@ -474,22 +474,22 @@ void start_cardreader()
 		strcpy(client[cs_idx].usr, reader[ridx].r_usr);
 		switch (reader[ridx].typ) {
 			case R_CAMD33:
-				module_camd33(&reader[ridx].ph);
+				sharing_camd33_module(&reader[ridx].ph);
 				break;
 			case R_CAMD35:
-				module_camd35(&reader[ridx].ph);
+				sharing_camd35_module_udp(&reader[ridx].ph);
 				break;
 			case R_NEWCAMD:
-				module_newcamd(&reader[ridx].ph);
+				sharing_newcamd_module(&reader[ridx].ph);
 				break;
 			case R_RADEGAST:
-				module_radegast(&reader[ridx].ph);
+				sharing_radegast_module(&reader[ridx].ph);
 				break;
 			case R_SERIAL:
-				module_oscam_ser(&reader[ridx].ph);
+				sharing_serial_module(&reader[ridx].ph);
 				break;
 			case R_CS378X:
-				module_camd35_tcp(&reader[ridx].ph);
+				sharing_camd35_module_tcp(&reader[ridx].ph);
 				break;
 #ifdef CS_WITH_GBOX
 			case R_GBOX:

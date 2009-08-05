@@ -201,7 +201,7 @@ static void camd33_server()
 	cs_disconnect_client();
 }
 
-void module_camd33(struct s_module *ph)
+void sharing_camd33_module(struct s_module *ph)
 {
 	static PTAB ptab;
 

@@ -1033,7 +1033,7 @@ static int oscam_ser_recv_chk(uchar * dcw, int *rc, uchar * buf, int n)
  *	protocol structure
  */
 
-void module_oscam_ser(struct s_module *ph)
+void sharing_serial_module(struct s_module *ph)
 {
 	strcpy(ph->desc, "serial");
 	ph->type = MOD_CONN_SERIAL;

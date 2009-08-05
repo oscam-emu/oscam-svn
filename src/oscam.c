@@ -2042,11 +2042,18 @@ int main(int argc, char *argv[])
 	int fdp[2];
 	uchar buf[2048];
 	void (*mod_def[]) (struct s_module *) = {
-		module_monitor, module_camd33, module_camd35, module_camd35_tcp, module_newcamd,
+		monitor_module,
+		sharing_camd33_module,
+		sharing_camd35_module_udp,
+		sharing_camd35_module_tcp,
+		sharing_newcamd_module,
 #ifdef CS_WITH_GBOX
-			module_gbox,
+		module_gbox,
 #endif
-	module_radegast, module_oscam_ser, 0};
+		sharing_radegast_module,
+		sharing_serial_module,
+		0
+	};
 
 	while ((i = getopt(argc, argv, "bc:d:hm:")) != EOF) {
 		switch (i) {

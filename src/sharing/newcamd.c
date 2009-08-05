@@ -1156,7 +1156,7 @@ static int newcamd_recv_chk(uchar * dcw, int *rc, uchar * buf, int n)
 	return (idx);
 }
 
-void module_newcamd(struct s_module *ph)
+void sharing_newcamd_module(struct s_module *ph)
 {
 	strcpy(ph->desc, "newcamd");
 	ph->type = MOD_CONN_TCP;

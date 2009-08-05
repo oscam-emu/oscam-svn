@@ -545,7 +545,7 @@ static void monitor_server()
 	cs_disconnect_client();
 }
 
-void module_monitor(struct s_module *ph)
+void monitor_module(struct s_module *ph)
 {
 	static PTAB ptab;
 
@@ -562,5 +562,5 @@ void module_monitor(struct s_module *ph)
 	ph->s_ip = cfg->mon_srvip;
 	ph->s_handler = monitor_server;
 	ph->recv = monitor_recv;
-//  ph->send_dcw=NULL;
+//	ph->send_dcw = NULL;
 }
