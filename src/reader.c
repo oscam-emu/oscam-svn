@@ -349,6 +349,7 @@ static int reader_listen(int fd1, int fd2)
 	fd_set fds;
 	struct timeval tv;
 
+#ifdef CS_WITH_GBOX
 	if (reader[ridx].typ == R_GBOX) {
 		struct timeb tpe;
 		int ms, x;
@@ -364,6 +365,7 @@ static int reader_listen(int fd1, int fd2)
 			}
 		}
 	}
+#endif
 
 	if (master_pid != getppid())
 		cs_exit(0);

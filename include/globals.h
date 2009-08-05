@@ -126,7 +126,9 @@
 #  define R_NEWCAMD		0x12	// Reader cascading newcamd
 #  define R_RADEGAST		0x13	// Reader cascading radegast
 #  define R_CS378X		0x14	// Reader cascading camd 3.5x TCP
-#  define R_GBOX		0x20	// Reader cascading gbox
+#  ifdef CS_WITH_GBOX
+#    define R_GBOX		0x20	// Reader cascading gbox
+#  endif
 #  define R_SERIAL		0x80	// Reader serial
 #  define R_IS_NETWORK		0x70
 #  define R_IS_CASCADING	0xF0
@@ -381,6 +383,7 @@ struct s_reader {
 	FTAB fchid;
 	FTAB ftab;
 	CLASSTAB cltab;
+#  ifdef CS_WITH_GBOX
 	uchar gbox_pwd[4];
 	uchar gbox_timecode[7];
 	int gbox_online;
@@ -388,6 +391,7 @@ struct s_reader {
 	uchar gbox_prem;
 	int gbox_fd;
 	struct timeb gbox_lasthello;	// incoming time stamp
+#  endif
 #  ifdef CS_RDR_INIT_HIST
 	uchar init_history[1024];
 	int init_history_pos;
@@ -477,7 +481,9 @@ struct s_config {
 	int show_ecm_dw;
 	int waitforcards;
 	int preferlocalcards;
+#  ifdef CS_WITH_GBOX
 	uchar gbox_pwd[8];
+#  endif
 	uchar ignorefile[512];
 	uchar cardfile[512];
 	uchar gbxShareOnl[512];

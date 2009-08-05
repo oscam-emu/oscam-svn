@@ -30,15 +30,20 @@ typedef enum cs_proto_type {
 	TAG_RADEGAST,		// radegast
 	TAG_SERIAL,		// serial (static)
 	TAG_CS357X,		// camd 3.5x UDP
-	TAG_CS378X,		// camd 3.5x TCP
-	TAG_GBOX		// gbox
+	TAG_CS378X		// camd 3.5x TCP
+#ifdef CS_WITH_GBOX
+	, TAG_GBOX		// gbox
+#endif
 #ifdef CS_ANTICASC
-		, TAG_ANTICASC	// anti-cascading
+	, TAG_ANTICASC		// anti-cascading
 #endif
 } cs_proto_type_t;
 
 static char *cctag[] = { "global", "monitor", "camd33", "camd35",
-	"newcamd", "radegast", "serial", "cs357x", "cs378x", "gbox",
+	"newcamd", "radegast", "serial", "cs357x", "cs378x",
+#ifdef CS_WITH_GBOX
+	"gbox",
+#endif
 #ifdef CS_ANTICASC
 	"anticasc",
 #endif
@@ -476,6 +481,7 @@ static void chk_t_serial(char *token, char *value)
 	}
 }
 
+#ifdef CS_WITH_GBOX
 static void chk_t_gbox(char *token, char *value)
 {
 //  if (!strcmp(token, "password")) strncpy(cfg->gbox_pwd, i2b(4, a2i(value, 4)), 4);
@@ -500,6 +506,7 @@ static void chk_t_gbox(char *token, char *value)
 		cfg->num_locals = n;
 	}
 }
+#endif
 
 static void chk_token(char *token, char *value, int tag)
 {
@@ -529,9 +536,11 @@ static void chk_token(char *token, char *value, int tag)
 		case TAG_CS378X:
 			chk_t_camd35_tcp(token, value);
 			break;
+#ifdef CS_WITH_GBOX
 		case TAG_GBOX:
 			chk_t_gbox(token, value);
 			break;
+#endif
 #ifdef CS_ANTICASC
 		case TAG_ANTICASC:
 			chk_t_ac(token, value);
@@ -1031,10 +1040,12 @@ static void chk_reader(char *token, char *value, struct s_reader *rdr)
 			exit(1);
 		}
 	}
+#ifdef CS_WITH_GBOX
 	if (!strcmp(token, "password"))
 		strncpy((char *) rdr->gbox_pwd, (const char *) i2b(4, a2i(value, 4)), 4);
 	if (!strcmp(token, "premium"))
 		rdr->gbox_prem = 1;
+#endif
 	if (!strcmp(token, "account"))
 		for (i = 0, ptr = strtok(value, ","); (i < 2) && (ptr); ptr = strtok(NULL, ","), i++) {
 			trim(ptr);
@@ -1119,8 +1130,10 @@ static void chk_reader(char *token, char *value, struct s_reader *rdr)
 			rdr->typ = R_CS378X;
 		if (!strcmp(value, "cs357x"))
 			rdr->typ = R_CAMD35;
+#ifdef CS_WITH_GBOX
 		if (!strcmp(value, "gbox"))
 			rdr->typ = R_GBOX;
+#endif
 		if (!strcmp(value, "newcamd") || !strcmp(value, "newcamd525")) {
 			rdr->typ = R_NEWCAMD;
 			rdr->ncd_proto = NCD_525;

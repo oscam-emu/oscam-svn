@@ -275,9 +275,11 @@ static char *monitor_get_proto(int idx)
 					case R_SERIAL:
 						ctyp = "serial";
 						break;
+#ifdef CS_WITH_GBOX
 					case R_GBOX:
 						ctyp = "gbox";
 						break;
+#endif
 					default:
 						ctyp = "unknown";
 						break;
