@@ -91,4 +91,4 @@ typedef void *PVOID;
 #define RTYP_DB2COM1	3
 #define RTYP_DB2COM2	4
 #define RTYP_SMART	5
-#endif				/* DEFINES_H */
+#endif /* DEFINES_H */

@@ -77,18 +77,22 @@
  * Exported data types definition
  */
 
-typedef struct {
-	unsigned length;
-	BYTE TS;
-	BYTE T0;
-	struct {
-		BYTE value;
-		bool present;
-	} ib[ATR_MAX_PROTOCOLS][ATR_MAX_IB], TCK;
-	unsigned pn;
-	BYTE hb[ATR_MAX_HISTORICAL];
-	unsigned hbn;
-} ATR;
+typedef struct
+{
+  unsigned length;
+  BYTE TS;
+  BYTE T0;
+  struct
+  {
+    BYTE value;
+    bool present;
+  }
+  ib[ATR_MAX_PROTOCOLS][ATR_MAX_IB], TCK;
+  unsigned pn;
+  BYTE hb[ATR_MAX_HISTORICAL];
+  unsigned hbn;
+}
+ATR;
 
 /*
  * Exported variables declaration
@@ -103,28 +107,28 @@ extern unsigned atr_i_table[4];
  */
 
 /* Creation and deletion */
-extern ATR *ATR_New(void);
-extern void ATR_Delete(ATR * atr);
+extern ATR *ATR_New (void);
+extern void ATR_Delete (ATR * atr);
 
 /* Initialization */
-extern int ATR_InitFromArray(ATR * atr, BYTE buffer[ATR_MAX_SIZE], unsigned length);
-extern int ATR_InitFromStream(ATR * atr, IO_Serial * io, unsigned timeout);
+extern int ATR_InitFromArray (ATR * atr, BYTE buffer[ATR_MAX_SIZE], unsigned length);
+extern int ATR_InitFromStream (ATR * atr, IO_Serial * io, unsigned timeout);
 
 /* General smartcard characteristics */
-extern int ATR_GetConvention(ATR * atr, int *convention);
-extern int ATR_GetNumberOfProtocols(ATR * atr, unsigned *number_protocols);
-extern int ATR_GetProtocolType(ATR * atr, unsigned number_protocol, BYTE * protocol_type);
+extern int ATR_GetConvention (ATR * atr, int *convention);
+extern int ATR_GetNumberOfProtocols (ATR * atr, unsigned *number_protocols);
+extern int ATR_GetProtocolType (ATR * atr, unsigned number_protocol, BYTE *protocol_type);
 
 /* ATR parameters and integer values */
-extern int ATR_GetInterfaceByte(ATR * atr, unsigned number, int character, BYTE * ib);
-extern int ATR_GetIntegerValue(ATR * atr, int name, BYTE * value);
-extern int ATR_GetParameter(ATR * atr, int name, double *parameter);
-extern int ATR_GetHistoricalBytes(ATR * atr, BYTE * hist, unsigned *length);
-extern int ATR_GetCheckByte(ATR * atr, BYTE * check_byte);
-extern int ATR_GetFsMax(ATR * atr, unsigned long *fsmax);
+extern int ATR_GetInterfaceByte (ATR * atr, unsigned number, int character, BYTE * ib);
+extern int ATR_GetIntegerValue (ATR * atr, int name, BYTE * value);
+extern int ATR_GetParameter (ATR * atr, int name, double *parameter);
+extern int ATR_GetHistoricalBytes (ATR * atr, BYTE * hist, unsigned *length);
+extern int ATR_GetCheckByte (ATR * atr, BYTE * check_byte);
+extern int ATR_GetFsMax (ATR * atr, unsigned long *fsmax);
 
 /* Raw ATR retrieving */
-extern int ATR_GetRaw(ATR * atr, BYTE * buffer, unsigned *lenght);
-extern int ATR_GetSize(ATR * atr, unsigned *size);
+extern int ATR_GetRaw (ATR * atr, BYTE * buffer, unsigned *lenght);
+extern int ATR_GetSize (ATR * atr, unsigned *size);
 
-#endif				/* _ATR_ */
+#endif /* _ATR_ */

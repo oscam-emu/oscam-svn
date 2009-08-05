@@ -25,20 +25,26 @@
 typedef unsigned char byte;
 
 #ifdef __cplusplus
-extern "C" {
-#endif				/* __cplusplus */
+extern "C"
+{
+#endif		/* __cplusplus */
 
-	extern void EuroDes(byte key1[], byte key2[], byte DesMode, byte OperatingMode, byte data[]);
-	extern int des_encrypt(byte * buffer, int len, byte * deskey);
-	extern int des_decrypt(byte * buffer, int len, byte * deskey);
-	extern byte *des_login_key_get(byte * key1, byte * key2, int len);
+extern void EuroDes(byte key1[], byte key2[], byte DesMode, byte OperatingMode, 
+                    byte data[]);
+extern int des_encrypt(byte *buffer, int len, byte *deskey);
+extern int des_decrypt(byte *buffer, int len, byte *deskey);
+extern byte *des_login_key_get(byte *key1, byte *key2, int len);
 
 #ifdef __cplusplus
 }
-#endif				/* __cplusplus */
+#endif		/* __cplusplus */
+
 extern void doPC1(byte data[]);
 extern void des(byte key[], byte mode, byte data[]);
 
-enum { ECM = 0, ECS2 = 1, ECS3 = 2 };
+enum { ECM=0, ECS2=1, ECS3=2 };
 
 #endif
+
+
+

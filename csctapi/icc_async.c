@@ -38,97 +38,104 @@
  * Not exported functions declaration
  */
 
-static void ICC_Async_InvertBuffer(unsigned size, BYTE * buffer);
-static void ICC_Async_Clear(ICC_Async * icc);
+static void ICC_Async_InvertBuffer (unsigned size, BYTE * buffer);
+static void ICC_Async_Clear (ICC_Async * icc);
 
 /*
  * Exported functions definition
  */
 
-ICC_Async *ICC_Async_New(void)
+ICC_Async *ICC_Async_New (void)
 {
 	ICC_Async *icc;
-
+	
 	/* Allocate memory */
-	icc = (ICC_Async *) malloc(sizeof(ICC_Async));
-
+	icc = (ICC_Async *) malloc (sizeof (ICC_Async));
+	
 	if (icc != NULL)
-		ICC_Async_Clear(icc);
-
+		ICC_Async_Clear (icc);
+	
 	return icc;
 }
 
-int ICC_Async_Init(ICC_Async * icc, IFD * ifd)
+int ICC_Async_Init (ICC_Async * icc, IFD * ifd)
 {
-#ifndef ICC_TYPE_SYNC
-	unsigned np = 0;
+#ifndef ICC_TYPE_SYNC 
+	unsigned np=0;
 
 	/* LED Red */
-	if (IFD_Towitoko_SetLED(ifd, IFD_TOWITOKO_LED_RED) != IFD_TOWITOKO_OK)
+	if (IFD_Towitoko_SetLED (ifd, IFD_TOWITOKO_LED_RED) != IFD_TOWITOKO_OK)
 		return ICC_ASYNC_IFD_ERROR;
-
+	
 	/* Initialize Baudrate */
-//      if (IFD_Towitoko_SetBaudrate (ifd, ICC_ASYNC_BAUDRATE)!= IFD_TOWITOKO_OK)
-	if (IFD_Towitoko_SetBaudrate(ifd, 9600) != IFD_TOWITOKO_OK)
+//	if (IFD_Towitoko_SetBaudrate (ifd, ICC_ASYNC_BAUDRATE)!= IFD_TOWITOKO_OK)
+	if (IFD_Towitoko_SetBaudrate (ifd, 9600)!= IFD_TOWITOKO_OK)
 		return ICC_ASYNC_IFD_ERROR;
-
+	
 	/* Activate ICC */
-	if (IFD_Towitoko_ActivateICC(ifd) != IFD_TOWITOKO_OK)
+	if (IFD_Towitoko_ActivateICC (ifd) != IFD_TOWITOKO_OK)
 		return ICC_ASYNC_IFD_ERROR;
 	/* Reset ICC */
-	if (IFD_Towitoko_ResetAsyncICC(ifd, &(icc->atr)) != IFD_TOWITOKO_OK) {
+	if (IFD_Towitoko_ResetAsyncICC (ifd, &(icc->atr)) != IFD_TOWITOKO_OK)
+	{
 		icc->atr = NULL;
 		return ICC_ASYNC_IFD_ERROR;
 	}
-
+	
 	/* Get ICC convention */
-	if (ATR_GetConvention(icc->atr, &(icc->convention)) != ATR_OK) {
-		ATR_Delete(icc->atr);
+	if (ATR_GetConvention (icc->atr, &(icc->convention)) != ATR_OK)
+	{
+		ATR_Delete (icc->atr);
 		icc->atr = NULL;
 		icc->convention = 0;
-
+		
 		return ICC_ASYNC_ATR_ERROR;
 	}
-
+	
 	icc->protocol_type = ATR_PROTOCOL_TYPE_T0;
-
-	ATR_GetNumberOfProtocols(icc->atr, &np);
-
+	
+	ATR_GetNumberOfProtocols (icc->atr, &np);
+	
 	/* 
-	 * Get protocol offered by interface bytes T*2 if available, 
-	 * (that is, if TD1 is available), * otherwise use default T=0
-	 */
-	if (np > 1)
-		ATR_GetProtocolType(icc->atr, 2, &(icc->protocol_type));
-
+	* Get protocol offered by interface bytes T*2 if available, 
+	* (that is, if TD1 is available), * otherwise use default T=0
+	*/
+	if (np>1)
+		ATR_GetProtocolType (icc->atr, 2, &(icc->protocol_type));
+	
 #ifdef DEBUG_ICC
-	printf("ICC: Detected %s convention processor card T=%d\n",
-	       (icc->convention == ATR_CONVENTION_DIRECT ? "direct" : "inverse"), icc->protocol_type);
+	printf("ICC: Detected %s convention processor card T=%d\n",(icc->convention == ATR_CONVENTION_DIRECT ? "direct" : "inverse"), icc->protocol_type);
 #endif
-
+	
 	/* LED Green */
-	if (IFD_Towitoko_SetLED(ifd, IFD_TOWITOKO_LED_GREEN) != IFD_TOWITOKO_OK) {
-		ATR_Delete(icc->atr);
+	if (IFD_Towitoko_SetLED (ifd, IFD_TOWITOKO_LED_GREEN) != IFD_TOWITOKO_OK)
+	{
+		ATR_Delete (icc->atr);
 		icc->atr = NULL;
 		icc->convention = 0;
-
+		
 		return ICC_ASYNC_IFD_ERROR;
 	}
-
+	
 	/* Initialize member variables */
 	icc->baudrate = ICC_ASYNC_BAUDRATE;
 	icc->ifd = ifd;
-
+	
 #ifdef NO_PAR_SWITCH
-	if (icc->convention == ATR_CONVENTION_INVERSE) {
-		if (IFD_Towitoko_SetParity(icc->ifd, IFD_TOWITOKO_PARITY_ODD) != IFD_TOWITOKO_OK)
+	if (icc->convention == ATR_CONVENTION_INVERSE)
+	{
+		if (IFD_Towitoko_SetParity (icc->ifd, IFD_TOWITOKO_PARITY_ODD) != IFD_TOWITOKO_OK)
 			return ICC_ASYNC_IFD_ERROR;
-	} else if (icc->protocol_type == ATR_PROTOCOL_TYPE_T14) {
-		if (IFD_Towitoko_SetParity(icc->ifd, IFD_TOWITOKO_PARITY_NONE) != IFD_TOWITOKO_OK)
-			return ICC_ASYNC_IFD_ERROR;
-	} else {
-		if (IFD_Towitoko_SetParity(icc->ifd, IFD_TOWITOKO_PARITY_EVEN) != IFD_TOWITOKO_OK)
-			return ICC_ASYNC_IFD_ERROR;
+	}
+	else if(icc->protocol_type == ATR_PROTOCOL_TYPE_T14)
+	{
+		if (IFD_Towitoko_SetParity (icc->ifd, IFD_TOWITOKO_PARITY_NONE) != IFD_TOWITOKO_OK)
+			return ICC_ASYNC_IFD_ERROR;		
+	}
+	else
+	{
+		if (IFD_Towitoko_SetParity (icc->ifd, IFD_TOWITOKO_PARITY_EVEN) != IFD_TOWITOKO_OK)
+			return ICC_ASYNC_IFD_ERROR;		
 	}
 	IO_Serial_Flush(ifd->io);
 #endif
@@ -138,167 +145,175 @@ int ICC_Async_Init(ICC_Async * icc, IFD * ifd)
 #endif
 }
 
-int ICC_Async_SetTimings(ICC_Async * icc, ICC_Async_Timings * timings)
+int ICC_Async_SetTimings (ICC_Async * icc, ICC_Async_Timings * timings)
 {
 	icc->timings.block_delay = timings->block_delay;
 	icc->timings.char_delay = timings->char_delay;
 	icc->timings.block_timeout = timings->block_timeout;
 	icc->timings.char_timeout = timings->char_timeout;
-
+	
 	return ICC_ASYNC_OK;
 }
 
-int ICC_Async_GetTimings(ICC_Async * icc, ICC_Async_Timings * timings)
+int ICC_Async_GetTimings (ICC_Async * icc, ICC_Async_Timings * timings)
 {
 	timings->block_delay = icc->timings.block_delay;
 	timings->char_delay = icc->timings.char_delay;
 	timings->block_timeout = icc->timings.block_timeout;
 	timings->char_timeout = icc->timings.char_timeout;
-
+	
 	return ICC_ASYNC_OK;
 }
 
-int ICC_Async_SetBaudrate(ICC_Async * icc, unsigned long baudrate)
+int ICC_Async_SetBaudrate (ICC_Async * icc, unsigned long baudrate)
 {
 	icc->baudrate = baudrate;
-
+	
 	return ICC_ASYNC_OK;
 }
 
-int ICC_Async_GetBaudrate(ICC_Async * icc, unsigned long *baudrate)
+int ICC_Async_GetBaudrate (ICC_Async * icc, unsigned long * baudrate)
 {
 	(*baudrate) = icc->baudrate;
-
-	return ICC_ASYNC_OK;
+	
+	return ICC_ASYNC_OK;  
 }
 
-int ICC_Async_BeginTransmission(ICC_Async * icc)
+int ICC_Async_BeginTransmission (ICC_Async * icc)
 {
 	/* Setup parity for this ICC */
 #ifndef NO_PAR_SWITCH
-	if (icc->convention == ATR_CONVENTION_INVERSE) {
-		if (IFD_Towitoko_SetParity(icc->ifd, IFD_TOWITOKO_PARITY_ODD) != IFD_TOWITOKO_OK)
-			return ICC_ASYNC_IFD_ERROR;
-	} else if (icc->protocol_type == ATR_PROTOCOL_TYPE_T14) {
-		if (IFD_Towitoko_SetParity(icc->ifd, IFD_TOWITOKO_PARITY_NONE) != IFD_TOWITOKO_OK)
-			return ICC_ASYNC_IFD_ERROR;
-	} else {
-		if (IFD_Towitoko_SetParity(icc->ifd, IFD_TOWITOKO_PARITY_EVEN) != IFD_TOWITOKO_OK)
+	if (icc->convention == ATR_CONVENTION_INVERSE)
+	{
+		if (IFD_Towitoko_SetParity (icc->ifd, IFD_TOWITOKO_PARITY_ODD) != IFD_TOWITOKO_OK)
 			return ICC_ASYNC_IFD_ERROR;
 	}
-
+	else if(icc->protocol_type == ATR_PROTOCOL_TYPE_T14)
+	{
+		if (IFD_Towitoko_SetParity (icc->ifd, IFD_TOWITOKO_PARITY_NONE) != IFD_TOWITOKO_OK)
+			return ICC_ASYNC_IFD_ERROR;		
+	}
+	else
+	{
+		if (IFD_Towitoko_SetParity (icc->ifd, IFD_TOWITOKO_PARITY_EVEN) != IFD_TOWITOKO_OK)
+			return ICC_ASYNC_IFD_ERROR;		
+	}
+	
 	/* Setup baudrate for  this ICC */
 /*	if (IFD_Towitoko_SetBaudrate (icc->ifd, icc->baudrate)!= IFD_TOWITOKO_OK)
 		return ICC_ASYNC_IFD_ERROR;
-*/
+*/	
 #endif
 	return ICC_ASYNC_OK;
 }
 
-int ICC_Async_Transmit(ICC_Async * icc, unsigned size, BYTE * data)
+int ICC_Async_Transmit (ICC_Async * icc, unsigned size, BYTE * data)
 {
-	BYTE *buffer = NULL, *sent;
+	BYTE *buffer = NULL, *sent; 
 	IFD_Timings timings;
-
-	if (icc->convention == ATR_CONVENTION_INVERSE && icc->ifd->io->com != RTYP_SCI) {
-		buffer = (BYTE *) calloc(sizeof(BYTE), size);
-		memcpy(buffer, data, size);
-		ICC_Async_InvertBuffer(size, buffer);
+	
+	if (icc->convention == ATR_CONVENTION_INVERSE && icc->ifd->io->com!=RTYP_SCI)
+	{
+		buffer = (BYTE *) calloc(sizeof (BYTE), size);
+		memcpy (buffer, data, size);
+		ICC_Async_InvertBuffer (size, buffer);
 		sent = buffer;
-	} else {
+	}
+	else
+	{
 		sent = data;
 	}
-
+	
 	timings.block_delay = icc->timings.block_delay;
 	timings.char_delay = icc->timings.char_delay;
-
-	if (IFD_Towitoko_Transmit(icc->ifd, &timings, size, sent) != IFD_TOWITOKO_OK)
+	
+	if (IFD_Towitoko_Transmit (icc->ifd, &timings, size, sent) != IFD_TOWITOKO_OK)
 		return ICC_ASYNC_IFD_ERROR;
-
+	
 	if (icc->convention == ATR_CONVENTION_INVERSE)
-		free(buffer);
-
+		free (buffer);
+	
 	return ICC_ASYNC_OK;
 }
 
-int ICC_Async_Receive(ICC_Async * icc, unsigned size, BYTE * data)
+int ICC_Async_Receive (ICC_Async * icc, unsigned size, BYTE * data)
 {
 	IFD_Timings timings;
-
+	
 	timings.block_timeout = icc->timings.block_timeout;
 	timings.char_timeout = icc->timings.char_timeout;
-
-	if (IFD_Towitoko_Receive(icc->ifd, &timings, size, data) != IFD_TOWITOKO_OK)
+	
+	if (IFD_Towitoko_Receive (icc->ifd, &timings, size, data) != IFD_TOWITOKO_OK)
 		return ICC_ASYNC_IFD_ERROR;
-
-	if (icc->convention == ATR_CONVENTION_INVERSE && icc->ifd->io->com != RTYP_SCI)
-		ICC_Async_InvertBuffer(size, data);
-
+	
+	if (icc->convention == ATR_CONVENTION_INVERSE && icc->ifd->io->com!=RTYP_SCI)
+		ICC_Async_InvertBuffer (size, data);
+	
 	return ICC_ASYNC_OK;
 }
 
-int ICC_Async_EndTransmission(ICC_Async * icc)
+int ICC_Async_EndTransmission (ICC_Async * icc)
 {
 #ifndef NO_PAR_SWITCH
 	/* Restore parity */
-	if (IFD_Towitoko_SetParity(icc->ifd, IFD_TOWITOKO_PARITY_NONE) != IFD_TOWITOKO_OK)
-		return ICC_ASYNC_IFD_ERROR;
+	if (IFD_Towitoko_SetParity (icc->ifd, IFD_TOWITOKO_PARITY_NONE) != IFD_TOWITOKO_OK)
+		return ICC_ASYNC_IFD_ERROR;		
 #endif
-
+	
 	return ICC_ASYNC_OK;
 }
 
-ATR *ICC_Async_GetAtr(ICC_Async * icc)
+ATR * ICC_Async_GetAtr (ICC_Async * icc)
 {
 	return icc->atr;
 }
 
-IFD *ICC_Async_GetIFD(ICC_Async * icc)
+IFD * ICC_Async_GetIFD (ICC_Async * icc)
 {
 	return icc->ifd;
 }
 
-int ICC_Async_Close(ICC_Async * icc)
+int ICC_Async_Close (ICC_Async * icc)
 {
 	/* Dectivate ICC */
-	if (IFD_Towitoko_DeactivateICC(icc->ifd) != IFD_TOWITOKO_OK)
+	if (IFD_Towitoko_DeactivateICC (icc->ifd) != IFD_TOWITOKO_OK)
 		return ICC_ASYNC_IFD_ERROR;
-
+	
 	/* LED Off */
-	if (IFD_Towitoko_SetLED(icc->ifd, IFD_TOWITOKO_LED_OFF) != IFD_TOWITOKO_OK)
+	if (IFD_Towitoko_SetLED (icc->ifd, IFD_TOWITOKO_LED_OFF) != IFD_TOWITOKO_OK)
 		return ICC_ASYNC_IFD_ERROR;
-
+	
 	/* Delete atr */
-	ATR_Delete(icc->atr);
-
-	ICC_Async_Clear(icc);
-
+	ATR_Delete (icc->atr);
+	
+	ICC_Async_Clear (icc);
+	
 	return ICC_ASYNC_OK;
 }
 
-unsigned long ICC_Async_GetClockRate(ICC_Async * icc)
+unsigned long ICC_Async_GetClockRate (ICC_Async * icc)
 {
 	return IFD_Towitoko_GetClockRate(icc->ifd);
 }
 
-void ICC_Async_Delete(ICC_Async * icc)
+void ICC_Async_Delete (ICC_Async * icc)
 {
-	free(icc);
+	free (icc);
 }
 
 /*
  * Not exported functions definition
  */
 
-static void ICC_Async_InvertBuffer(unsigned size, BYTE * buffer)
+static void ICC_Async_InvertBuffer (unsigned size, BYTE * buffer)
 {
 	int i;
-
+	
 	for (i = 0; i < size; i++)
-		buffer[i] = ~(INVERT_BYTE(buffer[i]));
+		buffer[i] = ~(INVERT_BYTE (buffer[i]));
 }
 
-static void ICC_Async_Clear(ICC_Async * icc)
+static void ICC_Async_Clear (ICC_Async * icc)
 {
 	icc->ifd = NULL;
 	icc->atr = NULL;

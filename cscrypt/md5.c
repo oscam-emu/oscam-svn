@@ -79,50 +79,51 @@
 #include <stdio.h>
 //#include <crypt.h>
 #include "cscrypt.h"
-
+	
 /* MD5 context. */
 struct MD5Context {
-	u_int32_t state[4];	/* state (ABCD) */
-	u_int32_t count[2];	/* number of bits, modulo 2^64 (lsb first) */
-	unsigned char buffer[64];	/* input buffer */
+  u_int32_t state[4];	/* state (ABCD) */
+  u_int32_t count[2];	/* number of bits, modulo 2^64 (lsb first) */
+  unsigned char buffer[64];	/* input buffer */
 };
 
-static void __md5_Init(struct MD5Context *);
-static void __md5_Update(struct MD5Context *, const unsigned char *, unsigned int);
-static void __md5_Pad(struct MD5Context *);
-static void __md5_Final(unsigned char[16], struct MD5Context *);
-static void __md5_Transform __P((u_int32_t[4], const unsigned char[64]));
+static void   __md5_Init (struct MD5Context *);
+static void   __md5_Update (struct MD5Context *, const unsigned char *, unsigned int);
+static void   __md5_Pad (struct MD5Context *);
+static void   __md5_Final (unsigned char [16], struct MD5Context *);
+static void __md5_Transform __P((u_int32_t [4], const unsigned char [64]));
 
 
 static const char __md5__magic[] = "$1$";	/* This string is magic for this algorithm.  Having 
 						   it this way, we can get better later on */
-static const unsigned char __md5_itoa64[] =	/* 0 ... 63 => ascii - 64 */
-    "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+static const unsigned char __md5_itoa64[] =		/* 0 ... 63 => ascii - 64 */
+	"./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
 
 
 #ifdef i386
 #define __md5_Encode memcpy
 #define __md5_Decode memcpy
-#else				/* i386 */
+#else /* i386 */
 
 /*
  * __md5_Encodes input (u_int32_t) into output (unsigned char). Assumes len is
  * a multiple of 4.
  */
 
-static void __md5_Encode(output, input, len)
-unsigned char *output;
-u_int32_t *input;
-unsigned int len;
+static void
+__md5_Encode (output, input, len)
+	unsigned char *output;
+	u_int32_t *input;
+	unsigned int len;
 {
 	unsigned int i, j;
 
 	for (i = 0, j = 0; j < len; i++, j += 4) {
-		output[j] = (unsigned char) (input[i] & 0xff);
-		output[j + 1] = (unsigned char) ((input[i] >> 8) & 0xff);
-		output[j + 2] = (unsigned char) ((input[i] >> 16) & 0xff);
-		output[j + 3] = (unsigned char) ((input[i] >> 24) & 0xff);
+		output[j] = (unsigned char)(input[i] & 0xff);
+		output[j+1] = (unsigned char)((input[i] >> 8) & 0xff);
+		output[j+2] = (unsigned char)((input[i] >> 16) & 0xff);
+		output[j+3] = (unsigned char)((input[i] >> 24) & 0xff);
 	}
 }
 
@@ -131,18 +132,19 @@ unsigned int len;
  * a multiple of 4.
  */
 
-static void __md5_Decode(output, input, len)
-u_int32_t *output;
-const unsigned char *input;
-unsigned int len;
+static void
+__md5_Decode (output, input, len)
+	u_int32_t *output;
+	const unsigned char *input;
+	unsigned int len;
 {
 	unsigned int i, j;
 
 	for (i = 0, j = 0; j < len; i++, j += 4)
-		output[i] = ((u_int32_t) input[j]) | (((u_int32_t) input[j + 1]) << 8) |
-		    (((u_int32_t) input[j + 2]) << 16) | (((u_int32_t) input[j + 3]) << 24);
+		output[i] = ((u_int32_t)input[j]) | (((u_int32_t)input[j+1]) << 8) |
+		    (((u_int32_t)input[j+2]) << 16) | (((u_int32_t)input[j+3]) << 24);
 }
-#endif				/* i386 */
+#endif /* i386 */
 
 /* F, G, H and I are basic MD5 functions. */
 #define F(x, y, z) (((x) & (y)) | ((~x) & (z)))
@@ -180,7 +182,7 @@ unsigned int len;
 
 /* MD5 initialization. Begins an MD5 operation, writing a new context. */
 
-static void __md5_Init(struct MD5Context *context)
+static void __md5_Init (struct MD5Context *context)
 {
 	context->count[0] = context->count[1] = 0;
 
@@ -197,42 +199,45 @@ static void __md5_Init(struct MD5Context *context)
  * context.
  */
 
-static void __md5_Update(struct MD5Context *context, const unsigned char *input, unsigned int inputLen)
+static void __md5_Update ( struct MD5Context *context, const unsigned char *input, unsigned int inputLen)
 {
 	unsigned int i, index, partLen;
 
 	/* Compute number of bytes mod 64 */
-	index = (unsigned int) ((context->count[0] >> 3) & 0x3F);
+	index = (unsigned int)((context->count[0] >> 3) & 0x3F);
 
 	/* Update number of bits */
-	if ((context->count[0] += ((u_int32_t) inputLen << 3))
-	    < ((u_int32_t) inputLen << 3))
+	if ((context->count[0] += ((u_int32_t)inputLen << 3))
+	    < ((u_int32_t)inputLen << 3))
 		context->count[1]++;
-	context->count[1] += ((u_int32_t) inputLen >> 29);
+	context->count[1] += ((u_int32_t)inputLen >> 29);
 
 	partLen = 64 - index;
 
 	/* Transform as many times as possible. */
 	if (inputLen >= partLen) {
-		memcpy((void *) &context->buffer[index], (const void *) input, partLen);
-		__md5_Transform(context->state, context->buffer);
+		memcpy((void *)&context->buffer[index], (const void *)input,
+		    partLen);
+		__md5_Transform (context->state, context->buffer);
 
 		for (i = partLen; i + 63 < inputLen; i += 64)
-			__md5_Transform(context->state, &input[i]);
+			__md5_Transform (context->state, &input[i]);
 
 		index = 0;
-	} else
+	}
+	else
 		i = 0;
 
 	/* Buffer remaining input */
-	memcpy((void *) &context->buffer[index], (const void *) &input[i], inputLen - i);
+	memcpy ((void *)&context->buffer[index], (const void *)&input[i],
+	    inputLen-i);
 }
 
 /*
  * MD5 padding. Adds padding followed by original length.
  */
 
-static void __md5_Pad(struct MD5Context *context)
+static void __md5_Pad ( struct MD5Context *context)
 {
 	unsigned char bits[8];
 	unsigned int index, padLen;
@@ -242,15 +247,15 @@ static void __md5_Pad(struct MD5Context *context)
 	PADDING[0] = 0x80;
 
 	/* Save number of bits */
-	__md5_Encode(bits, context->count, 8);
+	__md5_Encode (bits, context->count, 8);
 
 	/* Pad out to 56 mod 64. */
-	index = (unsigned int) ((context->count[0] >> 3) & 0x3f);
+	index = (unsigned int)((context->count[0] >> 3) & 0x3f);
 	padLen = (index < 56) ? (56 - index) : (120 - index);
-	__md5_Update(context, PADDING, padLen);
+	__md5_Update (context, PADDING, padLen);
 
 	/* Append length (before padding) */
-	__md5_Update(context, bits, 8);
+	__md5_Update (context, bits, 8);
 }
 
 /*
@@ -258,23 +263,24 @@ static void __md5_Pad(struct MD5Context *context)
  * the message digest and zeroizing the context.
  */
 
-static void __md5_Final(unsigned char digest[16], struct MD5Context *context)
+static void __md5_Final ( unsigned char digest[16], struct MD5Context *context)
 {
 	/* Do padding. */
-	__md5_Pad(context);
+	__md5_Pad (context);
 
 	/* Store state in digest */
-	__md5_Encode(digest, context->state, 16);
+	__md5_Encode (digest, context->state, 16);
 
 	/* Zeroize sensitive information. */
-	memset((void *) context, 0, sizeof(*context));
+	memset ((void *)context, 0, sizeof (*context));
 }
 
 /* MD5 basic transformation. Transforms state based on block. */
 
-static void __md5_Transform(state, block)
-u_int32_t state[4];
-const unsigned char block[64];
+static void
+__md5_Transform (state, block)
+	u_int32_t state[4];
+	const unsigned char block[64];
 {
 	u_int32_t a, b, c, d, x[16];
 
@@ -288,7 +294,7 @@ const unsigned char block[64];
 		4, 11, 16, 23,
 		6, 10, 15, 21
 	};
-#endif				/* MD5_SIZE_OVER_SPEED > 1 */
+#endif /* MD5_SIZE_OVER_SPEED > 1 */
 
 #if MD5_SIZE_OVER_SPEED > 0
 	const u_int32_t *pc;
@@ -296,22 +302,22 @@ const unsigned char block[64];
 	int i;
 
 	static const u_int32_t C[] = {
-		/* round 1 */
+								/* round 1 */
 		0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee,
 		0xf57c0faf, 0x4787c62a, 0xa8304613, 0xfd469501,
 		0x698098d8, 0x8b44f7af, 0xffff5bb1, 0x895cd7be,
 		0x6b901122, 0xfd987193, 0xa679438e, 0x49b40821,
-		/* round 2 */
+								/* round 2 */
 		0xf61e2562, 0xc040b340, 0x265e5a51, 0xe9b6c7aa,
-		0xd62f105d, 0x2441453, 0xd8a1e681, 0xe7d3fbc8,
+		0xd62f105d, 0x2441453,  0xd8a1e681, 0xe7d3fbc8,
 		0x21e1cde6, 0xc33707d6, 0xf4d50d87, 0x455a14ed,
 		0xa9e3e905, 0xfcefa3f8, 0x676f02d9, 0x8d2a4c8a,
-		/* round 3 */
+								/* round 3 */
 		0xfffa3942, 0x8771f681, 0x6d9d6122, 0xfde5380c,
 		0xa4beea44, 0x4bdecfa9, 0xf6bb4b60, 0xbebfbc70,
 		0x289b7ec6, 0xeaa127fa, 0xd4ef3085, 0x4881d05,
 		0xd9d4d039, 0xe6db99e5, 0x1fa27cf8, 0xc4ac5665,
-		/* round 4 */
+								/* round 4 */
 		0xf4292244, 0x432aff97, 0xab9423a7, 0xfc93a039,
 		0x655b59c3, 0x8f0ccc92, 0xffeff47d, 0x85845dd1,
 		0x6fa87e4f, 0xfe2ce6e0, 0xa3014314, 0x4e0811a1,
@@ -319,131 +325,103 @@ const unsigned char block[64];
 	};
 
 	static const char P[] = {
-		0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,	/* 1 */
-		1, 6, 11, 0, 5, 10, 15, 4, 9, 14, 3, 8, 13, 2, 7, 12,	/* 2 */
-		5, 8, 11, 14, 1, 4, 7, 10, 13, 0, 3, 6, 9, 12, 15, 2,	/* 3 */
-		0, 7, 14, 5, 12, 3, 10, 1, 8, 15, 6, 13, 4, 11, 2, 9	/* 4 */
+		0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, /* 1 */
+		1, 6, 11, 0, 5, 10, 15, 4, 9, 14, 3, 8, 13, 2, 7, 12, /* 2 */
+		5, 8, 11, 14, 1, 4, 7, 10, 13, 0, 3, 6, 9, 12, 15, 2, /* 3 */
+		0, 7, 14, 5, 12, 3, 10, 1, 8, 15, 6, 13, 4, 11, 2, 9  /* 4 */
 	};
 
-#endif				/* MD5_SIZE_OVER_SPEED > 0 */
+#endif /* MD5_SIZE_OVER_SPEED > 0 */
 
-	__md5_Decode(x, block, 64);
+	__md5_Decode (x, block, 64);
 
-	a = state[0];
-	b = state[1];
-	c = state[2];
-	d = state[3];
+	a = state[0]; b = state[1]; c = state[2]; d = state[3]; 
 
 #if MD5_SIZE_OVER_SPEED > 2
-	pc = C;
-	pp = P;
-	ps = S - 4;
+	pc = C; pp = P; ps = S - 4;
 
-	for (i = 0; i < 64; i++) {
-		if ((i & 0x0f) == 0)
-			ps += 4;
+	for ( i = 0 ; i < 64 ; i++ ) {
+		if ((i&0x0f) == 0) ps += 4;
 		temp = a;
-		switch (i >> 4) {
-		case 0:
-			temp += F(b, c, d);
-			break;
-		case 1:
-			temp += G(b, c, d);
-			break;
-		case 2:
-			temp += H(b, c, d);
-			break;
-		case 3:
-			temp += I(b, c, d);
-			break;
+		switch (i>>4) {
+			case 0:
+				temp += F(b,c,d);
+				break;
+			case 1:
+				temp += G(b,c,d);
+				break;
+			case 2:
+				temp += H(b,c,d);
+				break;
+			case 3:
+				temp += I(b,c,d);
+				break;
 		}
-		temp += x[(int) (*pp++)] + *pc++;
-		temp = ROTATE_LEFT(temp, ps[i & 3]);
+		temp += x[(int)(*pp++)] + *pc++;
+		temp = ROTATE_LEFT(temp, ps[i&3]);
 		temp += b;
-		a = d;
-		d = c;
-		c = b;
-		b = temp;
+		a = d; d = c; c = b; b = temp;
 	}
 #elif MD5_SIZE_OVER_SPEED > 1
-	pc = C;
-	pp = P;
-	ps = S;
+	pc = C; pp = P; ps = S;
 
 	/* Round 1 */
-	for (i = 0; i < 16; i++) {
-		FF(a, b, c, d, x[(int) (*pp++)], ps[i & 0x3], *pc++);
-		temp = d;
-		d = c;
-		c = b;
-		b = a;
-		a = temp;
+	for ( i = 0 ; i < 16 ; i++ ) {
+		FF (a, b, c, d, x[(int)(*pp++)], ps[i&0x3], *pc++);
+		temp = d; d = c; c = b; b = a; a = temp;
 	}
 
 	/* Round 2 */
 	ps += 4;
-	for (; i < 32; i++) {
-		GG(a, b, c, d, x[(int) (*pp++)], ps[i & 0x3], *pc++);
-		temp = d;
-		d = c;
-		c = b;
-		b = a;
-		a = temp;
+	for ( ; i < 32 ; i++ ) {
+		GG (a, b, c, d, x[(int)(*pp++)], ps[i&0x3], *pc++);
+		temp = d; d = c; c = b; b = a; a = temp;
 	}
 	/* Round 3 */
 	ps += 4;
-	for (; i < 48; i++) {
-		HH(a, b, c, d, x[(int) (*pp++)], ps[i & 0x3], *pc++);
-		temp = d;
-		d = c;
-		c = b;
-		b = a;
-		a = temp;
+	for ( ; i < 48 ; i++ ) {
+		HH (a, b, c, d, x[(int)(*pp++)], ps[i&0x3], *pc++);
+		temp = d; d = c; c = b; b = a; a = temp;
 	}
 
 	/* Round 4 */
 	ps += 4;
-	for (; i < 64; i++) {
-		II(a, b, c, d, x[(int) (*pp++)], ps[i & 0x3], *pc++);
-		temp = d;
-		d = c;
-		c = b;
-		b = a;
-		a = temp;
+	for ( ; i < 64 ; i++ ) {
+		II (a, b, c, d, x[(int)(*pp++)], ps[i&0x3], *pc++);
+		temp = d; d = c; c = b; b = a; a = temp;
 	}
 #elif MD5_SIZE_OVER_SPEED > 0
-	pc = C;
-	pp = P;
+	pc = C; pp = P;
 
 	/* Round 1 */
-	for (i = 0; i < 4; i++) {
-		FF(a, b, c, d, x[(int) (*pp++)], 7, *pc++);
-		FF(d, a, b, c, x[(int) (*pp++)], 12, *pc++);
-		FF(c, d, a, b, x[(int) (*pp++)], 17, *pc++);
-		FF(b, c, d, a, x[(int) (*pp++)], 22, *pc++);
+	for ( i = 0 ; i < 4 ; i++ ) {
+		FF (a, b, c, d, x[(int)(*pp++)],  7, *pc++);
+		FF (d, a, b, c, x[(int)(*pp++)], 12, *pc++);
+		FF (c, d, a, b, x[(int)(*pp++)], 17, *pc++);
+		FF (b, c, d, a, x[(int)(*pp++)], 22, *pc++);
 	}
 
 	/* Round 2 */
-	for (i = 0; i < 4; i++) {
-		GG(a, b, c, d, x[(int) (*pp++)], 5, *pc++);
-		GG(d, a, b, c, x[(int) (*pp++)], 9, *pc++);
-		GG(c, d, a, b, x[(int) (*pp++)], 14, *pc++);
-		GG(b, c, d, a, x[(int) (*pp++)], 20, *pc++);
+	for ( i = 0 ; i < 4 ; i++ ) {
+		GG (a, b, c, d, x[(int)(*pp++)],  5, *pc++);
+		GG (d, a, b, c, x[(int)(*pp++)],  9, *pc++);
+		GG (c, d, a, b, x[(int)(*pp++)], 14, *pc++);
+		GG (b, c, d, a, x[(int)(*pp++)], 20, *pc++);
 	}
 	/* Round 3 */
-	for (i = 0; i < 4; i++) {
-		HH(a, b, c, d, x[(int) (*pp++)], 4, *pc++);
-		HH(d, a, b, c, x[(int) (*pp++)], 11, *pc++);
-		HH(c, d, a, b, x[(int) (*pp++)], 16, *pc++);
-		HH(b, c, d, a, x[(int) (*pp++)], 23, *pc++);
+	for ( i = 0 ; i < 4 ; i++ ) {
+		HH (a, b, c, d, x[(int)(*pp++)],  4, *pc++);
+		HH (d, a, b, c, x[(int)(*pp++)], 11, *pc++);
+		HH (c, d, a, b, x[(int)(*pp++)], 16, *pc++);
+		HH (b, c, d, a, x[(int)(*pp++)], 23, *pc++);
 	}
 
 	/* Round 4 */
-	for (i = 0; i < 4; i++) {
-		II(a, b, c, d, x[(int) (*pp++)], 6, *pc++);
-		II(d, a, b, c, x[(int) (*pp++)], 10, *pc++);
-		II(c, d, a, b, x[(int) (*pp++)], 15, *pc++);
-		II(b, c, d, a, x[(int) (*pp++)], 21, *pc++);
+	for ( i = 0 ; i < 4 ; i++ ) {
+		II (a, b, c, d, x[(int)(*pp++)],  6, *pc++);
+		II (d, a, b, c, x[(int)(*pp++)], 10, *pc++);
+		II (c, d, a, b, x[(int)(*pp++)], 15, *pc++);
+		II (b, c, d, a, x[(int)(*pp++)], 21, *pc++);
 	}
 #else
 	/* Round 1 */
@@ -451,88 +429,88 @@ const unsigned char block[64];
 #define S12 12
 #define S13 17
 #define S14 22
-	FF(a, b, c, d, x[0], S11, 0xd76aa478);	/* 1 */
-	FF(d, a, b, c, x[1], S12, 0xe8c7b756);	/* 2 */
-	FF(c, d, a, b, x[2], S13, 0x242070db);	/* 3 */
-	FF(b, c, d, a, x[3], S14, 0xc1bdceee);	/* 4 */
-	FF(a, b, c, d, x[4], S11, 0xf57c0faf);	/* 5 */
-	FF(d, a, b, c, x[5], S12, 0x4787c62a);	/* 6 */
-	FF(c, d, a, b, x[6], S13, 0xa8304613);	/* 7 */
-	FF(b, c, d, a, x[7], S14, 0xfd469501);	/* 8 */
-	FF(a, b, c, d, x[8], S11, 0x698098d8);	/* 9 */
-	FF(d, a, b, c, x[9], S12, 0x8b44f7af);	/* 10 */
-	FF(c, d, a, b, x[10], S13, 0xffff5bb1);	/* 11 */
-	FF(b, c, d, a, x[11], S14, 0x895cd7be);	/* 12 */
-	FF(a, b, c, d, x[12], S11, 0x6b901122);	/* 13 */
-	FF(d, a, b, c, x[13], S12, 0xfd987193);	/* 14 */
-	FF(c, d, a, b, x[14], S13, 0xa679438e);	/* 15 */
-	FF(b, c, d, a, x[15], S14, 0x49b40821);	/* 16 */
+	FF (a, b, c, d, x[ 0], S11, 0xd76aa478); /* 1 */
+	FF (d, a, b, c, x[ 1], S12, 0xe8c7b756); /* 2 */
+	FF (c, d, a, b, x[ 2], S13, 0x242070db); /* 3 */
+	FF (b, c, d, a, x[ 3], S14, 0xc1bdceee); /* 4 */
+	FF (a, b, c, d, x[ 4], S11, 0xf57c0faf); /* 5 */
+	FF (d, a, b, c, x[ 5], S12, 0x4787c62a); /* 6 */
+	FF (c, d, a, b, x[ 6], S13, 0xa8304613); /* 7 */
+	FF (b, c, d, a, x[ 7], S14, 0xfd469501); /* 8 */
+	FF (a, b, c, d, x[ 8], S11, 0x698098d8); /* 9 */
+	FF (d, a, b, c, x[ 9], S12, 0x8b44f7af); /* 10 */
+	FF (c, d, a, b, x[10], S13, 0xffff5bb1); /* 11 */
+	FF (b, c, d, a, x[11], S14, 0x895cd7be); /* 12 */
+	FF (a, b, c, d, x[12], S11, 0x6b901122); /* 13 */
+	FF (d, a, b, c, x[13], S12, 0xfd987193); /* 14 */
+	FF (c, d, a, b, x[14], S13, 0xa679438e); /* 15 */
+	FF (b, c, d, a, x[15], S14, 0x49b40821); /* 16 */
 
 	/* Round 2 */
 #define S21 5
 #define S22 9
 #define S23 14
 #define S24 20
-	GG(a, b, c, d, x[1], S21, 0xf61e2562);	/* 17 */
-	GG(d, a, b, c, x[6], S22, 0xc040b340);	/* 18 */
-	GG(c, d, a, b, x[11], S23, 0x265e5a51);	/* 19 */
-	GG(b, c, d, a, x[0], S24, 0xe9b6c7aa);	/* 20 */
-	GG(a, b, c, d, x[5], S21, 0xd62f105d);	/* 21 */
-	GG(d, a, b, c, x[10], S22, 0x2441453);	/* 22 */
-	GG(c, d, a, b, x[15], S23, 0xd8a1e681);	/* 23 */
-	GG(b, c, d, a, x[4], S24, 0xe7d3fbc8);	/* 24 */
-	GG(a, b, c, d, x[9], S21, 0x21e1cde6);	/* 25 */
-	GG(d, a, b, c, x[14], S22, 0xc33707d6);	/* 26 */
-	GG(c, d, a, b, x[3], S23, 0xf4d50d87);	/* 27 */
-	GG(b, c, d, a, x[8], S24, 0x455a14ed);	/* 28 */
-	GG(a, b, c, d, x[13], S21, 0xa9e3e905);	/* 29 */
-	GG(d, a, b, c, x[2], S22, 0xfcefa3f8);	/* 30 */
-	GG(c, d, a, b, x[7], S23, 0x676f02d9);	/* 31 */
-	GG(b, c, d, a, x[12], S24, 0x8d2a4c8a);	/* 32 */
+	GG (a, b, c, d, x[ 1], S21, 0xf61e2562); /* 17 */
+	GG (d, a, b, c, x[ 6], S22, 0xc040b340); /* 18 */
+	GG (c, d, a, b, x[11], S23, 0x265e5a51); /* 19 */
+	GG (b, c, d, a, x[ 0], S24, 0xe9b6c7aa); /* 20 */
+	GG (a, b, c, d, x[ 5], S21, 0xd62f105d); /* 21 */
+	GG (d, a, b, c, x[10], S22,  0x2441453); /* 22 */
+	GG (c, d, a, b, x[15], S23, 0xd8a1e681); /* 23 */
+	GG (b, c, d, a, x[ 4], S24, 0xe7d3fbc8); /* 24 */
+	GG (a, b, c, d, x[ 9], S21, 0x21e1cde6); /* 25 */
+	GG (d, a, b, c, x[14], S22, 0xc33707d6); /* 26 */
+	GG (c, d, a, b, x[ 3], S23, 0xf4d50d87); /* 27 */
+	GG (b, c, d, a, x[ 8], S24, 0x455a14ed); /* 28 */
+	GG (a, b, c, d, x[13], S21, 0xa9e3e905); /* 29 */
+	GG (d, a, b, c, x[ 2], S22, 0xfcefa3f8); /* 30 */
+	GG (c, d, a, b, x[ 7], S23, 0x676f02d9); /* 31 */
+	GG (b, c, d, a, x[12], S24, 0x8d2a4c8a); /* 32 */
 
 	/* Round 3 */
 #define S31 4
 #define S32 11
 #define S33 16
 #define S34 23
-	HH(a, b, c, d, x[5], S31, 0xfffa3942);	/* 33 */
-	HH(d, a, b, c, x[8], S32, 0x8771f681);	/* 34 */
-	HH(c, d, a, b, x[11], S33, 0x6d9d6122);	/* 35 */
-	HH(b, c, d, a, x[14], S34, 0xfde5380c);	/* 36 */
-	HH(a, b, c, d, x[1], S31, 0xa4beea44);	/* 37 */
-	HH(d, a, b, c, x[4], S32, 0x4bdecfa9);	/* 38 */
-	HH(c, d, a, b, x[7], S33, 0xf6bb4b60);	/* 39 */
-	HH(b, c, d, a, x[10], S34, 0xbebfbc70);	/* 40 */
-	HH(a, b, c, d, x[13], S31, 0x289b7ec6);	/* 41 */
-	HH(d, a, b, c, x[0], S32, 0xeaa127fa);	/* 42 */
-	HH(c, d, a, b, x[3], S33, 0xd4ef3085);	/* 43 */
-	HH(b, c, d, a, x[6], S34, 0x4881d05);	/* 44 */
-	HH(a, b, c, d, x[9], S31, 0xd9d4d039);	/* 45 */
-	HH(d, a, b, c, x[12], S32, 0xe6db99e5);	/* 46 */
-	HH(c, d, a, b, x[15], S33, 0x1fa27cf8);	/* 47 */
-	HH(b, c, d, a, x[2], S34, 0xc4ac5665);	/* 48 */
+	HH (a, b, c, d, x[ 5], S31, 0xfffa3942); /* 33 */
+	HH (d, a, b, c, x[ 8], S32, 0x8771f681); /* 34 */
+	HH (c, d, a, b, x[11], S33, 0x6d9d6122); /* 35 */
+	HH (b, c, d, a, x[14], S34, 0xfde5380c); /* 36 */
+	HH (a, b, c, d, x[ 1], S31, 0xa4beea44); /* 37 */
+	HH (d, a, b, c, x[ 4], S32, 0x4bdecfa9); /* 38 */
+	HH (c, d, a, b, x[ 7], S33, 0xf6bb4b60); /* 39 */
+	HH (b, c, d, a, x[10], S34, 0xbebfbc70); /* 40 */
+	HH (a, b, c, d, x[13], S31, 0x289b7ec6); /* 41 */
+	HH (d, a, b, c, x[ 0], S32, 0xeaa127fa); /* 42 */
+	HH (c, d, a, b, x[ 3], S33, 0xd4ef3085); /* 43 */
+	HH (b, c, d, a, x[ 6], S34,  0x4881d05); /* 44 */
+	HH (a, b, c, d, x[ 9], S31, 0xd9d4d039); /* 45 */
+	HH (d, a, b, c, x[12], S32, 0xe6db99e5); /* 46 */
+	HH (c, d, a, b, x[15], S33, 0x1fa27cf8); /* 47 */
+	HH (b, c, d, a, x[ 2], S34, 0xc4ac5665); /* 48 */
 
 	/* Round 4 */
 #define S41 6
 #define S42 10
 #define S43 15
 #define S44 21
-	II(a, b, c, d, x[0], S41, 0xf4292244);	/* 49 */
-	II(d, a, b, c, x[7], S42, 0x432aff97);	/* 50 */
-	II(c, d, a, b, x[14], S43, 0xab9423a7);	/* 51 */
-	II(b, c, d, a, x[5], S44, 0xfc93a039);	/* 52 */
-	II(a, b, c, d, x[12], S41, 0x655b59c3);	/* 53 */
-	II(d, a, b, c, x[3], S42, 0x8f0ccc92);	/* 54 */
-	II(c, d, a, b, x[10], S43, 0xffeff47d);	/* 55 */
-	II(b, c, d, a, x[1], S44, 0x85845dd1);	/* 56 */
-	II(a, b, c, d, x[8], S41, 0x6fa87e4f);	/* 57 */
-	II(d, a, b, c, x[15], S42, 0xfe2ce6e0);	/* 58 */
-	II(c, d, a, b, x[6], S43, 0xa3014314);	/* 59 */
-	II(b, c, d, a, x[13], S44, 0x4e0811a1);	/* 60 */
-	II(a, b, c, d, x[4], S41, 0xf7537e82);	/* 61 */
-	II(d, a, b, c, x[11], S42, 0xbd3af235);	/* 62 */
-	II(c, d, a, b, x[2], S43, 0x2ad7d2bb);	/* 63 */
-	II(b, c, d, a, x[9], S44, 0xeb86d391);	/* 64 */
+	II (a, b, c, d, x[ 0], S41, 0xf4292244); /* 49 */
+	II (d, a, b, c, x[ 7], S42, 0x432aff97); /* 50 */
+	II (c, d, a, b, x[14], S43, 0xab9423a7); /* 51 */
+	II (b, c, d, a, x[ 5], S44, 0xfc93a039); /* 52 */
+	II (a, b, c, d, x[12], S41, 0x655b59c3); /* 53 */
+	II (d, a, b, c, x[ 3], S42, 0x8f0ccc92); /* 54 */
+	II (c, d, a, b, x[10], S43, 0xffeff47d); /* 55 */
+	II (b, c, d, a, x[ 1], S44, 0x85845dd1); /* 56 */
+	II (a, b, c, d, x[ 8], S41, 0x6fa87e4f); /* 57 */
+	II (d, a, b, c, x[15], S42, 0xfe2ce6e0); /* 58 */
+	II (c, d, a, b, x[ 6], S43, 0xa3014314); /* 59 */
+	II (b, c, d, a, x[13], S44, 0x4e0811a1); /* 60 */
+	II (a, b, c, d, x[ 4], S41, 0xf7537e82); /* 61 */
+	II (d, a, b, c, x[11], S42, 0xbd3af235); /* 62 */
+	II (c, d, a, b, x[ 2], S43, 0x2ad7d2bb); /* 63 */
+	II (b, c, d, a, x[ 9], S44, 0xeb86d391); /* 64 */
 #endif
 
 	state[0] += a;
@@ -541,14 +519,14 @@ const unsigned char block[64];
 	state[3] += d;
 
 	/* Zeroize sensitive information. */
-	memset((void *) x, 0, sizeof(x));
+	memset ((void *)x, 0, sizeof (x));
 }
 
 
-static void __md5_to64(char *s, unsigned long v, int n)
+static void __md5_to64( char *s, unsigned long v, int n)
 {
 	while (--n >= 0) {
-		*s++ = __md5_itoa64[v & 0x3f];
+		*s++ = __md5_itoa64[v&0x3f];
 		v >>= 6;
 	}
 }
@@ -559,15 +537,15 @@ static void __md5_to64(char *s, unsigned long v, int n)
  * Use MD5 for what it is best at...
  */
 
-char *__md5_crypt(const char *pw, const char *salt)
+char * __md5_crypt( const char *pw, const char *salt)
 {
 	/* Static stuff */
 	static const char *sp, *ep;
 	static char passwd[120], *p;
 
-	unsigned char final[17];	/* final[16] exists only to aid in looping */
-	int sl, pl, i, __md5__magic_len, pw_len;
-	struct MD5Context ctx, ctx1;
+	unsigned char	final[17];	/* final[16] exists only to aid in looping */
+	int sl,pl,i,__md5__magic_len,pw_len;
+	struct MD5Context ctx,ctx1;
 	unsigned long l;
 
 	/* Refine the Salt first */
@@ -575,11 +553,11 @@ char *__md5_crypt(const char *pw, const char *salt)
 
 	/* If it starts with the magic string, then skip that */
 	__md5__magic_len = strlen(__md5__magic);
-	if (!strncmp(sp, __md5__magic, __md5__magic_len))
+	if(!strncmp(sp,__md5__magic,__md5__magic_len))
 		sp += __md5__magic_len;
 
 	/* It stops at the first '$', max 8 chars */
-	for (ep = sp; *ep && *ep != '$' && ep < (sp + 8); ep++)
+	for(ep=sp;*ep && *ep != '$' && ep < (sp+8);ep++)
 		continue;
 
 	/* get the length of the true salt */
@@ -589,78 +567,76 @@ char *__md5_crypt(const char *pw, const char *salt)
 
 	/* The password first, since that is what is most unknown */
 	pw_len = strlen(pw);
-	__md5_Update(&ctx, (const unsigned char *) pw, pw_len);
+	__md5_Update(&ctx,(const unsigned char *)pw,pw_len);
 
 	/* Then our magic string */
-	__md5_Update(&ctx, (const unsigned char *) __md5__magic, __md5__magic_len);
+	__md5_Update(&ctx,(const unsigned char *)__md5__magic,__md5__magic_len);
 
 	/* Then the raw salt */
-	__md5_Update(&ctx, (const unsigned char *) sp, sl);
+	__md5_Update(&ctx,(const unsigned char *)sp,sl);
 
 	/* Then just as many characters of the MD5(pw,salt,pw) */
 	__md5_Init(&ctx1);
-	__md5_Update(&ctx1, (const unsigned char *) pw, pw_len);
-	__md5_Update(&ctx1, (const unsigned char *) sp, sl);
-	__md5_Update(&ctx1, (const unsigned char *) pw, pw_len);
-	__md5_Final(final, &ctx1);
-	for (pl = pw_len; pl > 0; pl -= 16)
-		__md5_Update(&ctx, (const unsigned char *) final, pl > 16 ? 16 : pl);
+	__md5_Update(&ctx1,(const unsigned char *)pw,pw_len);
+	__md5_Update(&ctx1,(const unsigned char *)sp,sl);
+	__md5_Update(&ctx1,(const unsigned char *)pw,pw_len);
+	__md5_Final(final,&ctx1);
+	for(pl = pw_len; pl > 0; pl -= 16)
+		__md5_Update(&ctx,(const unsigned char *)final,pl>16 ? 16 : pl);
 
 	/* Don't leave anything around in vm they could use. */
-	memset(final, 0, sizeof final);
+	memset(final,0,sizeof final);
 
 	/* Then something really weird... */
-	for (i = pw_len; i; i >>= 1) {
-		__md5_Update(&ctx, ((i & 1) ? final : (const unsigned char *) pw), 1);
+	for (i = pw_len; i ; i >>= 1) {
+		__md5_Update(&ctx, ((i&1) ? final : (const unsigned char *) pw), 1);
 	}
 
 	/* Now make the output string */
-	strcpy(passwd, __md5__magic);
-	strncat(passwd, sp, sl);
-	strcat(passwd, "$");
+	strcpy(passwd,__md5__magic);
+	strncat(passwd,sp,sl);
+	strcat(passwd,"$");
 
-	__md5_Final(final, &ctx);
+	__md5_Final(final,&ctx);
 
 	/*
 	 * and now, just to make sure things don't run too fast
 	 * On a 60 Mhz Pentium this takes 34 msec, so you would
 	 * need 30 seconds to build a 1000 entry dictionary...
 	 */
-	for (i = 0; i < 1000; i++) {
+	for(i=0;i<1000;i++) {
 		__md5_Init(&ctx1);
-		if (i & 1)
-			__md5_Update(&ctx1, (const unsigned char *) pw, pw_len);
+		if(i & 1)
+			__md5_Update(&ctx1,(const unsigned char *)pw,pw_len);
 		else
-			__md5_Update(&ctx1, (const unsigned char *) final, 16);
+			__md5_Update(&ctx1,(const unsigned char *)final,16);
 
-		if (i % 3)
-			__md5_Update(&ctx1, (const unsigned char *) sp, sl);
+		if(i % 3)
+			__md5_Update(&ctx1,(const unsigned char *)sp,sl);
 
-		if (i % 7)
-			__md5_Update(&ctx1, (const unsigned char *) pw, pw_len);
+		if(i % 7)
+			__md5_Update(&ctx1,(const unsigned char *)pw,pw_len);
 
-		if (i & 1)
-			__md5_Update(&ctx1, (const unsigned char *) final, 16);
+		if(i & 1)
+			__md5_Update(&ctx1,(const unsigned char *)final,16);
 		else
-			__md5_Update(&ctx1, (const unsigned char *) pw, pw_len);
-		__md5_Final(final, &ctx1);
+			__md5_Update(&ctx1,(const unsigned char *)pw,pw_len);
+		__md5_Final(final,&ctx1);
 	}
 
 	p = passwd + strlen(passwd);
 
 	final[16] = final[5];
-	for (i = 0; i < 5; i++) {
-		l = (final[i] << 16) | (final[i + 6] << 8) | final[i + 12];
-		__md5_to64(p, l, 4);
-		p += 4;
+	for ( i=0 ; i < 5 ; i++ ) {
+		l = (final[i]<<16) | (final[i+6]<<8) | final[i+12];
+		__md5_to64(p,l,4); p += 4;
 	}
 	l = final[11];
-	__md5_to64(p, l, 2);
-	p += 2;
+	__md5_to64(p,l,2); p += 2;
 	*p = '\0';
 
 	/* Don't leave anything around in vm they could use. */
-	memset(final, 0, sizeof final);
+	memset(final,0,sizeof final);
 
 	return passwd;
 }
@@ -670,26 +646,27 @@ unsigned char *MD5(const unsigned char *d, unsigned long n, unsigned char *md)
 	struct MD5Context c;
 	static unsigned char m[MD5_DIGEST_LENGTH];
 
-	if (md == NULL)
-		md = m;
+	if (md == NULL) md=m;
 	__md5_Init(&c);
 #ifndef CHARSET_EBCDIC
-	__md5_Update(&c, d, n);
+	__md5_Update(&c,d,n);
 #else
 	{
 		char temp[1024];
 		unsigned long chunk;
 
-		while (n > 0) {
+		while (n > 0)
+		{
 			chunk = (n > sizeof(temp)) ? sizeof(temp) : n;
 			ebcdic2ascii(temp, d, chunk);
-			__md5_Update(&c, d, n);
+			__md5_Update(&c,d,n);
 			n -= chunk;
 			d += chunk;
 		}
 	}
 #endif
-	__md5_Final(md, &c);
-	memset(&c, 0, sizeof(c));	/* security consideration */
-	return (md);
+	__md5_Final(md,&c);
+	memset(&c,0,sizeof(c)); /* security consideration */
+	return(md);
 }
+

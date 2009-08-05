@@ -93,22 +93,26 @@
  * Exported Datatypes
  */
 
-typedef struct {
-	unsigned block_delay;	/* Delay (ms) after starting to transmit */
-	unsigned char_delay;	/* Delay (ms) after transmiting sucesive chars */
-	unsigned block_timeout;	/* Max timeout (ms) to receive firtst char */
-	unsigned char_timeout;	/* Max timeout (ms) to receive sucesive characters */
-} IFD_Timings;
+typedef struct
+{
+  unsigned block_delay;		/* Delay (ms) after starting to transmit */
+  unsigned char_delay;		/* Delay (ms) after transmiting sucesive chars */
+  unsigned block_timeout;	/* Max timeout (ms) to receive firtst char */
+  unsigned char_timeout;	/* Max timeout (ms) to receive sucesive characters */
+}
+IFD_Timings;
 
 /* Interface Device Handler */
-typedef struct {
-	IO_Serial *io;		/* Handle of serial device */
-	BYTE slot;		/* Chipdrive Twin Slot */
-	BYTE type;		/* Reader type code */
-	BYTE firmware;		/* Reader firmware version */
-
-	unsigned short status;
-} IFD_Towitoko;
+typedef struct
+{
+  IO_Serial *io;		/* Handle of serial device */
+  BYTE slot;			/* Chipdrive Twin Slot */
+  BYTE type;			/* Reader type code */
+  BYTE firmware;		/* Reader firmware version */
+  
+  unsigned short status;
+}
+IFD_Towitoko;
 
 typedef IFD_Towitoko IFD;
 
@@ -117,38 +121,38 @@ typedef IFD_Towitoko IFD;
  */
 
 /* Create and Delete an IFD */
-extern IFD *IFD_Towitoko_New(void);
-extern void IFD_Towitoko_Delete(IFD * ifd);
+extern IFD *IFD_Towitoko_New (void);
+extern void IFD_Towitoko_Delete (IFD * ifd);
 
 /* Handling of the drive associated with this IFD */
-extern int IFD_Towitoko_Init(IFD * ifd, IO_Serial * io, BYTE slot);
-extern int IFD_Towitoko_Close(IFD * ifd);
+extern int IFD_Towitoko_Init (IFD * ifd, IO_Serial * io, BYTE slot);
+extern int IFD_Towitoko_Close (IFD * ifd);
 
 /* Handling of this IFD */
-extern int IFD_Towitoko_SetBaudrate(IFD * ifd, unsigned long baudrate);
-extern int IFD_Towitoko_GetBaudrate(IFD * ifd, unsigned long *baudrate);
-extern int IFD_Towitoko_SetParity(IFD * ifd, BYTE parity);
-extern int IFD_Towitoko_SetLED(IFD * ifd, BYTE color);
-extern int IFD_Towitoko_GetStatus(IFD * ifd, BYTE * status);
+extern int IFD_Towitoko_SetBaudrate (IFD * ifd, unsigned long baudrate);
+extern int IFD_Towitoko_GetBaudrate (IFD * ifd, unsigned long *baudrate);
+extern int IFD_Towitoko_SetParity (IFD * ifd, BYTE parity);
+extern int IFD_Towitoko_SetLED (IFD * ifd, BYTE color);
+extern int IFD_Towitoko_GetStatus (IFD * ifd, BYTE * status);
 
 /* General handling of ICC inserted in this IFD */
-extern int IFD_Towitoko_ActivateICC(IFD * ifd);
-extern int IFD_Towitoko_DeactivateICC(IFD * ifd);
+extern int IFD_Towitoko_ActivateICC (IFD * ifd);
+extern int IFD_Towitoko_DeactivateICC (IFD * ifd);
 
 /* Asynchronous ICC handling functions */
-extern int IFD_Towitoko_ResetAsyncICC(IFD * ifd, ATR ** atr);
-extern int IFD_Towitoko_Transmit(IFD * ifd, IFD_Timings * timings, unsigned size, BYTE * buffer);
-extern int IFD_Towitoko_Receive(IFD * ifd, IFD_Timings * timings, unsigned size, BYTE * buffer);
+extern int IFD_Towitoko_ResetAsyncICC (IFD * ifd, ATR ** atr);
+extern int IFD_Towitoko_Transmit (IFD * ifd, IFD_Timings * timings, unsigned size, BYTE * buffer);
+extern int IFD_Towitoko_Receive (IFD * ifd, IFD_Timings * timings, unsigned size, BYTE * buffer);
 
 /* Atributes of the drive associated with this IFD */
-extern BYTE IFD_Towitoko_GetType(IFD * ifd);
-extern BYTE IFD_Towitoko_GetFirmware(IFD * ifd);
-extern unsigned IFD_Towitoko_GetNumSlots(IFD * ifd);
-extern unsigned long IFD_Towitoko_GetClockRate(IFD * ifd);
-extern unsigned long IFD_Towitoko_GetMaxBaudrate(IFD * ifd);
-extern void IFD_Towitoko_GetDescription(IFD * ifd, BYTE * desc, unsigned length);
+extern BYTE IFD_Towitoko_GetType (IFD * ifd);
+extern BYTE IFD_Towitoko_GetFirmware (IFD * ifd);
+extern unsigned IFD_Towitoko_GetNumSlots (IFD * ifd);
+extern unsigned long IFD_Towitoko_GetClockRate (IFD * ifd);
+extern unsigned long IFD_Towitoko_GetMaxBaudrate (IFD * ifd);
+extern void IFD_Towitoko_GetDescription (IFD * ifd, BYTE * desc, unsigned length);
 
 /* Atributes of this IFD */
-extern BYTE IFD_Towitoko_GetSlot(IFD * ifd);
+extern BYTE IFD_Towitoko_GetSlot (IFD * ifd);
 
-#endif				/* _IFD_TOWITOKO_ */
+#endif /* _IFD_TOWITOKO_ */

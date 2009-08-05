@@ -13,15 +13,15 @@ typedef unsigned long ulong;
 
 typedef unsigned long long ullong;
 
-#endif				// _TYPES_H_
+#endif // _TYPES_H_
 
 #ifndef NO_ENDIAN_H
-#ifdef OS_MACOSX
-#include <machine/endian.h>
-#else
-#include <endian.h>
-#include <byteswap.h>
-#endif
+ #ifdef OS_MACOSX
+    #include <machine/endian.h>
+ #else
+    #include <endian.h>
+    #include <byteswap.h>
+ #endif
 #endif
 
 #if defined(CS_EMBEDDED) || defined(OS_LINUX)
@@ -53,4 +53,4 @@ typedef unsigned long long ullong;
 #  endif
 #endif
 
-#endif				// CS_EMBEDDED || OS_LINUX
+#endif // CS_EMBEDDED || OS_LINUX

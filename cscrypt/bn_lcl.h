@@ -159,17 +159,17 @@ extern "C" {
 		((b) > 255 ? 5 : \
 		 (b) > 127 ? 4 : \
 		 (b) >  17 ? 3 : 1)
-#endif
+#endif	 
 
 
 
 /* Pentium pro 16,16,16,32,64 */
 /* Alpha       16,16,16,16.64 */
-#define BN_MULL_SIZE_NORMAL			(16)	/* 32 */
-#define BN_MUL_RECURSIVE_SIZE_NORMAL		(16)	/* 32 less than */
-#define BN_SQR_RECURSIVE_SIZE_NORMAL		(16)	/* 32 */
-#define BN_MUL_LOW_RECURSIVE_SIZE_NORMAL	(32)	/* 32 */
-#define BN_MONT_CTX_SET_SIZE_WORD		(64)	/* 32 */
+#define BN_MULL_SIZE_NORMAL			(16) /* 32 */
+#define BN_MUL_RECURSIVE_SIZE_NORMAL		(16) /* 32 less than */
+#define BN_SQR_RECURSIVE_SIZE_NORMAL		(16) /* 32 */
+#define BN_MUL_LOW_RECURSIVE_SIZE_NORMAL	(32) /* 32 */
+#define BN_MONT_CTX_SET_SIZE_WORD		(64) /* 32 */
 
 #if !defined(NO_ASM) && !defined(NO_INLINE_ASM) && !defined(PEDANTIC)
 /*
@@ -206,7 +206,7 @@ extern "C" {
 	     : "=r"(ret)		\
 	     : "r"(a), "r"(b));		\
 	ret;			})
-#  endif			/* compiler */
+#  endif	/* compiler */
 # elif defined(_ARCH_PPC) && defined(__64BIT__) && defined(SIXTY_FOUR_BIT_LONG)
 #  if defined(__GNUC__)
 #   define BN_UMULT_HIGH(a,b)	({	\
@@ -215,9 +215,9 @@ extern "C" {
 	     : "=r"(ret)		\
 	     : "r"(a), "r"(b));		\
 	ret;			})
-#  endif			/* compiler */
-# endif				/* cpu */
-#endif				/* NO_ASM */
+#  endif	/* compiler */
+# endif		/* cpu */
+#endif		/* NO_ASM */
 
 /*************************************************************
  * Using the long long type
@@ -393,23 +393,27 @@ extern "C" {
 	(c)=h&BN_MASK2; \
 	(r)=l&BN_MASK2; \
 	}
-#endif				/* !BN_LLONG */
+#endif /* !BN_LLONG */
 
-	void bn_mul_normal(BN_ULONG * r, BN_ULONG * a, int na, BN_ULONG * b, int nb);
-	void bn_mul_comba8(BN_ULONG * r, BN_ULONG * a, BN_ULONG * b);
-	void bn_mul_comba4(BN_ULONG * r, BN_ULONG * a, BN_ULONG * b);
-	void bn_sqr_normal(BN_ULONG * r, BN_ULONG * a, int n, BN_ULONG * tmp);
-	void bn_sqr_comba8(BN_ULONG * r, BN_ULONG * a);
-	void bn_sqr_comba4(BN_ULONG * r, BN_ULONG * a);
-	int bn_cmp_words(BN_ULONG * a, BN_ULONG * b, int n);
-	void bn_mul_recursive(BN_ULONG * r, BN_ULONG * a, BN_ULONG * b, int n2, BN_ULONG * t);
-	void bn_mul_part_recursive(BN_ULONG * r, BN_ULONG * a, BN_ULONG * b, int tn, int n, BN_ULONG * t);
-	void bn_sqr_recursive(BN_ULONG * r, BN_ULONG * a, int n2, BN_ULONG * t);
-	void bn_mul_low_normal(BN_ULONG * r, BN_ULONG * a, BN_ULONG * b, int n);
-	void bn_mul_low_recursive(BN_ULONG * r, BN_ULONG * a, BN_ULONG * b, int n2, BN_ULONG * t);
-	void bn_mul_high(BN_ULONG * r, BN_ULONG * a, BN_ULONG * b, BN_ULONG * l, int n2, BN_ULONG * t);
+void bn_mul_normal(BN_ULONG *r,BN_ULONG *a,int na,BN_ULONG *b,int nb);
+void bn_mul_comba8(BN_ULONG *r,BN_ULONG *a,BN_ULONG *b);
+void bn_mul_comba4(BN_ULONG *r,BN_ULONG *a,BN_ULONG *b);
+void bn_sqr_normal(BN_ULONG *r, BN_ULONG *a, int n, BN_ULONG *tmp);
+void bn_sqr_comba8(BN_ULONG *r,BN_ULONG *a);
+void bn_sqr_comba4(BN_ULONG *r,BN_ULONG *a);
+int bn_cmp_words(BN_ULONG *a,BN_ULONG *b,int n);
+void bn_mul_recursive(BN_ULONG *r,BN_ULONG *a,BN_ULONG *b,int n2,BN_ULONG *t);
+void bn_mul_part_recursive(BN_ULONG *r,BN_ULONG *a,BN_ULONG *b,
+	int tn, int n,BN_ULONG *t);
+void bn_sqr_recursive(BN_ULONG *r,BN_ULONG *a, int n2, BN_ULONG *t);
+void bn_mul_low_normal(BN_ULONG *r,BN_ULONG *a,BN_ULONG *b, int n);
+void bn_mul_low_recursive(BN_ULONG *r,BN_ULONG *a,BN_ULONG *b,int n2,
+	BN_ULONG *t);
+void bn_mul_high(BN_ULONG *r,BN_ULONG *a,BN_ULONG *b,BN_ULONG *l,int n2,
+	BN_ULONG *t);
 
 #ifdef  __cplusplus
 }
 #endif
+
 #endif

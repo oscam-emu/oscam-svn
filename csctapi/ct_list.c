@@ -29,117 +29,132 @@
  * Exported functions definition
  */
 
-extern CT_List *CT_List_New(void)
+extern CT_List *
+CT_List_New (void)
 {
-	CT_List *aux;
+  CT_List *aux;
 
-	aux = (CT_List *) malloc(sizeof(CT_List));
-	if (aux != NULL) {
-		aux->first = NULL;
-		aux->last = NULL;
-		aux->elements = 0;
-	}
-	return (aux);
+  aux = (CT_List *) malloc (sizeof (CT_List));
+  if (aux != NULL)
+    {
+      aux->first = NULL;
+      aux->last = NULL;
+      aux->elements = 0;
+    }
+  return (aux);
 }
 
-extern bool CT_List_AddCardTerminal(CT_List * list, CardTerminal * ct, unsigned short ctn)
+extern bool
+CT_List_AddCardTerminal (CT_List * list, CardTerminal * ct, unsigned short ctn)
 {
-	struct CT_List_Node *node;
+  struct CT_List_Node *node;
 
-	if (list == NULL)
-		return FALSE;
+  if (list == NULL)
+    return FALSE;
 
-	node = (struct CT_List_Node *) malloc(sizeof(struct CT_List_Node));
-	if (node != NULL) {
-		node->ct = ct;
-		node->ctn = ctn;
-		node->next = NULL;
-		if (list->first == NULL) {
-			list->first = node;
-			list->last = node;
-		} else {
-			list->last->next = node;
-			list->last = node;
-		}
-		list->elements++;
-	}
+  node = (struct CT_List_Node *) malloc (sizeof (struct CT_List_Node));
+  if (node != NULL)
+  {
+    node->ct = ct;
+    node->ctn = ctn;
+    node->next = NULL;
+    if (list->first == NULL)
+    {
+      list->first = node;
+      list->last = node;
+    }
+    else
+    {
+      list->last->next = node;
+      list->last = node;
+	  }
+    list->elements++;
+  }
 
-	return (node != NULL);
+  return (node != NULL);
 }
 
-extern CardTerminal *CT_List_GetCardTerminal(CT_List * list, unsigned short ctn)
+extern CardTerminal *
+CT_List_GetCardTerminal (CT_List * list, unsigned short ctn)
 {
-	struct CT_List_Node *node;
-	CardTerminal *ct = NULL;
+  struct CT_List_Node *node;
+  CardTerminal *ct = NULL;
 
-	if (list == NULL)
-		return NULL;
+  if (list == NULL)
+    return NULL;
 
-	for (node = list->first; (node != NULL) && (ct == NULL); node = node->next)
-		if (node->ctn == ctn)
-			ct = node->ct;
+  for (node = list->first; (node != NULL) && (ct == NULL); node = node->next)
+    if (node->ctn == ctn)
+      ct = node->ct;
 
-	return ct;
+  return ct;
 }
 
-extern int CT_List_GetNumberOfElements(CT_List * list)
+extern int
+CT_List_GetNumberOfElements (CT_List * list)
 {
-	if (list == NULL)
-		return 0;
+  if (list == NULL)
+    return 0;
 
-	return list->elements;
+  return list->elements;
 }
 
-extern bool CT_List_RemoveCardTerminal(CT_List * list, unsigned short ctn)
+extern bool
+CT_List_RemoveCardTerminal (CT_List * list, unsigned short ctn)
 {
-	struct CT_List_Node *current, *previous;
-	bool found;
+  struct CT_List_Node *current, *previous;
+  bool found;
 
-	if (list == NULL)
-		return FALSE;
+  if (list == NULL)
+    return FALSE;
 
-	previous = NULL;
-	current = list->first;
-	found = FALSE;
+  previous = NULL;
+  current = list->first;
+  found = FALSE;
 
-	while ((current != NULL) && (!found)) {
-		if (current->ctn == ctn)
-			found = TRUE;
-		else {
-			previous = current;
-			current = current->next;
-		}
+  while ((current != NULL) && (!found))
+    {
+      if (current->ctn == ctn)
+	found = TRUE;
+      else
+	{
+	  previous = current;
+	  current = current->next;
 	}
+    }
 
-	if (found) {
-		if (current == list->first)
-			list->first = current->next;
-		else
-			previous->next = current->next;
+  if (found)
+    {
+      if (current == list->first)
+	list->first = current->next;
+      else
+	previous->next = current->next;
 
-		if (current == list->last)
-			list->last = previous;
+      if (current == list->last)
+	list->last = previous;
 
-		CardTerminal_Delete(current->ct);
-		free(current);
-		list->elements--;
-	}
+      CardTerminal_Delete (current->ct);
+      free (current);
+      list->elements--;
+    }
 
-	return found;
+  return found;
 }
 
-extern void CT_List_Delete(CT_List * list)
+extern void
+CT_List_Delete (CT_List * list)
 {
-	struct CT_List_Node *node;
+  struct CT_List_Node *node;
 
-	if (list == NULL)
-		return;
+  if (list == NULL)
+    return;
 
-	while (list->first != NULL) {
-		node = list->first;
-		list->first = list->first->next;
-		CardTerminal_Delete(node->ct);
-		free(node);
-	}
-	free(list);
+  while (list->first != NULL)
+    {
+      node = list->first;
+      list->first = list->first->next;
+      CardTerminal_Delete (node->ct);
+      free (node);
+    }
+  free (list);
 }

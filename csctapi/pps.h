@@ -41,36 +41,40 @@
  * Exported data types definition
  */
 
-typedef struct {
-	double f;
-	double d;
-	double n;
-	BYTE t;
-} PPS_ProtocolParameters;
+typedef struct
+{
+  double f;
+  double d;
+  double n;
+  BYTE t;
+}
+PPS_ProtocolParameters;
 
-typedef struct {
-	ICC_Async *icc;
-	void *protocol;
-	PPS_ProtocolParameters parameters;
-} PPS;
+typedef struct
+{
+  ICC_Async *icc;
+  void *protocol;
+  PPS_ProtocolParameters parameters;
+}
+PPS;
 
 /*
  * Exported functions declaration
  */
 
 /* Create PPS context */
-extern PPS *PPS_New(ICC_Async * icc);
+extern PPS *PPS_New (ICC_Async * icc);
 
 /* Perform protcol type selection and return confirm */
-extern int PPS_Perform(PPS * pps, BYTE * params, unsigned *length);
+extern int PPS_Perform (PPS * pps, BYTE * params, unsigned *length);
 
 /* Get protocol handler */
-extern void *PPS_GetProtocol(PPS * pps);
+extern void *PPS_GetProtocol (PPS * pps);
 
 /* Get protocol parameters */
-extern PPS_ProtocolParameters *PPS_GetProtocolParameters(PPS * pps);
+extern PPS_ProtocolParameters *PPS_GetProtocolParameters (PPS * pps);
 
 /* Delete PPS context */
-extern void PPS_Delete(PPS * pps);
+extern void PPS_Delete (PPS * pps);
 
-#endif				/* _PPS_ */
+#endif /* _PPS_ */

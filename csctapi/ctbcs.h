@@ -142,11 +142,11 @@
 /*
  * Return codes for Eject ICC
  */
-#define CTBCS_SW1_EJECT_OK              0x90	/* Command succesful, */
+#define CTBCS_SW1_EJECT_OK              0x90    /* Command succesful, */
 #define CTBCS_SW2_EJECT_OK              0x00
-#define CTBCS_SW1_EJECT_REMOVED         0x90	/* Command succesful, */
-#define CTBCS_SW2_EJECT_REMOVED         0x01	/* Card removed */
-#define CTBCS_SW1_EJECT_NOT_REMOVED     0x62	/* Card not removed */
+#define CTBCS_SW1_EJECT_REMOVED         0x90    /* Command succesful, */
+#define CTBCS_SW2_EJECT_REMOVED         0x01    /* Card removed */
+#define CTBCS_SW1_EJECT_NOT_REMOVED     0x62    /* Card not removed */
 #define CTBCS_SW2_EJECT_NOT_REMOVED     0x00
 
 /*
@@ -156,4 +156,5 @@
 #define CTBCS_DATA_STATUS_CARD		0x01	/* Card present */
 #define CTBCS_DATA_STATUS_CARD_CONNECT	0x05	/* Card present */
 
-#endif				/* _CTBCS_ */
+#endif /* _CTBCS_ */
+
