@@ -411,7 +411,7 @@ void EuroDes(byte key1[], byte key2[], byte desMode, byte operatingMode, byte da
 {
 	byte mode;
 
-	if (key1[7]) {		/* Viaccess */
+	if (key1[7]) {	/* Viaccess */
 		mode = (operatingMode == HASH) ? DES_ECM_HASH : DES_ECM_CRYPT;
 
 		if (key2 != NULL)

@@ -98,7 +98,7 @@ void bn_mul_recursive(BN_ULONG * r, BN_ULONG * a, BN_ULONG * b, int n2, BN_ULONG
 		bn_mul_comba8(r, a, b);
 		return;
 	}
-#  endif			/* BN_MUL_COMBA */
+#  endif /* BN_MUL_COMBA */
 	if (n2 < BN_MUL_RECURSIVE_SIZE_NORMAL) {
 		/* This should not happen */
 		bn_mul_normal(r, a, n2, b, n2);
@@ -158,7 +158,7 @@ void bn_mul_recursive(BN_ULONG * r, BN_ULONG * a, BN_ULONG * b, int n2, BN_ULONG
 		bn_mul_comba8(r, a, b);
 		bn_mul_comba8(&(r[n2]), &(a[n]), &(b[n]));
 	} else
-#  endif			/* BN_MUL_COMBA */
+#  endif /* BN_MUL_COMBA */
 	{
 		p = &(t[n2 * 2]);
 		if (!zero)
@@ -176,7 +176,7 @@ void bn_mul_recursive(BN_ULONG * r, BN_ULONG * a, BN_ULONG * b, int n2, BN_ULONG
 
 	c1 = (int) (bn_add_words(t, r, &(r[n2]), n2));
 
-	if (neg) {		/* if t[32] is negative */
+	if (neg) {	/* if t[32] is negative */
 		c1 -= (int) (bn_sub_words(&(t[n2]), t, &(t[n2]), n2));
 	} else {
 		/* Might have a carry */
@@ -316,7 +316,7 @@ void bn_mul_part_recursive(BN_ULONG * r, BN_ULONG * a, BN_ULONG * b, int tn, int
 
 	c1 = (int) (bn_add_words(t, r, &(r[n2]), n2));
 
-	if (neg) {		/* if t[32] is negative */
+	if (neg) {	/* if t[32] is negative */
 		c1 -= (int) (bn_sub_words(&(t[n2]), t, &(t[n2]), n2));
 	} else {
 		/* Might have a carry */
@@ -503,7 +503,7 @@ void bn_mul_high(BN_ULONG * r, BN_ULONG * a, BN_ULONG * b, BN_ULONG * l, int n2,
 	else
 		c2 += (int) (bn_add_words(&(r[0]), &(r[0]), &(t[n]), n));
 
-	if (c1 != 0) {		/* Add starting at r[0], could be +ve or -ve */
+	if (c1 != 0) {	/* Add starting at r[0], could be +ve or -ve */
 		i = 0;
 		if (c1 > 0) {
 			lc = c1;
@@ -521,7 +521,7 @@ void bn_mul_high(BN_ULONG * r, BN_ULONG * a, BN_ULONG * b, BN_ULONG * l, int n2,
 			} while (lc);
 		}
 	}
-	if (c2 != 0) {		/* Add starting at r[1] */
+	if (c2 != 0) {	/* Add starting at r[1] */
 		i = n;
 		if (c2 > 0) {
 			lc = c2;
@@ -540,7 +540,7 @@ void bn_mul_high(BN_ULONG * r, BN_ULONG * a, BN_ULONG * b, BN_ULONG * l, int n2,
 		}
 	}
 }
-#endif				/* BN_RECURSION */
+#endif /* BN_RECURSION */
 
 int BN_mul(BIGNUM * r, BIGNUM * a, BIGNUM * b, BN_CTX * ctx)
 {
@@ -603,7 +603,7 @@ int BN_mul(BIGNUM * r, BIGNUM * a, BIGNUM * b, BN_CTX * ctx)
 			goto end;
 		}
 	}
-#endif				/* BN_MUL_COMBA */
+#endif /* BN_MUL_COMBA */
 #ifdef BN_RECURSION
 	if ((al >= BN_MULL_SIZE_NORMAL) && (bl >= BN_MULL_SIZE_NORMAL)) {
 		if (i == 1 && !BN_get_flags(b, BN_FLG_STATIC_DATA)) {
@@ -643,7 +643,7 @@ int BN_mul(BIGNUM * r, BIGNUM * a, BIGNUM * b, BN_CTX * ctx)
 			goto end;
 		}
 	}
-#endif				/* BN_RECURSION */
+#endif /* BN_RECURSION */
 	if (bn_wexpand(rr, top) == NULL)
 		goto err;
 	rr->top = top;

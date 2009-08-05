@@ -66,7 +66,7 @@
 #  define HEADER_BN_H
 
 #  ifndef NO_FP_API
-#    include <stdio.h>		/* FILE */
+#    include <stdio.h>	/* FILE */
 #  endif
 
 #  ifdef  __cplusplus

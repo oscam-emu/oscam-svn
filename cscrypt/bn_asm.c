@@ -59,7 +59,7 @@
  */
 
 #ifndef BN_DEBUG
-#  undef NDEBUG			/* avoid conflicting definitions */
+#  undef NDEBUG	/* avoid conflicting definitions */
 #  define NDEBUG
 #endif
 
@@ -155,7 +155,7 @@ void bn_sqr_words(BN_ULONG * r, BN_ULONG * a, int n)
 	}
 }
 
-#else				/* !(defined(BN_LLONG) || defined(BN_UMULT_HIGH)) */
+#else /* !(defined(BN_LLONG) || defined(BN_UMULT_HIGH)) */
 
 BN_ULONG bn_mul_add_words(BN_ULONG * rp, BN_ULONG * ap, int num, BN_ULONG w)
 {
@@ -246,7 +246,7 @@ void bn_sqr_words(BN_ULONG * r, BN_ULONG * a, int n)
 	}
 }
 
-#endif				/* !(defined(BN_LLONG) || defined(BN_UMULT_HIGH)) */
+#endif /* !(defined(BN_LLONG) || defined(BN_UMULT_HIGH)) */
 
 #if defined(BN_LLONG) && defined(BN_DIV2W)
 
@@ -321,7 +321,7 @@ BN_ULONG bn_div_words(BN_ULONG h, BN_ULONG l, BN_ULONG d)
 	ret |= q;
 	return (ret);
 }
-#endif				/* !defined(BN_LLONG) && defined(BN_DIV2W) */
+#endif /* !defined(BN_LLONG) && defined(BN_DIV2W) */
 
 #ifdef BN_LLONG
 BN_ULONG bn_add_words(BN_ULONG * r, BN_ULONG * a, BN_ULONG * b, int n)
@@ -363,7 +363,7 @@ BN_ULONG bn_add_words(BN_ULONG * r, BN_ULONG * a, BN_ULONG * b, int n)
 	}
 	return ((BN_ULONG) ll);
 }
-#else				/* !BN_LLONG */
+#else /* !BN_LLONG */
 BN_ULONG bn_add_words(BN_ULONG * r, BN_ULONG * a, BN_ULONG * b, int n)
 {
 	BN_ULONG c, l, t;
@@ -416,7 +416,7 @@ BN_ULONG bn_add_words(BN_ULONG * r, BN_ULONG * a, BN_ULONG * b, int n)
 	}
 	return ((BN_ULONG) c);
 }
-#endif				/* !BN_LLONG */
+#endif /* !BN_LLONG */
 
 BN_ULONG bn_sub_words(BN_ULONG * r, BN_ULONG * a, BN_ULONG * b, int n)
 {
@@ -541,7 +541,7 @@ BN_ULONG bn_sub_words(BN_ULONG * r, BN_ULONG * a, BN_ULONG * b, int n)
 #    define sqr_add_c2(a,i,j,c0,c1,c2)	\
 	mul_add_c2((a)[i],(a)[j],c0,c1,c2)
 
-#  else				/* !BN_LLONG */
+#  else	/* !BN_LLONG */
 #    define mul_add_c(a,b,c0,c1,c2) \
 	t1=LBITS(a); t2=HBITS(a); \
 	bl=LBITS(b); bh=HBITS(b); \
@@ -568,7 +568,7 @@ BN_ULONG bn_sub_words(BN_ULONG * r, BN_ULONG * a, BN_ULONG * b, int n)
 
 #    define sqr_add_c2(a,i,j,c0,c1,c2) \
 	mul_add_c2((a)[i],(a)[j],c0,c1,c2)
-#  endif			/* !BN_LLONG */
+#  endif /* !BN_LLONG */
 
 void bn_mul_comba8(BN_ULONG * r, BN_ULONG * a, BN_ULONG * b)
 {
@@ -843,7 +843,7 @@ void bn_sqr_comba4(BN_ULONG * r, BN_ULONG * a)
 	r[6] = c1;
 	r[7] = c2;
 }
-#else				/* !BN_MUL_COMBA */
+#else /* !BN_MUL_COMBA */
 
 /* hmm... is it faster just to do a multiply? */
 #  undef bn_sqr_comba4
@@ -882,4 +882,4 @@ void bn_mul_comba8(BN_ULONG * r, BN_ULONG * a, BN_ULONG * b)
 	r[15] = bn_mul_add_words(&(r[7]), a, 8, b[7]);
 }
 
-#endif				/* !BN_MUL_COMBA */
+#endif /* !BN_MUL_COMBA */

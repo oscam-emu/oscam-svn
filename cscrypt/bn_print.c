@@ -186,7 +186,7 @@ int BN_hex2bn(BIGNUM ** bn, const char *a)
 	if (bn_expand(ret, i * 4) == NULL)
 		goto err;
 
-	j = i;			/* least significant 'hex' */
+	j = i;	/* least significant 'hex' */
 	m = 0;
 	h = 0;
 	while (j > 0) {

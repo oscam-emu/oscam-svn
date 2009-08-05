@@ -808,7 +808,7 @@ void AES_encrypt(const unsigned char *in, unsigned char *out, const AES_KEY * ke
 
 #ifndef FULL_UNROLL
 	int r;
-#endif				/* ?FULL_UNROLL */
+#endif /* ?FULL_UNROLL */
 
 	assert(in && out && key);
 	rk = key->rd_key;
@@ -892,7 +892,7 @@ void AES_encrypt(const unsigned char *in, unsigned char *out, const AES_KEY * ke
 		}
 	}
 	rk += key->rounds << 2;
-#else				/* !FULL_UNROLL */
+#else /* !FULL_UNROLL */
 	/*
 	 * Nr - 1 full rounds:
 	 */
@@ -913,7 +913,7 @@ void AES_encrypt(const unsigned char *in, unsigned char *out, const AES_KEY * ke
 		s2 = Te0[(t2 >> 24)] ^ Te1[(t3 >> 16) & 0xff] ^ Te2[(t0 >> 8) & 0xff] ^ Te3[(t1) & 0xff] ^ rk[2];
 		s3 = Te0[(t3 >> 24)] ^ Te1[(t0 >> 16) & 0xff] ^ Te2[(t1 >> 8) & 0xff] ^ Te3[(t2) & 0xff] ^ rk[3];
 	}
-#endif				/* ?FULL_UNROLL */
+#endif /* ?FULL_UNROLL */
 	/*
 	 * apply last round and
 	 * map cipher state to byte array block:
@@ -940,7 +940,7 @@ void AES_decrypt(const unsigned char *in, unsigned char *out, const AES_KEY * ke
 
 #ifndef FULL_UNROLL
 	int r;
-#endif				/* ?FULL_UNROLL */
+#endif /* ?FULL_UNROLL */
 
 	assert(in && out && key);
 	rk = key->rd_key;
@@ -1024,7 +1024,7 @@ void AES_decrypt(const unsigned char *in, unsigned char *out, const AES_KEY * ke
 		}
 	}
 	rk += key->rounds << 2;
-#else				/* !FULL_UNROLL */
+#else /* !FULL_UNROLL */
 	/*
 	 * Nr - 1 full rounds:
 	 */
@@ -1045,7 +1045,7 @@ void AES_decrypt(const unsigned char *in, unsigned char *out, const AES_KEY * ke
 		s2 = Td0[(t2 >> 24)] ^ Td1[(t1 >> 16) & 0xff] ^ Td2[(t0 >> 8) & 0xff] ^ Td3[(t3) & 0xff] ^ rk[2];
 		s3 = Td0[(t3 >> 24)] ^ Td1[(t2 >> 16) & 0xff] ^ Td2[(t1 >> 8) & 0xff] ^ Td3[(t0) & 0xff] ^ rk[3];
 	}
-#endif				/* ?FULL_UNROLL */
+#endif /* ?FULL_UNROLL */
 	/*
 	 * apply last round and
 	 * map cipher state to byte array block:

@@ -97,7 +97,7 @@ int BN_add(BIGNUM * r, const BIGNUM * a, const BIGNUM * b)
 		return (1);
 	}
 
-	if (a->neg)		/* both are neg */
+	if (a->neg)	/* both are neg */
 		r->neg = 1;
 	else
 		r->neg = 0;
@@ -216,7 +216,7 @@ int BN_usub(BIGNUM * r, const BIGNUM * a, const BIGNUM * b)
 	rp += min;
 	i = min;
 #endif
-	if (carry) {		/* subtracted */
+	if (carry) {	/* subtracted */
 		while (i < max) {
 			i++;
 			t1 = *(ap++);

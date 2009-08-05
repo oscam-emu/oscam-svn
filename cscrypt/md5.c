@@ -105,7 +105,7 @@ static const unsigned char __md5_itoa64[] =	/* 0 ... 63 => ascii - 64 */
 #ifdef i386
 #  define __md5_Encode memcpy
 #  define __md5_Decode memcpy
-#else				/* i386 */
+#else /* i386 */
 
 /*
  * __md5_Encodes input (u_int32_t) into output (unsigned char). Assumes len is
@@ -142,7 +142,7 @@ unsigned int len;
 	for (i = 0, j = 0; j < len; i++, j += 4)
 		output[i] = ((u_int32_t) input[j]) | (((u_int32_t) input[j + 1]) << 8) | (((u_int32_t) input[j + 2]) << 16) | (((u_int32_t) input[j + 3]) << 24);
 }
-#endif				/* i386 */
+#endif /* i386 */
 
 /* F, G, H and I are basic MD5 functions. */
 #define F(x, y, z) (((x) & (y)) | ((~x) & (z)))
@@ -288,7 +288,7 @@ const unsigned char block[64];
 		4, 11, 16, 23,
 		6, 10, 15, 21
 	};
-#endif				/* MD5_SIZE_OVER_SPEED > 1 */
+#endif /* MD5_SIZE_OVER_SPEED > 1 */
 
 #if MD5_SIZE_OVER_SPEED > 0
 	const u_int32_t *pc;
@@ -325,7 +325,7 @@ const unsigned char block[64];
 		0, 7, 14, 5, 12, 3, 10, 1, 8, 15, 6, 13, 4, 11, 2, 9	/* 4 */
 	};
 
-#endif				/* MD5_SIZE_OVER_SPEED > 0 */
+#endif /* MD5_SIZE_OVER_SPEED > 0 */
 
 	__md5_Decode(x, block, 64);
 

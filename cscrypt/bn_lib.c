@@ -59,7 +59,7 @@
  */
 
 #ifndef BN_DEBUG
-#  undef NDEBUG			/* avoid conflicting definitions */
+#  undef NDEBUG	/* avoid conflicting definitions */
 #  define NDEBUG
 #endif
 
@@ -538,7 +538,7 @@ BN_ULONG BN_get_word(BIGNUM * a)
 	if (n > sizeof (BN_ULONG))
 		return (BN_MASK2);
 	for (i = a->top - 1; i >= 0; i--) {
-#ifndef SIXTY_FOUR_BIT		/* the data item > unsigned long */
+#ifndef SIXTY_FOUR_BIT	/* the data item > unsigned long */
 		ret <<= BN_BITS4;	/* stops the compiler complaining */
 		ret <<= BN_BITS4;
 #else
@@ -566,7 +566,7 @@ int BN_set_word(BIGNUM * a, BN_ULONG w)
 		/* the following is done instead of
 		 * w>>=BN_BITS2 so compilers don't complain
 		 * on builds where sizeof(long) == BN_TYPES */
-#ifndef SIXTY_FOUR_BIT		/* the data item > unsigned long */
+#ifndef SIXTY_FOUR_BIT	/* the data item > unsigned long */
 		w >>= BN_BITS4;
 		w >>= BN_BITS4;
 #else

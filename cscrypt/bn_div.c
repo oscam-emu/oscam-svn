@@ -155,9 +155,9 @@ int BN_div(BIGNUM * dv, BIGNUM * rem, const BIGNUM * m, const BIGNUM * d, BN_CTX
 	    q;					\
 	})
 #        define REMAINDER_IS_ALREADY_CALCULATED
-#      endif			/* __<cpu> */
-#    endif			/* __GNUC__ */
-#  endif			/* NO_ASM */
+#      endif /* __<cpu> */
+#    endif /* __GNUC__ */
+#  endif /* NO_ASM */
 
 int BN_div(BIGNUM * dv, BIGNUM * rm, const BIGNUM * num, const BIGNUM * divisor, BN_CTX * ctx)
 {
@@ -257,7 +257,7 @@ int BN_div(BIGNUM * dv, BIGNUM * rm, const BIGNUM * num, const BIGNUM * divisor,
 		n1 = wnump[-1];
 		if (n0 == d0)
 			q = BN_MASK2;
-		else {		/* n0 < d0 */
+		else {	/* n0 < d0 */
 
 #    ifdef BN_LLONG
 			BN_ULLONG t2;
@@ -286,7 +286,7 @@ int BN_div(BIGNUM * dv, BIGNUM * rm, const BIGNUM * num, const BIGNUM * divisor,
 					break;	/* don't let rem overflow */
 				t2 -= d1;
 			}
-#    else			/* !BN_LLONG */
+#    else /* !BN_LLONG */
 			BN_ULONG t2l, t2h, ql, qh;
 
 			q = bn_div_words(n0, n1, d0);
@@ -316,9 +316,9 @@ int BN_div(BIGNUM * dv, BIGNUM * rm, const BIGNUM * num, const BIGNUM * divisor,
 					t2h--;
 				t2l -= d1;
 			}
-#    endif			/* !BN_LLONG */
+#    endif /* !BN_LLONG */
 		}
-#  endif			/* !BN_DIV3W */
+#  endif /* !BN_DIV3W */
 
 		l0 = bn_mul_words(tmp->d, sdiv->d, div_n, q);
 		wnum.d--;
@@ -359,7 +359,7 @@ int BN_div(BIGNUM * dv, BIGNUM * rm, const BIGNUM * num, const BIGNUM * divisor,
 /* rem != m */
 int BN_mod(BIGNUM * rem, const BIGNUM * m, const BIGNUM * d, BN_CTX * ctx)
 {
-#if 0				/* The old slow way */
+#if 0	/* The old slow way */
 	int i, nm, nd;
 	BIGNUM *dv;
 

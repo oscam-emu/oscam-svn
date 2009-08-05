@@ -201,12 +201,12 @@ int BN_mod_exp_simple(BIGNUM * r, BIGNUM * a, const BIGNUM * p, const BIGNUM * m
 		ts = i;
 	}
 
-	start = 1;		/* This is used to avoid multiplication etc
-				 * when there is only the value '1' in the
-				 * buffer. */
-	wvalue = 0;		/* The 'value' of the window */
+	start = 1;	/* This is used to avoid multiplication etc
+			 * when there is only the value '1' in the
+			 * buffer. */
+	wvalue = 0;	/* The 'value' of the window */
 	wstart = bits - 1;	/* The top bit of the window */
-	wend = 0;		/* The bottom bit of the window */
+	wend = 0;	/* The bottom bit of the window */
 
 	if (!BN_one(r))
 		goto err;
