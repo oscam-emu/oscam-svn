@@ -170,7 +170,6 @@ extern char *RDR_CD_TXT[];
 
 #  define CS_ANTICASC
 
-// moved from CAM/common.h
 #  define CARD_INSERTED  1
 #  define CARD_NEED_INIT 2
 #  define CARD_FAILURE   4
@@ -394,27 +393,6 @@ struct s_reader {
 	int init_history_pos;
 #  endif
 };
-
-#  ifdef CS_ANTICASC
-struct s_acasc_shm {
-	ushort count:15;
-	ushort deny:1;
-};
-
-struct s_acasc {
-	ushort stat[10];
-	uchar idx;		// current active index in stat[]
-};
-
-struct s_cpmap {
-	ushort caid;
-	ulong provid;
-	ushort sid;
-	ushort chid;
-	ushort dwtime;
-	struct s_cpmap *next;
-};
-#  endif
 
 struct s_auth {
 	char usr[33];
