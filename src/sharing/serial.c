@@ -1,5 +1,8 @@
-#include "globals.h"
 #include <termios.h>
+
+#include "globals.h"
+#include "oscam.h"
+#include "simples.h"
 
 #define HSIC_CRC 0xA5
 #define SSSP_MAX_PID 8

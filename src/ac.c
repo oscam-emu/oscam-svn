@@ -1,4 +1,5 @@
 #include "globals.h"
+#include "ac.h"
 
 #ifdef CS_ANTICASC
 
@@ -145,4 +146,5 @@ void ac_chk(ECM_REQUEST * er, int level)
 			cs_sleepms(cfg->ac_fakedelay);
 		}
 }
+
 #endif

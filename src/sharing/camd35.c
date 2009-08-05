@@ -1,4 +1,6 @@
 #include "globals.h"
+#include "oscam.h"
+#include "simples.h"
 
 #define REQ_SIZE	328	// 256 + 20 + 0x34
 static uchar upwd[64] = { 0 };

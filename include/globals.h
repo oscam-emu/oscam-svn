@@ -1,35 +1,36 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <assert.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
-#include <sys/poll.h>
-#include <ctype.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/shm.h>
-#include <sys/wait.h>
-#include <unistd.h>
-#include <sys/mman.h>
-#include <stdarg.h>
-#include <time.h>
-#include <sys/timeb.h>
-#include <limits.h>
+#ifndef __GLOBALS_H__
+#  define __GLOBALS_H__
 
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <string.h>
-#include <signal.h>
-#include <errno.h>
+#  include <stdlib.h>
+#  include <stdio.h>
+#  include <assert.h>
+#  include <fcntl.h>
+#  include <sys/ioctl.h>
+#  include <sys/poll.h>
+#  include <ctype.h>
+#  include <sys/types.h>
+#  include <sys/stat.h>
+#  include <sys/shm.h>
+#  include <sys/wait.h>
+#  include <unistd.h>
+#  include <sys/mman.h>
+#  include <stdarg.h>
+#  include <time.h>
+#  include <sys/timeb.h>
+#  include <limits.h>
 
-#include <pthread.h>
+#  include <sys/socket.h>
+#  include <netinet/in.h>
+#  include <arpa/inet.h>
+#  include <netdb.h>
+#  include <string.h>
+#  include <signal.h>
+#  include <errno.h>
 
-#include <cscrypt.h>
+#  include <pthread.h>
 
-#ifndef CS_GLOBALS
-#  define CS_GLOBALS
+#  include <cscrypt.h>
+
 #  define CS_VERSION		"0.99.4svn"
 
 #  if defined(__GNUC__)
@@ -38,20 +39,20 @@
 #    define GCC_PACK
 #  endif
 
-#  include "config.h"
+#  include <config.h>
 #  include "os-types.h"
 
 #  ifndef CS_CONFDIR
 #    define CS_CONFDIR 		"/usr/local/etc"
 #  endif
 #  ifndef CS_MMAPFILE
-#    define CS_MMAPFILE 		"/tmp/oscam.mem"
+#    define CS_MMAPFILE		"/tmp/oscam.mem"
 #  endif
 #  ifndef CS_LOGFILE
 #    define CS_LOGFILE		"/var/log/oscam.log"
 #  endif
-#  define CS_QLEN			128
-					// size of request queue
+
+#  define CS_QLEN		128	// size of request queue
 #  define CS_MAXQLEN		128	// size of request queue for cardreader
 #  define CS_MAXCAIDTAB		32	// max. caid-defs/user
 #  define CS_MAXTUNTAB		16	// max. betatunnel mappings
@@ -60,33 +61,31 @@
 #  define CS_MAXFILTERS		16
 
 #  define CS_MAXCARDS		4096
-#  define CS_MAXIGNORE	1024
-#  define CS_MAXLOCALS    16
-#  define CS_ECMSTORESIZE		16
-					// use MD5()
-#  define CS_EMMSTORESIZE		270
+#  define CS_MAXIGNORE		1024
+#  define CS_MAXLOCALS		16
+#  define CS_ECMSTORESIZE	16	// use MD5()
+#  define CS_EMMSTORESIZE	270
 #  define CS_CLIENT_TIMEOUT	5000
 #  define CS_CLIENT_MAXIDLE	120
-#  define CS_BIND_TIMEOUT		120
+#  define CS_BIND_TIMEOUT	120
 #  define CS_DELAY		0
 #  define CS_RESOLVE_DELAY	30
 #  define CS_MAXLOGHIST		30
-#  define CS_LOGHISTSIZE		160
-					// 32+128: username + logline
+#  define CS_LOGHISTSIZE	160	// 32+128: username + logline
 
 #  ifdef OLD_DEFS
 #    ifdef  CS_EMBEDDED
-#      define CS_MAXPENDING		32
-#      define CS_ECMCACHESIZE		32
-#      define CS_EMMCACHESIZE		64
+#      define CS_MAXPENDING	32
+#      define CS_ECMCACHESIZE	32
+#      define CS_EMMCACHESIZE	64
 #      define CS_MAXPID		32
-#      define CS_MAXREADER		8
+#      define CS_MAXREADER	8
 #    else
-#      define CS_MAXPENDING		128
-#      define CS_ECMCACHESIZE		128
-#      define CS_EMMCACHESIZE		256
+#      define CS_MAXPENDING	128
+#      define CS_ECMCACHESIZE	128
+#      define CS_EMMCACHESIZE	256
 #      define CS_MAXPID		128
-#      define CS_MAXREADER		64
+#      define CS_MAXREADER	64
 #    endif
 #  endif
 
@@ -105,8 +104,7 @@
 #    define CS_RDR_INIT_HIST
 #  endif
 
-#  define D_DUMP			1
-					// Debug Dumps
+#  define D_DUMP		1	// Debug Dumps
 #  define D_MASTER		2	// Debug Master Process
 #  define D_READER		4	// Debug Reader/Proxy Process
 #  define D_CLIENT		8	// Debug Client Process
@@ -114,27 +112,24 @@
 #  define D_WATCHDOG		32	// Debug Watchdog
 #  define D_ALL_DUMP		63
 
-#  define R_MOUSE			0x1
-					// Reader smartcard mouse
+#  define R_MOUSE		0x1	// Reader smartcard mouse
 #  define R_INTERN		0x2	// Reader smartcard intern
-#  define R_SMART		0x5
-				// Smartreader+
+#  define R_SMART		0x5	// Smartreader+
 #  define R_CAMD35		0x10	// Reader cascading camd 3.5x
 #  define R_CAMD33		0x11	// Reader cascading camd 3.3x
 #  define R_NEWCAMD		0x12	// Reader cascading newcamd
 #  define R_RADEGAST		0x13	// Reader cascading radegast
 #  define R_CS378X		0x14	// Reader cascading camd 3.5x TCP
-#  define R_GBOX		0x20
-				// Reader cascading gbox
+#  define R_GBOX		0x20	// Reader cascading gbox
 #  define R_SERIAL		0x80	// Reader serial
 #  define R_IS_NETWORK		0x70
-#  define R_IS_CASCADING		0xF0
+#  define R_IS_CASCADING	0xF0
 
-#  define CS_MAX_MOD 8
+#  define CS_MAX_MOD		8
 #  define MOD_CONN_TCP		1
 #  define MOD_CONN_UDP		2
 #  define MOD_CONN_NET		3
-#  define MOD_CONN_SERIAL		4
+#  define MOD_CONN_SERIAL	4
 
 #  ifdef CS_CORE
 char *PIP_ID_TXT[] = { "ECM", "EMM", "LOG", "CIN", "HUP", NULL };
@@ -149,23 +144,23 @@ extern char *PIP_ID_TXT[];
 extern char *RDR_CD_TXT[];
 #  endif
 
-#  define	PIP_ID_ECM		0
-#  define	PIP_ID_EMM		1
-#  define	PIP_ID_LOG		2
+#  define PIP_ID_ECM		0
+#  define PIP_ID_EMM		1
+#  define PIP_ID_LOG		2
 #  define PIP_ID_CIN		3	// CARD_INFO
 #  define PIP_ID_HUP		4
-#  define	PIP_ID_MAX		PIP_ID_HUP
-#  define	PIP_ID_DCW		5
+#  define PIP_ID_MAX		PIP_ID_HUP
+#  define PIP_ID_DCW		5
 
-#  define	PIP_ID_ERR		(-1)
-#  define	PIP_ID_DIR		(-2)
-#  define	PIP_ID_NUL		(-3)
+#  define PIP_ID_ERR		(-1)
+#  define PIP_ID_DIR		(-2)
+#  define PIP_ID_NUL		(-3)
 
 #  define cdiff *c_start
 
 #  define NCD_AUTO		0
-#  define NCD_524			1
-#  define NCD_525			2
+#  define NCD_524		1
+#  define NCD_525		2
 
 #  define CS_ANTICASC
 
@@ -178,9 +173,6 @@ enum { E1_GLOBAL = 0, E1_USER, E1_READER, E1_SERVER, E1_LSERVER };
 enum { E2_GLOBAL = 0, E2_GROUP, E2_CAID, E2_IDENT, E2_CLASS, E2_CHID, E2_QUEUE,
 	E2_EA_LEN, E2_F0_LEN, E2_OFFLINE, E2_SID
 };
-
-//typedef unsigned char uchar;
-//typedef unsigned long ulong;
 
 typedef struct s_classtab {
 	uchar an;
@@ -212,7 +204,6 @@ typedef struct s_sidtab {
 	struct s_sidtab *next;
 } GCC_PACK SIDTAB;
 
-
 typedef struct s_filter {
 	ushort caid;
 	uchar nprids;
@@ -241,7 +232,7 @@ struct s_ecm {
 	ushort caid;
 	ulong prid;
 	ulong grp;
-//  int level;
+//	int level;
 };
 
 struct s_emm {
@@ -251,13 +242,13 @@ struct s_emm {
 };
 
 struct s_module {
-	//int  fd;
+//	int fd;
 	int multi;
 	int type;
 	int watchdog;
 	char desc[16];
 	char *logtxt;
-	//int  s_port;
+//	int s_port;
 	in_addr_t s_ip;
 	void (*s_handler) ();
 	int (*recv) ();
@@ -358,7 +349,7 @@ struct s_reader {
 	int nprov;
 	uchar prid[CS_MAXPROV][8];
 	uchar availkeys[CS_MAXPROV][16];	// viaccess; misused in seca, if availkeys[PROV][0]=0 then expired, 1 then valid.
-	uchar sa[CS_MAXPROV][4];	// viaccess & seca
+	uchar sa[CS_MAXPROV][4];		// viaccess & seca
 	ushort acs;		// irdeto
 	ushort caid[16];
 	uchar b_nano[256];
@@ -399,7 +390,6 @@ struct s_reader {
 };
 
 #  ifdef CS_ANTICASC
-
 struct s_acasc_shm {
 	ushort count:15;
 	ushort deny:1;
@@ -510,7 +500,7 @@ struct s_config {
 	int maxdist;
 	int num_locals;
 	unsigned long locals[CS_MAXLOCALS];
-	//struct s_irdeto_quess *itab[0xff];
+//	struct s_irdeto_quess *itab[0xff];
 #  ifdef CS_ANTICASC
 	char ac_enabled;
 	int ac_users;		// num of users for account (0 - default)
@@ -530,7 +520,7 @@ typedef struct ecm_request_t {
 	uchar ecm[256];
 	uchar cw[16];
 	uchar ecmd5[CS_ECMSTORESIZE];
-//  uchar         l;
+//	uchar l;
 	short l;
 	ushort caid;
 	ushort ocaid;
@@ -566,34 +556,6 @@ typedef struct emm_packet_t {
 	int cidx;
 } GCC_PACK EMM_PACKET;
 
-// simples.c
-extern char *remote_txt(void);
-extern char *trim(char *);
-extern char *strtolower(char *);
-extern int gethexval(char);
-extern int cs_atob(uchar *, char *, int);
-extern ulong cs_atoi(char *, int, int);
-extern int byte_atob(char *);
-extern long word_atob(char *);
-extern int key_atob(char *, uchar *);
-extern int key_atob4(char *, uchar *);
-extern char *key_btoa(char *, uchar *);
-extern char *cs_hexdump(int, uchar *, int);
-extern in_addr_t cs_inet_order(in_addr_t);
-extern char *cs_inet_ntoa(in_addr_t);
-extern in_addr_t cs_inet_addr(char *txt);
-extern ulong b2i(int, uchar *);
-extern ullong b2ll(int, uchar *);
-extern uchar *i2b(int, ulong);
-extern ulong a2i(char *, int);
-extern int boundary(int, int);
-extern void cs_ftime(struct timeb *);
-extern void cs_sleepms(int);
-extern int bytes_available(int);
-extern void cs_setpriority(int);
-extern struct s_auth *find_user(char *);
-
-// oscam variables
 extern int pfd, rfd, fd_c2m, fd_m2c, cs_idx, *c_start, cs_ptyp, cs_dblevel, cs_hw;
 extern int *logidx, *loghistidx, *log_fd;
 extern int is_server, *mcl;
@@ -615,142 +577,6 @@ extern struct s_module ph[CS_MAX_MOD];
 extern ECM_REQUEST *ecmtask;
 extern char logfile[256];
 
-#  ifdef CS_ANTICASC
-extern struct s_acasc_shm *acasc;
-extern FILE *fpa;
-extern int use_ac_log;
-#  endif
-
-
-// oscam.c
-extern char *cs_platform(char *);
-extern int recv_from_udpipe(uchar *, int);
-extern char *username(int);
-extern int idx_from_pid(pid_t);
-extern int chk_bcaid(ECM_REQUEST *, CAIDTAB *);
-extern void cs_exit(int sig);
-extern int cs_fork(in_addr_t, in_port_t);
-extern void wait4master(void);
-extern int cs_auth_client(struct s_auth *, char *);
-extern void cs_disconnect_client(void);
-extern int check_ecmcache(ECM_REQUEST *, ulong);
-extern int write_to_pipe(int, int, uchar *, int);
-extern int read_from_pipe(int, uchar **, int);
-extern int write_ecm_request(int, ECM_REQUEST *);
-extern int write_ecm_answer(int, ECM_REQUEST *);
-extern void log_emm_request(int);
-extern ulong chk_provid(uchar *, ushort);
-extern void guess_cardsystem(ECM_REQUEST *);
-extern void guess_irdeto(ECM_REQUEST *);
-extern void get_cw(ECM_REQUEST *);
-extern void do_emm(EMM_PACKET *);
-extern ECM_REQUEST *get_ecmtask(void);
-extern void request_cw(ECM_REQUEST *, int, int);
-extern int send_dcw(ECM_REQUEST *);
-extern int process_input(uchar *, int, int);
-extern int chk_srvid(ECM_REQUEST *, int);
-extern int chk_sfilter(ECM_REQUEST *, PTAB *);
-extern int chk_ufilters(ECM_REQUEST *);
-extern int chk_rfilter(ECM_REQUEST *, struct s_reader *);
-extern int chk_rsfilter(ECM_REQUEST *, int);
-extern int chk_avail_reader(ECM_REQUEST *, struct s_reader *);
-extern void set_signal_handler(int, int, void (*)(int));
-extern void cs_log_config(void);
-
-#  ifdef CS_ANTICASC
-//extern void start_anticascader(void);
-extern void init_ac(void);
-extern void ac_init_stat(int);
-extern int ac_init_log(char *);
-extern void ac_do_stat(void);
-extern void ac_init_client(struct s_auth *);
-extern void ac_chk(ECM_REQUEST *, int);
-#  endif
-
-// nano.c
-extern int chk_class(ECM_REQUEST *, CLASSTAB *, const char *, const char *);
-
-// config.c
-extern int init_config(void);
-extern int init_userdb(void);
-extern int init_readerdb(void);
-extern int init_sidtab(void);
-extern int init_srvid(void);
-extern int search_boxkey(ushort, ulong, char *);
-extern void init_len4caid(void);
-extern int init_irdeto_guess_tab(void);
-
-// reader.c
 extern int ridx, logfd;
-extern void cs_ri_brk(int);
-extern void cs_ri_log(char *, ...);
-extern void start_cardreader(void);
-extern void reader_card_info(void);
 
-// log.c
-extern int cs_init_log(char *);
-extern void cs_log(char *, ...);
-extern void cs_debug(char *, ...);
-extern void cs_ddump(uchar *, int, char *, ...);
-extern void cs_close_log(void);
-extern int cs_init_statistics(char *);
-extern void cs_statistics(int);
-extern void cs_dump(uchar *, int, char *, ...);
-
-// aes
-extern void aes_set_key(char *);
-extern void aes_encrypt_idx(int, uchar *, int);
-extern void aes_decrypt(uchar *, int);
-
-#  define aes_encrypt(b, n) aes_encrypt_idx(cs_idx, b, n)
-
-// CAM/
-
-// common
-extern int reader_device_init(char *, int);
-extern int reader_checkhealth(void);
-extern int reader_ecm(ECM_REQUEST *);
-extern int reader_emm(EMM_PACKET *);
-
-// irdeto
-extern int irdeto_card_init(uchar *, int);
-extern int irdeto_do_ecm(ECM_REQUEST *);
-extern int irdeto_do_emm(EMM_PACKET *);
-extern int irdeto_card_info(void);
-
-// viaccess
-extern int viaccess_card_init(uchar *, int);
-extern int viaccess_do_ecm(ECM_REQUEST *);
-extern int viaccess_do_emm(EMM_PACKET *);
-extern int viaccess_card_info(void);
-
-// videoguard
-extern int videoguard_card_init(uchar *, int);
-extern int videoguard_do_ecm(ECM_REQUEST *);
-extern int videoguard_do_emm(EMM_PACKET *);
-extern int videoguard_card_info(void);
-
-// cryptoworks
-extern int cryptoworks_card_init(uchar *, int);
-extern int cryptoworks_do_ecm(ECM_REQUEST *);
-extern int cryptoworks_do_emm(EMM_PACKET *);
-extern int cryptoworks_card_info(void);
-
-// seca
-extern int seca_card_init(uchar *, int);
-extern int seca_do_ecm(ECM_REQUEST *);
-extern int seca_do_emm(EMM_PACKET *);
-extern int seca_card_info(void);
-
-// protocol modules
-extern int monitor_send_idx(int, char *);
-extern void module_monitor(struct s_module *);
-extern void module_camd35(struct s_module *);
-extern void module_camd35_tcp(struct s_module *);
-extern void module_camd33(struct s_module *);
-extern void module_newcamd(struct s_module *);
-extern void module_radegast(struct s_module *);
-extern void module_oscam_ser(struct s_module *);
-extern void module_gbox(struct s_module *);
-extern struct timeval *chk_pending(struct timeb tp_ctimeout);
-#endif				// CS_GLOBALS
+#endif // __GLOBALS_H__

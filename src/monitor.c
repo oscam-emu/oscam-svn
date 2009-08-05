@@ -1,4 +1,6 @@
 #include "globals.h"
+#include "simples.h"
+
 #ifdef CS_WITH_GBOX
 #  include "csgbox/gbox.h"
 #  define CS_VERSION_X  CS_VERSION "-gbx-" GBXVERSION

@@ -1,5 +1,16 @@
 #define CS_CORE
 #include "globals.h"
+#include "oscam.h"
+#include "simples.h"
+#include "ac.h"
+#include "monitor.h"
+
+#include "sharing/camd33.h"
+#include "sharing/camd35.h"
+#include "sharing/newcamd.h"
+#include "sharing/radegast.h"
+#include "sharing/serial.h"
+
 #ifdef CS_WITH_GBOX
 #  include "csgbox/gbox.h"
 #  define CS_VERSION_X  CS_VERSION "-gbx-" GBXVERSION

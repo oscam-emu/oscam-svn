@@ -1,5 +1,8 @@
-#include "globals.h"
 #include <syslog.h>
+
+#include "globals.h"
+#include "log.h"
+#include "ac.h"
 
 char logfile[256] = CS_LOGFILE;
 
