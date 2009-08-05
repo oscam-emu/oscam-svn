@@ -33,11 +33,13 @@
 
 #  include "os-types.h"
 
-#  define CS_VERSION		"0.99.4svn"
+#  define CS_VERSION_NUMBER	"0.99.4svn"
 
 #  ifdef CS_WITH_GBOX
 #    include "csgbox/gbox.h"
-#    define CS_VERSION		CS_VERSION "-gbx-" GBXVERSION
+#    define CS_VERSION		CS_VERSION_NUMBER "-gbx-" GBXVERSION
+#  else
+#    define CS_VERSION		CS_VERSION_NUMBER
 #  endif
 
 #  if defined(__GNUC__)
