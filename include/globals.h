@@ -31,20 +31,20 @@
 
 #  include <cscrypt.h>
 
+#  include "os-types.h"
+
 #  define CS_VERSION		"0.99.4svn"
 
-#ifdef CS_WITH_GBOX
-#  include "csgbox/gbox.h"
-#  define CS_VERSION		CS_VERSION "-gbx-" GBXVERSION
-#endif
+#  ifdef CS_WITH_GBOX
+#    include "csgbox/gbox.h"
+#    define CS_VERSION		CS_VERSION "-gbx-" GBXVERSION
+#  endif
 
 #  if defined(__GNUC__)
 #    define GCC_PACK __attribute__((packed))
 #  else
 #    define GCC_PACK
 #  endif
-
-#  include "os-types.h"
 
 #  ifndef CS_CONFDIR
 #    define CS_CONFDIR 		"/usr/local/etc"
@@ -236,7 +236,7 @@ struct s_ecm {
 	ushort caid;
 	ulong prid;
 	ulong grp;
-//	int level;
+//      int level;
 };
 
 struct s_emm {
@@ -246,13 +246,13 @@ struct s_emm {
 };
 
 struct s_module {
-//	int fd;
+//      int fd;
 	int multi;
 	int type;
 	int watchdog;
 	char desc[16];
 	char *logtxt;
-//	int s_port;
+//      int s_port;
 	in_addr_t s_ip;
 	void (*s_handler) ();
 	int (*recv) ();
@@ -353,7 +353,7 @@ struct s_reader {
 	int nprov;
 	uchar prid[CS_MAXPROV][8];
 	uchar availkeys[CS_MAXPROV][16];	// viaccess; misused in seca, if availkeys[PROV][0]=0 then expired, 1 then valid.
-	uchar sa[CS_MAXPROV][4];		// viaccess & seca
+	uchar sa[CS_MAXPROV][4];	// viaccess & seca
 	ushort acs;		// irdeto
 	ushort caid[16];
 	uchar b_nano[256];
@@ -504,7 +504,7 @@ struct s_config {
 	int maxdist;
 	int num_locals;
 	unsigned long locals[CS_MAXLOCALS];
-//	struct s_irdeto_quess *itab[0xff];
+//      struct s_irdeto_quess *itab[0xff];
 #  ifdef CS_ANTICASC
 	char ac_enabled;
 	int ac_users;		// num of users for account (0 - default)
@@ -524,7 +524,7 @@ typedef struct ecm_request_t {
 	uchar ecm[256];
 	uchar cw[16];
 	uchar ecmd5[CS_ECMSTORESIZE];
-//	uchar l;
+//      uchar l;
 	short l;
 	ushort caid;
 	ushort ocaid;
