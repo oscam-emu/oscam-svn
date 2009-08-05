@@ -39,7 +39,6 @@
 #    define GCC_PACK
 #  endif
 
-#  include <config.h>
 #  include "os-types.h"
 
 #  ifndef CS_CONFDIR
