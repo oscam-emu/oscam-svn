@@ -39,7 +39,7 @@ static void camd33_request_emm()
 
 	au = client[cs_idx].au;
 	if ((au < 0) || (au > CS_MAXREADER))
-		return;		// TODO
+		return;	// TODO
 	if (reader[au].hexserial[0]) {
 		log_emm_request(au);
 		mbuf[0] = 0;

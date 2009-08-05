@@ -4,14 +4,14 @@
 #define HSIC_CRC 0xA5
 #define SSSP_MAX_PID 8
 
-#define P_HSIC	    1		// Humax Sharing Interface Client
-#define P_SSSP	    2		// Simple Serial Sharing Protocol
-#define P_BOMBA	    3		// This is not really a Protocol
-#define P_DSR95	    4		// DSR9500 with SID
-#define P_GS	    5		// GS7001
-#define P_ALPHA	    6		// AlphaStar Receivers
-#define P_DSR95_OLD 7		// DSR9500 without SID
-#define P_GBOX      8		// Arion with gbox
+#define P_HSIC	    1	// Humax Sharing Interface Client
+#define P_SSSP	    2	// Simple Serial Sharing Protocol
+#define P_BOMBA	    3	// This is not really a Protocol
+#define P_DSR95	    4	// DSR9500 with SID
+#define P_GS	    5	// GS7001
+#define P_ALPHA	    6	// AlphaStar Receivers
+#define P_DSR95_OLD 7	// DSR9500 without SID
+#define P_GBOX      8	// Arion with gbox
 #define P_MAX	    P_GBOX
 #define P_AUTO	    0xFF
 
@@ -22,13 +22,13 @@
 #define P_DSR_WITHSID 4
 #define P_DSR_UNKNOWN 5
 
-#define IS_ECM	0		// incoming data is ECM
-#define IS_DCW	1		// incoming data is DCW
-#define IS_PMT	2		// incoming data is PMT
-#define IS_LGO	3		// incoming data is client logon
-#define IS_ECHO 4		// incoming data is DCW echo from Samsung
-#define IS_CAT  5		// incoming data is CAT
-#define IS_BAD	0xFF		// incoming data is unknown
+#define IS_ECM	0	// incoming data is ECM
+#define IS_DCW	1	// incoming data is DCW
+#define IS_PMT	2	// incoming data is PMT
+#define IS_LGO	3	// incoming data is client logon
+#define IS_ECHO 4	// incoming data is DCW echo from Samsung
+#define IS_CAT  5	// incoming data is CAT
+#define IS_BAD	0xFF	// incoming data is unknown
 
 static char *proto_txt[] = { "unknown", "hsic", "sssp", "bomba", "dsr9500", "gs",
 	"alpha", "dsr9500old", "gbox"
@@ -81,7 +81,7 @@ static int oscam_ser_alpha_convert(uchar * buf, int l)
 				memmove(buf + i, buf + i + 1, --l);
 				buf[i] ^= 0x20;
 			}
-	} else			// to alphastar
+	} else	// to alphastar
 	{
 		memmove(buf + 1, buf, l++);	// insert BOT
 		buf[0] = 0x7E;
@@ -629,7 +629,7 @@ static void oscam_ser_send_dcw(ECM_REQUEST * er)
 	int i;
 	uchar crc;
 
-	if (er->rc < 4)		// found
+	if (er->rc < 4)	// found
 		switch (connected) {
 			case P_HSIC:
 				for (i = 0, crc = HSIC_CRC; i < 16; i++)
@@ -689,7 +689,7 @@ static void oscam_ser_send_dcw(ECM_REQUEST * er)
 				memcpy(mbuf + 3, er->cw, 16);
 				oscam_ser_send(mbuf, 19);
 				break;
-	} else			// not found
+	} else	// not found
 		switch (connected) {
 			case P_GS:
 				mbuf[0] = 0x03;

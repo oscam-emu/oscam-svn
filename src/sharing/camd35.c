@@ -137,7 +137,7 @@ static void camd35_request_emm(ECM_REQUEST * er)
 
 	au = client[cs_idx].au;
 	if ((au < 0) || (au > CS_MAXREADER))
-		return;		// TODO
+		return;	// TODO
 
 	time(&now);
 	if (!memcmp(lastserial, reader[au].hexserial, 8))
@@ -189,7 +189,7 @@ static void camd35_request_emm(ECM_REQUEST * er)
 		mbuf[128] = (reader[au].b_nano[0xd0]) ? 0 : 1;
 		mbuf[129] = (reader[au].b_nano[0xd2]) ? 0 : 1;
 		mbuf[130] = (reader[au].b_nano[0xd3]) ? 0 : 1;
-	} else			// disable emm
+	} else	// disable emm
 		mbuf[20] = mbuf[39] = mbuf[40] = mbuf[47] = mbuf[49] = 1;
 	memcpy(mbuf + 10, mbuf + 20, 2);
 	camd35_send(mbuf);	// send with data-len 111 for camd3 > 3.890
@@ -240,7 +240,7 @@ static void camd35_process_emm(uchar * buf)
 	memset(&epg, 0, sizeof (epg));
 	au = client[cs_idx].au;
 	if ((au < 0) || (au > CS_MAXREADER))
-		return;		// TODO
+		return;	// TODO
 	epg.l = buf[1];
 	memcpy(epg.caid, buf + 10, 2);
 	memcpy(epg.provid, buf + 12, 4);

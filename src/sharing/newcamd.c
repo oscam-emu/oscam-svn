@@ -1147,7 +1147,7 @@ static int newcamd_recv_chk(uchar * dcw, int *rc, uchar * buf, int n)
 {
 	ushort idx;
 
-	if (n < 21)		// no cw, ignore others
+	if (n < 21)	// no cw, ignore others
 		return (-1);
 	*rc = 1;
 	idx = (buf[0] << 8) | buf[1];

@@ -57,7 +57,7 @@ static int get_request(uchar * buf)
 
 static void radegast_send_dcw(ECM_REQUEST * er)
 {
-	mbuf[0] = 0x02;		// DCW
+	mbuf[0] = 0x02;	// DCW
 	if (er->rc < 4) {
 		mbuf[1] = 0x12;	// len (overall)
 		mbuf[2] = 0x05;	// ACCESS
