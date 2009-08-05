@@ -32,8 +32,7 @@ char *remote_txt(void)
 		return ("remote server");
 }
 
-char *trim(txt)
-char *txt;
+char *trim(char *txt)
 {
 	register int l;
 	register char *p1, *p2;
@@ -141,7 +140,7 @@ int key_atob(char *asc, uchar * bin)
 	return (rc);
 }
 
-int key_atob14(char *asc, uchar * bin)
+int key_atob14(char *asc, uchar *bin)
 {
 	int i, n1, n2, rc;
 
@@ -155,7 +154,7 @@ int key_atob14(char *asc, uchar * bin)
 	return (rc);
 }
 
-char *key_btoa(char *asc, uchar * bin)
+char *key_btoa(char *asc, uchar *bin)
 {
 	int i;			//, n1, n2, rc;
 	static char buf[33];
@@ -167,7 +166,7 @@ char *key_btoa(char *asc, uchar * bin)
 	return (asc);
 }
 
-char *cs_hexdump(int m, uchar * buf, int n)
+char *cs_hexdump(int m, uchar *buf, int n)
 {
 	int i;
 	static char dump[520];
@@ -199,7 +198,6 @@ in_addr_t cs_inet_order(in_addr_t n)
 char *cs_inet_ntoa(in_addr_t n)
 {
 	struct in_addr in;
-
 	in.s_addr = cs_inet_order(n);
 	return ((char *) inet_ntoa(in));
 }
@@ -221,7 +219,7 @@ in_addr_t cs_inet_addr(char *txt)
 	return (n);
 }
 
-ulong b2i(int n, uchar * b)
+ulong b2i(int n, uchar *b)
 {
 	switch (n) {
 		case 2:
@@ -233,14 +231,14 @@ ulong b2i(int n, uchar * b)
 	}
 }
 
-ullong b2ll(int n, uchar * b)
+ullong b2ll(int n, uchar *b)
 {
 	int i;
 	ullong k = 0;
 
 	for (i = 0; i < n; k += b[i++])
 		k <<= 8;
-	return (k);
+	return k;
 }
 
 uchar *i2b(int n, ulong i)
@@ -263,7 +261,7 @@ uchar *i2b(int n, ulong i)
 			b[3] = (i) & 0xff;
 			break;
 	}
-	return (b);
+	return b;
 }
 
 ulong a2i(char *asc, int bytes)
@@ -283,7 +281,7 @@ ulong a2i(char *asc, int bytes)
 		} else if (bytes < 0)
 			rc |= (0xf << (i << 2));
 	errno = 0;
-	return (rc);
+	return rc;
 }
 
 int boundary(int exp, int n)
