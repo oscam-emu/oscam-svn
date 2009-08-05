@@ -116,7 +116,7 @@ static void casc_do_sock_log()
 	idx = reader[ridx].ph.c_recv_log(&caid, &provid, &srvid);
 	client[cs_idx].last = time((time_t) 0);
 	if (idx < 0)
-		return;		// no dcw-msg received
+		return;	// no dcw-msg received
 
 	for (i = 1; i < CS_MAXPENDING; i++) {
 		if ((ecmtask[i].rc >= 10)
@@ -146,7 +146,7 @@ static void casc_do_sock(int w)
 	client[cs_idx].last = time((time_t) 0);
 	idx = reader[ridx].ph.c_recv_chk(dcw, &rc, buf, n);
 	if (idx < 0)
-		return;		// no dcw received
+		return;	// no dcw received
 	reader[ridx].last_g = time((time_t *) 0);	// for reconnect timeout
 //cs_log("casc_do_sock: last_s=%d, last_g=%d", reader[ridx].last_s, reader[ridx].last_g);
 	if (!idx)

@@ -83,7 +83,7 @@ int monitor_send_idx(int idx, char *txt)
 
 	if (!client[idx].udp_fd)
 		return (-1);
-	usleep(500L);		// avoid lost udp-pakets ..
+	usleep(500L);	// avoid lost udp-pakets ..
 	if (!client[idx].crypted)
 		return (sendto(client[idx].udp_fd, txt, strlen(txt), 0, (struct sockaddr *) &client[idx].udp_sa, sizeof (client[idx].udp_sa)));
 	buf[0] = '&';

@@ -140,7 +140,7 @@ int key_atob(char *asc, uchar * bin)
 	return (rc);
 }
 
-int key_atob14(char *asc, uchar *bin)
+int key_atob14(char *asc, uchar * bin)
 {
 	int i, n1, n2, rc;
 
@@ -154,7 +154,7 @@ int key_atob14(char *asc, uchar *bin)
 	return (rc);
 }
 
-char *key_btoa(char *asc, uchar *bin)
+char *key_btoa(char *asc, uchar * bin)
 {
 	int i;			//, n1, n2, rc;
 	static char buf[33];
@@ -166,7 +166,7 @@ char *key_btoa(char *asc, uchar *bin)
 	return (asc);
 }
 
-char *cs_hexdump(int m, uchar *buf, int n)
+char *cs_hexdump(int m, uchar * buf, int n)
 {
 	int i;
 	static char dump[520];
@@ -198,6 +198,7 @@ in_addr_t cs_inet_order(in_addr_t n)
 char *cs_inet_ntoa(in_addr_t n)
 {
 	struct in_addr in;
+
 	in.s_addr = cs_inet_order(n);
 	return ((char *) inet_ntoa(in));
 }
@@ -219,7 +220,7 @@ in_addr_t cs_inet_addr(char *txt)
 	return (n);
 }
 
-ulong b2i(int n, uchar *b)
+ulong b2i(int n, uchar * b)
 {
 	switch (n) {
 		case 2:
@@ -231,7 +232,7 @@ ulong b2i(int n, uchar *b)
 	}
 }
 
-ullong b2ll(int n, uchar *b)
+ullong b2ll(int n, uchar * b)
 {
 	int i;
 	ullong k = 0;

@@ -920,7 +920,7 @@ static void start_resolver()
 		pthread_detach(tid);
 	}
 #endif
-	sleep(1);		// wait for reader
+	sleep(1);	// wait for reader
 	while (1) {
 		if (master_pid != getppid())
 			cs_exit(0);
@@ -1149,7 +1149,7 @@ void store_logentry(char *txt)
 	char *ptr;
 
 	ptr = (char *) (loghist + (*loghistidx * CS_LOGHISTSIZE));
-	ptr[0] = '\1';		// make username unusable
+	ptr[0] = '\1';	// make username unusable
 	ptr[1] = '\0';
 	if ((client[cs_idx].typ == 'c') || (client[cs_idx].typ == 'm'))
 		strncpy(ptr, client[cs_idx].usr, 31);
@@ -1329,7 +1329,7 @@ void logCWtoFile(ECM_REQUEST * er)
 		fprintf(pfCWL, "# %s", buf);
 		fflush(pfCWL);
 		fclose(pfCWL);
-	}			/* if (cfg->pidfile[0]) */
+	}	/* if (cfg->pidfile[0]) */
 }
 
 int write_ecm_answer(int fd, ECM_REQUEST * er)
@@ -1482,18 +1482,18 @@ static void chk_dcw(int fd)
 	//cs_log("dcw check from reader %d for idx %d (rc=%d)", er->reader[0], er->cpti, er->rc);
 	ert = &ecmtask[er->cpti];
 	if (ert->rc < 100)
-		return;		// already done
+		return;	// already done
 	if ((er->caid != ert->caid) || memcmp(er->ecm, ert->ecm, sizeof (er->ecm)))
-		return;		// obsolete
+		return;	// obsolete
 	ert->rcEx = er->rcEx;
-	if (er->rc > 0)		// found
+	if (er->rc > 0)	// found
 	{
 		ert->rc = (er->rc == 2) ? 2 : 0;
 		ert->rcEx = 0;
 		ert->reader[0] = er->reader[0];
 		memcpy(ert->cw, er->cw, sizeof (er->cw));
 		ert->gbxCWFrom = er->gbxCWFrom;
-	} else			// not found (from ONE of the readers !)
+	} else	// not found (from ONE of the readers !)
 	{
 		int i;
 
@@ -1596,7 +1596,7 @@ void guess_cardsystem(ECM_REQUEST * er)
     guess_irdeto(er);
 */
 
-	if (!er->caid)		// guess by len ..
+	if (!er->caid)	// guess by len ..
 		er->caid = len4caid[er->ecm[2] + 3];
 
 	if (!er->caid)
@@ -2157,7 +2157,6 @@ int main(int argc, char *argv[])
 
 		cs_log("Init for all local cards done !");
 	}
-
 #ifdef CS_ANTICASC
 	if (!cfg->ac_enabled)
 		cs_log("anti cascading disabled");
