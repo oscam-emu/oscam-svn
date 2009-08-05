@@ -96,4 +96,4 @@ typedef enum {
 	SCI_ATR_READY
 } SCI_ATR_STATUS;
 
-#endif				/* _sci_global_h_ */
+#endif /* _sci_global_h_ */

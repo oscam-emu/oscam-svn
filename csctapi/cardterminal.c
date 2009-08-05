@@ -178,7 +178,7 @@ char CardTerminal_Command(CardTerminal * ct, APDU_Cmd * cmd, APDU_Rsp ** rsp)
 			ret = CardTerminal_SetParity(ct, cmd, rsp);
 		else if (ins == CTBCS_INS_EJECT)	/* Eject ICC */
 			ret = CardTerminal_EjectICC(ct, cmd, rsp);
-		else {		/* Wrong instruction */
+		else {	/* Wrong instruction */
 
 			length = CTBCS_MIN_RESPONSE_SIZE;
 			buffer[0] = CTBCS_SW1_WRONG_INS;
@@ -406,7 +406,7 @@ static char CardTerminal_ResetCT(CardTerminal * ct, APDU_Cmd * cmd, APDU_Rsp ** 
 			buffer[1] = CTBCS_SW2_WRONG_PARAM;
 			ret = OK;
 		}
-	} else {		/* Wrong functional unit */
+	} else {	/* Wrong functional unit */
 
 		length = 2;
 		buffer[0] = CTBCS_SW1_WRONG_PARAM;
@@ -528,7 +528,7 @@ static char CardTerminal_RequestICC(CardTerminal * ct, APDU_Cmd * cmd, APDU_Rsp 
 			buffer[1] = CTBCS_SW2_WRONG_PARAM;
 			ret = OK;
 		}
-	} else {		/* Wrong functional unit */
+	} else {	/* Wrong functional unit */
 
 		length = 2;
 		buffer[0] = CTBCS_SW1_WRONG_PARAM;
@@ -620,7 +620,7 @@ static char CardTerminal_GetStatus(CardTerminal * ct, APDU_Cmd * cmd, APDU_Rsp *
 		buffer[i] = CTBCS_SW1_OK;
 		buffer[i + 1] = CTBCS_SW2_OK;
 		ret = OK;
-	} else {		/* Wrong command cualifier */
+	} else {	/* Wrong command cualifier */
 
 		length = 2;
 		buffer[0] = CTBCS_SW1_WRONG_PARAM;
@@ -670,7 +670,7 @@ static char CardTerminal_SetParity(CardTerminal * ct, APDU_Cmd * cmd, APDU_Rsp *
 		buffer[0] = CTBCS_SW1_OK;
 		buffer[1] = CTBCS_SW2_OK;
 		ret = OK;
-	} else {		/* Wrong command cualifier */
+	} else {	/* Wrong command cualifier */
 
 		length = 2;
 		buffer[0] = CTBCS_SW1_WRONG_PARAM;

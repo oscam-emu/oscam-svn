@@ -76,4 +76,4 @@ extern PPS_ProtocolParameters *PPS_GetProtocolParameters(PPS * pps);
 /* Delete PPS context */
 extern void PPS_Delete(PPS * pps);
 
-#endif				/* _PPS_ */
+#endif /* _PPS_ */

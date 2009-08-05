@@ -69,4 +69,4 @@ extern bool CT_List_RemoveCardTerminal(CT_List * list, unsigned short ctn);
 /* Empties and removes a list */
 extern void CT_List_Delete(CT_List * list);
 
-#endif				/* _CT_LIST_ */
+#endif /* _CT_LIST_ */

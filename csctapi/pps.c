@@ -110,7 +110,7 @@ int PPS_Perform(PPS * pps, BYTE * params, unsigned *length)
 		} else {
 			return ret;
 		}
-	} else {		/* Get parameters from ATR */
+	} else {	/* Get parameters from ATR */
 
 		PPS_SelectFirstProtocol(pps);
 

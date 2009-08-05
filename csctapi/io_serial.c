@@ -120,7 +120,7 @@ static bool IO_Serial_DTR_RTS_dbox2(int mcport, int dtr, int set)
 				rc = ioctl(fdmc, SET_PCDAT, &msr);
 			} else
 				rc = 0;	// Dummy, can't handle using multicam.o
-		} else		// RTS
+		} else	// RTS
 		{
 			if (set)
 				msr &= (unsigned short) (~rts_bits[mcport]);
@@ -932,7 +932,7 @@ static int IO_Serial_Bitrate(int bitrate)
 	if ((bitrate) >= 0)
 		return B0;
 #endif
-	return 0;		/* Should never get here */
+	return 0;	/* Should never get here */
 }
 
 static bool IO_Serial_WaitToRead(int hnd, unsigned delay_ms, unsigned timeout_ms)

@@ -90,4 +90,4 @@ extern unsigned T1_Block_RawLen(T1_Block * block);
 
 extern void T1_Block_Delete(T1_Block * block);
 
-#endif				/* _T1_BLOCK_ */
+#endif /* _T1_BLOCK_ */

@@ -135,4 +135,4 @@ extern int ATR_GetFsMax(ATR * atr, unsigned long *fsmax);
 extern int ATR_GetRaw(ATR * atr, BYTE * buffer, unsigned *lenght);
 extern int ATR_GetSize(ATR * atr, unsigned *size);
 
-#endif				/* _ATR_ */
+#endif /* _ATR_ */

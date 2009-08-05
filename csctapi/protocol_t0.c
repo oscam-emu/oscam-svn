@@ -687,7 +687,7 @@ static int Protocol_T0_Case4E(Protocol_T0 * t0, APDU_Cmd * cmd, APDU_Rsp ** rsp)
 
 		/* Delete command TPDU */
 		APDU_Cmd_Delete(tpdu_cmd);
-	} else {		/* 4E2 */
+	} else {	/* 4E2 */
 
 		ret = Protocol_T0_Case2E(t0, cmd, (&tpdu_rsp));
 	}

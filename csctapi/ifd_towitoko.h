@@ -152,4 +152,4 @@ extern void IFD_Towitoko_GetDescription(IFD * ifd, BYTE * desc, unsigned length)
 /* Atributes of this IFD */
 extern BYTE IFD_Towitoko_GetSlot(IFD * ifd);
 
-#endif				/* _IFD_TOWITOKO_ */
+#endif /* _IFD_TOWITOKO_ */

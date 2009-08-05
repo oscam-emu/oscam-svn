@@ -95,4 +95,4 @@ extern int Protocol_T14_Command(Protocol_T14 * t14, APDU_Cmd * cmd, APDU_Rsp ** 
 extern int Protocol_T0_Close(Protocol_T0 * t0);
 extern int Protocol_T14_Close(Protocol_T14 * t14);
 
-#endif				/* _PROTOCOL_T0_ */
+#endif /* _PROTOCOL_T0_ */

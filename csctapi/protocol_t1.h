@@ -76,4 +76,4 @@ extern int Protocol_T1_Command(Protocol_T1 * t1, APDU_Cmd * cmd, APDU_Rsp ** rsp
 /* Close a protocol handler */
 extern int Protocol_T1_Close(Protocol_T1 * t1);
 
-#endif				/* _PROTOCOL_T1_ */
+#endif /* _PROTOCOL_T1_ */

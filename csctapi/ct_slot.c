@@ -252,7 +252,7 @@ char CT_Slot_Command(CT_Slot * slot, APDU_Cmd * cmd, APDU_Rsp ** rsp)
 
 		(*rsp) = APDU_Rsp_New(buffer, 2);
 		ret = OK;
-	} else {		/* Other protocol */
+	} else {	/* Other protocol */
 
 		(*rsp) = NULL;
 		ret = ERR_HTSI;

@@ -169,4 +169,4 @@
 #  define CTBCS_DATA_STATUS_CARD_CONNECT	0x05
 						/* Card present */
 
-#endif				/* _CTBCS_ */
+#endif /* _CTBCS_ */

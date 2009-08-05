@@ -86,4 +86,4 @@ extern int ICC_Async_Transmit(ICC_Async * icc, unsigned size, BYTE * buffer);
 extern int ICC_Async_Receive(ICC_Async * icc, unsigned size, BYTE * buffer);
 extern int ICC_Async_EndTransmission(ICC_Async * icc);
 
-#endif				/* _ICC_ASYNC_ */
+#endif /* _ICC_ASYNC_ */
