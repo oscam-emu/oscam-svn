@@ -3,22 +3,22 @@
 
 #  ifdef CS_ANTICASC
 struct s_acasc_shm {
-        ushort count:15;
-        ushort deny:1;
+	ushort count:15;
+	ushort deny:1;
 };
 
 struct s_acasc {
-        ushort stat[10];
-        uchar idx;              // current active index in stat[]
+	ushort stat[10];
+	uchar idx;		// current active index in stat[]
 };
 
 struct s_cpmap {
-        ushort caid;
-        ulong provid;
-        ushort sid;
-        ushort chid;
-        ushort dwtime;
-        struct s_cpmap *next;
+	ushort caid;
+	ulong provid;
+	ushort sid;
+	ushort chid;
+	ushort dwtime;
+	struct s_cpmap *next;
 };
 
 extern struct s_acasc_shm *acasc;

@@ -23,20 +23,20 @@ static char token[4096];
 
 typedef enum cs_proto_type {
 	TAG_GLOBAL,		// must be first !
-	TAG_MONITOR,		// monitor
 	TAG_CAMD33,		// camd 3.3x
 	TAG_CAMD35,		// camd 3.5x UDP
 	TAG_NEWCAMD,		// newcamd
 	TAG_RADEGAST,		// radegast
 	TAG_SERIAL,		// serial (static)
 	TAG_CS357X,		// camd 3.5x UDP
-	TAG_CS378X		// camd 3.5x TCP
+	TAG_CS378X,		// camd 3.5x TCP
 #ifdef CS_WITH_GBOX
-	, TAG_GBOX		// gbox
+	TAG_GBOX,		// gbox
 #endif
 #ifdef CS_ANTICASC
-	, TAG_ANTICASC		// anti-cascading
+	TAG_ANTICASC,		// anti-cascading
 #endif
+	TAG_MONITOR		// monitor
 } cs_proto_type_t;
 
 static char *cctag[] = { "global", "monitor", "camd33", "camd35",
