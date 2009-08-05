@@ -11,13 +11,6 @@
 #include "sharing/radegast.h"
 #include "sharing/serial.h"
 
-#ifdef CS_WITH_GBOX
-#  include "csgbox/gbox.h"
-#  define CS_VERSION_X  CS_VERSION "-gbx-" GBXVERSION
-#else
-#  define CS_VERSION_X  CS_VERSION
-#endif
-
 /*****************************************************************************
         Globals
 *****************************************************************************/
@@ -149,7 +142,7 @@ static void usage()
 {
 	int i;
 
-	fprintf(stderr, "\nOSCam cardserver v%s (%s) - (w) 2009 by smurzch\n", CS_VERSION_X, CS_OSTYPE);
+	fprintf(stderr, "\nOSCam cardserver v%s (%s) - (w) 2009 by smurzch\n", CS_VERSION, CS_OSTYPE);
 	fprintf(stderr, "\tbased on streamboard mp-cardserver v0.9d - (w) 2004-2007 by dukat\n\n");
 	fprintf(stderr, "oscam [-b] [-c config-dir]");
 #ifdef CS_NOSHM
@@ -1324,7 +1317,7 @@ void logCWtoFile(ECM_REQUEST * er)
 		}
 		if (writeheader) {
 			/* no global macro for cardserver name :( */
-			fprintf(pfCWL, "# OSCam cardserver v%s - http://streamboard.gmc.to:8001/oscam/wiki\n", CS_VERSION_X);
+			fprintf(pfCWL, "# OSCam cardserver v%s - http://streamboard.gmc.to:8001/oscam/wiki\n", CS_VERSION);
 			fprintf(pfCWL, "# control word log file for use with tsdec offline decrypter\n");
 			strftime(buf, sizeof (buf), "DATE %Y-%m-%d, TIME %H:%M:%S, TZ %Z\n", timeinfo);
 			fprintf(pfCWL, "# %s", buf);
@@ -2015,7 +2008,7 @@ void cs_log_config()
 		sprintf((char *) buf, ", nice=%d", cfg->nice);
 	else
 		buf[0] = '\0';
-	cs_log("version=%s, system=%s%s", CS_VERSION_X, cs_platform((char *) buf + 64), buf);
+	cs_log("version=%s, system=%s%s", CS_VERSION, cs_platform((char *) buf + 64), buf);
 	cs_log("max. clients=%d, client max. idle=%d sec",
 #ifdef CS_ANTICASC
 	       CS_MAXPID - 3, cfg->cmaxidle);

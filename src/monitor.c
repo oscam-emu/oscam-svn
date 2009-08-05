@@ -1,13 +1,6 @@
 #include "globals.h"
 #include "simples.h"
 
-#ifdef CS_WITH_GBOX
-#  include "csgbox/gbox.h"
-#  define CS_VERSION_X  CS_VERSION "-gbx-" GBXVERSION
-#else
-#  define CS_VERSION_X  CS_VERSION
-#endif
-
 static int auth = 0;
 
 static void monitor_check_ip()
@@ -371,7 +364,7 @@ static void monitor_process_details_master(char *buf, int pid)
 		sprintf(buf + 200, ", nice=%d", cfg->nice);
 	else
 		buf[200] = '\0';
-	sprintf(buf, "version=%s, system=%s%s", CS_VERSION_X, cs_platform(buf + 100), buf + 200);
+	sprintf(buf, "version=%s, system=%s%s", CS_VERSION, cs_platform(buf + 100), buf + 200);
 	monitor_send_details(buf, pid);
 
 	sprintf(buf, "max. clients=%d, client max. idle=%d sec", CS_MAXPID - 2, cfg->cmaxidle);

@@ -33,6 +33,11 @@
 
 #  define CS_VERSION		"0.99.4svn"
 
+#ifdef CS_WITH_GBOX
+#  include "csgbox/gbox.h"
+#  define CS_VERSION		CS_VERSION "-gbx-" GBXVERSION
+#endif
+
 #  if defined(__GNUC__)
 #    define GCC_PACK __attribute__((packed))
 #  else
