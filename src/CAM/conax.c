@@ -7,7 +7,7 @@ extern ushort cta_lr;
 #define CMD_LEN 5
 
 static unsigned int Conax_ToDate(char data0, char data1)
-{				/* decimal: yyyymmdd */
+{	/* decimal: yyyymmdd */
 	int y, m, d;
 	unsigned int l;
 

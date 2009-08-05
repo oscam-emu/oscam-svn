@@ -7,8 +7,8 @@
 #  include <linux/serial.h>
 #endif
 
-#define MAX_ATR_LEN 33		// max. ATR length
-#define MAX_HIST    15		// max. number of historical characters
+#define MAX_ATR_LEN 33	// max. ATR length
+#define MAX_HIST    15	// max. number of historical characters
 
 //////  ====================================================================================
 
@@ -39,7 +39,7 @@ static int cAES_Encrypt(const unsigned char *data, int len, unsigned char *crypt
 
 static inline void __xxor(unsigned char *data, int len, const unsigned char *v1, const unsigned char *v2)
 {
-	switch (len) {		// looks ugly, but the compiler can optimize it very well ;)
+	switch (len) {	// looks ugly, but the compiler can optimize it very well ;)
 		case 16:
 			*((unsigned int *) data + 3) = *((unsigned int *) v1 + 3) ^ *((unsigned int *) v2 + 3);
 			*((unsigned int *) data + 2) = *((unsigned int *) v1 + 2) ^ *((unsigned int *) v2 + 2);

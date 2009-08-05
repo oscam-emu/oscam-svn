@@ -41,7 +41,7 @@ int set_provider_info(int i)
 	int valid = 0;		//0=false, 1=true
 	char l_name[16 + 8 + 1] = ", name: ";
 
-	ins12[2] = i;		//select provider
+	ins12[2] = i;	//select provider
 	read_cmd(ins12, NULL);	// show provider properties
 	cs_debug("hexdump:%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x.", cta_res[0], cta_res[1], cta_res[2], cta_res[3], cta_res[4], cta_res[5], cta_res[6], cta_res[7], cta_res[8], cta_res[9], cta_res[10], cta_res[11], cta_res[12], cta_res[13], cta_res[14],
 		 cta_res[15], cta_res[16], cta_res[17], cta_res[18], cta_res[19], cta_res[20], cta_res[21], cta_res[22], cta_res[23], cta_res[24], cta_res[25], cta_res[26]);
@@ -80,7 +80,7 @@ int set_provider_info(int i)
 	reader[ridx].availkeys[i][0] = valid;	//misusing availkeys to register validity of provider
 	cs_log("provider: %d, valid: %i%s, expiry date: %4d/%02d/%02d", i + 1, valid, l_name, year, month, day);
 	memcpy(&reader[ridx].sa[i][0], cta_res + 18, 4);
-	if (valid == 1)		//if not expired
+	if (valid == 1)	//if not expired
 		cs_log("SA: %s", cs_hexdump(0, cta_res + 18, 4));
 //    cs_log("SA:%02X%02X%02X%02X.",cta_res[18],cta_res[19],cta_res[20],cta_res[21]);
 	return (1);
@@ -237,7 +237,7 @@ int seca_do_emm(EMM_PACKET * ep)
 		i = get_prov_index((char *) ep->emm + 3);
 		if (i == -1)
 			return (0);
-		else		//prov id found, now test for SA (only first 3 bytes, custom byte does not count)
+		else	//prov id found, now test for SA (only first 3 bytes, custom byte does not count)
 		if ((ep->emm[5] != reader[ridx].sa[i][0]) || (ep->emm[6] != reader[ridx].sa[i][1]) || (ep->emm[7] != reader[ridx].sa[i][2])) {
 			cs_log("EMM: Shared update did not match; EMM SA:%02X%02X%02X, Reader SA:%02X,%02X,%02X.", ep->emm[5], ep->emm[6], ep->emm[7], reader[ridx].sa[i][0], reader[ridx].sa[i][1], reader[ridx].sa[i][2]);
 			return (0);
@@ -248,7 +248,7 @@ int seca_do_emm(EMM_PACKET * ep)
 			memcpy(ins40data, ep->emm + 10, 256 - 10);
 		}
 
-	}			//end shared EMM
+	}	//end shared EMM
 	else if (ep->emm[0] == 0x82) {	//unique EMM
 		//first test if UA matches
 		if ((reader[ridx].hexserial[2] != ep->emm[3]) || (reader[ridx].hexserial[3] != ep->emm[4]) || (reader[ridx].hexserial[4] != ep->emm[5]) || (reader[ridx].hexserial[5] != ep->emm[6]) || (reader[ridx].hexserial[6] != ep->emm[7]) || (reader[ridx].hexserial[7] != ep->emm[8])) {
@@ -266,7 +266,7 @@ int seca_do_emm(EMM_PACKET * ep)
 			ins40[4] = (ep->emm[1] & 0x0f) * 256 + ep->emm[2] - 0x0A;
 			memcpy(ins40data, ep->emm + 13, 256 - 13);
 		}
-	}			//end unique EMM
+	}	//end unique EMM
 	else
 		return (0);	//geen 0x84 en geen 0x82
 
@@ -319,7 +319,7 @@ int seca_card_info(void)
 	int valid = 0;		//0=false, 1=true
 	char l_name[16 + 8 + 1] = ", name: ";
 
-	ins12[2] = i;		//select provider
+	ins12[2] = i;	//select provider
 	read_cmd(ins12, NULL);	// show provider properties
 	cs_debug("hexdump:%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x.", cta_res[0], cta_res[1], cta_res[2], cta_res[3], cta_res[4], cta_res[5], cta_res[6], cta_res[7], cta_res[8], cta_res[9], cta_res[10], cta_res[11], cta_res[12], cta_res[13], cta_res[14],
 		 cta_res[15], cta_res[16], cta_res[17], cta_res[18], cta_res[19], cta_res[20], cta_res[21], cta_res[22], cta_res[23], cta_res[24], cta_res[25], cta_res[26]);
@@ -358,7 +358,7 @@ int seca_card_info(void)
 	reader[ridx].availkeys[i][0] = valid;	//misusing availkeys to register validity of provider
 	cs_log("provider: %d, valid: %i, expiry date: %i/%i/%i%s", i + 1, valid, year, month, day, l_name);
 	memcpy(&reader[ridx].sa[i][0], cta_res + 18, 4);
-	if (valid == 1)		//if not expired
+	if (valid == 1)	//if not expired
 		cs_log("SA:%02X%02X%02X%02X.", cta_res[18], cta_res[19], cta_res[20], cta_res[21]);
 
 	reader[ridx].online = 1;

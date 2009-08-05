@@ -280,7 +280,7 @@ int irdeto_do_emm(EMM_PACKET * ep)
 	ep->type = emm[3];
 	if (mode & 0x10)	// Hex addressed
 		ok = (mode == reader[ridx].hexserial[3] && (!l || !memcmp(&emm[4], reader[ridx].hexserial, l)));
-	else			// Provider addressed
+	else	// Provider addressed
 		for (i = 0; i < reader[ridx].nprov; i++)
 			if (ok = (mode == reader[ridx].prid[i][0] && (!l || !memcmp(&emm[4], &reader[ridx].prid[i][1], l))))
 				break;
