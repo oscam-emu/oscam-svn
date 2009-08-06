@@ -5,18 +5,6 @@
 #include <reader/common.h>
 #include <simples.h>
 
-#define CMD_LEN 5
-
-#define write_cmd(cmd, data) \
-{ \
-  if (card_write(cmd, data, 1)) return(0); \
-}
-
-#define read_cmd(cmd, data) \
-{ \
-  if (card_write(cmd, data, 0)) return(0); \
-}
-
 struct geo_cache {
 	ulong provid;
 	uchar geo[256];
@@ -145,19 +133,6 @@ static int chk_prov(uchar * id, uchar keynr)
 	return (rc);
 }
 
-static int card_write(const uchar * cmd, const uchar * data, const int wflag)
-{
-	int l;
-	uchar buf[256];
-
-	memcpy(buf, cmd, CMD_LEN);
-	l = wflag ? cmd[4] : 0;
-	if (l && data)
-		memcpy(buf + CMD_LEN, data, l);
-	l = reader_common_cmd(buf, CMD_LEN + l);
-	return (l);
-}
-
 int viaccess_card_init(uchar * atr, int atrsize)
 {
 	int i;
@@ -173,7 +148,7 @@ int viaccess_card_init(uchar * atr, int atrsize)
 	if ((atr[0] != 0x3f) || (atr[1] != 0x77) || (atr[2] != 0x18) || (atr[9] != 0x68))
 		return (0);
 
-	write_cmd(insFAC, FacDat);
+	cam_common_write_cmd(insFAC, FacDat);
 	if (!(cta_res[cta_lr - 2] == 0x90 && cta_res[cta_lr - 1] == 0))
 		return (0);
 
@@ -188,20 +163,20 @@ int viaccess_card_init(uchar * atr, int atrsize)
 	reader[ridx].caid[0] = 0x500;
 	memset(reader[ridx].prid, 0xff, sizeof (reader[ridx].prid));
 	insac[2] = 0xa4;
-	write_cmd(insac, NULL);	// request unique id
+	cam_common_write_cmd(insac, NULL);	// request unique id
 	insb8[4] = 0x07;
-	read_cmd(insb8, NULL);	// read unique id
+	cam_common_read_cmd(insb8, NULL);	// read unique id
 	memcpy(reader[ridx].hexserial, cta_res + 2, 5);
 //  cs_log("type: viaccess, ver: %s serial: %llu", ver, b2ll(5, cta_res+2));
 	cs_ri_log("type: viaccess(%sstandard atr), caid: %04X, serial: %llu", atr[9] == 0x68 ? "" : "non-", reader[ridx].caid[0], b2ll(5, cta_res + 2));
 
 	i = 0;
 	insa4[2] = 0x00;
-	write_cmd(insa4, NULL);	// select issuer 0
+	cam_common_write_cmd(insa4, NULL);	// select issuer 0
 	buf[0] = 0;
 	while ((cta_res[cta_lr - 2] == 0x90) && (cta_res[cta_lr - 1] == 0)) {
 		insc0[4] = 0x1a;
-		read_cmd(insc0, NULL);	// show provider properties
+		cam_common_read_cmd(insc0, NULL);	// show provider properties
 		cta_res[2] &= 0xF0;
 		reader[ridx].prid[i][0] = 0;
 		memcpy(&reader[ridx].prid[i][1], cta_res, 3);
@@ -210,22 +185,22 @@ int viaccess_card_init(uchar * atr, int atrsize)
 //cs_log("buf: %s", buf);
 
 		insac[2] = 0xa5;
-		write_cmd(insac, NULL);	// request sa
+		cam_common_write_cmd(insac, NULL);	// request sa
 		insb8[4] = 0x06;
-		read_cmd(insb8, NULL);	// read sa
+		cam_common_read_cmd(insb8, NULL);	// read sa
 		memcpy(&reader[ridx].sa[i][0], cta_res + 2, 4);
 
 /*
-    insac[2]=0xa7; write_cmd(insac, NULL); // request name
-    insb8[4]=0x02; read_cmd(insb8, NULL); // read name nano + len
+    insac[2]=0xa7; cam_common_write_cmd(insac, NULL); // request name
+    insb8[4]=0x02; cam_common_read_cmd(insb8, NULL); // read name nano + len
     l=cta_res[1];
-    insb8[4]=l; read_cmd(insb8, NULL); // read name
+    insb8[4]=l; cam_common_read_cmd(insb8, NULL); // read name
     cta_res[l]=0;
 cs_log("name: %s", cta_res);
 */
 
 		insa4[2] = 0x02;
-		write_cmd(insa4, NULL);	// select next issuer
+		cam_common_write_cmd(insa4, NULL);	// select next issuer
 		i++;
 	}
 	reader[ridx].nprov = i;
@@ -238,7 +213,7 @@ cs_log("name: %s", cta_res);
 	if (cfg->ulparent) {
 		static uchar inDPL[] = { 0xca, 0x24, 0x02, 0x00, 0x09 };
 		static uchar cmDPL[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F };
-		write_cmd(inDPL, cmDPL);
+		cam_common_write_cmd(inDPL, cmDPL);
 		if (!(cta_res[cta_lr - 2] == 0x90 && cta_res[cta_lr - 1] == 0))
 			cs_log("Can't disable parental lock. Wrong PIN? I assumed 0000!");
 		else
@@ -302,7 +277,7 @@ int viaccess_do_ecm(ECM_REQUEST * er)
 			last_geo.provid = provid;
 			last_geo.geo_len = 0;
 			last_geo.geo[0] = 0;
-			write_cmd(insa4, ident);	// set provider
+			cam_common_write_cmd(insa4, ident);	// set provider
 		}
 
 		while (ecm88Len > 0 && ecm88Data[0] < 0xA0) {
@@ -320,7 +295,7 @@ int viaccess_do_ecm(ECM_REQUEST * er)
 				last_geo.geo_len = ecmf8Len;
 				insf8[3] = keynr;
 				insf8[4] = ecmf8Len;
-				write_cmd(insf8, ecmf8Data);
+				cam_common_write_cmd(insf8, ecmf8Data);
 			}
 		}
 		ins88[2] = ecmf8Len ? 1 : 0;
@@ -330,13 +305,13 @@ int viaccess_do_ecm(ECM_REQUEST * er)
 		// DE04
 		if (DE04[0] == 0xDE) {
 			memcpy(DE04 + 6, (uchar *) ecm88Data, ecm88Len - 6);
-			write_cmd(ins88, DE04);	// request dcw
+			cam_common_write_cmd(ins88, DE04);	// request dcw
 		} else {
-			write_cmd(ins88, (uchar *) ecm88Data);	// request dcw
+			cam_common_write_cmd(ins88, (uchar *) ecm88Data);	// request dcw
 		}
 		//
 
-		read_cmd(insc0, NULL);	// read dcw
+		cam_common_read_cmd(insc0, NULL);	// read dcw
 		switch (cta_res[0]) {
 			case 0xe8:	// even
 				if (cta_res[1] == 8) {
@@ -415,7 +390,7 @@ int viaccess_do_emm(EMM_PACKET * ep)
 			}
 
 			// set provider
-			write_cmd(insa4, soid);
+			cam_common_write_cmd(insa4, soid);
 			if (cta_res[cta_lr - 2] != 0x90 || cta_res[cta_lr - 1] != 0x00) {
 				cs_dump(insa4, 5, "set provider cmd:");
 				cs_dump(soid, 3, "set provider data:");
@@ -477,7 +452,7 @@ int viaccess_do_emm(EMM_PACKET * ep)
 		if (!nano91Data) {
 			// set adf
 			insf0[3] = keynr;	// key
-			write_cmd(insf0, nano9EData);
+			cam_common_write_cmd(insf0, nano9EData);
 			if (cta_res[cta_lr - 2] != 0x90 || cta_res[cta_lr - 1] != 0x00) {
 				cs_dump(insf0, 5, "set adf cmd:");
 				cs_dump(nano9EData, 0x22, "set adf data:");
@@ -490,7 +465,7 @@ int viaccess_do_emm(EMM_PACKET * ep)
 			insf4[4] = nano91Data[1] + 2 + nano9EData[1] + 2;
 			memcpy(insData, nano91Data, nano91Data[1] + 2);
 			memcpy(insData + nano91Data[1] + 2, nano9EData, nano9EData[1] + 2);
-			write_cmd(insf4, insData);
+			cam_common_write_cmd(insf4, insData);
 			if ((cta_res[cta_lr - 2] != 0x90 && cta_res[cta_lr - 2] != 0x91) || cta_res[cta_lr - 1] != 0x00) {
 				cs_dump(insf4, 5, "set adf encrypted cmd:");
 				cs_dump(insData, insf4[4], "set adf encrypted data:");
@@ -505,7 +480,7 @@ int viaccess_do_emm(EMM_PACKET * ep)
 		ins18[4] = ins18Len + nanoF0Data[1] + 2;
 		memcpy(insData, ins18Data, ins18Len);
 		memcpy(insData + ins18Len, nanoF0Data, nanoF0Data[1] + 2);
-		write_cmd(ins18, insData);
+		cam_common_write_cmd(ins18, insData);
 		if (cta_res[cta_lr - 2] == 0x90 && cta_res[cta_lr - 1] == 0x00) {
 			cs_debug("update successfully written");
 			rc = 1;	// written
@@ -528,14 +503,14 @@ int viaccess_do_emm(EMM_PACKET * ep)
 		memcpy(insData, nano92Data, nano92Data[1] + 2);
 		memcpy(insData + nano92Data[1] + 2, nano81Data, nano81Data[1] + 2);
 		memcpy(insData + nano92Data[1] + 2 + nano81Data[1] + 2, nanoF0Data, nanoF0Data[1] + 2);
-		write_cmd(ins1c, insData);
+		cam_common_write_cmd(ins1c, insData);
 		if (cta_res[cta_lr - 2] != 0x90 || cta_res[cta_lr - 1] != 0x00) {
 			/* maybe a 2nd level status, so read it */
 			///cs_dump(ins1c, 5, "set subscription encrypted cmd:");
 			///cs_dump(insData, ins1c[4], "set subscription encrypted data:");
 			///cs_log("update error: %02X %02X", cta_res[cta_lr-2], cta_res[cta_lr-1]);
 
-			read_cmd(insc8, insc8Data);
+			cam_common_read_cmd(insc8, insc8Data);
 			if (cta_res[0] != 0x00 || cta_res[1] != 00 || cta_res[cta_lr - 2] != 0x90 || cta_res[cta_lr - 1] != 0x00) {
 				///cs_dump(cta_res, cta_lr, "extended status error:");
 				return 0;
@@ -592,39 +567,39 @@ int viaccess_card_info(void)
 	cs_log("card detected");
 
 	// set pin
-	write_cmd(ins24, pin);
+	cam_common_write_cmd(ins24, pin);
 
 	insac[2] = 0xa4;
-	write_cmd(insac, NULL);	// request unique id
+	cam_common_write_cmd(insac, NULL);	// request unique id
 	insb8[4] = 0x07;
-	read_cmd(insb8, NULL);	// read unique id
+	cam_common_read_cmd(insb8, NULL);	// read unique id
 	cs_log("serial: %llu", b2ll(5, cta_res + 2));
 
 	scls = 0;
 	insa4[2] = 0x00;
-	write_cmd(insa4, NULL);	// select issuer 0
+	cam_common_write_cmd(insa4, NULL);	// select issuer 0
 	for (i = 1; (cta_res[cta_lr - 2] == 0x90) && (cta_res[cta_lr - 1] == 0); i++) {
 		ulong l_provid, l_sa;
 		uchar l_name[64];
 
 		insc0[4] = 0x1a;
-		read_cmd(insc0, NULL);	// show provider properties
+		cam_common_read_cmd(insc0, NULL);	// show provider properties
 		cta_res[2] &= 0xF0;
 		l_provid = b2i(3, cta_res);
 
 		insac[2] = 0xa5;
-		write_cmd(insac, NULL);	// request sa
+		cam_common_write_cmd(insac, NULL);	// request sa
 		insb8[4] = 0x06;
-		read_cmd(insb8, NULL);	// read sa
+		cam_common_read_cmd(insb8, NULL);	// read sa
 		l_sa = b2i(4, cta_res + 2);
 
 		insac[2] = 0xa7;
-		write_cmd(insac, NULL);	// request name
+		cam_common_write_cmd(insac, NULL);	// request name
 		insb8[4] = 0x02;
-		read_cmd(insb8, NULL);	// read name nano + len
+		cam_common_read_cmd(insb8, NULL);	// read name nano + len
 		l = cta_res[1];
 		insb8[4] = l;
-		read_cmd(insb8, NULL);	// read name
+		cam_common_read_cmd(insb8, NULL);	// read name
 		cta_res[l] = 0;
 		trim((char *) cta_res);
 		if (cta_res[0])
@@ -634,22 +609,22 @@ int viaccess_card_info(void)
 
 		// read GEO
 		insac[2] = 0xa6;
-		write_cmd(insac, NULL);	// request GEO
+		cam_common_write_cmd(insac, NULL);	// request GEO
 		insb8[4] = 0x02;
-		read_cmd(insb8, NULL);	// read GEO nano + len
+		cam_common_read_cmd(insb8, NULL);	// read GEO nano + len
 		l = cta_res[1];
 		insb8[4] = l;
-		read_cmd(insb8, NULL);	// read geo
+		cam_common_read_cmd(insb8, NULL);	// read geo
 		cs_ri_log("provider: %d, id: %06X%s, sa: %08X, geo: %s", i, l_provid, l_name, l_sa, (l < 4) ? "empty" : cs_hexdump(1, cta_res, l));
 
 		// read classes subscription
 		insac[2] = 0xa9;
 		insac[4] = 4;
-		write_cmd(insac, cls);	// request class subs
+		cam_common_write_cmd(insac, cls);	// request class subs
 		scls = 0;
 		while ((cta_res[cta_lr - 2] == 0x90) && (cta_res[cta_lr - 1] == 0)) {
 			insb8[4] = 0x02;
-			read_cmd(insb8, NULL);	// read class subs nano + len
+			cam_common_read_cmd(insb8, NULL);	// read class subs nano + len
 			if ((cta_res[cta_lr - 2] == 0x90) && (cta_res[cta_lr - 1] == 0)) {
 				int fshow;
 
@@ -657,7 +632,7 @@ int viaccess_card_info(void)
 				//fshow=(client[cs_idx].dbglvl==D_DUMP)?1:(scls < show_cls)?1:0;
 				fshow = (scls < show_cls);
 				insb8[4] = l;
-				read_cmd(insb8, NULL);	// read class subs
+				cam_common_read_cmd(insb8, NULL);	// read class subs
 				if ((cta_res[cta_lr - 2] == 0x90) && (fshow) && (cta_res[cta_lr - 1] == 0x00 || cta_res[cta_lr - 1] == 0x08)) {
 					show_class(NULL, cta_res, cta_lr - 2);
 					scls++;
@@ -667,7 +642,7 @@ int viaccess_card_info(void)
 
 		insac[4] = 0;
 		insa4[2] = 0x02;
-		write_cmd(insa4, NULL);	// select next provider
+		cam_common_write_cmd(insa4, NULL);	// select next provider
 	}
 
 	reader[ridx].online = 1;

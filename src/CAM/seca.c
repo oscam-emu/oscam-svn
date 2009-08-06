@@ -8,31 +8,6 @@ static unsigned short pmap = 0;	// provider-maptable
 unsigned long long serial;
 char *card;
 
-#define CMD_LEN 5
-
-#define write_cmd(cmd, data) \
-{ \
-        if (card_write(cmd, data, 1)) return(0); \
-}
-
-#define read_cmd(cmd, data) \
-{ \
-        if (card_write(cmd, data, 0)) return(0); \
-}
-
-static int card_write(const uchar * cmd, const uchar * data, const int wflag)
-{
-	int l;
-	uchar buf[MAX_LEN];
-
-	memcpy(buf, cmd, CMD_LEN);
-	l = wflag ? cmd[4] : 0;
-	if (l && data)
-		memcpy(buf + CMD_LEN, data, l);
-	l = reader_common_cmd(buf, CMD_LEN + l);
-	return (l);
-}
-
 int set_provider_info(int i)
 {
 	static uchar ins12[] = { 0xc1, 0x12, 0x00, 0x00, 0x19 };	// get provider info
@@ -43,7 +18,7 @@ int set_provider_info(int i)
 	char l_name[16 + 8 + 1] = ", name: ";
 
 	ins12[2] = i;	//select provider
-	read_cmd(ins12, NULL);	// show provider properties
+	cam_common_read_cmd(ins12, NULL);	// show provider properties
 	cs_debug("hexdump:%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x.", cta_res[0], cta_res[1], cta_res[2], cta_res[3], cta_res[4], cta_res[5], cta_res[6], cta_res[7], cta_res[8], cta_res[9], cta_res[10], cta_res[11], cta_res[12], cta_res[13], cta_res[14],
 		 cta_res[15], cta_res[16], cta_res[17], cta_res[18], cta_res[19], cta_res[20], cta_res[21], cta_res[22], cta_res[23], cta_res[24], cta_res[25], cta_res[26]);
 
@@ -129,13 +104,13 @@ int seca_card_init(uchar * atr, int atrsize)
 	}
 	reader[ridx].caid[0] = 0x0100;
 	memset(reader[ridx].prid, 0xff, sizeof (reader[ridx].prid));
-	read_cmd(ins0e, NULL);	// read unique id
+	cam_common_read_cmd(ins0e, NULL);	// read unique id
 	reader[ridx].hexserial[0] = 0;
 	reader[ridx].hexserial[1] = 0;
 	memcpy(reader[ridx].hexserial + 2, cta_res + 2, 6);
 	serial = b2ll(5, cta_res + 3);
 	cs_ri_log("type: seca, caid: %04X, serial: %llu, card: %s v%d.%d", reader[ridx].caid[0], serial, card, atr[9] & 0x0F, atr[9] >> 4);
-	read_cmd(ins16, NULL);	// read nr of providers
+	cam_common_read_cmd(ins16, NULL);	// read nr of providers
 	pmap = cta_res[2] << 8 | cta_res[3];
 	for (reader[ridx].nprov = 0, i = pmap; i; i >>= 1)
 		reader[ridx].nprov += i & 1;
@@ -154,7 +129,7 @@ int seca_card_init(uchar * atr, int atrsize)
 	cs_ri_log("providers: %d (%s)", reader[ridx].nprov, buf + 1);
 // Unlock parental control
 	if (cfg->ulparent != 0) {
-		write_cmd(ins30, ins30data);
+		cam_common_write_cmd(ins30, ins30data);
 		cs_log("ins30_answer: %02x%02x", cta_res[0], cta_res[1]);
 	} else {
 		cs_log("parental locked");
@@ -198,22 +173,22 @@ int seca_do_ecm(ECM_REQUEST * er)
 
 	memcpy(ins3cdata, er->ecm + 8, 256 - 8);
 	cs_debug("do_ecm:ins3c=%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x.", ins3c[0], ins3c[1], ins3c[2], ins3c[3], ins3c[4], ins3cdata[0], ins3cdata[1], ins3cdata[2], ins3cdata[3], ins3cdata[4], ins3cdata[5], ins3cdata[6], ins3cdata[7], ins3cdata[8], ins3cdata[9]);
-	write_cmd(ins3c, ins3cdata);	//ecm request
+	cam_common_write_cmd(ins3c, ins3cdata);	//ecm request
 	cs_debug("do_ecm_answer:%02x%02x", cta_res[0], cta_res[1]);
 
 	static unsigned char ins30[] = { 0xC1, 0x30, 0x00, 0x02, 0x09 };
 	static unsigned char ins30data[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF };
 	/* We need to use a token */
 	if (cta_res[0] == 0x90 && cta_res[1] == 0x1a) {
-		write_cmd(ins30, ins30data);
+		cam_common_write_cmd(ins30, ins30data);
 		cs_debug("do_ins30_answer:%02x%02x", cta_res[0], cta_res[1]);
-		write_cmd(ins3c, ins3cdata);	//ecm request
+		cam_common_write_cmd(ins3c, ins3cdata);	//ecm request
 		cs_debug("do_ecm_answer2:%02x%02x", cta_res[0], cta_res[1]);
 	}
 
 	if ((cta_res[0] != 0x90) || (cta_res[1] != 0x00))
 		return (0);
-	read_cmd(ins3a, NULL);	//get cw's
+	cam_common_read_cmd(ins3a, NULL);	//get cw's
 	cs_debug("cwdump:%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x.", cta_res[0], cta_res[1], cta_res[2], cta_res[3], cta_res[4], cta_res[5], cta_res[6], cta_res[7], cta_res[8], cta_res[9], cta_res[10], cta_res[11], cta_res[12], cta_res[13], cta_res[14], cta_res[15], cta_res[16],
 		 cta_res[17]);
 	if ((cta_res[16] != 0x90) || (cta_res[17] != 0x00))
@@ -274,7 +249,7 @@ int seca_do_emm(EMM_PACKET * ep)
 	ins40[2] = i;
 //  length = ((er->ecm[1]<<8 || er->ecm[2])&0x0fff);
 	cs_debug("do_emm:ins40=%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x.", ins40[0], ins40[1], ins40[2], ins40[3], ins40[4], ins40data[0], ins40data[1], ins40data[2], ins40data[3], ins40data[4], ins40data[5], ins40data[6], ins40data[7], ins40data[8], ins40data[9]);
-	write_cmd(ins40, ins40data);	//emm request
+	cam_common_write_cmd(ins40, ins40data);	//emm request
 	cs_debug("emmdump:%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x.", cta_res[0], cta_res[1], cta_res[2], cta_res[3], cta_res[4], cta_res[5], cta_res[6], cta_res[7], cta_res[8], cta_res[9], cta_res[10], cta_res[11], cta_res[12], cta_res[13], cta_res[14], cta_res[15], cta_res[16],
 		 cta_res[17]);
 //TODO  if ((cta_res[16] != 0x90) || (cta_res[17] != 0x00)) return (0);
@@ -321,7 +296,7 @@ int seca_card_info(void)
 	char l_name[16 + 8 + 1] = ", name: ";
 
 	ins12[2] = i;	//select provider
-	read_cmd(ins12, NULL);	// show provider properties
+	cam_common_read_cmd(ins12, NULL);	// show provider properties
 	cs_debug("hexdump:%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x.", cta_res[0], cta_res[1], cta_res[2], cta_res[3], cta_res[4], cta_res[5], cta_res[6], cta_res[7], cta_res[8], cta_res[9], cta_res[10], cta_res[11], cta_res[12], cta_res[13], cta_res[14],
 		 cta_res[15], cta_res[16], cta_res[17], cta_res[18], cta_res[19], cta_res[20], cta_res[21], cta_res[22], cta_res[23], cta_res[24], cta_res[25], cta_res[26]);
 

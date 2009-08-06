@@ -9,11 +9,6 @@
 #  include <linux/serial.h>	// ULGY : to be merged into csctapi
 #endif
 
-#define CMD_LEN 5
-
-#define write_cmd(cmd, data) (card_write(cmd, data, 1) == 0)
-#define read_cmd(cmd, data) (card_write(cmd, data, 0) == 0)
-
 #define MAX_ATR_LEN 33	// max. ATR length
 #define MAX_HIST    15	// max. number of historical characters
 
@@ -404,27 +399,14 @@ static int status_ok(const unsigned char *status)
 		&& (status[1] == 0x00 || status[1] == 0x01 || status[1] == 0x20 || status[1] == 0x21 || status[1] == 0x80 || status[1] == 0x81 || status[1] == 0xa0 || status[1] == 0xa1);
 }
 
-static int card_write(const uchar * cmd, const uchar * data, const int wflag)
-{
-	int l;
-	uchar buf[256];
-
-	memcpy(buf, cmd, CMD_LEN);
-	l = wflag ? cmd[4] : 0;
-	if (l && data)
-		memcpy(buf + CMD_LEN, data, l);
-	l = reader_common_cmd(buf, CMD_LEN + l);
-	return (l);
-}
-
-static int read_cmd_len(const unsigned char *cmd)
+static int cam_common_read_cmd_len(const unsigned char *cmd)
 {
 	unsigned char cmd2[5];
 
 	memcpy(cmd2, cmd, 5);
 	cmd2[3] = 0x80;
 	cmd2[4] = 1;
-	if (!read_cmd(cmd2, NULL) || cta_res[1] != 0x90 || cta_res[2] != 0x00) {
+	if (!cam_common_read_cmd(cmd2, NULL) || cta_res[1] != 0x90 || cta_res[2] != 0x00) {
 		cs_log("failed to read %02x%02x cmd length (%02x %02x)", cmd[1], cmd[2], cta_res[1], cta_res[2]);
 		return -1;
 	}
@@ -441,7 +423,7 @@ static int do_cmd(const unsigned char *ins, const unsigned char *txbuff, unsigne
 	if (cmd_table_get_info(ins2, &len, &mode)) {
 		if (len == 0xFF && mode == 2) {
 			if (ins2[4] == 0)
-				ins2[4] = len = read_cmd_len(ins2);
+				ins2[4] = len = cam_common_read_cmd_len(ins2);
 		} else if (mode != 0)
 			ins2[4] = len;
 	}
@@ -454,13 +436,13 @@ static int do_cmd(const unsigned char *ins, const unsigned char *txbuff, unsigne
 	if (!rxbuff)
 		rxbuff = tmp;
 	if (mode > 1) {
-		if (!read_cmd(ins2, NULL) || !status_ok(cta_res + len))
+		if (!cam_common_read_cmd(ins2, NULL) || !status_ok(cta_res + len))
 			return -1;
 		memcpy(rxbuff, ins2, 5);
 		memcpy(rxbuff + 5, cta_res, len);
 		memcpy(rxbuff + 5 + len, cta_res + len, 2);
 	} else {
-		if (!write_cmd(ins2, txbuff) || !status_ok(cta_res))
+		if (!cam_common_write_cmd(ins2, txbuff) || !status_ok(cta_res))
 			return -2;
 		memcpy(rxbuff, ins2, 5);
 		memcpy(rxbuff + 5, txbuff, len);
@@ -494,7 +476,7 @@ static void read_tiers(void)
 	static unsigned char ins76[5] = { 0xd0, 0x76, 0x00, 0x00, 0x00 };
 	ins76[3] = 0x7f;
 	ins76[4] = 2;
-	if (!read_cmd(ins76, NULL) || !status_ok(cta_res + 2))
+	if (!cam_common_read_cmd(ins76, NULL) || !status_ok(cta_res + 2))
 		return;
 	ins76[3] = 0;
 	ins76[4] = 0;
@@ -587,10 +569,10 @@ int videoguard_card_init(uchar * atr, int atrsize)
 	unsigned char ins7401[5] = { 0xD0, 0x74, 0x01, 0x00, 0x00 };
 	int l;
 
-	if ((l = read_cmd_len(ins7401)) < 0)
+	if ((l = cam_common_read_cmd_len(ins7401)) < 0)
 		return 0;
 	ins7401[4] = l;
-	if (!read_cmd(ins7401, NULL) || !status_ok(cta_res + l)) {
+	if (!cam_common_read_cmd(ins7401, NULL) || !status_ok(cta_res + l)) {
 		cs_log("failed to read cmd list");
 		return 0;
 	}
@@ -640,7 +622,7 @@ int videoguard_card_init(uchar * atr, int atrsize)
 	unsigned char ins4C[5] = { 0xD0, 0x4C, 0x00, 0x00, 0x09 };
 	unsigned char payload4C[9] = { 0, 0, 0, 0, 3, 0, 0, 2, 4 };
 	memcpy(payload4C, boxID, 4);
-	if (!write_cmd(ins4C, payload4C) || !status_ok(cta_res + l)) {
+	if (!cam_common_write_cmd(ins4C, payload4C) || !status_ok(cta_res + l)) {
 		cs_log("sending boxid failed");
 		return 0;
 	}

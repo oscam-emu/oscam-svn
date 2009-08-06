@@ -116,6 +116,20 @@ int cam_common_emm(EMM_PACKET * ep)
 	return rc;
 }
 
+int cam_common_card_cmd(const uchar * cmd, const uchar * data, const int wflag)
+{
+	int l;
+	uchar buf[MAX_LEN];
+
+	memcpy(buf, cmd, CMD_LEN);
+	l = wflag ? cmd[4] : 0;
+	if (l && data)
+		memcpy(buf + CMD_LEN, data, l);
+	l = reader_common_cmd(buf, CMD_LEN + l);
+
+	return l;
+}
+
 ulong chk_provid(uchar * ecm, ushort caid)
 {
 	int i;
