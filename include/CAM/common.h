@@ -6,14 +6,14 @@
 #  define CMD_LEN 5
 #  define MAX_LEN 256
 
-#define cam_common_read_cmd(cmd, data) (cam_common_card_cmd(cmd, data, 0) == 0)
-#define cam_common_write_cmd(cmd, data) (cam_common_card_cmd(cmd, data, 1) == 0)
+#define cam_common_read_cmd(cmd, data) (cam_common_send_cmd(cmd, data, 0) == 0)
+#define cam_common_write_cmd(cmd, data) (cam_common_send_cmd(cmd, data, 1) == 0)
 
 void cam_common_card_info();
 int cam_common_get_cardsystem(void);
 int cam_common_ecm(ECM_REQUEST *);
 int cam_common_emm(EMM_PACKET *);
-int cam_common_card_cmd(const uchar *, const uchar *, const int);
+int cam_common_send_cmd(const uchar *, const uchar *, const int);
 
 ulong chk_provid(uchar *, ushort caid);
 void guess_irdeto(ECM_REQUEST *);
