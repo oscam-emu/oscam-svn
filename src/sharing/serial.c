@@ -1,8 +1,8 @@
-#include <termios.h>
+#include <globals.h>
+#include <oscam.h>
+#include <simples.h>
 
-#include "globals.h"
-#include "oscam.h"
-#include "simples.h"
+#include <termios.h>
 
 #define HSIC_CRC 0xA5
 #define SSSP_MAX_PID 8
@@ -36,9 +36,11 @@
 static char *proto_txt[] = { "unknown", "hsic", "sssp", "bomba", "dsr9500", "gs",
 	"alpha", "dsr9500old", "gbox"
 };
+
 static char *dsrproto_txt[] = { "unknown", "samsung", "openbox", "pioneer",
 	"extended", "unknown"
 };
+
 static char *incomplete = "incomplete request (%d bytes)";
 static int connected = 0;
 static struct timeb tps, tpe;
@@ -64,7 +66,6 @@ typedef struct s_sssp {
 	ushort pid;
 	ulong prid;
 } SSSP_TAB;
-
 
 GBOX_LENS gbox_lens;
 SSSP_TAB sssp_tab[SSSP_MAX_PID];
@@ -96,7 +97,8 @@ static int sharing_serial_alpha_convert(uchar * buf, int l)
 			}
 		buf[l++] = 0x7F;	// insert EOT
 	}
-	return (l);
+
+	return l;
 }
 
 static void sharing_serial_disconnect(void);
@@ -118,6 +120,7 @@ static int sharing_serial_parse_url(char *url)
 	}
 	if ((!is_server) && (sharing_serial_proto == P_AUTO))
 		return (0);
+
 	switch (sharing_serial_proto)	// set the defaults
 	{
 		case P_GS:
@@ -154,6 +157,7 @@ static int sharing_serial_parse_url(char *url)
 			return (0);	// user needed in server-mode
 		dev = usr;
 	}
+
 	if ((baud = strchr(dev, ':')))	// port = baud
 		*baud++ = '\0';
 	dummy = baud ? baud : dev;
@@ -193,7 +197,8 @@ static int sharing_serial_parse_url(char *url)
 	}
 	strncpy(sharing_serial_usr, usr, sizeof (sharing_serial_usr) - 1);
 	strncpy(sharing_serial_device, dev, sizeof (sharing_serial_device) - 1);
-	return (sharing_serial_baud);
+
+	return sharing_serial_baud;
 }
 
 static void sharing_serial_set_baud(struct termios *tio, speed_t baud)
@@ -218,7 +223,8 @@ static int sharing_serial_set_serial_device(int fd)
 	cs_sleepms(500);
 //#endif
 	sharing_serial_set_baud(&tio, sharing_serial_baud);
-	return (tcsetattr(fd, TCSANOW, &tio));
+
+	return tcsetattr(fd, TCSANOW, &tio);
 }
 
 static int sharing_serial_poll(int event)
@@ -250,7 +256,8 @@ static int sharing_serial_write(uchar * buf, int n)
 		if (write(pfd, buf + i, 1) < 1)
 			break;
 	}
-	return (i);
+
+	return i;
 }
 
 static int sharing_serial_send(uchar * buf, int l)
@@ -269,7 +276,8 @@ static int sharing_serial_send(uchar * buf, int l)
 	cs_ddump(buf, l, "send %d of %d bytes to %s in %d msec", n, l, remote_txt(), 1000 * (tpe.time - tps.time) + tpe.millitm - tps.millitm);
 	if (n != l)
 		cs_log("transmit error. send %d of %d bytes only !", n, l);
-	return (n);
+
+	return n;
 }
 
 static int sharing_serial_selrec(uchar * buf, int n, int l, int *c)
@@ -285,6 +293,7 @@ static int sharing_serial_selrec(uchar * buf, int n, int l, int *c)
 			return (0);
 		else
 			(*c)++;
+
 	return (i == n);
 }
 
@@ -692,7 +701,7 @@ static void sharing_serial_send_dcw(ECM_REQUEST * er)
 				memcpy(mbuf + 3, er->cw, 16);
 				sharing_serial_send(mbuf, 19);
 				break;
-	} else	// not found
+	} else {	// not found
 		switch (connected) {
 			case P_GS:
 				mbuf[0] = 0x03;
@@ -702,6 +711,7 @@ static void sharing_serial_send_dcw(ECM_REQUEST * er)
 				sharing_serial_send(mbuf, 4);
 				break;
 		}
+	}
 	serial_errors = 0;	// clear error counter
 }
 
@@ -886,7 +896,8 @@ static int init_sharing_serial_device(char *device)
 		fd = 0;
 		cs_log("ERROR opening %s", device);
 	}
-	return (fd);
+
+	return fd;
 }
 
 static void sharing_serial_fork(int idx, char *url)
@@ -900,6 +911,7 @@ static void sharing_serial_fork(int idx, char *url)
 		return;
 	snprintf(logtxt, sizeof (logtxt) - 1, ", %s@%s", sharing_serial_proto > P_MAX ? "auto" : proto_txt[sharing_serial_proto], sharing_serial_device);
 	ph[idx].logtxt = logtxt;
+
 	switch (cs_fork(0, idx)) {
 		case 0:	// master
 		case -1:
@@ -907,6 +919,7 @@ static void sharing_serial_fork(int idx, char *url)
 		default:
 			wait4master();
 	}
+
 	while (1) {
 		client[cs_idx].au = (-1);
 		client[cs_idx].usr[0] = '\0';
@@ -942,6 +955,7 @@ static int sharing_serial_client_init()
 	if (!sharing_serial_parse_url(reader[ridx].device))
 		cs_exit(1);
 	pfd = init_sharing_serial_device(sharing_serial_device);
+
 	return ((pfd > 0) ? 0 : 1);
 }
 
@@ -978,7 +992,8 @@ static int sharing_serial_send_ecm(ECM_REQUEST * er, uchar * buf)
 			sharing_serial_send(buf, sharing_serial_alpha_convert(buf, 5 + er->l));
 			break;
 	}
-	return (0);
+
+	return 0;
 }
 
 static void sharing_serial_process_dcw(uchar * dcw, int *rc, uchar * buf, int l)
@@ -1026,6 +1041,7 @@ static int sharing_serial_recv_chk(uchar * dcw, int *rc, uchar * buf, int n)
 			sharing_serial_process_dcw(dcw, rc, buf + 1, n - 1);
 			break;
 	}
+
 	return ((*rc < 0) ? (-1) : 0);	// idx not supported in serial module
 }
 
