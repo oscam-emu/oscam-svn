@@ -36,7 +36,7 @@ int reader_cmd2icc(uchar * buf, int l)
 {
 //      int rc;
 //      if ((rc=reader_doapi(0, buf, l, D_DEVICE)) < 0)
-	return (reader_doapi(0, buf, l, D_DEVICE));
+	return reader_doapi(0, buf, l, D_DEVICE);
 //      else
 //      return rc;
 }
@@ -55,16 +55,16 @@ void reader_card_info()
 		cs_ri_brk(0);
 		cam_common_card_info();
 	}
-//  return(rc);
 }
 
 static int reader_reset(void)
 {
 	reader_nullcard();
 	if (!reader_activate_card())
-		return (0);
+		return 0;
 	int rc = cam_common_get_cardsystem();
 	cs_ri_brk(1);
+
 	return rc;
 }
 
