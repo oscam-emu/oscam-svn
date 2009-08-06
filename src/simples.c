@@ -326,7 +326,6 @@ int bytes_available(int fd)
 		return (((pfds.revents) & POLLIN) == POLLIN);
 }
 
-
 #ifdef OS_CYGWIN32
 #  include <windows.h>
 void cs_setpriority(int prio)
