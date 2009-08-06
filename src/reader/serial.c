@@ -130,7 +130,8 @@ int reader_serial_activate_card()
 #endif
 	cs_ri_log("ATR: %s", cs_hexdump(1, atr, atr_size));
 	sleep(1);
-	return (1);
+
+	return 1;
 }
 
 int reader_serial_card_inserted(void)
