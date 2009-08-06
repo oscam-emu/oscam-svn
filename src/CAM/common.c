@@ -53,7 +53,6 @@ int cam_common_get_cardsystem(void)
 		reader[ridx].card_system = SC_VIDEOGUARD2;
 	if (!reader[ridx].card_system)
 		cs_ri_log("card system not supported");
-	cs_ri_brk(1);
 
 	return reader[ridx].card_system;
 }

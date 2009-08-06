@@ -63,7 +63,9 @@ static int reader_reset(void)
 	reader_nullcard();
 	if (!reader_activate_card())
 		return (0);
-	return cam_common_get_cardsystem();
+	int rc = cam_common_get_cardsystem();
+	cs_ri_brk(1);
+	return rc;
 }
 
 static int reader_card_inserted(void)
