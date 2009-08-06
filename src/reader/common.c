@@ -17,30 +17,6 @@ static void reader_common_nullcard()
 	reader[ridx].nprov = 0;
 }
 
-int reader_common_doapi(uchar dad, uchar * buf, int l, int dbg)
-{
-	return reader_serial_doapi(dad, buf, l, dbg);
-}
-
-int reader_common_chkicc(uchar * buf, int l)
-{
-	return reader_common_doapi(1, buf, l, D_WATCHDOG);
-}
-
-int reader_common_cmd2api(uchar * buf, int l)
-{
-	return reader_common_doapi(1, buf, l, D_DEVICE);
-}
-
-int reader_common_cmd2icc(uchar * buf, int l)
-{
-//      int rc;
-//      if ((rc = reader_common_doapi(0, buf, l, D_DEVICE)) < 0)
-	return reader_common_doapi(0, buf, l, D_DEVICE);
-//      else
-//      return rc;
-}
-
 static int reader_common_activate_card()
 {
 	reader_serial_activate_card();
@@ -144,4 +120,8 @@ int reader_common_emm(EMM_PACKET * ep)
 	}
 
 	return rc;
+}
+
+int reader_common_cmd(uchar * buf, int l) {
+	return reader_serial_cmd2icc(buf, l);
 }

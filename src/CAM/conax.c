@@ -37,7 +37,7 @@ static char *chid_date(uchar * ptr, char *buf, int l)
 }
 
 
-static int card_write(uchar * cmd, uchar * data, int wflag)
+static int card_write(const uchar * cmd, const uchar * data, const int wflag)
 {
 	int l;
 	uchar buf[MAX_LEN];
@@ -46,7 +46,7 @@ static int card_write(uchar * cmd, uchar * data, int wflag)
 	l = wflag ? cmd[4] : 0;
 	if (l && data)
 		memcpy(buf + CMD_LEN, data, l);
-	l = reader_common_cmd2icc(buf, CMD_LEN + l);
+	l = reader_common_cmd(buf, CMD_LEN + l);
 	return (l);
 }
 

@@ -20,16 +20,16 @@ char *card;
         if (card_write(cmd, data, 0)) return(0); \
 }
 
-static int card_write(uchar * cmd, uchar * data, int wflag)
+static int card_write(const uchar * cmd, const uchar * data, const int wflag)
 {
 	int l;
-	uchar buf[256];
+	uchar buf[MAX_LEN];
 
 	memcpy(buf, cmd, CMD_LEN);
 	l = wflag ? cmd[4] : 0;
 	if (l && data)
 		memcpy(buf + CMD_LEN, data, l);
-	l = reader_common_cmd2icc(buf, CMD_LEN + l);
+	l = reader_common_cmd(buf, CMD_LEN + l);
 	return (l);
 }
 

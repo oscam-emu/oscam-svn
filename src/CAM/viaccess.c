@@ -145,7 +145,7 @@ static int chk_prov(uchar * id, uchar keynr)
 	return (rc);
 }
 
-static int card_write(const uchar * cmd, const uchar * data, int wflag)
+static int card_write(const uchar * cmd, const uchar * data, const int wflag)
 {
 	int l;
 	uchar buf[256];
@@ -154,7 +154,7 @@ static int card_write(const uchar * cmd, const uchar * data, int wflag)
 	l = wflag ? cmd[4] : 0;
 	if (l && data)
 		memcpy(buf + CMD_LEN, data, l);
-	l = reader_common_cmd2icc(buf, CMD_LEN + l);
+	l = reader_common_cmd(buf, CMD_LEN + l);
 	return (l);
 }
 

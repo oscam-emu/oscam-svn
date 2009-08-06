@@ -51,8 +51,7 @@ static int reader_serial_device_type(char *device, int typ)
 	return rc;
 }
 
-
-int reader_serial_doapi(uchar dad, uchar * buf, int l, int dbg)
+static int reader_serial_doapi(uchar dad, uchar * buf, int l, int dbg)
 {
 	int rc;
 	uchar sad;
@@ -70,6 +69,25 @@ int reader_serial_doapi(uchar dad, uchar * buf, int l, int dbg)
 	return rc;
 }
 
+int reader_serial_chkicc(uchar * buf, int l)
+{
+	return reader_serial_doapi(1, buf, l, D_WATCHDOG);
+}
+
+int reader_serial_cmd2api(uchar * buf, int l)
+{
+	return reader_serial_doapi(1, buf, l, D_DEVICE);
+}
+
+int reader_serial_cmd2icc(uchar * buf, int l)
+{
+//	int rc;
+//	if ((rc = reader_serial_doapi(0, buf, l, D_DEVICE)) < 0)
+	return reader_serial_doapi(0, buf, l, D_DEVICE);
+//	else
+//	return rc;
+}
+
 int reader_serial_activate_card()
 {
 	int i;
@@ -79,7 +97,7 @@ int reader_serial_activate_card()
 	cta_cmd[1] = CTBCS_P2_RESET_GET_ATR;
 	cta_cmd[2] = 0x00;
 
-	ret = reader_common_cmd2api(cta_cmd, 3);
+	ret = reader_serial_cmd2api(cta_cmd, 3);
 	if (ret != OK) {
 		cs_log("Error reset terminal: %d", ret);
 		return (0);
@@ -91,8 +109,8 @@ int reader_serial_activate_card()
 	cta_cmd[3] = CTBCS_P2_STATUS_ICC;
 	cta_cmd[4] = 0x00;
 
-//	ret = reader_common_cmd2api(cmd, 11); warum 11 ??????
-	ret = reader_common_cmd2api(cta_cmd, 5);
+//	ret = reader_serial_cmd2api(cmd, 11); warum 11 ??????
+	ret = reader_serial_cmd2api(cta_cmd, 5);
 	if (ret != OK) {
 		cs_log("Error getting status of terminal: %d", ret);
 		return (0);
@@ -110,7 +128,7 @@ int reader_serial_activate_card()
 		cta_cmd[3] = CTBCS_P2_REQUEST_GET_ATR;
 		cta_cmd[4] = 0x00;
 
-		ret = reader_common_cmd2api(cta_cmd, 5);
+		ret = reader_serial_cmd2api(cta_cmd, 5);
 		if ((ret == OK) || (cta_res[cta_lr - 2] == 0x90)) {
 			i = 100;
 			break;
@@ -142,7 +160,7 @@ int reader_serial_card_inserted()
 	cta_cmd[3] = CTBCS_P2_STATUS_ICC;
 	cta_cmd[4] = 0x00;
 
-	return reader_common_chkicc(cta_cmd, 5) ? 0 : cta_res[0];
+	return reader_serial_chkicc(cta_cmd, 5) ? 0 : cta_res[0];
 }
 
 int reader_serial_device_init(char *device, int typ)

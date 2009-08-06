@@ -404,7 +404,7 @@ static int status_ok(const unsigned char *status)
 		&& (status[1] == 0x00 || status[1] == 0x01 || status[1] == 0x20 || status[1] == 0x21 || status[1] == 0x80 || status[1] == 0x81 || status[1] == 0xa0 || status[1] == 0xa1);
 }
 
-static int card_write(const uchar * cmd, const uchar * data, int wflag)
+static int card_write(const uchar * cmd, const uchar * data, const int wflag)
 {
 	int l;
 	uchar buf[256];
@@ -413,7 +413,7 @@ static int card_write(const uchar * cmd, const uchar * data, int wflag)
 	l = wflag ? cmd[4] : 0;
 	if (l && data)
 		memcpy(buf + CMD_LEN, data, l);
-	l = reader_common_cmd2icc(buf, CMD_LEN + l);
+	l = reader_common_cmd(buf, CMD_LEN + l);
 	return (l);
 }
 
