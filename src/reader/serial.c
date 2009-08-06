@@ -5,7 +5,6 @@
 #include <ctapi.h>
 #include <ctbcs.h>
 
-static int cs_ptyp_orig;	// reinit=1
 int reader_irdeto_mode;		// UGLY : to be removed
 
 char oscam_device[128];
@@ -62,7 +61,7 @@ int reader_serial_doapi(uchar dad, uchar * buf, int l, int dbg)
 //	oscam_card_inserted=4;
 	sad = 2;
 	cta_lr = sizeof (cta_res) - 1;
-	cs_ptyp_orig = cs_ptyp;
+	int cs_ptyp_orig = cs_ptyp;
 	cs_ptyp = dbg;
 //	cs_ddump(buf, l, "send %d bytes to ctapi", l);
 	rc = CT_data(1, &dad, &sad, l, buf, &cta_lr, cta_res);
@@ -152,7 +151,7 @@ int reader_serial_device_init(char *device, int typ)
 
 	oscam_card_detect = reader[ridx].detect;
 	mhz = reader[ridx].mhz;
-	cs_ptyp_orig = cs_ptyp;
+	int cs_ptyp_orig = cs_ptyp;
 	cs_ptyp = D_DEVICE;
 	snprintf(oscam_device, sizeof (oscam_device), "%s", device);
 	if ((rc = CT_init(1, reader_serial_device_type(device, typ), reader[ridx].typ)) != OK)
