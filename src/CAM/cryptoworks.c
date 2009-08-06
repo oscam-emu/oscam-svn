@@ -132,7 +132,7 @@ static int read_record(uchar rec)
 	return (cta_lr - 2);
 }
 
-int cryptoworks_send_pin(void)
+int cryptoworks_send_pin()
 {
 	unsigned char insPIN[] = { 0xA4, 0x20, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00 };	//Verify PIN  
 
@@ -150,7 +150,7 @@ int cryptoworks_send_pin(void)
 	return (0);
 }
 
-int cryptoworks_disbale_pin(void)
+int cryptoworks_disbale_pin()
 {
 	unsigned char insPIN[] = { 0xA4, 0x26, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00 };	//disable PIN  
 
@@ -513,7 +513,7 @@ int cryptoworks_do_emm(EMM_PACKET * ep)
 	return (rc);
 }
 
-int cryptoworks_card_info(void)
+int cryptoworks_card_info()
 {
 	int i;
 	uchar insA21[] = { 0xA4, 0xA2, 0x01, 0x00, 0x05, 0x8C, 0x00, 0x00, 0x00, 0x00 };

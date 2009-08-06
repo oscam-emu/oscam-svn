@@ -10,7 +10,7 @@
 #define cam_common_write_cmd(cmd, data) (cam_common_send_cmd(cmd, data, 1) == 0)
 
 void cam_common_card_info();
-int cam_common_get_cardsystem(void);
+int cam_common_get_cardsystem();
 int cam_common_ecm(ECM_REQUEST *);
 int cam_common_emm(EMM_PACKET *);
 int cam_common_send_cmd(const uchar *, const uchar *, const int);
@@ -19,8 +19,8 @@ ulong chk_provid(uchar *, ushort caid);
 void guess_irdeto(ECM_REQUEST *);
 void guess_cardsystem(ECM_REQUEST *);
 
-extern ulong chk_provid(uchar *, ushort);
-extern void guess_cardsystem(ECM_REQUEST *);
-//extern void guess_irdeto(ECM_REQUEST *);
+ulong chk_provid(uchar *, ushort);
+void guess_cardsystem(ECM_REQUEST *);
+//void guess_irdeto(ECM_REQUEST *);
 
 #endif // __CAM_COMMON_H__

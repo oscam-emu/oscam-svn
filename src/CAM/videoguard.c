@@ -465,7 +465,7 @@ static void rev_date_calc(const unsigned char *Date, int *year, int *mon, int *d
 	*ss = (Date[3] - *mm * 32) * 2;
 }
 
-static void read_tiers(void)
+static void read_tiers()
 {
 	static const unsigned char ins2a[5] = { 0xd0, 0x2a, 0x00, 0x00, 0x00 };
 	int l;
@@ -840,7 +840,7 @@ int videoguard_do_emm(EMM_PACKET * ep)
 	return (rc);
 }
 
-int videoguard_card_info(void)
+int videoguard_card_info()
 {
 	/* info is displayed in init, or when processing info */
 	cs_log("card detected");

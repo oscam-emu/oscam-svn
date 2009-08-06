@@ -345,7 +345,7 @@ int irdeto_do_emm(EMM_PACKET * ep)
 	return 0;
 }
 
-int irdeto_card_info(void)
+int irdeto_card_info()
 {
 	int i, p;
 	uchar buf[256] = { 0 };

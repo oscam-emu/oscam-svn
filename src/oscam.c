@@ -879,7 +879,7 @@ void cs_resolve()
 #ifdef USE_PTHREAD
 static void *cs_logger(void *dummy)
 #else
-static void cs_logger(void)
+static void cs_logger()
 #endif
 {
 	*log_fd = client[cs_idx].fd_m2c;
@@ -1112,7 +1112,7 @@ int cs_auth_client(struct s_auth *account, char *e_txt)
 	return (rc);
 }
 
-void cs_disconnect_client(void)
+void cs_disconnect_client()
 {
 	char buf[32] = { 0 };
 	if (client[cs_idx].ip)

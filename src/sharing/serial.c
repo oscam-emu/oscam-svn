@@ -103,7 +103,7 @@ static int sharing_serial_alpha_convert(uchar * buf, int l)
 	return l;
 }
 
-static void sharing_serial_disconnect(void);
+static void sharing_serial_disconnect();
 
 static int sharing_serial_parse_url(char *url)
 {

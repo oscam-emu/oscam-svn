@@ -269,7 +269,7 @@ int seca_do_emm(EMM_PACKET * ep)
 }
 
 #ifndef LALL
-int seca_card_info(void)
+int seca_card_info()
 {
 	int i;
 
@@ -287,7 +287,7 @@ int seca_card_info(void)
 }
 #endif
 #ifdef LALL
-int seca_card_info(void)
+int seca_card_info()
 {
 	static uchar ins12[] = { 0xc1, 0x12, 0x00, 0x00, 0x19 };	// get provider info
 	int year, month, day;

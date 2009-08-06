@@ -549,7 +549,7 @@ int viaccess_do_emm(EMM_PACKET * ep)
 	return rc;
 }
 
-int viaccess_card_info(void)
+int viaccess_card_info()
 {
 	int i, l, scls, show_cls;
 	static uchar insac[] = { 0xca, 0xac, 0x00, 0x00, 0x00 };	// select data

@@ -191,7 +191,7 @@ void cs_log(char *fmt, ...)
 	write_to_log(1, txt);
 }
 
-void cs_close_log(void)
+void cs_close_log()
 {
 	if (use_stdout || use_syslog || !fp)
 		return;

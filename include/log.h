@@ -1,13 +1,13 @@
 #ifndef __LOG_H__
 #  define __LOG_H__
 
-extern int cs_init_log(char *);
-extern void cs_log(char *, ...);
-extern void cs_debug(char *, ...);
-extern void cs_ddump(uchar *, int, char *, ...);
-extern void cs_close_log(void);
-extern int cs_init_statistics(char *);
-extern void cs_statistics(int);
-extern void cs_dump(uchar *, int, char *, ...);
+int cs_init_log(char *);
+void cs_log(char *, ...);
+void cs_debug(char *, ...);
+void cs_ddump(uchar *, int, char *, ...);
+void cs_close_log();
+int cs_init_statistics(char *);
+void cs_statistics(int);
+void cs_dump(uchar *, int, char *, ...);
 
 #endif // __LOG_H__

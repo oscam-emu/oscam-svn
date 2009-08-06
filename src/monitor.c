@@ -436,7 +436,7 @@ static void monitor_process_details(char *arg)
 	monitor_send_info(NULL, 1);
 }
 
-static void monitor_send_login(void)
+static void monitor_send_login()
 {
 	char buf[64];
 

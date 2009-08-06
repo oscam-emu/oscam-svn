@@ -1,9 +1,9 @@
 #ifndef __CAM_VIDEOGUARD_H__
 #  define __CAM_VIDEOGUARD_H__
 
-extern int videoguard_card_init(uchar *, int);
-extern int videoguard_do_ecm(ECM_REQUEST *);
-extern int videoguard_do_emm(EMM_PACKET *);
-extern int videoguard_card_info(void);
+int videoguard_card_init(uchar *, int);
+int videoguard_do_ecm(ECM_REQUEST *);
+int videoguard_do_emm(EMM_PACKET *);
+int videoguard_card_info();
 
 #endif // __CAM_VIDEOGUARD_H__

@@ -36,7 +36,7 @@ void cam_common_card_info()
 	}
 }
 
-int cam_common_get_cardsystem(void)
+int cam_common_get_cardsystem()
 {
 	if (irdeto_card_init(atr, atr_size))
 		reader[ridx].card_system = SC_IRDETO;
