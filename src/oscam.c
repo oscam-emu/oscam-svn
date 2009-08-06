@@ -2180,7 +2180,7 @@ int main(int argc, char *argv[])
 #endif
 
 	for (i = 0; i < CS_MAX_MOD; i++)
-		if (ph[i].type & MOD_CONN_SERIAL)	// for now: oscam_ser only
+		if (ph[i].type & MOD_CONN_SERIAL)	// for now: sharing_serial only
 			if (ph[i].s_handler)
 				ph[i].s_handler(i);
 
