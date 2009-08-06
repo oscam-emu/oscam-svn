@@ -54,7 +54,8 @@ int cam_common_get_cardsystem(void)
 	if (!reader[ridx].card_system)
 		cs_ri_log("card system not supported");
 	cs_ri_brk(1);
-	return (reader[ridx].card_system);
+
+	return reader[ridx].card_system;
 }
 
 int cam_common_ecm(ECM_REQUEST * er)
@@ -126,16 +127,19 @@ ulong chk_provid(uchar * ecm, ushort caid)
 		case 0x100:	// seca
 			provid = b2i(2, ecm + 3);
 			break;
+
 		case 0x500:	// viaccess
 			i = (ecm[4] == 0xD2) ? ecm[5] + 2 : 0;	// skip d2 nano
 			if ((ecm[5 + i] == 3) && ((ecm[4 + i] == 0x90) || (ecm[4 + i] == 0x40)))
 				provid = (b2i(3, ecm + 6 + i) & 0xFFFFF0);
+
 		default:
 			// cryptoworks ?
 			if (caid & 0x0d00 && ecm[8] == 0x83 && ecm[9] == 1)
 				provid = (ulong) ecm[10];
 	}
-	return (provid);
+
+	return provid;
 }
 
 /*
@@ -168,7 +172,7 @@ void guess_irdeto(ECM_REQUEST *er)
       er->caid=ptr->caid;
       er->srvid=ptr->sid;
       er->chid=(ushort)ptr->b47;
-//      cs_debug("quess_irdeto() found caid=%04X, sid=%04X, chid=%04X",
+//      cs_debug("guess_irdeto() found caid=%04X, sid=%04X, chid=%04X",
 //               er->caid, er->srvid, er->chid);
       return;
     }
@@ -200,8 +204,8 @@ void guess_cardsystem(ECM_REQUEST * er)
 		last_hope = 0xd00;
 
 /*
-  if (!er->caid && er->ecm[2]==0x31 && er->ecm[0x0b]==0x28)
-    guess_irdeto(er);
+	if (!er->caid && er->ecm[2]==0x31 && er->ecm[0x0b]==0x28)
+		guess_irdeto(er);
 */
 
 	if (!er->caid)	// guess by len ..
