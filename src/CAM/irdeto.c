@@ -5,7 +5,7 @@
 #include <reader/common.h>
 
 #define cam_irdeto_chk_cmd(cmd, l) { \
-        if (reader_common_cmd(cmd, sizeof(cmd))) return 0; \
+        if (reader_common_send_cmd(cmd, sizeof(cmd))) return 0; \
 	if (l && (cta_lr!=l)) return 0; \
 }
 
@@ -166,7 +166,7 @@ static int irdeto_do_cmd(uchar * buf, ushort good)
 {
 	int rc;
 
-	if ((rc = reader_common_cmd(buf, buf[4] + 5)))
+	if ((rc = reader_common_send_cmd(buf, buf[4] + 5)))
 		return (rc);	// result may be 0 (success) or negative
 	if (cta_lr < 2)
 		return (0x7F7F);	// this should never happen

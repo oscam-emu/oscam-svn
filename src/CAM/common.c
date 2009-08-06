@@ -125,7 +125,7 @@ int cam_common_send_cmd(const uchar * cmd, const uchar * data, const int wflag)
 	l = wflag ? cmd[4] : 0;
 	if (l && data)
 		memcpy(buf + CMD_LEN, data, l);
-	l = reader_common_cmd(buf, CMD_LEN + l);
+	l = reader_common_send_cmd(buf, CMD_LEN + l);
 
 	return l;
 }

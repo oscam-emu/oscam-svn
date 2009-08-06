@@ -26,7 +26,7 @@ void reader_common_card_info()
 {
 	int rc = -1;
 
-	if (rc = reader_common_checkhealth()) {
+	if (rc = reader_common_check_health()) {
 		client[cs_idx].last = time((time_t) 0);
 		cs_ri_brk(0);
 		cam_common_card_info();
@@ -54,7 +54,7 @@ int reader_common_device_init(char *device, int typ)
 	return reader_serial_device_init(device, typ);
 }
 
-int reader_common_checkhealth()
+int reader_common_check_health()
 {
 	if (reader_common_card_inserted()) {
 		if (!(reader[ridx].card_status & CARD_INSERTED)) {
@@ -93,11 +93,11 @@ int reader_common_checkhealth()
 	return reader[ridx].card_status == CARD_INSERTED;
 }
 
-int reader_common_ecm(ECM_REQUEST * er)
+int reader_common_send_ecm(ECM_REQUEST * er)
 {
 	int rc = -1;
 
-	if ((rc = reader_common_checkhealth())) {
+	if ((rc = reader_common_check_health())) {
 		if ((reader[ridx].caid[0] >> 8) == ((er->caid >> 8) & 0xFF)) {
 			client[cs_idx].last_srvid = er->srvid;
 			client[cs_idx].last_caid = er->caid;
@@ -110,11 +110,11 @@ int reader_common_ecm(ECM_REQUEST * er)
 	return rc;
 }
 
-int reader_common_emm(EMM_PACKET * ep)
+int reader_common_send_emm(EMM_PACKET * ep)
 {
 	int rc = -1;
 
-	if (rc = reader_common_checkhealth()) {
+	if (rc = reader_common_check_health()) {
 		client[cs_idx].last = time((time_t) 0);
 		rc = cam_common_emm(ep);
 	}
@@ -122,6 +122,6 @@ int reader_common_emm(EMM_PACKET * ep)
 	return rc;
 }
 
-int reader_common_cmd(uchar * buf, int l) {
+int reader_common_send_cmd(uchar * buf, int l) {
 	return reader_serial_cmd2icc(buf, l);
 }
