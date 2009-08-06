@@ -27,7 +27,7 @@ int set_provider_info(int i)
 	reader[ridx].prid[i][0] = 0;
 	reader[ridx].prid[i][1] = 0;	//blanken high byte provider code
 	memcpy(&reader[ridx].prid[i][2], cta_res, 2);
-//  sprintf(buf+strlen(buf), ",%06X", b2i(3, &reader[ridx].prid[i][1]));
+//	sprintf(buf+strlen(buf), ",%06X", b2i(3, &reader[ridx].prid[i][1]));
 
 	year = (cta_res[22] >> 1) + 1990;
 	month = ((cta_res[22] & 0x1) * 256 + (cta_res[23] & 0xe0)) >> 5;
@@ -58,8 +58,9 @@ int set_provider_info(int i)
 	memcpy(&reader[ridx].sa[i][0], cta_res + 18, 4);
 	if (valid == 1)	//if not expired
 		cs_log("SA: %s", cs_hexdump(0, cta_res + 18, 4));
-//    cs_log("SA:%02X%02X%02X%02X.",cta_res[18],cta_res[19],cta_res[20],cta_res[21]);
-	return (1);
+//	cs_log("SA:%02X%02X%02X%02X.",cta_res[18],cta_res[19],cta_res[20],cta_res[21]);
+
+	return 1;
 }
 
 int seca_card_init(uchar * atr, int atrsize)
