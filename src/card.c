@@ -1,4 +1,5 @@
-#include "globals.h"
+#include <globals.h>
+#include <card.h>
 
 int ridx = 0, logfd = 0;
 
