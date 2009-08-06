@@ -4,10 +4,10 @@
 
 #include <reader/common.h>
 
-#define reader_chk_cmd(cmd, l) \
-{ \
-        if (reader_cmd2icc(cmd, sizeof(cmd))) return(0); \
-  if (l && (cta_lr!=l)) return(0); }
+#define cam_irdeto_chk_cmd(cmd, l) { \
+        if (reader_common_cmd2icc(cmd, sizeof(cmd))) return 0; \
+	if (l && (cta_lr!=l)) return 0; \
+}
 
 static int nagra;
 
@@ -130,7 +130,7 @@ static int irdeto_do_cmd(uchar * buf, ushort good)
 {
 	int rc;
 
-	if ((rc = reader_cmd2icc(buf, buf[4] + 5)))
+	if ((rc = reader_common_cmd2icc(buf, buf[4] + 5)))
 		return (rc);	// result may be 0 (success) or negative
 	if (cta_lr < 2)
 		return (0x7F7F);	// this should never happen
@@ -150,7 +150,7 @@ int irdeto_card_init(uchar * atr, int atrlen)
 	/*
 	 * Check Nagra
 	 */
-	/*if ((!reader_cmd2icc(sc_GetROM, sizeof(sc_GetROM))) && (cta_res[cta_lr-2]==0x90))
+	/*if ((!reader_common_cmd2icc(sc_GetROM, sizeof(sc_GetROM))) && (cta_res[cta_lr-2]==0x90))
 	   {
 	   nagra=1;
 	   if (cta_res[0]==0x90)
@@ -169,7 +169,7 @@ int irdeto_card_init(uchar * atr, int atrlen)
 	/*
 	 * ContryCode
 	 */
-	reader_chk_cmd(sc_GetCountryCode, 18);
+	cam_irdeto_chk_cmd(sc_GetCountryCode, 18);
 	reader[ridx].acs = (cta_res[0] << 8) | cta_res[1];
 	reader[ridx].caid[0] = (cta_res[5] << 8) | cta_res[6];
 	cs_ri_log("type: %s, caid: %04X, acs: %x.%02x%s", (nagra) ? "aladin" : "irdeto", reader[ridx].caid[0], cta_res[0], cta_res[1], buf);
@@ -177,10 +177,10 @@ int irdeto_card_init(uchar * atr, int atrlen)
 	/*
 	 * Ascii/Hex-Serial
 	 */
-	reader_chk_cmd(sc_GetASCIISerial, 22);
+	cam_irdeto_chk_cmd(sc_GetASCIISerial, 22);
 	memcpy(buf, cta_res, 10);
 	buf[10] = 0;
-	reader_chk_cmd(sc_GetHEXSerial, 18);
+	cam_irdeto_chk_cmd(sc_GetHEXSerial, 18);
 	memcpy(reader[ridx].hexserial, cta_res + 12, 8);
 	reader[ridx].nprov = cta_res[10];
 	cs_ri_log("ascii serial: %s, hex serial: %02X%02X%02X, hex base: %02X", buf, cta_res[12], cta_res[13], cta_res[14], cta_res[15]);
@@ -189,7 +189,7 @@ int irdeto_card_init(uchar * atr, int atrlen)
 	 * CardFile
 	 */
 	for (sc_GetCardFile[2] = 2; sc_GetCardFile[2] < 4; sc_GetCardFile[2]++)
-		reader_chk_cmd(sc_GetCardFile, 0);
+		cam_irdeto_chk_cmd(sc_GetCardFile, 0);
 
 	/*
 	 * CamKey
@@ -236,16 +236,16 @@ int irdeto_card_init(uchar * atr, int atrlen)
 
 	switch (camkey) {
 		case 1:
-			reader_chk_cmd(sc_GetCamKey384CZ, 10);
+			cam_irdeto_chk_cmd(sc_GetCamKey384CZ, 10);
 			break;
 		case 2:
-			reader_chk_cmd(sc_GetCamKey384DZ, 10);
+			cam_irdeto_chk_cmd(sc_GetCamKey384DZ, 10);
 			break;
 		case 3:
-			reader_chk_cmd(sc_GetCamKey384FZ, 10);
+			cam_irdeto_chk_cmd(sc_GetCamKey384FZ, 10);
 			break;
 		default:
-			reader_chk_cmd(sc_GetCamKey383C, 0);
+			cam_irdeto_chk_cmd(sc_GetCamKey383C, 0);
 			break;
 	}
 
@@ -320,7 +320,7 @@ int irdeto_card_info(void)
 			ushort chid;
 			char ds[16], de[16];
 
-			reader_chk_cmd(sc_GetChid, 0);
+			cam_irdeto_chk_cmd(sc_GetChid, 0);
 			if ((cta_lr > 33) && (chid = b2i(2, cta_res + 11))) {
 				chid_date(b2i(2, cta_res + 20) - 0x7f7, ds, 15);
 				chid_date(b2i(2, cta_res + 13) - 0x7f7, de, 15);
@@ -335,7 +335,7 @@ int irdeto_card_info(void)
 		memset(reader[ridx].prid, 0xff, sizeof (reader[ridx].prid));
 		for (buf[0] = i = p = 0; i < reader[ridx].nprov; i++) {
 			sc_GetProvider[3] = i;
-			reader_chk_cmd(sc_GetProvider, 0);
+			cam_irdeto_chk_cmd(sc_GetProvider, 0);
 //      if ((cta_lr==26) && (cta_res[0]!=0xf))
 			if ((cta_lr == 26) && ((!(i & 1)) || (cta_res[0] != 0xf))) {
 				reader[ridx].prid[i][4] = p++;
@@ -350,7 +350,7 @@ int irdeto_card_info(void)
 		/*
 		 * ContryCode2
 		 */
-		reader_chk_cmd(sc_GetCountryCode2, 0);
+		cam_irdeto_chk_cmd(sc_GetCountryCode2, 0);
 		if ((cta_lr > 9) && !(cta_res[cta_lr - 2] | cta_res[cta_lr - 1])) {
 			cs_debug("max chids: %d, %d, %d, %d", cta_res[6], cta_res[7], cta_res[8], cta_res[9]);
 
@@ -366,7 +366,7 @@ int irdeto_card_info(void)
 					sc_GetChanelIds[3] = i;
 					for (j = 0; j < 10; j++) {
 						sc_GetChanelIds[5] = j;
-						reader_chk_cmd(sc_GetChanelIds, 0);
+						cam_irdeto_chk_cmd(sc_GetChanelIds, 0);
 						if (cta_lr < 61)
 							break;
 						for (k = 0; k < cta_lr; k += 6) {

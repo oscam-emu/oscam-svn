@@ -6,7 +6,7 @@
 uchar cta_cmd[272], cta_res[260], atr[64];
 ushort cta_lr, atr_size = 0;
 
-static void reader_nullcard(void)
+static void reader_common_nullcard()
 {
 	reader[ridx].card_system = 0;
 	memset(reader[ridx].hexserial, 0, sizeof (reader[ridx].hexserial));
@@ -17,50 +17,50 @@ static void reader_nullcard(void)
 	reader[ridx].nprov = 0;
 }
 
-int reader_doapi(uchar dad, uchar * buf, int l, int dbg)
+int reader_common_doapi(uchar dad, uchar * buf, int l, int dbg)
 {
 	return reader_serial_doapi(dad, buf, l, dbg);
 }
 
-int reader_chkicc(uchar * buf, int l)
+int reader_common_chkicc(uchar * buf, int l)
 {
-	return reader_doapi(1, buf, l, D_WATCHDOG);
+	return reader_common_doapi(1, buf, l, D_WATCHDOG);
 }
 
-int reader_cmd2api(uchar * buf, int l)
+int reader_common_cmd2api(uchar * buf, int l)
 {
-	return reader_doapi(1, buf, l, D_DEVICE);
+	return reader_common_doapi(1, buf, l, D_DEVICE);
 }
 
-int reader_cmd2icc(uchar * buf, int l)
+int reader_common_cmd2icc(uchar * buf, int l)
 {
 //      int rc;
-//      if ((rc=reader_doapi(0, buf, l, D_DEVICE)) < 0)
-	return reader_doapi(0, buf, l, D_DEVICE);
+//      if ((rc = reader_common_doapi(0, buf, l, D_DEVICE)) < 0)
+	return reader_common_doapi(0, buf, l, D_DEVICE);
 //      else
 //      return rc;
 }
 
-static int reader_activate_card()
+static int reader_common_activate_card()
 {
 	reader_serial_activate_card();
 }
 
-void reader_card_info()
+void reader_common_card_info()
 {
 	int rc = -1;
 
-	if (rc = reader_checkhealth()) {
+	if (rc = reader_common_checkhealth()) {
 		client[cs_idx].last = time((time_t) 0);
 		cs_ri_brk(0);
 		cam_common_card_info();
 	}
 }
 
-static int reader_reset(void)
+static int reader_common_reset()
 {
-	reader_nullcard();
-	if (!reader_activate_card())
+	reader_common_nullcard();
+	if (!reader_common_activate_card())
 		return 0;
 	int rc = cam_common_get_cardsystem();
 	cs_ri_brk(1);
@@ -68,28 +68,28 @@ static int reader_reset(void)
 	return rc;
 }
 
-static int reader_card_inserted(void)
+static int reader_common_card_inserted()
 {
 	return reader_serial_card_inserted();
 }
 
-int reader_device_init(char *device, int typ)
+int reader_common_device_init(char *device, int typ)
 {
 	return reader_serial_device_init(device, typ);
 }
 
-int reader_checkhealth(void)
+int reader_common_checkhealth()
 {
-	if (reader_card_inserted()) {
+	if (reader_common_card_inserted()) {
 		if (!(reader[ridx].card_status & CARD_INSERTED)) {
 			cs_log("card detected");
 			reader[ridx].card_status = CARD_NEED_INIT;
-			reader[ridx].card_status = CARD_INSERTED | (reader_reset()? 0 : CARD_FAILURE);
+			reader[ridx].card_status = CARD_INSERTED | (reader_common_reset()? 0 : CARD_FAILURE);
 			if (reader[ridx].card_status & CARD_FAILURE) {
 				cs_log("card initializing error");
 			} else {
 				client[cs_idx].au = ridx;
-				reader_card_info();
+				reader_common_card_info();
 			}
 
 			int i;
@@ -102,7 +102,7 @@ int reader_checkhealth(void)
 		}
 	} else {
 		if (reader[ridx].card_status & CARD_INSERTED) {
-			reader_nullcard();
+			reader_common_nullcard();
 			client[cs_idx].lastemm = 0;
 			client[cs_idx].lastecm = 0;
 			client[cs_idx].au = -1;
@@ -117,11 +117,11 @@ int reader_checkhealth(void)
 	return reader[ridx].card_status == CARD_INSERTED;
 }
 
-int reader_ecm(ECM_REQUEST * er)
+int reader_common_ecm(ECM_REQUEST * er)
 {
 	int rc = -1;
 
-	if ((rc = reader_checkhealth())) {
+	if ((rc = reader_common_checkhealth())) {
 		if ((reader[ridx].caid[0] >> 8) == ((er->caid >> 8) & 0xFF)) {
 			client[cs_idx].last_srvid = er->srvid;
 			client[cs_idx].last_caid = er->caid;
@@ -134,11 +134,11 @@ int reader_ecm(ECM_REQUEST * er)
 	return rc;
 }
 
-int reader_emm(EMM_PACKET * ep)
+int reader_common_emm(EMM_PACKET * ep)
 {
 	int rc = -1;
 
-	if (rc = reader_checkhealth()) {
+	if (rc = reader_common_checkhealth()) {
 		client[cs_idx].last = time((time_t) 0);
 		rc = cam_common_emm(ep);
 	}
