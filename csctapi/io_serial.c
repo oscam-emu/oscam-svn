@@ -506,14 +506,14 @@ bool IO_Serial_SetProperties(IO_Serial * io, IO_Serial_Properties * props)
 	memset(&newtio, 0, sizeof (newtio));
 	/* Set the bitrate */
 
-	extern int mhz;
-	extern int reader_irdeto_mode;
+	extern int reader_serial_mhz;
+	extern int reader_serial_irdeto_mode;
 
 	if (io->reader_type == RTYP_SMART) {
 #ifdef DEBUG_IO
-		printf("IO: SMARTREADER .. switching to frequency to %2.2fMHz\n", (float) mhz / 100.0);
+		printf("IO: SMARTREADER .. switching to frequency to %2.2fMHz\n", (float) reader_serial_mhz / 100.0);
 #endif
-		if (!IO_Serial_Set_Smartreader_Freq(io, mhz, reader_irdeto_mode)) {
+		if (!IO_Serial_Set_Smartreader_Freq(io, reader_serial_mhz, reader_serial_irdeto_mode)) {
 #ifdef DEBUG_IO
 			printf("IO: SMARTREADER .. ERROR switching to 6MHz\n");
 #endif
@@ -521,10 +521,9 @@ bool IO_Serial_SetProperties(IO_Serial * io, IO_Serial_Properties * props)
 		}
 	}
 
-	if (mhz == 600) {
-
+	if (reader_serial_mhz == 600) {
 		/* for 6MHz */
-		if (reader_irdeto_mode) {
+		if (reader_serial_irdeto_mode) {
 			cfsetospeed(&newtio, IO_Serial_Bitrate(props->output_bitrate));
 			cfsetispeed(&newtio, IO_Serial_Bitrate(props->input_bitrate));
 		} else {
@@ -544,9 +543,9 @@ bool IO_Serial_SetProperties(IO_Serial * io, IO_Serial_Properties * props)
 			cfsetispeed(&newtio, IO_Serial_Bitrate(props->input_bitrate));
 #endif
 		}
-	} else if (mhz == 357 || mhz == 358) {
+	} else if (reader_serial_mhz == 357 || reader_serial_mhz == 358) {
 		/* for 3.57 MHz */
-		if (reader_irdeto_mode) {
+		if (reader_serial_irdeto_mode) {
 #ifdef OS_LINUX
 			/* these structures are only available on linux as fas as we know so limit this code to OS_LINUX */
 			struct serial_struct nuts;
@@ -566,10 +565,9 @@ bool IO_Serial_SetProperties(IO_Serial * io, IO_Serial_Properties * props)
 			cfsetospeed(&newtio, IO_Serial_Bitrate(props->output_bitrate));
 			cfsetispeed(&newtio, IO_Serial_Bitrate(props->input_bitrate));
 		}
-	} else if (mhz == 1000) {
-
-		/* for 10MHz */
-		if (reader_irdeto_mode) {
+	} else if (reader_serial_mhz == 1000) {
+		/* for 10 MHz */
+		if (reader_serial_irdeto_mode) {
 			cfsetospeed(&newtio, IO_Serial_Bitrate(props->output_bitrate));
 			cfsetispeed(&newtio, IO_Serial_Bitrate(props->input_bitrate));
 		} else {
@@ -1095,9 +1093,9 @@ static void IO_Serial_ClearPropertiesCache(IO_Serial * io)
 
 static void IO_Serial_DeviceName(unsigned com, bool usbserial, char *filename, unsigned length)
 {
-	extern char oscam_device[];
+	extern char reader_serial_device[];
 
-	snprintf(filename, length, "%s", oscam_device);
+	snprintf(filename, length, "%s", reader_serial_device);
 //      if(com==1)
 //              snprintf (filename, length, "/dev/tts/%d", com - 1);
 //      else

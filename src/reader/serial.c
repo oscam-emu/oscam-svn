@@ -5,11 +5,10 @@
 #include <ctapi.h>
 #include <ctbcs.h>
 
-int reader_irdeto_mode;		// UGLY : to be removed
-
-char oscam_device[128];
-int oscam_card_detect;
-int mhz;
+char reader_serial_device[128];		// UGLY : to be removed
+int reader_serial_irdeto_mode;		// UGLY : to be removed
+int reader_serial_card_detect;		// UGLY : to be removed
+int reader_serial_mhz;			// UGLY : to be removed
 
 static int reader_serial_device_type(char *device, int typ)
 {
@@ -104,7 +103,7 @@ int reader_serial_activate_card()
 	/* Activate card */
 //	for (i = 0; i < 5 && ((ret!=OK) || (cta_res[cta_lr-2]!=0x90)) ; i++)
 	for (i = 0; i < 5; i++) {
-		reader_irdeto_mode = i % 2 == 1;
+		reader_serial_irdeto_mode = i % 2 == 1;
 		cta_cmd[0] = CTBCS_CLA;
 		cta_cmd[1] = CTBCS_INS_REQUEST;
 		cta_cmd[2] = CTBCS_P1_INTERFACE1;
@@ -149,11 +148,11 @@ int reader_serial_device_init(char *device, int typ)
 {
 	int rc;
 
-	oscam_card_detect = reader[ridx].detect;
-	mhz = reader[ridx].mhz;
+	reader_serial_card_detect = reader[ridx].detect;
+	reader_serial_mhz = reader[ridx].mhz;
 	int cs_ptyp_orig = cs_ptyp;
 	cs_ptyp = D_DEVICE;
-	snprintf(oscam_device, sizeof (oscam_device), "%s", device);
+	snprintf(reader_serial_device, sizeof (reader_serial_device), "%s", device);
 	if ((rc = CT_init(1, reader_serial_device_type(device, typ), reader[ridx].typ)) != OK)
 		cs_log("Cannot open device: %s", device);
 	cs_debug("ct_init on %s: %d", device, rc);
