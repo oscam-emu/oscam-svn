@@ -3,6 +3,8 @@
 #include <CAM/common.h>
 #include <CAM/seca.h>
 
+#include <reader/common.h>
+
 static unsigned short pmap = 0;	// provider-maptable
 unsigned long long serial;
 char *card;

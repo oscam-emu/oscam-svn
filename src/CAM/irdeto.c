@@ -3,6 +3,8 @@
 #include <CAM/common.h>
 #include <CAM/irdeto.h>
 
+#include <reader/common.h>
+
 #define reader_chk_cmd(cmd, l) \
 { \
         if (reader_cmd2icc(cmd, sizeof(cmd))) return(0); \

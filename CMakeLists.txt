@@ -106,25 +106,37 @@ add_subdirectory (cscrypt)
 
 #----------------------- file groups ------------------------------
 
-file (GLOB cscams_srcs "src/CAM/*.c")
-file (GLOB cscams_hdrs "include/CAM/*.h")
+file (GLOB cscam_srcs "src/CAM/*.c")
+file (GLOB cscam_hdrs "include/CAM/*.h")
+
+file (GLOB csreader_srcs "src/reader/*.c")
+file (GLOB csreader_hdrs "include/reader/*.h")
+
 file (GLOB cssharing_srcs "src/sharing/*.c")
 file (GLOB cssharing_hdrs "include/sharing/*.h")
+
 file (GLOB csoscam_srcs "src/*.c")
 file (GLOB csoscam_hdrs "include/*.h")
+
 file (GLOB exe_srcs "src/oscam.c")
 file (GLOB exe_hdrs "include/globals.h")
-file (GLOB all_srcs ${cssharing_srcs} ${cscams_srcs} ${csoscam_srcs} ${exe_srcs})
 
-#----------------------- modules ------------------------------
+file (GLOB all_srcs ${cscam_srcs} ${cssharing_srcs} ${csreader_srcs} ${csoscam_srcs} ${exe_srcs})
+
+#----------------------- CAM ----------------------------------
+
+set (cscam "cscam")
+add_library (${cscam} STATIC ${cscam_srcs} ${cscam_hdrs})
+
+#----------------------- reader -------------------------------
+
+set (csreader "csreader")
+add_library (${csreader} STATIC ${csreader_srcs} ${csreader_hdrs})
+
+#----------------------- sharing ------------------------------
 
 set (cssharing "cssharing")
 add_library (${cssharing} STATIC ${cssharing_srcs} ${cssharing_hdrs})
-
-#----------------------- readers ------------------------------
-
-set (cscams "cscams")
-add_library (${cscams} STATIC ${cscams_srcs} ${cscams_hdrs})
 
 #----------------------- other oscam files ------------------------------
 
@@ -135,11 +147,11 @@ add_library (${csoscam} STATIC ${csoscam_srcs} ${csoscam_hdrs})
 
 set (exe_name "oscam")
 add_executable (${exe_name} ${exe_srcs} ${exe_hdrs})
-target_link_libraries (${exe_name} ${csoscam} ${cssharing} ${cscams} csctapi cscrypt pthread)
+target_link_libraries (${exe_name} ${csoscam} ${cscam} ${csreader} ${cssharing} csctapi cscrypt pthread)
 if (HAVE_AES)
     target_link_libraries (${exe_name} crypto)
 endif (HAVE_AES)
-add_dependencies (${exe_name} ${csoscam} ${cscams} ${cssharing})
+add_dependencies (${exe_name} ${csoscam} ${cscam} ${csreader} ${cssharing})
 
 #----------------------- specific options ------------------------------
 

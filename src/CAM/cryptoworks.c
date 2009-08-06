@@ -3,6 +3,8 @@
 #include <CAM/common.h>
 #include <CAM/cryptoworks.h>
 
+#include <reader/common.h>
+
 static uchar ISK[0x40];
 static uchar cwexp[] = { 1, 0, 1 };
 static BIGNUM exp, ucpk;

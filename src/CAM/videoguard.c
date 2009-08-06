@@ -3,6 +3,8 @@
 #include <CAM/common.h>
 #include <CAM/videoguard.h>
 
+#include <reader/common.h>
+
 #include <termios.h>
 #include <unistd.h>
 #ifdef OS_LINUX

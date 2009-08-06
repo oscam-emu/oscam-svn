@@ -3,6 +3,8 @@
 #include <CAM/common.h>
 #include <CAM/conax.h>
 
+#include <reader/common.h>
+
 #define CMD_LEN 5
 
 #define write_cmd(cmd, data) \
