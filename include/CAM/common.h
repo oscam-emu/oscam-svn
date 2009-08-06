@@ -14,4 +14,7 @@ extern int reader_checkhealth(void);
 extern int reader_ecm(ECM_REQUEST *);
 extern int reader_emm(EMM_PACKET *);
 
+extern uchar cta_cmd[], cta_res[];
+extern ushort cta_lr;
+
 #endif // __CAM_COMMON_H__

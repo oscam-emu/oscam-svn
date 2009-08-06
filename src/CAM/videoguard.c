@@ -1,11 +1,18 @@
-#include "globals.h"
-#include "CAM/common.h"
+#include <globals.h>
+
+#include <CAM/common.h>
+#include <CAM/videoguard.h>
 
 #include <termios.h>
 #include <unistd.h>
 #ifdef OS_LINUX
 #  include <linux/serial.h>
 #endif
+
+#define CMD_LEN 5
+
+#define write_cmd(cmd, data) (card_write(cmd, data, 1) == 0)
+#define read_cmd(cmd, data) (card_write(cmd, data, 0) == 0)
 
 #define MAX_ATR_LEN 33	// max. ATR length
 #define MAX_HIST    15	// max. number of historical characters
@@ -352,9 +359,6 @@ static void cCamCryptVG2_RotateRightAndHash(unsigned char *p)
 
 static unsigned char CW1[8], CW2[8];
 
-extern uchar cta_cmd[], cta_res[];
-extern ushort cta_lr;
-
 extern int io_serial_need_dummy_char;
 
 struct CmdTabEntry {
@@ -393,8 +397,6 @@ int cmd_table_get_info(const unsigned char *cmd, unsigned char *rlen, unsigned c
 	return 0;
 }
 
-#define CMD_LEN 5
-
 static int status_ok(const unsigned char *status)
 {
 	//cs_log("check status %02x%02x", status[0],status[1]);
@@ -414,9 +416,6 @@ static int card_write(const uchar * cmd, const uchar * data, int wflag)
 	l = reader_cmd2icc(buf, CMD_LEN + l);
 	return (l);
 }
-
-#define write_cmd(cmd, data) (card_write(cmd, data, 1) == 0)
-#define read_cmd(cmd, data) (card_write(cmd, data, 0) == 0)
 
 static int read_cmd_len(const unsigned char *cmd)
 {

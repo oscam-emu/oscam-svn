@@ -1,13 +1,23 @@
-#include "globals.h"
-#include "CAM/common.h"
+#include <globals.h>
 
-extern uchar cta_cmd[], cta_res[];
-extern ushort cta_lr;
+#include <CAM/common.h>
+#include <CAM/seca.h>
+
 static unsigned short pmap = 0;	// provider-maptable
 unsigned long long serial;
 char *card;
 
 #define CMD_LEN 5
+
+#define write_cmd(cmd, data) \
+{ \
+        if (card_write(cmd, data, 1)) return(0); \
+}
+
+#define read_cmd(cmd, data) \
+{ \
+        if (card_write(cmd, data, 0)) return(0); \
+}
 
 static int card_write(uchar * cmd, uchar * data, int wflag)
 {
@@ -20,16 +30,6 @@ static int card_write(uchar * cmd, uchar * data, int wflag)
 		memcpy(buf + CMD_LEN, data, l);
 	l = reader_cmd2icc(buf, CMD_LEN + l);
 	return (l);
-}
-
-#define write_cmd(cmd, data) \
-{ \
-        if (card_write(cmd, data, 1)) return(0); \
-}
-
-#define read_cmd(cmd, data) \
-{ \
-        if (card_write(cmd, data, 0)) return(0); \
 }
 
 int set_provider_info(int i)

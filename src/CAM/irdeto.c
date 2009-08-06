@@ -1,8 +1,13 @@
-#include "globals.h"
-#include "CAM/common.h"
+#include <globals.h>
 
-extern uchar cta_cmd[], cta_res[];
-extern ushort cta_lr;
+#include <CAM/common.h>
+#include <CAM/irdeto.h>
+
+#define reader_chk_cmd(cmd, l) \
+{ \
+        if (reader_cmd2icc(cmd, sizeof(cmd))) return(0); \
+  if (l && (cta_lr!=l)) return(0); }
+
 static int nagra;
 
 static const uchar CryptTable[256] = {
@@ -130,11 +135,6 @@ static int irdeto_do_cmd(uchar * buf, ushort good)
 		return (0x7F7F);	// this should never happen
 	return (good != b2i(2, cta_res + cta_lr - 2));
 }
-
-#define reader_chk_cmd(cmd, l) \
-{ \
-        if (reader_cmd2icc(cmd, sizeof(cmd))) return(0); \
-  if (l && (cta_lr!=l)) return(0); }
 
 int irdeto_card_init(uchar * atr, int atrlen)
 {

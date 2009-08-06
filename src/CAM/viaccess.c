@@ -1,11 +1,21 @@
-#include "globals.h"
-#include "CAM/common.h"
-#include "simples.h"
+#include <globals.h>
 
-extern uchar cta_cmd[], cta_res[];
-extern ushort cta_lr;
+#include <CAM/common.h>
+#include <CAM/viaccess.h>
+
+#include <simples.h>
 
 #define CMD_LEN 5
+
+#define write_cmd(cmd, data) \
+{ \
+  if (card_write(cmd, data, 1)) return(0); \
+}
+
+#define read_cmd(cmd, data) \
+{ \
+  if (card_write(cmd, data, 0)) return(0); \
+}
 
 struct geo_cache {
 	ulong provid;
@@ -146,16 +156,6 @@ static int card_write(const uchar * cmd, const uchar * data, int wflag)
 		memcpy(buf + CMD_LEN, data, l);
 	l = reader_cmd2icc(buf, CMD_LEN + l);
 	return (l);
-}
-
-#define write_cmd(cmd, data) \
-{ \
-  if (card_write(cmd, data, 1)) return(0); \
-}
-
-#define read_cmd(cmd, data) \
-{ \
-  if (card_write(cmd, data, 0)) return(0); \
 }
 
 int viaccess_card_init(uchar * atr, int atrsize)
