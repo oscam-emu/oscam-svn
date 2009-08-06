@@ -5,9 +5,8 @@
 #include <reader/common.h>
 
 #include <termios.h>
-#include <unistd.h>
 #ifdef OS_LINUX
-#  include <linux/serial.h>
+#  include <linux/serial.h>	// ULGY : to be merged into csctapi
 #endif
 
 #define CMD_LEN 5
