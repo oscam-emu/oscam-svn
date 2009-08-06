@@ -1,5 +1,4 @@
 #include <globals.h>
-
 #include <reader/common.h>
 #include <reader/serial.h>
 

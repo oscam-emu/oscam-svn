@@ -1,5 +1,5 @@
-#include "globals.h"
-#include "ac.h"
+#include <globals.h>
+#include <ac.h>
 
 #ifdef CS_ANTICASC
 

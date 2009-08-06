@@ -1,10 +1,9 @@
 #include <globals.h>
-#include <simples.h>
-
 #include <CAM/common.h>
 #include <CAM/viaccess.h>
 
 #include <reader/common.h>
+#include <simples.h>
 
 #define CMD_LEN 5
 

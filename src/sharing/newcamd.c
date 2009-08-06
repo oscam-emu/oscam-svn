@@ -1,5 +1,7 @@
-#include "globals.h"
-#include "oscam.h"
+#include <globals.h>
+#include <sharing/newcamd.h>
+
+#include <oscam.h>
 
 #define CWS_NETMSGSIZE 272
 

@@ -1,5 +1,4 @@
 #include <globals.h>
-
 #include <CAM/common.h>
 #include <CAM/videoguard.h>
 

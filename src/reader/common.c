@@ -1,6 +1,6 @@
 #include <globals.h>
-
 #include <reader/common.h>
+
 #include <reader/serial.h>
 
 uchar cta_cmd[272], cta_res[260], atr[64];

@@ -1,4 +1,5 @@
-#include "globals.h"
+#include <globals.h>
+#include <nano.h>
 
 //#define CS_NANO_GEO   0x9F
 #define CS_NANO_CLASS 0xE2

@@ -1,6 +1,8 @@
-#include "globals.h"
-#include "oscam.h"
-#include "simples.h"
+#include <globals.h>
+#include <sharing/camd33.h>
+
+#include <oscam.h>
+#include <simples.h>
 
 #define REQ_SIZE	4
 static uchar camdbug[256];	// camd send wrong order

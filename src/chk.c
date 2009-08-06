@@ -1,4 +1,5 @@
-#include "globals.h"
+#include <globals.h>
+#include <chk.h>
 
 static int chk_srvid_match(ECM_REQUEST * er, SIDTAB * sidtab)
 {

@@ -1,4 +1,6 @@
 #include <globals.h>
+#include <sharing/serial.h>
+
 #include <oscam.h>
 #include <simples.h>
 

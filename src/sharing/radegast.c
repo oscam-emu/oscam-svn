@@ -1,5 +1,7 @@
-#include "globals.h"
-#include "oscam.h"
+#include <globals.h>
+#include <sharing/radegast.h>
+
+#include <oscam.h>
 
 static int radegast_send(uchar * buf)
 {

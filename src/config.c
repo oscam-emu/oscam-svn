@@ -1,6 +1,8 @@
-#include "globals.h"
-#include "simples.h"
-#include "ac.h"
+#include <globals.h>
+#include <config.h>
+
+#include <simples.h>
+#include <ac.h>
 
 #ifdef CS_WITH_BOXKEYS
 #  include "boxkeys.np"
