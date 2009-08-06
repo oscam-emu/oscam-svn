@@ -17,4 +17,8 @@ extern int reader_emm(EMM_PACKET *);
 extern uchar cta_cmd[], cta_res[];
 extern ushort cta_lr;
 
+extern ulong chk_provid(uchar *, ushort);
+extern void guess_cardsystem(ECM_REQUEST *);
+//extern void guess_irdeto(ECM_REQUEST *);
+
 #endif // __CAM_COMMON_H__
