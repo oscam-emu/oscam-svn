@@ -3,8 +3,11 @@
 
 #include <reader/serial.h>
 
-uchar cta_cmd[272], cta_res[260], atr[64];
-ushort cta_lr, atr_size = 0;
+uchar cta_cmd[272], cta_res[260];
+ushort cta_lr;
+
+uchar atr[64];
+ushort atr_size = 0;
 
 static void reader_common_nullcard()
 {
