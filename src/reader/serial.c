@@ -50,7 +50,8 @@ static int reader_serial_device_type(char *device, int typ)
 			rc = PORT_SCI;
 			break;
 	}
-	return (rc);
+
+	return rc;
 }
 
 
@@ -59,16 +60,17 @@ int reader_serial_doapi(uchar dad, uchar * buf, int l, int dbg)
 	int rc;
 	uchar sad;
 
-//  oscam_card_inserted=4;
+//	oscam_card_inserted=4;
 	sad = 2;
 	cta_lr = sizeof (cta_res) - 1;
 	cs_ptyp_orig = cs_ptyp;
 	cs_ptyp = dbg;
-	//cs_ddump(buf, l, "send %d bytes to ctapi", l);
+//	cs_ddump(buf, l, "send %d bytes to ctapi", l);
 	rc = CT_data(1, &dad, &sad, l, buf, &cta_lr, cta_res);
-	//cs_ddump(cta_res, cta_lr, "received %d bytes from ctapi with rc=%d", cta_lr, rc);
+//	cs_ddump(cta_res, cta_lr, "received %d bytes from ctapi with rc=%d", cta_lr, rc);
 	cs_ptyp = cs_ptyp_orig;
-	return (rc);
+
+	return rc;
 }
 
 int reader_serial_activate_card()
@@ -92,7 +94,7 @@ int reader_serial_activate_card()
 	cta_cmd[3] = CTBCS_P2_STATUS_ICC;
 	cta_cmd[4] = 0x00;
 
-//  ret=reader_cmd2api(cmd, 11); warum 11 ??????
+//	ret=reader_cmd2api(cmd, 11); warum 11 ??????
 	ret = reader_cmd2api(cta_cmd, 5);
 	if (ret != OK) {
 		cs_log("Error getting status of terminal: %d", ret);
@@ -102,7 +104,7 @@ int reader_serial_activate_card()
 		return (0);
 
 	/* Activate card */
-//  for (i=0; (i<5) && ((ret!=OK)||(cta_res[cta_lr-2]!=0x90)); i++)
+//	for (i = 0; i < 5 && ((ret!=OK) || (cta_res[cta_lr-2]!=0x90)) ; i++)
 	for (i = 0; i < 5; i++) {
 		reader_irdeto_mode = i % 2 == 1;
 		cta_cmd[0] = CTBCS_CLA;
@@ -142,7 +144,7 @@ int reader_serial_card_inserted(void)
 	cta_cmd[3] = CTBCS_P2_STATUS_ICC;
 	cta_cmd[4] = 0x00;
 
-	return (reader_chkicc(cta_cmd, 5) ? 0 : cta_res[0]);
+	return reader_chkicc(cta_cmd, 5) ? 0 : cta_res[0];
 }
 
 int reader_serial_device_init(char *device, int typ)
@@ -158,5 +160,6 @@ int reader_serial_device_init(char *device, int typ)
 		cs_log("Cannot open device: %s", device);
 	cs_debug("ct_init on %s: %d", device, rc);
 	cs_ptyp = cs_ptyp_orig;
-	return ((rc != OK) ? 2 : 0);
+
+	return (rc != OK) ? 2 : 0;
 }
