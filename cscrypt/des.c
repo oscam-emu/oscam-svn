@@ -290,8 +290,6 @@ static void desRound(byte left[], byte right[], byte data[], byte mode, byte k8)
 	unsigned short temp;
 
 	memcpy(tempr, data + 4, 4);
-
-	/* Viaccess */
 	temp = (short) k8 *(short) tempr[0] + (short) k8 + (short) tempr[0];
 
 	tempr[0] = (temp & 0xff) - ((temp >> 8) & 0xff);
