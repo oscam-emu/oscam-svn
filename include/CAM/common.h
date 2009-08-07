@@ -10,7 +10,8 @@
 #define cam_common_write_cmd(cmd, data) (cam_common_send_cmd(cmd, data, 1) == 0)
 
 void cam_common_card_info();
-int cam_common_get_cardsystem();
+int cam_common_get_cardsystem(uchar *, int);
+
 int cam_common_ecm(ECM_REQUEST *);
 int cam_common_emm(EMM_PACKET *);
 int cam_common_send_cmd(const uchar *, const uchar *, const int);

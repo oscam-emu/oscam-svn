@@ -5,7 +5,7 @@ int reader_serial_chkicc(uchar *, int);
 int reader_serial_cmd2api(uchar *, int);
 int reader_serial_cmd2icc(uchar *, int);
 
-int reader_serial_activate_card();
+int reader_serial_activate_card(uchar *, ushort *);
 int reader_serial_card_inserted();
 int reader_serial_device_init(char *, int);
 

@@ -12,7 +12,4 @@ int reader_common_send_cmd(uchar *, int);
 extern uchar cta_cmd[272], cta_res[260];
 extern ushort cta_lr;
 
-extern uchar atr[64];
-extern ushort atr_size;
-
 #endif // __READER_COMMON_H__

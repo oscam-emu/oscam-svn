@@ -88,7 +88,7 @@ int reader_serial_cmd2icc(uchar * buf, int l)
 //	return rc;
 }
 
-int reader_serial_activate_card()
+int reader_serial_activate_card(uchar *atr, ushort *atr_size)
 {
 	int i;
 	char ret;
@@ -140,8 +140,8 @@ int reader_serial_activate_card()
 		return (0);
 
 	/* Store ATR */
-	atr_size = cta_lr - 2;
-	memcpy(atr, cta_res, atr_size);
+	*atr_size = cta_lr - 2;
+	memcpy(atr, cta_res, *atr_size);
 #ifdef CS_RDR_INIT_HIST
 	reader[ridx].init_history_pos = 0;
 	memset(reader[ridx].init_history, 0, sizeof (reader[ridx].init_history));
