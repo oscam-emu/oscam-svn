@@ -1,6 +1,6 @@
 #include <globals.h>
-#include <CAM/common.h>
 #include <CAM/irdeto.h>
+#include <CAM/common.h>
 
 #include <reader/common.h>
 

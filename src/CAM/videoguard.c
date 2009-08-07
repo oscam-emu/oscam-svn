@@ -1,6 +1,6 @@
 #include <globals.h>
-#include <CAM/common.h>
 #include <CAM/videoguard.h>
+#include <CAM/common.h>
 
 #include <reader/common.h>
 
