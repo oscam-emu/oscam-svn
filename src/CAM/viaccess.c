@@ -133,7 +133,7 @@ static int chk_prov(uchar * id, uchar keynr)
 	return (rc);
 }
 
-int viaccess_card_init(uchar * atr, int atrsize)
+int viaccess_card_init(uchar *atr, int atr_size)
 {
 	int i;
 	uchar buf[256];
@@ -152,7 +152,7 @@ int viaccess_card_init(uchar * atr, int atrsize)
 	if (!(cta_res[cta_lr - 2] == 0x90 && cta_res[cta_lr - 1] == 0))
 		return (0);
 
-//  switch((atr[atrsize-4]<<8)|atr[atrsize-3])
+//  switch((atr[atr_size-4]<<8)|atr[atr_size-3])
 //  {
 //    case 0x6268: ver="2.3"; break;
 //    case 0x6668: ver="2.4(?)"; break;

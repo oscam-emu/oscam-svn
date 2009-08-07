@@ -173,7 +173,7 @@ static int irdeto_do_cmd(uchar * buf, ushort good)
 	return (good != b2i(2, cta_res + cta_lr - 2));
 }
 
-int irdeto_card_init(uchar * atr, int atrlen)
+int irdeto_card_init(uchar *atr, int atr_size)
 {
 	int i, p, camkey = 0, cs_ptyp_orig = cs_ptyp;
 	uchar buf[256] = { 0 };

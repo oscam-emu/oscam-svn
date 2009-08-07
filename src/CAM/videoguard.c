@@ -497,7 +497,7 @@ static void read_tiers()
 	}
 }
 
-int videoguard_card_init(uchar * atr, int atrsize)
+int videoguard_card_init(uchar *atr, int atr_size)
 {
 	/* known atrs */
 	unsigned char atr_bskyb[] = { 0x3F, 0x7F, 0x13, 0x25, 0x03, 0x33, 0xB0, 0x06, 0x69, 0xFF, 0x4A, 0x50, 0xD0, 0x00, 0x00, 0x53, 0x59, 0x00, 0x00, 0x00 };
@@ -506,17 +506,17 @@ int videoguard_card_init(uchar * atr, int atrsize)
 	unsigned char atr_premiere[] = { 0x3F, 0xFF, 0x11, 0x25, 0x03, 0x10, 0x80, 0x41, 0xB0, 0x07, 0x69, 0xFF, 0x4A, 0x50, 0x70, 0x00, 0x00, 0x50, 0x31, 0x01, 0x00, 0x11 };
 	unsigned char atr_directv[] = { 0x3F, 0x78, 0x13, 0x25, 0x03, 0x40, 0xB0, 0x20, 0xFF, 0xFF, 0x4A, 0x50, 0x00 };
 
-	if ((atrsize == sizeof (atr_bskyb)) && (memcmp(atr, atr_bskyb, atrsize) == 0)) {
+	if ((atr_size == sizeof (atr_bskyb)) && (memcmp(atr, atr_bskyb, atr_size) == 0)) {
 		cs_log("Type: Videoguard BSkyB");
 		/* BSkyB seems to need one additionnal byte in the serial communication... */
 		io_serial_need_dummy_char = 1;
-	} else if ((atrsize == sizeof (atr_bskyb_new)) && (memcmp(atr, atr_bskyb_new, atrsize) == 0)) {
+	} else if ((atr_size == sizeof (atr_bskyb_new)) && (memcmp(atr, atr_bskyb_new, atr_size) == 0)) {
 		cs_log("Type: Videoguard BSkyB - New");
-	} else if ((atrsize == sizeof (atr_skyitalia)) && (memcmp(atr, atr_skyitalia, atrsize) == 0)) {
+	} else if ((atr_size == sizeof (atr_skyitalia)) && (memcmp(atr, atr_skyitalia, atr_size) == 0)) {
 		cs_log("Type: Videoguard Sky Italia");
-	} else if ((atrsize == sizeof (atr_premiere)) && (memcmp(atr, atr_premiere, atrsize) == 0)) {
+	} else if ((atr_size == sizeof (atr_premiere)) && (memcmp(atr, atr_premiere, atr_size) == 0)) {
 		cs_log("Type: Videoguard Premiere NDS");
-	} else if ((atrsize == sizeof (atr_directv)) && (memcmp(atr, atr_directv, atrsize) == 0)) {
+	} else if ((atr_size == sizeof (atr_directv)) && (memcmp(atr, atr_directv, atr_size) == 0)) {
 		cs_log("Type: Videoguard DirecTV");
 	} else {
 		/* not a known videoguard */

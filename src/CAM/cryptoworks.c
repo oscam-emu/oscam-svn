@@ -167,7 +167,7 @@ int cryptoworks_disbale_pin()
 	return (0);
 }
 
-int cryptoworks_card_init(uchar * atr, int atrsize)
+int cryptoworks_card_init(uchar *atr, int atr_size)
 {
 	int i;
 	unsigned int mfid = 0x3F20;
