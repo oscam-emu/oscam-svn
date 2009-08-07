@@ -2,8 +2,6 @@
 #include <CAM/seca.h>
 #include <CAM/common.h>
 
-#include <reader/common.h>
-
 static unsigned short pmap = 0;	// provider-maptable
 unsigned long long serial;
 char *card;
@@ -63,7 +61,7 @@ int set_provider_info(int i)
 	return 1;
 }
 
-int seca_card_init(uchar *atr, int atr_size)
+int seca_card_init(uchar *atr, ushort atr_size)
 {
 	uchar buf[256];
 	static uchar ins0e[] = { 0xc1, 0x0e, 0x00, 0x00, 0x08 };	// get serial number (UA)

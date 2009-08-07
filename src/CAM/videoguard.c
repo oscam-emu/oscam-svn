@@ -2,8 +2,6 @@
 #include <CAM/videoguard.h>
 #include <CAM/common.h>
 
-#include <reader/common.h>
-
 #include <termios.h>
 #ifdef OS_LINUX
 #  include <linux/serial.h>	// ULGY : to be merged into csctapi
@@ -497,7 +495,7 @@ static void read_tiers()
 	}
 }
 
-int videoguard_card_init(uchar *atr, int atr_size)
+int videoguard_card_init(uchar *atr, ushort atr_size)
 {
 	/* known atrs */
 	unsigned char atr_bskyb[] = { 0x3F, 0x7F, 0x13, 0x25, 0x03, 0x33, 0xB0, 0x06, 0x69, 0xFF, 0x4A, 0x50, 0xD0, 0x00, 0x00, 0x53, 0x59, 0x00, 0x00, 0x00 };

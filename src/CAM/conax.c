@@ -2,8 +2,6 @@
 #include <CAM/conax.h>
 #include <CAM/common.h>
 
-#include <reader/common.h>
-
 static unsigned int Conax_ToDate(char data0, char data1)
 {	/* decimal: yyyymmdd */
 	int y, m, d;
@@ -16,7 +14,7 @@ static unsigned int Conax_ToDate(char data0, char data1)
 	return l;
 }
 
-static char *chid_date(uchar * ptr, char *buf, int l)
+static char *chid_date(uchar *ptr, char *buf, int l)
 {
 	if (buf) {
 		snprintf(buf, l, "%04d/%02d/%02d", 1990 + (ptr[1] >> 4) + (((ptr[0] >> 5) & 7) * 10), ptr[1] & 0xf, ptr[0] & 0x1f);
@@ -24,7 +22,7 @@ static char *chid_date(uchar * ptr, char *buf, int l)
 	return (buf);
 }
 
-static int read_record(uchar * cmd, uchar * data)
+static int read_record(uchar *cmd, uchar *data)
 {
 	uchar insCA[] = { 0xDD, 0xCA, 0x00, 0x00, 0x00 };
 
@@ -38,7 +36,7 @@ static int read_record(uchar * cmd, uchar * data)
 	return (cta_lr - 2);
 }
 
-int conax_card_init(uchar *atr, int atr_size)
+int conax_card_init(uchar *atr, ushort atr_size)
 {
 	int i, j, n;
 	uchar atr_0b00[] = { '0', 'B', '0', '0' };

@@ -2,8 +2,6 @@
 #include <CAM/irdeto.h>
 #include <CAM/common.h>
 
-#include <reader/common.h>
-
 #define cam_irdeto_chk_cmd(cmd, l) { \
         if (reader_common_send_cmd(cmd, sizeof(cmd))) return 0; \
 	if (l && (cta_lr!=l)) return 0; \
@@ -173,7 +171,7 @@ static int irdeto_do_cmd(uchar * buf, ushort good)
 	return (good != b2i(2, cta_res + cta_lr - 2));
 }
 
-int irdeto_card_init(uchar *atr, int atr_size)
+int irdeto_card_init(uchar *atr, ushort atr_size)
 {
 	int i, p, camkey = 0, cs_ptyp_orig = cs_ptyp;
 	uchar buf[256] = { 0 };

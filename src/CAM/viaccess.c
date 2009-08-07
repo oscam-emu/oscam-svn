@@ -2,7 +2,6 @@
 #include <CAM/viaccess.h>
 #include <CAM/common.h>
 
-#include <reader/common.h>
 #include <simples.h>
 
 struct geo_cache {
@@ -133,7 +132,7 @@ static int chk_prov(uchar * id, uchar keynr)
 	return (rc);
 }
 
-int viaccess_card_init(uchar *atr, int atr_size)
+int viaccess_card_init(uchar *atr, ushort atr_size)
 {
 	int i;
 	uchar buf[256];

@@ -36,7 +36,7 @@ void cam_common_card_info()
 	}
 }
 
-int cam_common_get_cardsystem(uchar *atr, int atr_size)
+int cam_common_get_cardsystem(uchar *atr, ushort atr_size)
 {
 	if (irdeto_card_init(atr, atr_size))
 		reader[ridx].card_system = SC_IRDETO;
@@ -116,7 +116,11 @@ int cam_common_emm(EMM_PACKET * ep)
 	return rc;
 }
 
-int cam_common_send_ins(const uchar *cmd, const uchar *data, const int wflag)
+int cam_common_send_cmd(uchar *cmd, ushort cmd_size, uchar *result, ushort *result_size) {
+	return reader_common_send_cmd(cmd, cmd_size, result, result_size);
+}
+
+int cam_common_send_ins(const uchar *cmd, const uchar *data, const ushort wflag, uchar *result, ushort *result_size)
 {
 	int l;
 	uchar buf[MAX_LEN];
@@ -125,7 +129,7 @@ int cam_common_send_ins(const uchar *cmd, const uchar *data, const int wflag)
 	l = wflag ? cmd[4] : 0;
 	if (l && data)
 		memcpy(buf + CMD_LEN, data, l);
-	l = reader_common_send_cmd(buf, CMD_LEN + l);
+	l = cam_common_send_cmd(buf, CMD_LEN + l, result, result_size);
 
 	return l;
 }

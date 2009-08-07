@@ -2,8 +2,6 @@
 #include <CAM/cryptoworks.h>
 #include <CAM/common.h>
 
-#include <reader/common.h>
-
 static uchar ISK[0x40];
 static uchar cwexp[] = { 1, 0, 1 };
 static BIGNUM exp, ucpk;
@@ -167,7 +165,7 @@ int cryptoworks_disbale_pin()
 	return (0);
 }
 
-int cryptoworks_card_init(uchar *atr, int atr_size)
+int cryptoworks_card_init(uchar *atr, ushort atr_size)
 {
 	int i;
 	unsigned int mfid = 0x3F20;
