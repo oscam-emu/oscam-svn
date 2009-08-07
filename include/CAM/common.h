@@ -14,7 +14,7 @@ int cam_common_get_cardsystem(uchar *, int);
 
 int cam_common_ecm(ECM_REQUEST *);
 int cam_common_emm(EMM_PACKET *);
-int cam_common_send_cmd(const uchar *, const uchar *, const int);
+int cam_common_send_ins(const uchar *, const uchar *, const int);
 
 ulong chk_provid(uchar *, ushort caid);
 void guess_irdeto(ECM_REQUEST *);

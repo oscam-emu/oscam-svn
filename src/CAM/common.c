@@ -116,7 +116,7 @@ int cam_common_emm(EMM_PACKET * ep)
 	return rc;
 }
 
-int cam_common_send_cmd(const uchar * cmd, const uchar * data, const int wflag)
+int cam_common_send_ins(const uchar *cmd, const uchar *data, const int wflag)
 {
 	int l;
 	uchar buf[MAX_LEN];
