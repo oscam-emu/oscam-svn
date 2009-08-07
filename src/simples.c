@@ -358,3 +358,12 @@ void cs_setpriority(int prio)
 #  endif
 }
 #endif
+
+int file_exists (const char *filepath) {
+	FILE *file = fopen(filepath, "r");
+	if (file != NULL) {
+		fclose(file);
+		return 1;
+	}
+	return 0;
+}

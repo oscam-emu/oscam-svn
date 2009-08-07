@@ -32,5 +32,6 @@ void cs_sleepms(int);
 int bytes_available(int);
 void cs_setpriority(int);
 struct s_auth *find_user(char *);
+int file_exists (const char *);
 
 #endif // __SIMPLES_H__
