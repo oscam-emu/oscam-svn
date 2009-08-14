@@ -4,9 +4,6 @@
 #include <reader/serial.h>
 #include <simples.h>
 
-uchar cta_cmd[272], cta_res[260];
-ushort cta_lr;
-
 static void reader_common_nullcard()
 {
 	reader[ridx].card_system = 0;
@@ -111,16 +108,16 @@ int reader_common_check_health()
 	return reader[ridx].card_status == CARD_INSERTED;
 }
 
-int reader_common_send_ecm(ECM_REQUEST * er)
+int reader_common_ecm2cam(ECM_REQUEST * er)
 {
 	int rc = -1;
 
-	if ((rc = reader_common_check_health())) {
+	if (rc = reader_common_check_health()) {
 		if ((reader[ridx].caid[0] >> 8) == ((er->caid >> 8) & 0xFF)) {
 			client[cs_idx].last_srvid = er->srvid;
 			client[cs_idx].last_caid = er->caid;
 			client[cs_idx].last = time((time_t) 0);
-			rc = cam_common_ecm(er);
+			rc = cam_common_process_ecm(er);
 		} else
 			rc = 0;
 	}
@@ -128,19 +125,19 @@ int reader_common_send_ecm(ECM_REQUEST * er)
 	return rc;
 }
 
-int reader_common_send_emm(EMM_PACKET * ep)
+int reader_common_emm2cam(EMM_PACKET * ep)
 {
 	int rc = -1;
 
 	if (rc = reader_common_check_health()) {
 		client[cs_idx].last = time((time_t) 0);
-		rc = cam_common_emm(ep);
+		rc = cam_common_process_emm(ep);
 	}
 
 	return rc;
 }
 
-int reader_common_send_cmd(uchar * buf, int l) {
+int reader_common_cmd2card(uchar *cmd, ushort cmd_size, uchar *result, ushort result_max_size, ushort *result_size) {
 	// TODO: detect if this is a serial reader
-	return reader_serial_cmd2icc(buf, l);
+	return reader_serial_cmd2card(cmd, cmd_size, result, result_max_size, result_size);
 }

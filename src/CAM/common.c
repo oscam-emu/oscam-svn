@@ -56,7 +56,7 @@ int cam_common_get_cardsystem(uchar *atr, ushort atr_size)
 	return reader[ridx].card_system;
 }
 
-int cam_common_ecm(ECM_REQUEST * er)
+int cam_common_process_ecm(ECM_REQUEST * er)
 {
 	int rc = -1;
 
@@ -86,7 +86,7 @@ int cam_common_ecm(ECM_REQUEST * er)
 	return rc;
 }
 
-int cam_common_emm(EMM_PACKET * ep)
+int cam_common_process_emm(EMM_PACKET * ep)
 {
 	int rc = -1;
 
@@ -116,22 +116,9 @@ int cam_common_emm(EMM_PACKET * ep)
 	return rc;
 }
 
-int cam_common_send_cmd(uchar *cmd, ushort cmd_size, uchar *result, ushort *result_size) {
-	return reader_common_send_cmd(cmd, cmd_size, result, result_size);
-}
-
-int cam_common_send_ins(const uchar *cmd, const uchar *data, const ushort wflag, uchar *result, ushort *result_size)
-{
-	int l;
-	uchar buf[MAX_LEN];
-
-	memcpy(buf, cmd, CMD_LEN);
-	l = wflag ? cmd[4] : 0;
-	if (l && data)
-		memcpy(buf + CMD_LEN, data, l);
-	l = cam_common_send_cmd(buf, CMD_LEN + l, result, result_size);
-
-	return l;
+int cam_common_cmd2card(uchar *cmd, ushort cmd_size, uchar *result, ushort result_max_size, ushort *result_size) {
+	// Forward to the reader
+	return (reader_common_cmd2card(cmd, cmd_size, result, result_max_size, result_size) == 0);
 }
 
 ulong chk_provid(uchar * ecm, ushort caid)

@@ -9,6 +9,9 @@ char *card;
 int set_provider_info(int i)
 {
 	static uchar ins12[] = { 0xc1, 0x12, 0x00, 0x00, 0x19 };	// get provider info
+	uchar result[260];
+	ushort result_size;
+
 	int year, month, day;
 	struct tm *lt;
 	time_t t;
@@ -16,20 +19,20 @@ int set_provider_info(int i)
 	char l_name[16 + 8 + 1] = ", name: ";
 
 	ins12[2] = i;	//select provider
-	cam_common_read_cmd(ins12, NULL);	// show provider properties
-	cs_debug("hexdump:%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x.", cta_res[0], cta_res[1], cta_res[2], cta_res[3], cta_res[4], cta_res[5], cta_res[6], cta_res[7], cta_res[8], cta_res[9], cta_res[10], cta_res[11], cta_res[12], cta_res[13], cta_res[14],
-		 cta_res[15], cta_res[16], cta_res[17], cta_res[18], cta_res[19], cta_res[20], cta_res[21], cta_res[22], cta_res[23], cta_res[24], cta_res[25], cta_res[26]);
+	cam_common_cmd2card(ins12, sizeof(ins12), result, sizeof(result), &result_size);	// show provider properties
+	cs_debug("hexdump:%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x.", result[0], result[1], result[2], result[3], result[4], result[5], result[6], result[7], result[8], result[9], result[10], result[11], result[12], result[13], result[14],
+		 result[15], result[16], result[17], result[18], result[19], result[20], result[21], result[22], result[23], result[24], result[25], result[26]);
 
-	if ((cta_res[25] != 0x90) || (cta_res[26] != 0x00))
+	if ((result[25] != 0x90) || (result[26] != 0x00))
 		return (0);
 	reader[ridx].prid[i][0] = 0;
 	reader[ridx].prid[i][1] = 0;	//blanken high byte provider code
-	memcpy(&reader[ridx].prid[i][2], cta_res, 2);
+	memcpy(&reader[ridx].prid[i][2], result, 2);
 //	sprintf(buf+strlen(buf), ",%06X", b2i(3, &reader[ridx].prid[i][1]));
 
-	year = (cta_res[22] >> 1) + 1990;
-	month = ((cta_res[22] & 0x1) * 256 + (cta_res[23] & 0xe0)) >> 5;
-	day = (cta_res[23] & 0x1f);
+	year = (result[22] >> 1) + 1990;
+	month = ((result[22] & 0x1) * 256 + (result[23] & 0xe0)) >> 5;
+	day = (result[23] & 0x1f);
 	t = time(NULL);
 	lt = localtime(&t);
 	if (lt->tm_year + 1900 != year)
@@ -47,16 +50,16 @@ int set_provider_info(int i)
 			valid = 1;
 		else
 			valid = 0;
-	memcpy(l_name + 8, cta_res + 2, 16);
+	memcpy(l_name + 8, result + 2, 16);
 	l_name[sizeof (l_name)] = 0;
 	trim(l_name + 8);
 	l_name[0] = (l_name[8]) ? ',' : 0;
 	reader[ridx].availkeys[i][0] = valid;	//misusing availkeys to register validity of provider
 	cs_log("provider: %d, valid: %i%s, expiry date: %4d/%02d/%02d", i + 1, valid, l_name, year, month, day);
-	memcpy(&reader[ridx].sa[i][0], cta_res + 18, 4);
+	memcpy(&reader[ridx].sa[i][0], result + 18, 4);
 	if (valid == 1)	//if not expired
-		cs_log("SA: %s", cs_hexdump(0, cta_res + 18, 4));
-//	cs_log("SA:%02X%02X%02X%02X.",cta_res[18],cta_res[19],cta_res[20],cta_res[21]);
+		cs_log("SA: %s", cs_hexdump(0, result + 18, 4));
+//	cs_log("SA:%02X%02X%02X%02X.",result[18],result[19],result[20],result[21]);
 
 	return 1;
 }
@@ -71,8 +74,9 @@ int seca_card_init(uchar *atr, ushort atr_size)
 // Unlock parental control
 // c1 30 00 01 09
 // 00 00 00 00 00 00 00 00 ff
-	static uchar ins30[] = { 0xc1, 0x30, 0x00, 0x01, 0x09 };
-	static uchar ins30data[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff };
+	static uchar ins30[] = { 0xc1, 0x30, 0x00, 0x01, 0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff };
+	uchar result[260];
+	ushort result_size;
 
 	buf[0] = 0x00;
 	if ((atr[10] != 0x0e) || (atr[11] != 0x6c) || (atr[12] != 0xb6) || (atr[13] != 0xd6))
@@ -103,17 +107,17 @@ int seca_card_init(uchar *atr, ushort atr_size)
 	}
 	reader[ridx].caid[0] = 0x0100;
 	memset(reader[ridx].prid, 0xff, sizeof (reader[ridx].prid));
-	cam_common_read_cmd(ins0e, NULL);	// read unique id
+	cam_common_cmd2card(ins0e, sizeof(ins0e), result, sizeof(result), &result_size);	// read unique id
 	reader[ridx].hexserial[0] = 0;
 	reader[ridx].hexserial[1] = 0;
-	memcpy(reader[ridx].hexserial + 2, cta_res + 2, 6);
-	serial = b2ll(5, cta_res + 3);
+	memcpy(reader[ridx].hexserial + 2, result + 2, 6);
+	serial = b2ll(5, result + 3);
 	cs_ri_log("type: seca, caid: %04X, serial: %llu, card: %s v%d.%d", reader[ridx].caid[0], serial, card, atr[9] & 0x0F, atr[9] >> 4);
-	cam_common_read_cmd(ins16, NULL);	// read nr of providers
-	pmap = cta_res[2] << 8 | cta_res[3];
+	cam_common_cmd2card(ins16, sizeof(ins0e), result, sizeof(result), &result_size);	// read nr of providers
+	pmap = result[2] << 8 | result[3];
 	for (reader[ridx].nprov = 0, i = pmap; i; i >>= 1)
 		reader[ridx].nprov += i & 1;
-//  i=cta_res[2]*256+cta_res[3];
+//  i=result[2]*256+result[3];
 //  do { n+=i&1; i>>=1; } while(i);
 //  reader[ridx].nprov=n;
 
@@ -128,8 +132,8 @@ int seca_card_init(uchar *atr, ushort atr_size)
 	cs_ri_log("providers: %d (%s)", reader[ridx].nprov, buf + 1);
 // Unlock parental control
 	if (cfg->ulparent != 0) {
-		cam_common_write_cmd(ins30, ins30data);
-		cs_log("ins30_answer: %02x%02x", cta_res[0], cta_res[1]);
+		cam_common_cmd2card(ins30, sizeof(ins30), result, sizeof(result), &result_size);
+		cs_log("ins30_answer: %02x%02x", result[0], result[1]);
 	} else {
 		cs_log("parental locked");
 	}
@@ -159,6 +163,8 @@ int seca_do_ecm(ECM_REQUEST * er)
 {
 	static unsigned char ins3c[] = { 0xc1, 0x3c, 0x00, 0x00, 0x00 };	// coding cw
 	static unsigned char ins3a[] = { 0xc1, 0x3a, 0x00, 0x00, 0x10 };	// decoding cw
+	uchar result[260];
+	ushort result_size;
 	uchar ins3cdata[256];
 	int i;
 
@@ -172,27 +178,29 @@ int seca_do_ecm(ECM_REQUEST * er)
 
 	memcpy(ins3cdata, er->ecm + 8, 256 - 8);
 	cs_debug("do_ecm:ins3c=%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x.", ins3c[0], ins3c[1], ins3c[2], ins3c[3], ins3c[4], ins3cdata[0], ins3cdata[1], ins3cdata[2], ins3cdata[3], ins3cdata[4], ins3cdata[5], ins3cdata[6], ins3cdata[7], ins3cdata[8], ins3cdata[9]);
-	cam_common_write_cmd(ins3c, ins3cdata);	//ecm request
-	cs_debug("do_ecm_answer:%02x%02x", cta_res[0], cta_res[1]);
+	uchar ins3c_cmd[272];
+	memcpy(ins3c_cmd, ins3c, 5);
+	memcpy(ins3c_cmd + 5, ins3cdata, ins3c[4]);
+	cam_common_cmd2card(ins3c_cmd, 5 + ins3c[4], result, sizeof(result), &result_size);	//ecm request
+	cs_debug("do_ecm_answer:%02x%02x", result[0], result[1]);
 
-	static unsigned char ins30[] = { 0xC1, 0x30, 0x00, 0x02, 0x09 };
-	static unsigned char ins30data[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF };
+	static unsigned char ins30[] = { 0xC1, 0x30, 0x00, 0x02, 0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF };
 	/* We need to use a token */
-	if (cta_res[0] == 0x90 && cta_res[1] == 0x1a) {
-		cam_common_write_cmd(ins30, ins30data);
-		cs_debug("do_ins30_answer:%02x%02x", cta_res[0], cta_res[1]);
-		cam_common_write_cmd(ins3c, ins3cdata);	//ecm request
-		cs_debug("do_ecm_answer2:%02x%02x", cta_res[0], cta_res[1]);
+	if (result[0] == 0x90 && result[1] == 0x1a) {
+		cam_common_cmd2card(ins30, sizeof(ins30), result, sizeof(result), &result_size);
+		cs_debug("do_ins30_answer:%02x%02x", result[0], result[1]);
+		cam_common_cmd2card(ins3c_cmd, 5 + ins3c[4], result, sizeof(result), &result_size);	//ecm request
+		cs_debug("do_ecm_answer2:%02x%02x", result[0], result[1]);
 	}
 
-	if ((cta_res[0] != 0x90) || (cta_res[1] != 0x00))
+	if ((result[0] != 0x90) || (result[1] != 0x00))
 		return (0);
-	cam_common_read_cmd(ins3a, NULL);	//get cw's
-	cs_debug("cwdump:%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x.", cta_res[0], cta_res[1], cta_res[2], cta_res[3], cta_res[4], cta_res[5], cta_res[6], cta_res[7], cta_res[8], cta_res[9], cta_res[10], cta_res[11], cta_res[12], cta_res[13], cta_res[14], cta_res[15], cta_res[16],
-		 cta_res[17]);
-	if ((cta_res[16] != 0x90) || (cta_res[17] != 0x00))
+	cam_common_cmd2card(ins3a, sizeof(ins3a), result, sizeof(result), &result_size);	//get cw's
+	cs_debug("cwdump:%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x.", result[0], result[1], result[2], result[3], result[4], result[5], result[6], result[7], result[8], result[9], result[10], result[11], result[12], result[13], result[14], result[15], result[16],
+		 result[17]);
+	if ((result[16] != 0x90) || (result[17] != 0x00))
 		return (0);	//exit if response is not 90 00 //TODO: if response is 9027 ppv mode is possible!
-	memcpy(er->cw, cta_res, 16);
+	memcpy(er->cw, result, 16);
 	return (1);
 
 }
@@ -200,7 +208,10 @@ int seca_do_ecm(ECM_REQUEST * er)
 int seca_do_emm(EMM_PACKET * ep)
 {
 	static unsigned char ins40[] = { 0xc1, 0x40, 0x00, 0x00, 0x00 };
+	uchar result[260];
+	ushort result_size;
 	uchar ins40data[256];
+	uchar ins40_cmd[272];
 	int i;
 
 	cs_debug("EMM:%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x.", ep->emm[0], ep->emm[1], ep->emm[2], ep->emm[3], ep->emm[4], ep->emm[5], ep->emm[6], ep->emm[7], ep->emm[8], ep->emm[9], ep->emm[10], ep->emm[11], ep->emm[12], ep->emm[13], ep->emm[14],
@@ -248,18 +259,20 @@ int seca_do_emm(EMM_PACKET * ep)
 	ins40[2] = i;
 //  length = ((er->ecm[1]<<8 || er->ecm[2])&0x0fff);
 	cs_debug("do_emm:ins40=%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x.", ins40[0], ins40[1], ins40[2], ins40[3], ins40[4], ins40data[0], ins40data[1], ins40data[2], ins40data[3], ins40data[4], ins40data[5], ins40data[6], ins40data[7], ins40data[8], ins40data[9]);
-	cam_common_write_cmd(ins40, ins40data);	//emm request
-	cs_debug("emmdump:%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x.", cta_res[0], cta_res[1], cta_res[2], cta_res[3], cta_res[4], cta_res[5], cta_res[6], cta_res[7], cta_res[8], cta_res[9], cta_res[10], cta_res[11], cta_res[12], cta_res[13], cta_res[14], cta_res[15], cta_res[16],
-		 cta_res[17]);
-//TODO  if ((cta_res[16] != 0x90) || (cta_res[17] != 0x00)) return (0);
-//  if ((cta_res[16] != 0x90) || (cta_res[17] != 0x19))
+	memcpy(ins40_cmd, ins40, 5);
+	memcpy(ins40_cmd + 5, ins40data, ins40[4]);
+	cam_common_cmd2card(ins40_cmd, ins40[4], result, sizeof(result), &result_size);	//emm request
+	cs_debug("emmdump:%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x.", result[0], result[1], result[2], result[3], result[4], result[5], result[6], result[7], result[8], result[9], result[10], result[11], result[12], result[13], result[14], result[15], result[16],
+		 result[17]);
+//TODO  if ((result[16] != 0x90) || (result[17] != 0x00)) return (0);
+//  if ((result[16] != 0x90) || (result[17] != 0x19))
 //        seca_card_init(); //if return code = 90 19 then PPUA changed. //untested!!
 //  else
-	if (cta_res[0] == 0x97) {
+	if (result[0] == 0x97) {
 		cs_log("EMM: Update not necessary.");
 		return (1);	//Update not necessary
 	}
-	if ((cta_res[0] == 0x90) && ((cta_res[1] == 0x00) || (cta_res[1] == 0x19)))
+	if ((result[0] == 0x90) && ((result[1] == 0x00) || (result[1] == 0x19)))
 		if (set_provider_info(i) != 0)	//after successfull EMM, print new provider info
 			return (1);
 	return (0);
@@ -288,6 +301,8 @@ int seca_card_info()
 int seca_card_info()
 {
 	static uchar ins12[] = { 0xc1, 0x12, 0x00, 0x00, 0x19 };	// get provider info
+	uchar result[260];
+	ushort result_size;
 	int year, month, day;
 	struct tm *lt;
 	time_t t;
@@ -295,20 +310,20 @@ int seca_card_info()
 	char l_name[16 + 8 + 1] = ", name: ";
 
 	ins12[2] = i;	//select provider
-	cam_common_read_cmd(ins12, NULL);	// show provider properties
-	cs_debug("hexdump:%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x.", cta_res[0], cta_res[1], cta_res[2], cta_res[3], cta_res[4], cta_res[5], cta_res[6], cta_res[7], cta_res[8], cta_res[9], cta_res[10], cta_res[11], cta_res[12], cta_res[13], cta_res[14],
-		 cta_res[15], cta_res[16], cta_res[17], cta_res[18], cta_res[19], cta_res[20], cta_res[21], cta_res[22], cta_res[23], cta_res[24], cta_res[25], cta_res[26]);
+	cam_common_cmd2card(ins12, sizeof(ins12), result, sizeof(result), &result_size);	// show provider properties
+	cs_debug("hexdump:%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x.", result[0], result[1], result[2], result[3], result[4], result[5], result[6], result[7], result[8], result[9], result[10], result[11], result[12], result[13], result[14],
+		 result[15], result[16], result[17], result[18], result[19], result[20], result[21], result[22], result[23], result[24], result[25], result[26]);
 
-	if ((cta_res[25] != 0x90) || (cta_res[26] != 0x00))
+	if ((result[25] != 0x90) || (result[26] != 0x00))
 		return (0);
 	reader[ridx].prid[i][0] = 0;
 	reader[ridx].prid[i][1] = 0;	//blanken high byte provider code
-	memcpy(&reader[ridx].prid[i][2], cta_res, 2);
+	memcpy(&reader[ridx].prid[i][2], result, 2);
 //  sprintf(buf+strlen(buf), ",%06X", b2i(3, &reader[ridx].prid[i][1]));
 
-	year = (cta_res[22] >> 1) + 1990;
-	month = ((cta_res[22] & 0x1) * 256 + (cta_res[23] & 0xe0)) >> 5;
-	day = (cta_res[23] & 0x1f);
+	year = (result[22] >> 1) + 1990;
+	month = ((result[22] & 0x1) * 256 + (result[23] & 0xe0)) >> 5;
+	day = (result[23] & 0x1f);
 	t = time(NULL);
 	lt = localtime(&t);
 	if (lt->tm_year + 1900 != year)
@@ -326,15 +341,15 @@ int seca_card_info()
 			valid = 1;
 		else
 			valid = 0;
-	memcpy(l_name + 8, cta_res + 2, 16);
+	memcpy(l_name + 8, result + 2, 16);
 	l_name[sizeof (l_name)] = 0;
 	trim(l_name + 8);
 	l_name[0] = (l_name[8]) ? ',' : 0;
 	reader[ridx].availkeys[i][0] = valid;	//misusing availkeys to register validity of provider
 	cs_log("provider: %d, valid: %i, expiry date: %i/%i/%i%s", i + 1, valid, year, month, day, l_name);
-	memcpy(&reader[ridx].sa[i][0], cta_res + 18, 4);
+	memcpy(&reader[ridx].sa[i][0], result + 18, 4);
 	if (valid == 1)	//if not expired
-		cs_log("SA:%02X%02X%02X%02X.", cta_res[18], cta_res[19], cta_res[20], cta_res[21]);
+		cs_log("SA:%02X%02X%02X%02X.", result[18], result[19], result[20], result[21]);
 
 	reader[ridx].online = 1;
 

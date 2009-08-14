@@ -2,9 +2,9 @@
 #include <CAM/irdeto.h>
 #include <CAM/common.h>
 
-#define cam_irdeto_chk_cmd(cmd, l) { \
-        if (reader_common_send_cmd(cmd, sizeof(cmd))) return 0; \
-	if (l && (cta_lr!=l)) return 0; \
+#define cam_irdeto_chk_cmd(cmd, l, result, result_size) { \
+        if (cam_common_cmd2card(cmd, sizeof(cmd), result, sizeof(result), result_size)) return 0; \
+	if (l && (*result_size!=l)) return 0; \
 }
 
 static int nagra;
@@ -160,15 +160,15 @@ static time_t chid_date(ulong date, char *buf, int l)
 	return ut;
 }
 
-static int irdeto_do_cmd(uchar * buf, ushort good)
+static int irdeto_do_cmd(uchar * buf, ushort good, uchar *result, ushort result_max_size, ushort *result_size)
 {
 	int rc;
 
-	if ((rc = reader_common_send_cmd(buf, buf[4] + 5)))
+	if ((rc = cam_common_cmd2card(buf, buf[4] + 5, result, result_max_size, result_size)))
 		return (rc);	// result may be 0 (success) or negative
-	if (cta_lr < 2)
+	if (*result_size < 2)
 		return (0x7F7F);	// this should never happen
-	return (good != b2i(2, cta_res + cta_lr - 2));
+	return (good != b2i(2, result + *result_size - 2));
 }
 
 int irdeto_card_init(uchar *atr, ushort atr_size)
@@ -176,6 +176,8 @@ int irdeto_card_init(uchar *atr, ushort atr_size)
 	int i, p, camkey = 0, cs_ptyp_orig = cs_ptyp;
 	uchar buf[256] = { 0 };
 	uchar sc_GetROM[] = { 0xA0, 0xCA, 0x00, 0x00, 3, 0x10, 0, 0x11 };
+	uchar result[260];
+	ushort result_size;
 
 	if (memcmp(atr + 4, "IRDETO", 6))
 		return (0);
@@ -184,17 +186,17 @@ int irdeto_card_init(uchar *atr, ushort atr_size)
 	/*
 	 * Check Nagra
 	 */
-	/*if ((!reader_common_cmd(sc_GetROM, sizeof(sc_GetROM))) && (cta_res[cta_lr-2]==0x90))
+	/*if ((!cam_common_cmd2card(sc_GetROM, sizeof(sc_GetROM), result, sizeof(result), &result_size)) && (result[result_size-2]==0x90))
 	   {
 	   nagra=1;
-	   if (cta_res[0]==0x90)
+	   if (result[0]==0x90)
 	   {
 	   char *ptr;
-	   cta_res[cta_res[1]+4]='\0';
-	   if( (ptr=strstr(cta_res+2, "ASP")) )
+	   result[result[1]+4]='\0';
+	   if( (ptr=strstr(result+2, "ASP")) )
 	   {
 	   sprintf(buf, ", rom=%c.%c%c", ptr[3], ptr[4], ptr[5]);
-	   if( (ptr=strstr(cta_res+2, "Rev")) )
+	   if( (ptr=strstr(result+2, "Rev")) )
 	   sprintf(buf+10, "(%c%c%c)", ptr[3], ptr[4], ptr[5]);
 	   }
 	   }
@@ -203,27 +205,27 @@ int irdeto_card_init(uchar *atr, ushort atr_size)
 	/*
 	 * ContryCode
 	 */
-	cam_irdeto_chk_cmd(sc_GetCountryCode, 18);
-	reader[ridx].acs = (cta_res[0] << 8) | cta_res[1];
-	reader[ridx].caid[0] = (cta_res[5] << 8) | cta_res[6];
-	cs_ri_log("type: %s, caid: %04X, acs: %x.%02x%s", (nagra) ? "aladin" : "irdeto", reader[ridx].caid[0], cta_res[0], cta_res[1], buf);
+	cam_irdeto_chk_cmd(sc_GetCountryCode, 18, result, &result_size);
+	reader[ridx].acs = (result[0] << 8) | result[1];
+	reader[ridx].caid[0] = (result[5] << 8) | result[6];
+	cs_ri_log("type: %s, caid: %04X, acs: %x.%02x%s", (nagra) ? "aladin" : "irdeto", reader[ridx].caid[0], result[0], result[1], buf);
 
 	/*
 	 * Ascii/Hex-Serial
 	 */
-	cam_irdeto_chk_cmd(sc_GetASCIISerial, 22);
-	memcpy(buf, cta_res, 10);
+	cam_irdeto_chk_cmd(sc_GetASCIISerial, 22, result, &result_size);
+	memcpy(buf, result, 10);
 	buf[10] = 0;
-	cam_irdeto_chk_cmd(sc_GetHEXSerial, 18);
-	memcpy(reader[ridx].hexserial, cta_res + 12, 8);
-	reader[ridx].nprov = cta_res[10];
-	cs_ri_log("ascii serial: %s, hex serial: %02X%02X%02X, hex base: %02X", buf, cta_res[12], cta_res[13], cta_res[14], cta_res[15]);
+	cam_irdeto_chk_cmd(sc_GetHEXSerial, 18, result, &result_size);
+	memcpy(reader[ridx].hexserial, result + 12, 8);
+	reader[ridx].nprov = result[10];
+	cs_ri_log("ascii serial: %s, hex serial: %02X%02X%02X, hex base: %02X", buf, result[12], result[13], result[14], result[15]);
 
 	/*
 	 * CardFile
 	 */
 	for (sc_GetCardFile[2] = 2; sc_GetCardFile[2] < 4; sc_GetCardFile[2]++)
-		cam_irdeto_chk_cmd(sc_GetCardFile, 0);
+		cam_irdeto_chk_cmd(sc_GetCardFile, 0, result, &result_size);
 
 	/*
 	 * CamKey
@@ -270,16 +272,16 @@ int irdeto_card_init(uchar *atr, ushort atr_size)
 
 	switch (camkey) {
 		case 1:
-			cam_irdeto_chk_cmd(sc_GetCamKey384CZ, 10);
+			cam_irdeto_chk_cmd(sc_GetCamKey384CZ, 10, result, &result_size);
 			break;
 		case 2:
-			cam_irdeto_chk_cmd(sc_GetCamKey384DZ, 10);
+			cam_irdeto_chk_cmd(sc_GetCamKey384DZ, 10, result, &result_size);
 			break;
 		case 3:
-			cam_irdeto_chk_cmd(sc_GetCamKey384FZ, 10);
+			cam_irdeto_chk_cmd(sc_GetCamKey384FZ, 10, result, &result_size);
 			break;
 		default:
-			cam_irdeto_chk_cmd(sc_GetCamKey383C, 0);
+			cam_irdeto_chk_cmd(sc_GetCamKey383C, 0, result, &result_size);
 			break;
 	}
 
@@ -290,17 +292,20 @@ int irdeto_card_init(uchar *atr, ushort atr_size)
 int irdeto_do_ecm(ECM_REQUEST * er)
 {
 	static const uchar sc_EcmCmd[] = { 0x05, 0x00, 0x00, 0x02, 0x00 };
+	uchar cmd[272];
+	uchar result[260];
+	ushort result_size;
 
-	memcpy(cta_cmd, sc_EcmCmd, sizeof (sc_EcmCmd));
-	cta_cmd[4] = (er->ecm[2]) - 3;
-	memcpy(cta_cmd + sizeof (sc_EcmCmd), &er->ecm[6], cta_cmd[4]);
-	if (irdeto_do_cmd(cta_cmd, 0x9D00))
+	memcpy(cmd, sc_EcmCmd, sizeof (sc_EcmCmd));
+	cmd[4] = (er->ecm[2]) - 3;
+	memcpy(cmd + sizeof (sc_EcmCmd), &er->ecm[6], cmd[4]);
+	if (irdeto_do_cmd(cmd, 0x9D00, result, sizeof(result), &result_size))
 		return (0);
-	if (cta_lr < 24)
+	if (result_size < 24)
 		return (0);
-	ReverseSessionKeyCrypt(sc_CamKey, cta_res + 6);
-	ReverseSessionKeyCrypt(sc_CamKey, cta_res + 14);
-	memcpy(er->cw, cta_res + 6, 16);
+	ReverseSessionKeyCrypt(sc_CamKey, result + 6);
+	ReverseSessionKeyCrypt(sc_CamKey, result + 14);
+	memcpy(er->cw, result + 6, 16);
 
 	return 1;
 }
@@ -324,7 +329,10 @@ int irdeto_do_emm(EMM_PACKET * ep)
 		l++;
 		if (l <= ADDRLEN) {
 			const int dataLen = SCT_LEN(emm) - 5 - l;	// sizeof of emm bytes (nanos)
-			uchar *ptr = cta_cmd;
+			uchar cmd[272];
+			uchar result[260];
+			ushort result_size;
+			uchar *ptr = cmd;
 
 			memcpy(ptr, sc_EmmCmd, sizeof (sc_EmmCmd));	// copy card command
 			ptr[4] = dataLen + ADDRLEN;	// set card command emm size
@@ -335,7 +343,7 @@ int irdeto_do_emm(EMM_PACKET * ep)
 			ptr += ADDRLEN;
 			emm += l;
 			memcpy(ptr, &emm[2], dataLen);	// copy emm bytes
-			return (irdeto_do_cmd(cta_cmd, 0) ? 0 : 1);
+			return (irdeto_do_cmd(cmd, 0, result, sizeof(result), &result_size) ? 0 : 1);
 		} else
 			cs_log("addrlen %d > %d", l, ADDRLEN);
 	}
@@ -348,6 +356,9 @@ int irdeto_card_info()
 	int i, p;
 	uchar buf[256] = { 0 };
 	uchar sc_GetChid[] = { 0xA0, 0xCA, 0x00, 0x00, 4, 0x22, 1, 5, 0x20 };
+	uchar result[260];
+	ushort result_size;
+
 	cs_log("card detected");
 	cs_log("type: irdeto");
 
@@ -356,13 +367,14 @@ int irdeto_card_info()
 			ushort chid;
 			char ds[16], de[16];
 
-			cam_irdeto_chk_cmd(sc_GetChid, 0);
-			if ((cta_lr > 33) && (chid = b2i(2, cta_res + 11))) {
-				chid_date(b2i(2, cta_res + 20) - 0x7f7, ds, 15);
-				chid_date(b2i(2, cta_res + 13) - 0x7f7, de, 15);
+			cam_irdeto_chk_cmd(sc_GetChid, 0, result, &result_size);
+			if ((result_size > 33) && (chid = b2i(2, result + 11))) {
+				chid_date(b2i(2, result + 20) - 0x7f7, ds, 15);
+				chid_date(b2i(2, result + 13) - 0x7f7, de, 15);
 				cs_ri_log("chid: %04X, date: %s - %s", chid, ds, de);
-			} else
+			} else {
 				break;
+			}
 		}
 	} else {
 		/*
@@ -371,11 +383,11 @@ int irdeto_card_info()
 		memset(reader[ridx].prid, 0xff, sizeof (reader[ridx].prid));
 		for (buf[0] = i = p = 0; i < reader[ridx].nprov; i++) {
 			sc_GetProvider[3] = i;
-			cam_irdeto_chk_cmd(sc_GetProvider, 0);
-//      if ((cta_lr==26) && (cta_res[0]!=0xf))
-			if ((cta_lr == 26) && ((!(i & 1)) || (cta_res[0] != 0xf))) {
+			cam_irdeto_chk_cmd(sc_GetProvider, 0, result, &result_size);
+//      if ((result_size==26) && (result[0]!=0xf))
+			if ((result_size == 26) && ((!(i & 1)) || (result[0] != 0xf))) {
 				reader[ridx].prid[i][4] = p++;
-				memcpy(&reader[ridx].prid[i][0], cta_res, 4);
+				memcpy(&reader[ridx].prid[i][0], result, 4);
 				sprintf((char *) buf + strlen((char *) buf), ",%06lx", b2i(3, &reader[ridx].prid[i][1]));
 			} else
 				reader[ridx].prid[i][0] = 0xf;
@@ -386,9 +398,9 @@ int irdeto_card_info()
 		/*
 		 * ContryCode2
 		 */
-		cam_irdeto_chk_cmd(sc_GetCountryCode2, 0);
-		if ((cta_lr > 9) && !(cta_res[cta_lr - 2] | cta_res[cta_lr - 1])) {
-			cs_debug("max chids: %d, %d, %d, %d", cta_res[6], cta_res[7], cta_res[8], cta_res[9]);
+		cam_irdeto_chk_cmd(sc_GetCountryCode2, 0, result, &result_size);
+		if ((result_size > 9) && !(result[result_size - 2] | result[result_size - 1])) {
+			cs_debug("max chids: %d, %d, %d, %d", result[6], result[7], result[8], result[9]);
 
 			/*
 			 * Provider 2
@@ -402,16 +414,16 @@ int irdeto_card_info()
 					sc_GetChanelIds[3] = i;
 					for (j = 0; j < 10; j++) {
 						sc_GetChanelIds[5] = j;
-						cam_irdeto_chk_cmd(sc_GetChanelIds, 0);
-						if (cta_lr < 61)
+						cam_irdeto_chk_cmd(sc_GetChanelIds, 0, result, &result_size);
+						if (result_size < 61)
 							break;
-						for (k = 0; k < cta_lr; k += 6) {
-							chid = b2i(2, cta_res + k);
+						for (k = 0; k < result_size; k += 6) {
+							chid = b2i(2, result + k);
 							if (chid && chid != 0xFFFF) {
 								time_t date;
 
-								chid_date(date = b2i(2, cta_res + k + 2), t, 16);
-								chid_date(date + cta_res[k + 4], t + 16, 16);
+								chid_date(date = b2i(2, result + k + 2), t, 16);
+								chid_date(date + result[k + 4], t + 16, 16);
 								if (first) {
 									cs_ri_log("provider: %d, id: %06X", p, b2i(3, &reader[ridx].prid[i][1]));
 									first = 0;

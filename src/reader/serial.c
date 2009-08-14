@@ -1,5 +1,4 @@
 #include <globals.h>
-#include <reader/common.h>
 #include <reader/serial.h>
 
 #include <ctapi.h>
@@ -51,85 +50,99 @@ static int reader_serial_device_type(char *device, int typ)
 	return rc;
 }
 
-static int reader_serial_doapi(uchar dad, uchar * buf, int l, int dbg)
+static int reader_serial_do_api(uchar dad, uchar *cmd, ushort cmd_size, uchar *result, ushort result_max_size, ushort *result_size, int dbg)
 {
 	int rc;
-	uchar sad;
+	unsigned short ctn = 1;
+	unsigned char sad = 2;
 
-//	oscam_card_inserted=4;
-	sad = 2;
-	cta_lr = sizeof (cta_res) - 1;
+	// Set result_size to the size of the result buffer (result_max_size)
+	*result_size = result_max_size;
+
+	// Save and Change cs_ptyp
 	int cs_ptyp_orig = cs_ptyp;
 	cs_ptyp = dbg;
-//	cs_ddump(buf, l, "send %d bytes to ctapi", l);
-	rc = CT_data(1, &dad, &sad, l, buf, &cta_lr, cta_res);
-//	cs_ddump(cta_res, cta_lr, "received %d bytes from ctapi with rc=%d", cta_lr, rc);
+
+//	cs_ddump(cmd, cmd_size, "send %d bytes to ctapi", cmd_size);
+
+	// Call CSCTAPI
+	rc = CT_data(
+		ctn,		/* Terminal Number */
+		&dad,		/* Destination */
+		&sad,		/* Source */
+		cmd_size,	/* Length of command */
+		cmd,		/* Command/Data Buffer */
+		result_size,	/* Length of Response */
+		result);	/* Response */
+
+//	cs_ddump(result, *result_size, "received %d bytes from ctapi with rc=%d", *result_size, rc);
+
+	// Restore cs_ptyp
 	cs_ptyp = cs_ptyp_orig;
 
 	return rc;
 }
 
-int reader_serial_chkicc(uchar * buf, int l)
+int reader_serial_cmd2card(uchar *cmd, ushort cmd_size, uchar *result, ushort result_max_size, ushort *result_size)
 {
-	return reader_serial_doapi(1, buf, l, D_WATCHDOG);
+	return reader_serial_do_api(0, cmd, cmd_size, result, result_max_size, result_size, D_DEVICE);
 }
 
-int reader_serial_cmd2api(uchar * buf, int l)
+int reader_serial_cmd2reader(uchar *cmd, ushort cmd_size, uchar *result, ushort result_max_size, ushort *result_size)
 {
-	return reader_serial_doapi(1, buf, l, D_DEVICE);
+	return reader_serial_do_api(1, cmd, cmd_size, result, result_max_size, result_size, D_DEVICE);
 }
 
-int reader_serial_cmd2icc(uchar * buf, int l)
+static int reader_serial_check_for_card(uchar *cmd, ushort cmd_size, uchar *result, ushort result_max_size, ushort *result_size)
 {
-//	int rc;
-//	if ((rc = reader_serial_doapi(0, buf, l, D_DEVICE)) < 0)
-	return reader_serial_doapi(0, buf, l, D_DEVICE);
-//	else
-//	return rc;
+	return reader_serial_do_api(1, cmd, cmd_size, result, result_max_size, result_size, D_WATCHDOG);
 }
 
 int reader_serial_activate_card(uchar *atr, ushort *atr_size)
 {
 	int i;
 	char ret;
+	uchar cmd[5];
+	uchar result[260];
+	ushort result_size;
 
-	cta_cmd[0] = CTBCS_INS_RESET;
-	cta_cmd[1] = CTBCS_P2_RESET_GET_ATR;
-	cta_cmd[2] = 0x00;
+	cmd[0] = CTBCS_INS_RESET;
+	cmd[1] = CTBCS_P2_RESET_GET_ATR;
+	cmd[2] = 0x00;
 
-	ret = reader_serial_cmd2api(cta_cmd, 3);
+	ret = reader_serial_cmd2reader(cmd, 3, result, sizeof(result), &result_size);
 	if (ret != OK) {
 		cs_log("Error reset terminal: %d", ret);
 		return (0);
 	}
 
-	cta_cmd[0] = CTBCS_CLA;
-	cta_cmd[1] = CTBCS_INS_STATUS;
-	cta_cmd[2] = CTBCS_P1_CT_KERNEL;
-	cta_cmd[3] = CTBCS_P2_STATUS_ICC;
-	cta_cmd[4] = 0x00;
+	cmd[0] = CTBCS_CLA;
+	cmd[1] = CTBCS_INS_STATUS;
+	cmd[2] = CTBCS_P1_CT_KERNEL;
+	cmd[3] = CTBCS_P2_STATUS_ICC;
+	cmd[4] = 0x00;
 
-//	ret = reader_serial_cmd2api(cmd, 11); warum 11 ??????
-	ret = reader_serial_cmd2api(cta_cmd, 5);
+//	ret = reader_serial_cmd2reader(cmd, 11, result, sizeof(result), &result_size); warum 11 ??????
+	ret = reader_serial_cmd2reader(cmd, 5, result, sizeof(result), &result_size);
 	if (ret != OK) {
 		cs_log("Error getting status of terminal: %d", ret);
 		return (0);
 	}
-	if (cta_res[0] != CTBCS_DATA_STATUS_CARD_CONNECT)
+	if (result[0] != CTBCS_DATA_STATUS_CARD_CONNECT)
 		return (0);
 
 	/* Activate card */
-//	for (i = 0; i < 5 && ((ret!=OK) || (cta_res[cta_lr-2]!=0x90)) ; i++)
+//	for (i = 0; i < 5 && ((ret!=OK) || (result[result_size-2]!=0x90)) ; i++)
 	for (i = 0; i < 5; i++) {
 		reader_serial_irdeto_mode = i % 2 == 1;
-		cta_cmd[0] = CTBCS_CLA;
-		cta_cmd[1] = CTBCS_INS_REQUEST;
-		cta_cmd[2] = CTBCS_P1_INTERFACE1;
-		cta_cmd[3] = CTBCS_P2_REQUEST_GET_ATR;
-		cta_cmd[4] = 0x00;
+		cmd[0] = CTBCS_CLA;
+		cmd[1] = CTBCS_INS_REQUEST;
+		cmd[2] = CTBCS_P1_INTERFACE1;
+		cmd[3] = CTBCS_P2_REQUEST_GET_ATR;
+		cmd[4] = 0x00;
 
-		ret = reader_serial_cmd2api(cta_cmd, 5);
-		if ((ret == OK) || (cta_res[cta_lr - 2] == 0x90)) {
+		ret = reader_serial_cmd2reader(cmd, 5, result, sizeof(result), &result_size);
+		if ((ret == OK) || (result[result_size - 2] == 0x90)) {
 			i = 100;
 			break;
 		}
@@ -140,8 +153,8 @@ int reader_serial_activate_card(uchar *atr, ushort *atr_size)
 		return (0);
 
 	/* Store ATR */
-	*atr_size = cta_lr - 2;
-	memcpy(atr, cta_res, *atr_size);
+	*atr_size = result_size - 2;
+	memcpy(atr, result, *atr_size);
 #ifdef CS_RDR_INIT_HIST
 	reader[ridx].init_history_pos = 0;
 	memset(reader[ridx].init_history, 0, sizeof (reader[ridx].init_history));
@@ -154,13 +167,18 @@ int reader_serial_activate_card(uchar *atr, ushort *atr_size)
 
 int reader_serial_card_inserted()
 {
-	cta_cmd[0] = CTBCS_CLA;
-	cta_cmd[1] = CTBCS_INS_STATUS;
-	cta_cmd[2] = CTBCS_P1_INTERFACE1;
-	cta_cmd[3] = CTBCS_P2_STATUS_ICC;
-	cta_cmd[4] = 0x00;
+	uchar cmd[5];
+	uchar result[260];
+	ushort result_size;
 
-	return reader_serial_chkicc(cta_cmd, 5) ? 0 : cta_res[0];
+	cmd[0] = CTBCS_CLA;
+	cmd[1] = CTBCS_INS_STATUS;
+	cmd[2] = CTBCS_P1_INTERFACE1;
+	cmd[3] = CTBCS_P2_STATUS_ICC;
+	cmd[4] = 0x00;
+
+	int rc = reader_serial_check_for_card(cmd, 5, result, sizeof(result), &result_size);
+	return rc ? 0 : result[0];
 }
 
 int reader_serial_device_init(char *device, int typ)

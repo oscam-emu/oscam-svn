@@ -397,21 +397,23 @@ static int status_ok(const unsigned char *status)
 		&& (status[1] == 0x00 || status[1] == 0x01 || status[1] == 0x20 || status[1] == 0x21 || status[1] == 0x80 || status[1] == 0x81 || status[1] == 0xa0 || status[1] == 0xa1);
 }
 
-static int cam_common_read_cmd_len(const unsigned char *cmd)
+static int cam_videoguard_read_cmd_len(const unsigned char *cmd)
 {
 	unsigned char cmd2[5];
 
 	memcpy(cmd2, cmd, 5);
 	cmd2[3] = 0x80;
 	cmd2[4] = 1;
-	if (!cam_common_read_cmd(cmd2, NULL) || cta_res[1] != 0x90 || cta_res[2] != 0x00) {
-		cs_log("failed to read %02x%02x cmd length (%02x %02x)", cmd[1], cmd[2], cta_res[1], cta_res[2]);
+	uchar result[260];
+	ushort result_size;
+	if (!cam_common_cmd2card(cmd2, sizeof(cmd2), result, sizeof(result), &result_size) || result[1] != 0x90 || result[2] != 0x00) {
+		cs_log("failed to read %02x%02x cmd length (%02x %02x)", cmd[1], cmd[2], result[1], result[2]);
 		return -1;
 	}
-	return cta_res[0];
+	return result[0];
 }
 
-static int do_cmd(const unsigned char *ins, const unsigned char *txbuff, unsigned char *rxbuff)
+static int do_cmd(const unsigned char *ins, const unsigned char *txbuff, unsigned char *rxbuff, uchar *result, ushort result_max_size, ushort *result_size)
 {
 	unsigned char ins2[5];
 
@@ -421,7 +423,7 @@ static int do_cmd(const unsigned char *ins, const unsigned char *txbuff, unsigne
 	if (cmd_table_get_info(ins2, &len, &mode)) {
 		if (len == 0xFF && mode == 2) {
 			if (ins2[4] == 0)
-				ins2[4] = len = cam_common_read_cmd_len(ins2);
+				ins2[4] = len = cam_videoguard_read_cmd_len(ins2);
 		} else if (mode != 0)
 			ins2[4] = len;
 	}
@@ -434,17 +436,20 @@ static int do_cmd(const unsigned char *ins, const unsigned char *txbuff, unsigne
 	if (!rxbuff)
 		rxbuff = tmp;
 	if (mode > 1) {
-		if (!cam_common_read_cmd(ins2, NULL) || !status_ok(cta_res + len))
+		if (!cam_common_cmd2card(ins2, sizeof(ins2), result, result_max_size, result_size) || !status_ok(result + len))
 			return -1;
 		memcpy(rxbuff, ins2, 5);
-		memcpy(rxbuff + 5, cta_res, len);
-		memcpy(rxbuff + 5 + len, cta_res + len, 2);
+		memcpy(rxbuff + 5, result, len);
+		memcpy(rxbuff + 5 + len, result + len, 2);
 	} else {
-		if (!cam_common_write_cmd(ins2, txbuff) || !status_ok(cta_res))
+		uchar cmd[272];
+		memcpy(cmd, ins2, 5);
+		memcpy(cmd + 5, txbuff, ins2[4]);
+		if (!cam_common_cmd2card(cmd, 5 + ins2[4], result, sizeof(result), result_size) || !status_ok(result))
 			return -2;
 		memcpy(rxbuff, ins2, 5);
 		memcpy(rxbuff + 5, txbuff, len);
-		memcpy(rxbuff + 5 + len, cta_res, 2);
+		memcpy(rxbuff + 5 + len, result, 2);
 	}
 
 	cCamCryptVG2_PostProcess_Decrypt(rxbuff, len, CW1, CW2);
@@ -468,30 +473,32 @@ static void read_tiers()
 	static const unsigned char ins2a[5] = { 0xd0, 0x2a, 0x00, 0x00, 0x00 };
 	int l;
 
-	l = do_cmd(ins2a, NULL, NULL);
-	if (l < 0 || !status_ok(cta_res + l))
+	uchar result[260];
+	ushort result_size;
+	l = do_cmd(ins2a, NULL, NULL, result, sizeof(result), &result_size);
+	if (l < 0 || !status_ok(result + l))
 		return;
 	static unsigned char ins76[5] = { 0xd0, 0x76, 0x00, 0x00, 0x00 };
 	ins76[3] = 0x7f;
 	ins76[4] = 2;
-	if (!cam_common_read_cmd(ins76, NULL) || !status_ok(cta_res + 2))
+	if (!cam_common_cmd2card(ins76, sizeof(ins76), result, sizeof(result), &result_size) || !status_ok(result + 2))
 		return;
 	ins76[3] = 0;
 	ins76[4] = 0;
-	int num = cta_res[1];
+	int num = result[1];
 	int i;
 
 	for (i = 0; i < num; i++) {
 		ins76[2] = i;
-		l = do_cmd(ins76, NULL, NULL);
-		if (l < 0 || !status_ok(cta_res + l))
+		l = do_cmd(ins76, NULL, NULL, result, sizeof(result), &result_size);
+		if (l < 0 || !status_ok(result + l))
 			return;
-		if (cta_res[2] == 0 && cta_res[3] == 0)
+		if (result[2] == 0 && result[3] == 0)
 			break;
 		int y, m, d, H, M, S;
 
-		rev_date_calc(&cta_res[4], &y, &m, &d, &H, &M, &S);
-		cs_log("Tier: %02x%02x, expiry date: %04d/%02d/%02d-%02d:%02d:%02d", cta_res[2], cta_res[3], y, m, d, H, M, S);
+		rev_date_calc(&result[4], &y, &m, &d, &H, &M, &S);
+		cs_log("Tier: %02x%02x, expiry date: %04d/%02d/%02d-%02d:%02d:%02d", result[2], result[3], y, m, d, H, M, S);
 	}
 }
 
@@ -567,19 +574,21 @@ int videoguard_card_init(uchar *atr, ushort atr_size)
 	unsigned char ins7401[5] = { 0xD0, 0x74, 0x01, 0x00, 0x00 };
 	int l;
 
-	if ((l = cam_common_read_cmd_len(ins7401)) < 0)
+	if ((l = cam_videoguard_read_cmd_len(ins7401)) < 0)
 		return 0;
 	ins7401[4] = l;
-	if (!cam_common_read_cmd(ins7401, NULL) || !status_ok(cta_res + l)) {
+	uchar result[260];
+	ushort result_size;
+	if (!cam_common_cmd2card(ins7401, sizeof(ins7401), result, sizeof(result), &result_size) || !status_ok(result + l)) {
 		cs_log("failed to read cmd list");
 		return 0;
 	}
-	memorize_cmd_table(cta_res, l);
+	memorize_cmd_table(result, l);
 
 	unsigned char buff[256];
 
 	unsigned char ins7416[5] = { 0xD0, 0x74, 0x16, 0x00, 0x00 };
-	if (do_cmd(ins7416, NULL, NULL) < 0) {
+	if (do_cmd(ins7416, NULL, NULL, result, sizeof(result), &result_size) < 0) {
 		cs_log("cmd 7416 failed");
 		return 0;
 	}
@@ -598,7 +607,7 @@ int videoguard_card_init(uchar *atr, ushort atr_size)
 		/* we can try to get the boxid from the card */
 		int boxidOK = 0;
 
-		l = do_cmd(ins36, NULL, buff);
+		l = do_cmd(ins36, NULL, buff, result, sizeof(result), &result_size);
 		if (l >= 0) {
 			int i;
 
@@ -620,20 +629,23 @@ int videoguard_card_init(uchar *atr, ushort atr_size)
 	unsigned char ins4C[5] = { 0xD0, 0x4C, 0x00, 0x00, 0x09 };
 	unsigned char payload4C[9] = { 0, 0, 0, 0, 3, 0, 0, 2, 4 };
 	memcpy(payload4C, boxID, 4);
-	if (!cam_common_write_cmd(ins4C, payload4C) || !status_ok(cta_res + l)) {
+	uchar cmd[272];
+	memcpy(cmd, ins4C, 5);
+	memcpy(cmd + 5, payload4C, ins4C[4]);
+	if (!cam_common_cmd2card(cmd, 5 + ins4C[4], result, sizeof(result), &result_size) || !status_ok(result + l)) {
 		cs_log("sending boxid failed");
 		return 0;
 	}
 
 	unsigned char ins58[5] = { 0xD0, 0x58, 0x00, 0x00, 0x00 };
-	l = do_cmd(ins58, NULL, buff);
+	l = do_cmd(ins58, NULL, buff, result, sizeof(result), &result_size);
 	if (l < 0) {
 		cs_log("cmd ins58 failed");
 		return 0;
 	}
 	memset(reader[ridx].hexserial, 0, 4);
-	memcpy(reader[ridx].hexserial + 4, cta_res + 3, 4);
-	reader[ridx].caid[0] = cta_res[24] * 0x100 + cta_res[25];
+	memcpy(reader[ridx].hexserial + 4, result + 3, 4);
+	reader[ridx].caid[0] = result[24] * 0x100 + result[25];
 
 	/* we have one provider, 0x0000 */
 	reader[ridx].nprov = 1;
@@ -658,36 +670,36 @@ int videoguard_card_init(uchar *atr, ushort atr_size)
 	unsigned char tbuff[64];
 
 	cCamCryptVG2_GetCamKey(tbuff);
-	l = do_cmd(insB4, tbuff, NULL);
-	if (l < 0 || !status_ok(cta_res)) {
-		cs_log("cmd D0B4 failed (%02X%02X)", cta_res[0], cta_res[1]);
+	l = do_cmd(insB4, tbuff, NULL, result, sizeof(result), &result_size);
+	if (l < 0 || !status_ok(result)) {
+		cs_log("cmd D0B4 failed (%02X%02X)", result[0], result[1]);
 		return 0;
 	}
 
 	unsigned char insBC[5] = { 0xD0, 0xBC, 0x00, 0x00, 0x00 };
-	l = do_cmd(insBC, NULL, NULL);
+	l = do_cmd(insBC, NULL, NULL, result, sizeof(result), &result_size);
 	if (l < 0) {
 		cs_log("cmd D0BC failed");
 		return 0;
 	}
 
 	unsigned char insBE[5] = { 0xD3, 0xBE, 0x00, 0x00, 0x00 };
-	l = do_cmd(insBE, NULL, NULL);
+	l = do_cmd(insBE, NULL, NULL, result, sizeof(result), &result_size);
 	if (l < 0) {
 		cs_log("cmd D3BE failed");
 		return 0;
 	}
 
 	unsigned char ins58a[5] = { 0xD1, 0x58, 0x00, 0x00, 0x00 };
-	l = do_cmd(ins58a, NULL, NULL);
+	l = do_cmd(ins58a, NULL, NULL, result, sizeof(result), &result_size);
 	if (l < 0) {
 		cs_log("cmd D158 failed");
 		return 0;
 	}
 
 	unsigned char ins4Ca[5] = { 0xD1, 0x4C, 0x00, 0x00, 0x00 };
-	l = do_cmd(ins4Ca, payload4C, NULL);
-	if (l < 0 || !status_ok(cta_res)) {
+	l = do_cmd(ins4Ca, payload4C, NULL, result, sizeof(result), &result_size);
+	if (l < 0 || !status_ok(result)) {
 		cs_log("cmd D14Ca failed");
 		return 0;
 	}
@@ -714,10 +726,12 @@ int videoguard_do_ecm(ECM_REQUEST * er)
 	ins40[4] = lenECMpart2;
 	int l;
 
-	l = do_cmd(ins40, tbuff, NULL);
-	if (l > 0 && status_ok(cta_res)) {
-		l = do_cmd(ins54, NULL, NULL);
-		if (l > 0 && status_ok(cta_res + l)) {
+	uchar result[260];
+	ushort result_size;
+	l = do_cmd(ins40, tbuff, NULL, result, sizeof(result), &result_size);
+	if (l > 0 && status_ok(result)) {
+		l = do_cmd(ins54, NULL, NULL, result, sizeof(result), &result_size);
+		if (l > 0 && status_ok(result + l)) {
 			if (er->ecm[0] & 1) {
 				memcpy(er->cw + 8, CW1, 8);
 			} else {
@@ -815,21 +829,23 @@ static const unsigned char *payload_addr(const unsigned char *data, const unsign
 int videoguard_do_emm(EMM_PACKET * ep)
 {
 	unsigned char ins42[5] = { 0xD1, 0x42, 0x00, 0x00, 0xFF };
+	uchar result[260];
+	ushort result_size;
 	int rc = 0;
 
 	const unsigned char *payload = payload_addr(ep->emm, reader[ridx].hexserial);
 
 	if (payload) {
 		ins42[4] = *payload;
-		int l = do_cmd(ins42, payload + 1, NULL);
+		int l = do_cmd(ins42, payload + 1, NULL, result, sizeof(result), &result_size);
 
-		if (l > 0 && status_ok(cta_res)) {
+		if (l > 0 && status_ok(result)) {
 			rc = 1;
 		}
 
-		cs_log("EMM request return code : %02X%02X", cta_res[0], cta_res[1]);
+		cs_log("EMM request return code : %02X%02X", result[0], result[1]);
 //cs_dump(ep->emm, 64, "EMM:");
-		if (status_ok(cta_res)) {
+		if (status_ok(result)) {
 			read_tiers();
 		}
 

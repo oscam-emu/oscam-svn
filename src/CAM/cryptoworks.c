@@ -2,6 +2,8 @@
 #include <CAM/cryptoworks.h>
 #include <CAM/common.h>
 
+#define MAX_LEN 256
+
 static uchar ISK[0x40];
 static uchar cwexp[] = { 1, 0, 1 };
 static BIGNUM exp, ucpk;
@@ -108,38 +110,46 @@ static char *chid_date(uchar * ptr, char *buf, int l)
 static int select_file(uchar f1, uchar f2)
 {
 	uchar insA4[] = { 0xA4, 0xA4, 0x00, 0x00, 0x02, 0x00, 0x00 };
+	uchar result[260];
+	ushort result_size;
+
 	insA4[5] = f1;
 	insA4[6] = f2;
-	cam_common_write_cmd(insA4, insA4 + 5);	// select file
-	return ((cta_res[0] == 0x9f) && (cta_res[1] == 0x11));
+	cam_common_cmd2card(insA4, sizeof(insA4), result, sizeof(result), &result_size);	// select file
+
+	return ((result[0] == 0x9f) && (result[1] == 0x11));
 }
 
 static int read_record(uchar rec)
 {
 	uchar insA2[] = { 0xA4, 0xA2, 0x00, 0x00, 0x01, 0x00 };
 	uchar insB2[] = { 0xA4, 0xB2, 0x00, 0x00, 0x00 };
+	uchar result[260];
+	ushort result_size;
 
 	insA2[5] = rec;
-	cam_common_write_cmd(insA2, insA2 + 5);	// select record
-	if (cta_res[0] != 0x9f)
+	cam_common_cmd2card(insA2, sizeof(insA2), result, sizeof(result), &result_size);	// select record
+	if (result[0] != 0x9f)
 		return (-1);
-	insB2[4] = cta_res[1];	// get len
-	cam_common_read_cmd(insB2, NULL);	// read record
-	if ((cta_res[cta_lr - 2] != 0x90) || (cta_res[cta_lr - 1]))
+	insB2[4] = result[1];	// get len
+	cam_common_cmd2card(insB2, sizeof(insB2), result, sizeof(result), &result_size);	// read record
+	if ((result[result_size - 2] != 0x90) || (result[result_size - 1]))
 		return (-1);
-	return (cta_lr - 2);
+	return (result_size - 2);
 }
 
 int cryptoworks_send_pin()
 {
 	unsigned char insPIN[] = { 0xA4, 0x20, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00 };	//Verify PIN  
+	uchar result[260];
+	ushort result_size;
 
 	if (reader[ridx].pincode[0] && (reader[ridx].pincode[0] & 0xF0) == 0x30) {
 		memcpy(insPIN + 5, reader[ridx].pincode, 4);
 
-		cam_common_write_cmd(insPIN, insPIN + 5);
+		cam_common_cmd2card(insPIN, sizeof(insPIN), result, sizeof(result), &result_size);
 		cs_ri_log("[cryptoworks]-sending pincode to card");
-		if ((cta_res[0] == 0x98) && (cta_res[1] == 0x04))
+		if ((result[0] == 0x98) && (result[1] == 0x04))
 			cs_ri_log("[cryptoworks]-bad pincode");
 
 		return (1);
@@ -151,13 +161,15 @@ int cryptoworks_send_pin()
 int cryptoworks_disbale_pin()
 {
 	unsigned char insPIN[] = { 0xA4, 0x26, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00 };	//disable PIN  
+	uchar result[260];
+	ushort result_size;
 
 	if (reader[ridx].pincode[0] && (reader[ridx].pincode[0] & 0xF0) == 0x30) {
 		memcpy(insPIN + 5, reader[ridx].pincode, 4);
 
-		cam_common_write_cmd(insPIN, insPIN + 5);
+		cam_common_cmd2card(insPIN, sizeof(insPIN), result, sizeof(result), &result_size);
 		cs_ri_log("[cryptoworks]-disable pincode to card");
-		if ((cta_res[0] == 0x98) && (cta_res[1] == 0x04))
+		if ((result[0] == 0x98) && (result[1] == 0x04))
 			cs_ri_log("[cryptoworks]-bad pincode");
 		return (1);
 	}
@@ -171,6 +183,9 @@ int cryptoworks_card_init(uchar *atr, ushort atr_size)
 	unsigned int mfid = 0x3F20;
 	uchar insA4C[] = { 0xA4, 0xC0, 0x00, 0x00, 0x11 };
 	uchar insB8[] = { 0xA4, 0xB8, 0x00, 0x00, 0x0c };
+	uchar result[260];
+	ushort result_size;
+
 	uchar issuerid = 0;
 	char issuer[20] = { 0 };
 	char *unknown = "unknown", *pin = unknown, ptxt[CS_MAXPROV << 2] = { 0 };
@@ -182,19 +197,19 @@ int cryptoworks_card_init(uchar *atr, ushort atr_size)
 	reader[ridx].nprov = 0;
 	memset(reader[ridx].prid, 0, sizeof (reader[ridx].prid));
 
-	cam_common_read_cmd(insA4C, NULL);	// read masterfile-ID
-	if ((cta_res[0] == 0xDF) && (cta_res[1] >= 6))
-		mfid = (cta_res[6] << 8) | cta_res[7];
+	cam_common_cmd2card(insA4C, sizeof(insA4C), result, sizeof(result), &result_size);	// read masterfile-ID
+	if ((result[0] == 0xDF) && (result[1] >= 6))
+		mfid = (result[6] << 8) | result[7];
 
 	select_file(0x3f, 0x20);
 	insB8[2] = insB8[3] = 0;	// first
-	for (cta_res[0] = 0xdf; cta_res[0] == 0xdf;) {
-		cam_common_read_cmd(insB8, NULL);	// read provider id's
-		if (cta_res[0] != 0xdf)
+	for (result[0] = 0xdf; result[0] == 0xdf;) {
+		cam_common_cmd2card(insB8, sizeof(insB8), result, sizeof(result), &result_size);	// read provider id's
+		if (result[0] != 0xdf)
 			break;
-		if (((cta_res[4] & 0x1f) == 0x1f) && (reader[ridx].nprov < CS_MAXPROV)) {
-			sprintf(ptxt + strlen(ptxt), ",%02X", cta_res[5]);
-			reader[ridx].prid[reader[ridx].nprov++][3] = cta_res[5];
+		if (((result[4] & 0x1f) == 0x1f) && (reader[ridx].nprov < CS_MAXPROV)) {
+			sprintf(ptxt + strlen(ptxt), ",%02X", result[5]);
+			reader[ridx].prid[reader[ridx].nprov++][3] = result[5];
 		}
 		insB8[2] = insB8[3] = 0xff;	// next
 	}
@@ -203,10 +218,10 @@ int cryptoworks_card_init(uchar *atr, ushort atr_size)
 
 	select_file(0x2f, 0x01);	// read caid
 	if (read_record(0xD1) >= 4)
-		reader[ridx].caid[0] = (cta_res[2] << 8) | cta_res[3];
+		reader[ridx].caid[0] = (result[2] << 8) | result[3];
 
 	if (read_record(0x80) >= 7)	// read serial
-		memcpy(reader[ridx].hexserial, cta_res + 2, 5);
+		memcpy(reader[ridx].hexserial, result + 2, 5);
 	cs_ri_log("type: cryptoworks, caid: %04X, ascii serial: %llu, hex serial: %s", reader[ridx].caid[0], b2ll(5, reader[ridx].hexserial), cs_hexdump(0, reader[ridx].hexserial, 5));
 
 	if (read_record(0x9E) >= 66)	// read ISK
@@ -218,12 +233,12 @@ int cryptoworks_card_init(uchar *atr, ushort atr_size)
 			ipk = BN_new();
 			BN_bin2bn(cwexp, sizeof (cwexp), &exp);
 			BN_bin2bn(keybuf, 64, ipk);
-			RSA(cta_res + 2, cta_res + 2, 0x40, &exp, ipk, 0);
+			RSA(result + 2, result + 2, 0x40, &exp, ipk, 0);
 			BN_free(ipk);
-			if (ucpk_valid = (cta_res[2] == ((mfid & 0xFF) >> 1))) {
-				cta_res[2] |= 0x80;
-				BN_bin2bn(cta_res + 2, 0x40, &ucpk);
-				cs_ddump(cta_res + 2, 0x40, "IPK available -> session-key:");
+			if (ucpk_valid = (result[2] == ((mfid & 0xFF) >> 1))) {
+				result[2] |= 0x80;
+				BN_bin2bn(result + 2, 0x40, &ucpk);
+				cs_ddump(result + 2, 0x40, "IPK available -> session-key:");
 			} else {
 				if (ucpk_valid = (keybuf[0] == (((mfid & 0xFF) >> 1) | 0x80))) {
 					BN_bin2bn(keybuf, 0x40, &ucpk);
@@ -234,9 +249,9 @@ int cryptoworks_card_init(uchar *atr, ushort atr_size)
 		}
 	}
 	if (read_record(0x9F) >= 3)
-		issuerid = cta_res[2];
+		issuerid = result[2];
 	if (read_record(0xC0) >= 16) {
-		strncpy(issuer, (const char *) cta_res + 2, sizeof (issuer) - 1);
+		strncpy(issuer, (const char *) result + 2, sizeof (issuer) - 1);
 		trim(issuer);
 	} else
 		strcpy(issuer, unknown);
@@ -244,8 +259,8 @@ int cryptoworks_card_init(uchar *atr, ushort atr_size)
 	select_file(0x3f, 0x20);
 	select_file(0x2f, 0x11);	// read pin
 	if (read_record(atr[8]) >= 7) {
-		cta_res[6] = 0;
-		pin = (char *) cta_res + 2;
+		result[6] = 0;
+		pin = (char *) result + 2;
 	}
 	cs_ri_log("issuer: %s, id: %02X, bios: v%d, pin: %s, mfid: %04X", issuer, issuerid, atr[7], pin, mfid);
 	cs_ri_log("providers: %d (%s)", reader[ridx].nprov, ptxt + 1);
@@ -339,6 +354,9 @@ int cryptoworks_do_ecm(ECM_REQUEST * er)
 	int r = 0;
 	static unsigned char ins4C[] = { 0xA4, 0x4C, 0x00, 0x00, 0x00 };
 	static unsigned char insC0[] = { 0xA4, 0xC0, 0x00, 0x00, 0x1C };
+	uchar result[260];
+	ushort result_size;
+
 	unsigned char nanoD4[10];
 	int secLen = CheckSctLen(er->ecm, -5 + (ucpk_valid ? sizeof (nanoD4) : 0));
 
@@ -360,38 +378,41 @@ int cryptoworks_do_ecm(ECM_REQUEST * er)
 
 		ins4C[3] = ucpk_valid ? 2 : 0;
 		ins4C[4] = secLen - 5;
-		cam_common_write_cmd(ins4C, ecm + 5);
-		if (cta_res[cta_lr - 2] == 0x9f) {
-			insC0[4] = cta_res[cta_lr - 1];
-			cam_common_read_cmd(insC0, NULL);
+		uchar cmd[MAX_LEN];
+		memcpy(cmd, ins4C, 5);
+		memcpy(cmd + 5, ecm + 5, ins4C[4]);
+		cam_common_cmd2card(cmd, 5 + ins4C[4], result, sizeof(result), &result_size);
+		if (result[result_size - 2] == 0x9f) {
+			insC0[4] = result[result_size - 1];
+			cam_common_cmd2card(insC0, sizeof(insC0), result, sizeof(result), &result_size);
 			for (i = 0; i < secLen && r < 2;) {
-				int n = cta_res[i + 1];
+				int n = result[i + 1];
 
-				switch (cta_res[i]) {
+				switch (result[i]) {
 					case 0x80:
 						cs_debug("cryptoworks: nano 80 (serial)");
 						break;
 					case 0xD4:
 						cs_debug("smartcardcryptoworks: nano D4 (rand)");
-						if (n < 8 || memcmp(&cta_res[i], nanoD4, sizeof (nanoD4)))
+						if (n < 8 || memcmp(&result[i], nanoD4, sizeof (nanoD4)))
 							cs_debug("cryptoworks: random data check failed after decrypt");
 						break;
 					case 0xDB:	// CW
 						cs_debug("smartcardcryptoworks: nano DB (cw)");
 						if (n == 0x10) {
-							memcpy(er->cw, &cta_res[i + 2], 16);
+							memcpy(er->cw, &result[i + 2], 16);
 							r |= 1;
 						}
 						break;
 					case 0xDF:	// signature
 						cs_debug("cryptoworks: nano DF %02x (sig)", n);
 						if (n == 0x08) {
-							if ((cta_res[i + 2] & 0x50) == 0x50 && !(cta_res[i + 3] & 0x01) && (cta_res[i + 5] & 0x80))
+							if ((result[i + 2] & 0x50) == 0x50 && !(result[i + 3] & 0x01) && (result[i + 5] & 0x80))
 								r |= 2;
 						} else if (n == 0x40)	// camcrypt
 						{
 							if (ucpk_valid) {
-								RSA(&cta_res[i + 2], &cta_res[i + 2], n, &exp, &ucpk, 0);
+								RSA(&result[i + 2], &result[i + 2], n, &exp, &ucpk, 0);
 								cs_debug("smartcardcryptoworks: after camcrypt ");
 								r = 0;
 								secLen = n - 4;
@@ -403,7 +424,7 @@ int cryptoworks_do_ecm(ECM_REQUEST * er)
 						}
 						break;
 					default:
-						cs_debug("smartcardcryptoworks: nano %02x (unhandled)", cta_res[i]);
+						cs_debug("smartcardcryptoworks: nano %02x (unhandled)", result[i]);
 						break;
 				}
 				i += n + 2;
@@ -411,11 +432,11 @@ int cryptoworks_do_ecm(ECM_REQUEST * er)
 		}
 #ifdef LALL
 #  #######################################################################
-		if ((cta_res[cta_lr - 2] == 0x9f) && (cta_res[cta_lr - 1] == 0x1c)) {
-			cam_common_read_cmd(insC0, NULL);
-			if ((cta_lr > 26) && (cta_res[cta_lr - 2] == 0x90) && (cta_res[cta_lr - 1] == 0)) {
-				if (rc = (((cta_res[20] & 0x50) == 0x50) && (!(cta_res[21] & 0x01)) && (cta_res[23] & 0x80)))
-					memcpy(er->cw, cta_res + 2, 16);
+		if ((result[result_size - 2] == 0x9f) && (result[result_size - 1] == 0x1c)) {
+			cam_common_cmd2card(insC0, sizeof(insC0), result, sizeof(result), &result_size);
+			if ((result_size > 26) && (result[result_size - 2] == 0x90) && (result[result_size - 1] == 0)) {
+				if (rc = (((result[20] & 0x50) == 0x50) && (!(result[21] & 0x01)) && (result[23] & 0x80)))
+					memcpy(er->cw, result + 2, 16);
 			}
 		}
 #endif
@@ -429,6 +450,10 @@ int cryptoworks_do_emm(EMM_PACKET * ep)
 	uchar insEMM_GA[] = { 0xA4, 0x44, 0x00, 0x00, 0x00 };
 	uchar insEMM_SA[] = { 0xA4, 0x48, 0x00, 0x00, 0x00 };
 	uchar insEMM_UA[] = { 0xA4, 0x42, 0x00, 0x00, 0x00 };
+	uchar cmd[MAX_LEN];
+	uchar result[260];
+	ushort result_size;
+
 	int rc = 0;
 	uchar *emm = ep->emm;
 
@@ -436,8 +461,8 @@ int cryptoworks_do_emm(EMM_PACKET * ep)
 	   if ((emm[0]==0x8f) && (emm[3]==0xa4))              // emm via camd3.5x
 	   {    
 	   ep->type=emm[4];
-	   cam_common_write_cmd(emm+3, emm+3+CMD_LEN);
-	   if ((cta_lr==2) && (cta_res[0]==0x90) && (cta_res[1]==0))
+	   cam_common_cmd2card(emm+3, ep->l - 3, result, &result_size);
+	   if ((result_size==2) && (result[0]==0x90) && (result[1]==0))
 	   rc=1;
 	   }
 	 */
@@ -452,8 +477,8 @@ int cryptoworks_do_emm(EMM_PACKET * ep)
 				ep->type = emm[4];
 				//cs_log("EMM Dump: CMD: %s", cs_hexdump(1, emm+3, 5)); 
 				//cs_log("EMM Dump: DATA: %s",cs_hexdump(1, emm+8, emm[7]));
-				cam_common_write_cmd(emm + 3, emm + 3 + CMD_LEN);
-				rc = ((cta_res[0] == 0x90) && (cta_res[1] == 0x00));
+				cam_common_cmd2card(emm + 3, 5 + emm[7], result, sizeof(result), &result_size);
+				rc = ((result[0] == 0x90) && (result[1] == 0x00));
 			}
 			break;
 
@@ -468,8 +493,10 @@ int cryptoworks_do_emm(EMM_PACKET * ep)
 				//cs_log("EMM Dump: IF: %02X == %02X",emm[7],(insEMM_GA[4]-3));                                                                 
 
 				if (emm[7] == insEMM_GA[4] - 3) {
-					cam_common_write_cmd(insEMM_GA, emm + 5);
-					rc = ((cta_res[0] == 0x90) && (cta_res[1] == 0x00));
+					memcpy(cmd, insEMM_GA, 5);
+					memcpy(cmd + 5, emm + 5, insEMM_GA[4]);
+					cam_common_cmd2card(cmd, 5 + insEMM_GA[4], result, sizeof(result), &result_size);
+					rc = ((result[0] == 0x90) && (result[1] == 0x00));
 				}
 			}
 			break;
@@ -484,8 +511,10 @@ int cryptoworks_do_emm(EMM_PACKET * ep)
 				//cs_log("EMM Dump: IF: %02X == %02X",emm[11],(insEMM_SA[4]-3));                                                                
 
 				if (emm[11] == insEMM_SA[4] - 3) {
-					cam_common_write_cmd(insEMM_SA, emm + 9);
-					rc = ((cta_res[0] == 0x90) && (cta_res[1] == 0x00));
+					memcpy(cmd, insEMM_SA, 5);
+					memcpy(cmd + 5, emm + 9, insEMM_SA[4]);
+					cam_common_cmd2card(cmd, 5 + insEMM_SA[4], result, sizeof(result), &result_size);
+					rc = ((result[0] == 0x90) && (result[1] == 0x00));
 				}
 			}
 			break;
@@ -501,8 +530,10 @@ int cryptoworks_do_emm(EMM_PACKET * ep)
 
 				if (emm[12] == insEMM_UA[4] - 3) {
 					//cryptoworks_send_pin(); //?? may be 
-					cam_common_write_cmd(insEMM_UA, emm + 10);
-					rc = ((cta_res[0] == 0x90) && (cta_res[1] == 0x00));
+					memcpy(cmd, insEMM_UA, 5);
+					memcpy(cmd + 5, emm + 10, insEMM_UA[4]);
+					cam_common_cmd2card(cmd, 5 + insEMM_UA[4], result, sizeof(result), &result_size);
+					rc = ((result[0] == 0x90) && (result[1] == 0x00));
 				}
 			}
 			break;
@@ -516,6 +547,8 @@ int cryptoworks_card_info()
 	int i;
 	uchar insA21[] = { 0xA4, 0xA2, 0x01, 0x00, 0x05, 0x8C, 0x00, 0x00, 0x00, 0x00 };
 	uchar insB2[] = { 0xA4, 0xB2, 0x00, 0x00, 0x00 };
+	uchar result[260];
+	ushort result_size;
 	char l_name[20 + 8] = ", name: ";
 
 	cs_log("card detected");
@@ -526,42 +559,42 @@ int cryptoworks_card_info()
 		select_file(0x1f, reader[ridx].prid[i][3]);	// select provider
 		select_file(0x0e, 0x11);	// read provider name
 		if (read_record(0xD6) >= 16) {
-			strncpy(l_name + 8, (const char *) cta_res + 2, sizeof (l_name) - 9);
+			strncpy(l_name + 8, (const char *) result + 2, sizeof (l_name) - 9);
 			l_name[sizeof (l_name)] = 0;
 			trim(l_name + 8);
 		}
 		l_name[0] = (l_name[8]) ? ',' : 0;
 		cs_ri_log("provider: %d, id: %02X%s", i + 1, reader[ridx].prid[i][3], l_name);
 		select_file(0x0f, 0x20);	// select provider class
-		cam_common_write_cmd(insA21, insA21 + 5);
-		if (cta_res[0] == 0x9f) {
-			insB2[4] = cta_res[1];
-			for (insB2[3] = 0; (cta_res[0] != 0x94) || (cta_res[1] != 0x2); insB2[3] = 1) {
-				cam_common_read_cmd(insB2, NULL);	// read chid
-				if (cta_res[0] != 0x94) {
+		cam_common_cmd2card(insA21, sizeof(insA21), result, sizeof(result), &result_size);
+		if (result[0] == 0x9f) {
+			insB2[4] = result[1];
+			for (insB2[3] = 0; (result[0] != 0x94) || (result[1] != 0x2); insB2[3] = 1) {
+				cam_common_cmd2card(insB2, sizeof(insB2), result, sizeof(result), &result_size);	// read chid
+				if (result[0] != 0x94) {
 					char ds[16], de[16];
 
-					chid_date(cta_res + 28, ds, sizeof (ds) - 1);
-					chid_date(cta_res + 30, de, sizeof (de) - 1);
-					cs_ri_log("chid: %02X%02X, date: %s - %s, name: %s", cta_res[6], cta_res[7], ds, de, trim((char *) cta_res + 10));
+					chid_date(result + 28, ds, sizeof (ds) - 1);
+					chid_date(result + 30, de, sizeof (de) - 1);
+					cs_ri_log("chid: %02X%02X, date: %s - %s, name: %s", result[6], result[7], ds, de, trim((char *) result + 10));
 				}
 			}
 		}
 		//================================================================================
 		//by KrazyIvan
 		select_file(0x0f, 0x00);	// select provider channel 
-		cam_common_write_cmd(insA21, insA21 + 5);
-		if (cta_res[0] == 0x9f) {
-			insB2[4] = cta_res[1];
-			for (insB2[3] = 0; (cta_res[0] != 0x94) || (cta_res[1] != 0x2); insB2[3] = 1) {
-				cam_common_read_cmd(insB2, NULL);	// read chid
-				if (cta_res[0] != 0x94) {
+		cam_common_cmd2card(insA21, sizeof(insA21), result, sizeof(result), &result_size);
+		if (result[0] == 0x9f) {
+			insB2[4] = result[1];
+			for (insB2[3] = 0; (result[0] != 0x94) || (result[1] != 0x2); insB2[3] = 1) {
+				cam_common_cmd2card(insB2, sizeof(insB2), result, sizeof(result), &result_size);	// read chid
+				if (result[0] != 0x94) {
 					char ds[16], de[16];
 
-					chid_date(cta_res + 28, ds, sizeof (ds) - 1);
-					chid_date(cta_res + 30, de, sizeof (de) - 1);
-					cta_res[27] = 0;
-					cs_ri_log("chid: %02X%02X, date: %s - %s, name: %s", cta_res[6], cta_res[7], ds, de, trim((char *) cta_res + 10));
+					chid_date(result + 28, ds, sizeof (ds) - 1);
+					chid_date(result + 30, de, sizeof (de) - 1);
+					result[27] = 0;
+					cs_ri_log("chid: %02X%02X, date: %s - %s, name: %s", result[6], result[7], ds, de, trim((char *) result + 10));
 				}
 			}
 		}

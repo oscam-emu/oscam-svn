@@ -1,9 +1,8 @@
 #ifndef __READER_SERIAL_H__
 #  define __READER_SERIAL_H__
 
-int reader_serial_chkicc(uchar *, int);
-int reader_serial_cmd2api(uchar *, int);
-int reader_serial_cmd2icc(uchar *, int);
+int reader_serial_cmd2card(uchar *, ushort, uchar *, ushort, ushort *);
+int reader_serial_cmd2reader(uchar *, ushort, uchar *, ushort, ushort *);
 
 int reader_serial_activate_card(uchar *, ushort *);
 int reader_serial_card_inserted();

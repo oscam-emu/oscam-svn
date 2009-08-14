@@ -291,7 +291,7 @@ static void card_get_ecm(ECM_REQUEST * er)
 		casc_process_ecm(er);
 		return;
 	}
-	er->rc = reader_common_send_ecm(er);
+	er->rc = reader_common_ecm2cam(er);
 	write_ecm_answer(fd_c2m, er);
 	//if(reader[ridx].typ=='r') reader[ridx].qlen--;
 }
@@ -326,7 +326,7 @@ static int card_do_emm(EMM_PACKET * ep)
 		}
 
 	if ((rc = ecs) < 2) {
-		rc = (proxy) ? 0 : reader_common_send_emm(ep);
+		rc = (proxy) ? 0 : reader_common_emm2cam(ep);
 		if (!ecs) {
 			i = card_store_emm(ep->emm, ep->type);
 			no = 1;
