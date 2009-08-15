@@ -23,6 +23,7 @@ static char *cs_ac = "oscam.ac";
 
 static char token[4096];
 
+//--- WARNING: cs_proto_type_t and cctag must use the same order ---//
 typedef enum cs_proto_type {
 	TAG_GLOBAL,		// must be first !
 	TAG_CAMD33,		// camd 3.3x
@@ -41,7 +42,8 @@ typedef enum cs_proto_type {
 	TAG_MONITOR		// monitor
 } cs_proto_type_t;
 
-static char *cctag[] = { "global", "monitor", "camd33", "camd35",
+//--- WARNING: cs_proto_type_t and cctag must use the same order ---//
+static char *cctag[] = { "global", "camd33", "camd35",
 	"newcamd", "radegast", "serial", "cs357x", "cs378x",
 #ifdef CS_WITH_GBOX
 	"gbox",
@@ -49,6 +51,7 @@ static char *cctag[] = { "global", "monitor", "camd33", "camd35",
 #ifdef CS_ANTICASC
 	"anticasc",
 #endif
+	"monitor",
 	NULL
 };
 
