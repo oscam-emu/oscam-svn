@@ -18,7 +18,7 @@ static void reader_common_nullcard()
 static int reader_common_activate_card(uchar *atr, ushort *atr_size)
 {
 	// TODO: detect if this is a serial reader
-	reader_serial_activate_card(atr, atr_size);
+	return reader_serial_activate_card(atr, atr_size);
 }
 
 static int reader_common_reset()
