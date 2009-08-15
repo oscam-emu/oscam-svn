@@ -159,7 +159,7 @@ int reader_serial_activate_card(uchar *atr, ushort *atr_size)
 	reader[ridx].init_history_pos = 0;
 	memset(reader[ridx].init_history, 0, sizeof (reader[ridx].init_history));
 #endif
-	cs_ri_log("ATR: %s", cs_hexdump(1, atr, atr_size));
+	cs_ri_log("ATR: %s", cs_hexdump(1, atr, *atr_size));
 	sleep(1);
 
 	return 1;
