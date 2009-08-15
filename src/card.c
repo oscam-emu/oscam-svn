@@ -1,5 +1,6 @@
 #include <globals.h>
 #include <card.h>
+#include <oscam.h>
 
 int ridx = 0, logfd = 0;
 
