@@ -122,7 +122,6 @@ int reader_serial_activate_card(uchar *atr, ushort *atr_size)
 	cmd[3] = CTBCS_P2_STATUS_ICC;
 	cmd[4] = 0x00;
 
-//	ret = reader_serial_cmd2reader(cmd, 11, result, sizeof(result), &result_size); warum 11 ??????
 	ret = reader_serial_cmd2reader(cmd, 5, result, sizeof(result), &result_size);
 	if (ret != OK) {
 		cs_log("Error getting status of terminal: %d", ret);
