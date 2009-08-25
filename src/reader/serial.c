@@ -88,7 +88,7 @@ int reader_serial_cmd2card(uchar *cmd, ushort cmd_size, uchar *result, ushort re
 	return reader_serial_do_api(0, cmd, cmd_size, result, result_max_size, result_size, D_DEVICE);
 }
 
-int reader_serial_cmd2reader(uchar *cmd, ushort cmd_size, uchar *result, ushort result_max_size, ushort *result_size)
+static int reader_serial_cmd2reader(uchar *cmd, ushort cmd_size, uchar *result, ushort result_max_size, ushort *result_size)
 {
 	return reader_serial_do_api(1, cmd, cmd_size, result, result_max_size, result_size, D_DEVICE);
 }
