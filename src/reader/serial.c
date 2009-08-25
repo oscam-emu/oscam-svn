@@ -112,21 +112,8 @@ int reader_serial_activate_card(uchar *atr, ushort *atr_size)
 		return 0;
 	}
 
-	/* Get Status of CardTerminal */
-	cmd[0] = CTBCS_CLA;
-	cmd[1] = CTBCS_INS_STATUS;
-	cmd[2] = CTBCS_P1_CT_KERNEL;
-	cmd[3] = CTBCS_P2_STATUS_ICC;
-	cmd[4] = 0x00;
-
-	ret = reader_serial_cmd2reader(cmd, 5, result, sizeof(result), &result_size);
-	if (ret != OK) {
-		cs_log("Error getting status of terminal: %d", ret);
-		return 0;
-	}
-
-	/* Check status of CardTerminal */
-	if (result[0] != CTBCS_DATA_STATUS_CARD_CONNECT) {
+	/* Check if card is inserted */
+	if (!reader_serial_card_is_inserted()) {
 		return 0;
 	}
 
@@ -177,6 +164,10 @@ int reader_serial_card_is_inserted()
 	cmd[4] = 0x00;
 
 	int ret = reader_serial_cmd2reader(cmd, 5, result, sizeof(result), &result_size);
+	if (ret != OK) {
+		cs_log("Error getting status of terminal: %d", ret);
+	}
+
 	return (ret == OK && result[0] == CTBCS_DATA_STATUS_CARD_CONNECT);
 }
 
