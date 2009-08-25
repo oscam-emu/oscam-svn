@@ -297,7 +297,7 @@ static void card_get_ecm(ECM_REQUEST * er)
 	//if(reader[ridx].typ=='r') reader[ridx].qlen--;
 }
 
-static void card_send_DCW(ECM_REQUEST * er)
+static void card_send_dcw(ECM_REQUEST * er)
 {
 	if ((er->rc < 10)) {
 		send_dcw(er);
@@ -442,7 +442,7 @@ static void card_do_pipe()
 			card_get_ecm((ECM_REQUEST *) ptr);
 			break;
 		case PIP_ID_DCW:
-			card_send_DCW((ECM_REQUEST *) ptr);
+			card_send_dcw((ECM_REQUEST *) ptr);
 			break;
 		case PIP_ID_EMM:
 			card_do_emm((EMM_PACKET *) ptr);
