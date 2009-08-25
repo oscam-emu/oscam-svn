@@ -5,32 +5,34 @@
 
 ushort cam_common_len4caid[256];		// table for guessing caid (by len)
 
-#define SC_IRDETO 1
-#define SC_CRYPTOWORKS 2
-#define SC_VIACCESS 3
-#define SC_CONAX 4
-#define SC_SECA 5
-#define SC_VIDEOGUARD2 6
+typedef enum cam_common_card_system {
+	CAM_IRDETO,
+	CAM_CRYPTOWORKS,
+	CAM_VIACCESS,
+	CAM_CONAX,
+	CAM_SECA,
+	CAM_VIDEOGUARD2
+} cam_common_card_system_t;
 
 void cam_common_card_info()
 {
 	switch (reader[ridx].card_system) {
-		case SC_IRDETO:
+		case CAM_IRDETO:
 			irdeto_card_info();
 			break;
-		case SC_CRYPTOWORKS:
+		case CAM_CRYPTOWORKS:
 			cryptoworks_card_info();
 			break;
-		case SC_VIACCESS:
+		case CAM_VIACCESS:
 			viaccess_card_info();
 			break;
-		case SC_CONAX:
+		case CAM_CONAX:
 			conax_card_info();
 			break;
-		case SC_VIDEOGUARD2:
+		case CAM_VIDEOGUARD2:
 			videoguard_card_info();
 			break;
-		case SC_SECA:
+		case CAM_SECA:
 			seca_card_info();
 			break;
 	}
@@ -39,17 +41,17 @@ void cam_common_card_info()
 int cam_common_get_cardsystem(uchar *atr, ushort atr_size)
 {
 	if (irdeto_card_init(atr, atr_size))
-		reader[ridx].card_system = SC_IRDETO;
+		reader[ridx].card_system = CAM_IRDETO;
 	if (conax_card_init(atr, atr_size))
-		reader[ridx].card_system = SC_CONAX;
+		reader[ridx].card_system = CAM_CONAX;
 	if (cryptoworks_card_init(atr, atr_size))
-		reader[ridx].card_system = SC_CRYPTOWORKS;
+		reader[ridx].card_system = CAM_CRYPTOWORKS;
 	if (seca_card_init(atr, atr_size))
-		reader[ridx].card_system = SC_SECA;
+		reader[ridx].card_system = CAM_SECA;
 	if (viaccess_card_init(atr, atr_size))
-		reader[ridx].card_system = SC_VIACCESS;
+		reader[ridx].card_system = CAM_VIACCESS;
 	if (videoguard_card_init(atr, atr_size))
-		reader[ridx].card_system = SC_VIDEOGUARD2;
+		reader[ridx].card_system = CAM_VIDEOGUARD2;
 	if (!reader[ridx].card_system)
 		cs_ri_log("card system not supported");
 
@@ -61,22 +63,22 @@ int cam_common_process_ecm(ECM_REQUEST * er)
 	int rc = -1;
 
 	switch (reader[ridx].card_system) {
-		case SC_IRDETO:
+		case CAM_IRDETO:
 			rc = (irdeto_do_ecm(er)) ? 1 : 0;
 			break;
-		case SC_CRYPTOWORKS:
+		case CAM_CRYPTOWORKS:
 			rc = (cryptoworks_do_ecm(er)) ? 1 : 0;
 			break;
-		case SC_VIACCESS:
+		case CAM_VIACCESS:
 			rc = (viaccess_do_ecm(er)) ? 1 : 0;
 			break;
-		case SC_CONAX:
+		case CAM_CONAX:
 			rc = (conax_do_ecm(er)) ? 1 : 0;
 			break;
-		case SC_SECA:
+		case CAM_SECA:
 			rc = (seca_do_ecm(er)) ? 1 : 0;
 			break;
-		case SC_VIDEOGUARD2:
+		case CAM_VIDEOGUARD2:
 			rc = (videoguard_do_ecm(er)) ? 1 : 0;
 			break;
 		default:
@@ -91,22 +93,22 @@ int cam_common_process_emm(EMM_PACKET * ep)
 	int rc = -1;
 
 	switch (reader[ridx].card_system) {
-		case SC_IRDETO:
+		case CAM_IRDETO:
 			rc = irdeto_do_emm(ep);
 			break;
-		case SC_CRYPTOWORKS:
+		case CAM_CRYPTOWORKS:
 			rc = cryptoworks_do_emm(ep);
 			break;
-		case SC_VIACCESS:
+		case CAM_VIACCESS:
 			rc = viaccess_do_emm(ep);
 			break;
-		case SC_CONAX:
+		case CAM_CONAX:
 			rc = conax_do_emm(ep);
 			break;
-		case SC_SECA:
+		case CAM_SECA:
 			rc = seca_do_emm(ep);
 			break;
-		case SC_VIDEOGUARD2:
+		case CAM_VIDEOGUARD2:
 			rc = videoguard_do_emm(ep);
 			break;
 		default:
