@@ -5,12 +5,8 @@
 
 #define CWS_NETMSGSIZE 272
 
-typedef unsigned char uint8;
-typedef unsigned short uint16;
-typedef unsigned int uint32;
-typedef unsigned long long uint64;
-
 #define CWS_FIRSTCMDNO 0xe0
+
 typedef enum {
 	MSG_CLIENT_2_SERVER_LOGIN = CWS_FIRSTCMDNO,
 	MSG_CLIENT_2_SERVER_LOGIN_ACK,
@@ -43,9 +39,9 @@ typedef enum {
 static uchar *req = 0;
 static int ncd_proto = NCD_AUTO;
 
-static int network_message_send(int handle, uint16 * netMsgId, uint8 * buffer, int len, uint8 * deskey, comm_type_t commType, ushort sid)
+static int network_message_send(int handle, ushort * netMsgId, uchar * buffer, int len, uchar * deskey, comm_type_t commType, ushort sid)
 {
-	uint8 netbuf[CWS_NETMSGSIZE];
+	uchar netbuf[CWS_NETMSGSIZE];
 	int head_size;
 
 	head_size = (ncd_proto == NCD_524) ? 8 : 12;
@@ -85,10 +81,10 @@ static int network_message_send(int handle, uint16 * netMsgId, uint8 * buffer, i
 	return send(handle, netbuf, len, 0);
 }
 
-static int network_message_receive(int handle, uint16 * netMsgId, uint8 * buffer, uint8 * deskey, comm_type_t commType)
+static int network_message_receive(int handle, ushort * netMsgId, uchar * buffer, uchar * deskey, comm_type_t commType)
 {
 	int len, ncd_off, msgid;
-	uint8 netbuf[CWS_NETMSGSIZE];
+	uchar netbuf[CWS_NETMSGSIZE];
 	int returnLen;
 
 	if (!buffer || handle < 0)
@@ -187,18 +183,18 @@ static int network_message_receive(int handle, uint16 * netMsgId, uint8 * buffer
 	return returnLen + 2;
 }
 
-static void network_cmd_no_data_send(int handle, uint16 * netMsgId, net_msg_type_t cmd, uint8 * deskey, comm_type_t commType)
+static void network_cmd_no_data_send(int handle, ushort * netMsgId, net_msg_type_t cmd, uchar * deskey, comm_type_t commType)
 {
-	uint8 buffer[CWS_NETMSGSIZE];
+	uchar buffer[CWS_NETMSGSIZE];
 
 	buffer[0] = cmd;
 	buffer[1] = 0;
 	network_message_send(handle, netMsgId, buffer, 3, deskey, commType, 0);
 }
 
-static int network_cmd_no_data_receive(int handle, uint16 * netMsgId, uint8 * deskey, comm_type_t commType)
+static int network_cmd_no_data_receive(int handle, ushort * netMsgId, uchar * deskey, comm_type_t commType)
 {
-	uint8 buffer[CWS_NETMSGSIZE];
+	uchar buffer[CWS_NETMSGSIZE];
 
 	if (network_message_receive(handle, netMsgId, buffer, deskey, commType) != 3 + 2)
 		return -1;
@@ -277,7 +273,7 @@ int connect_nonb(int sockfd, const struct sockaddr *saptr, socklen_t salen, int 
 	return (0);
 }
 
-int network_tcp_connection_open(uint8 * hostname, uint16 port)
+int network_tcp_connection_open(uchar * hostname, ushort port)
 {
 	int flags;
 
@@ -304,15 +300,15 @@ void newcamd_reply_ka()
 
 static int connect_newcamd_server()
 {
-	uint32 i;
-	uint8 buf[CWS_NETMSGSIZE];
-	uint8 keymod[14];
-	uint8 *key;
+	uint i;
+	uchar buf[CWS_NETMSGSIZE];
+	uchar keymod[14];
+	uchar *key;
 	int handle = 0;
 
-	uint32 index;
-	uint8 *passwdcrypt;
-	uint8 login_answer;
+	uint index;
+	uchar *passwdcrypt;
+	uchar login_answer;
 	int bytes_received;
 
 	if (reader[ridx].device[0] == 0 || reader[ridx].r_pwd[0] == 0 || reader[ridx].r_usr[0] == 0 || reader[ridx].r_port == 0)
@@ -320,7 +316,7 @@ static int connect_newcamd_server()
 
 	// 1. Connect
 	//
-	handle = network_tcp_connection_open((uint8 *) reader[ridx].device, reader[ridx].r_port);
+	handle = network_tcp_connection_open((uchar *) reader[ridx].device, reader[ridx].r_port);
 	if (handle < 0)
 		return -1;
 
@@ -341,7 +337,7 @@ static int connect_newcamd_server()
 	buf[0] = MSG_CLIENT_2_SERVER_LOGIN;
 	buf[1] = 0;
 	strcpy((char *) buf + index, reader[ridx].r_usr);
-	passwdcrypt = (uint8 *) __md5_crypt(reader[ridx].r_pwd, "$1$abcdefgh$");
+	passwdcrypt = (uchar *) __md5_crypt(reader[ridx].r_pwd, "$1$abcdefgh$");
 	index += strlen(reader[ridx].r_usr) + 1;
 	strcpy((char *) buf + index, (const char *) passwdcrypt);
 
@@ -612,7 +608,7 @@ static int newcamd_auth_client(in_addr_t ip)
 	struct s_auth *account;
 	uchar buf[14];
 	uchar *key = 0;
-	uint8 *passwdcrypt = NULL;
+	uchar *passwdcrypt = NULL;
 	int au;
 
 	// make random 14 bytes
@@ -651,7 +647,7 @@ static int newcamd_auth_client(in_addr_t ip)
 	for (ok = 0, account = cfg->account; (usr) && (account) && (!ok); account = account->next) {
 		cs_debug("account->usr=%s", account->usr);
 		if (strcmp((char *) usr, account->usr) == 0) {
-			passwdcrypt = (uint8 *) __md5_crypt(account->pwd, "$1$abcdefgh$");
+			passwdcrypt = (uchar *) __md5_crypt(account->pwd, "$1$abcdefgh$");
 			cs_debug("account->pwd=%s", passwdcrypt);
 			if (strcmp((char *) pwd, (const char *) passwdcrypt) == 0) {
 				client[cs_idx].crypted = 1;
