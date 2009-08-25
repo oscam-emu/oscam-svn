@@ -21,11 +21,11 @@ extern "C" {
 
 	extern char CT_init(unsigned short Ctn,	/* Terminal Number */
 			    unsigned short pn,	/* Port Number */
-			    int reader_type	/* reader type (mouse, smartreader)
-						   );
+			    int reader_type	/* reader type (mouse, smartreader) */
+		);
 
-						   extern char CT_close(
-						   unsigned short Ctn                  /* Terminal Number */
+	extern char CT_close(
+			    unsigned short Ctn  /* Terminal Number */
 		);
 
 	extern char CT_data(unsigned short ctn,	/* Terminal Number */
