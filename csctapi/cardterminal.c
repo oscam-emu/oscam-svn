@@ -383,7 +383,6 @@ static char CardTerminal_ResetCT(CardTerminal * ct, APDU_Cmd * cmd, APDU_Rsp ** 
 
 				buffer[length] = CTBCS_SW1_RESET_ASYNC_OK;
 				buffer[length + 1] = CTBCS_SW2_RESET_ASYNC_OK;
-//                              buffer[length + 1] = ct->slots[sn]->protocol_type;
 				length += 2;
 			}
 		} else if (p2 == CTBCS_P2_RESET_GET_HIST) {	/* Return historical bytes of ATR */
