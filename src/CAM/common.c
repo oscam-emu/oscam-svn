@@ -184,7 +184,13 @@ void cam_common_guess_card_system(ECM_REQUEST * er)
 		uchar  b3;
 		int    b47;
 		//ushort chid;
-		struct s_irdeto_quess *ptr;
+		struct s_irdeto_guess {
+			int b47;
+			ushort caid;
+			ushort sid;
+			struct s_irdeto_quess *next;
+		};
+		struct s_irdeto_guess *ptr;
 
 		b3  = er->ecm[3];
 		ptr = cfg->itab[b3];

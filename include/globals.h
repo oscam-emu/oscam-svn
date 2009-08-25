@@ -270,13 +270,6 @@ struct s_module {
 	PTAB *ptab;
 };
 
-struct s_irdeto_quess {
-	int b47;
-	ushort caid;
-	ushort sid;
-	struct s_irdeto_quess *next;
-};
-
 struct s_client {
 	pid_t pid;
 	in_addr_t ip;
@@ -490,7 +483,6 @@ struct s_config {
 	int maxdist;
 	int num_locals;
 	unsigned long locals[CS_MAXLOCALS];
-//      struct s_irdeto_quess *itab[0xff];
 #  ifdef CS_ANTICASC
 	char ac_enabled;
 	int ac_users;		// num of users for account (0 - default)
