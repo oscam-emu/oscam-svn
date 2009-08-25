@@ -117,6 +117,7 @@ int reader_serial_activate_card(uchar *atr, ushort *atr_size)
 		return 0;
 	}
 
+	/* Get Status of CardTerminal */
 	cmd[0] = CTBCS_CLA;
 	cmd[1] = CTBCS_INS_STATUS;
 	cmd[2] = CTBCS_P1_CT_KERNEL;
@@ -128,13 +129,17 @@ int reader_serial_activate_card(uchar *atr, ushort *atr_size)
 		cs_log("Error getting status of terminal: %d", ret);
 		return 0;
 	}
+
+	/* Check status of CardTerminal */
 	if (result[0] != CTBCS_DATA_STATUS_CARD_CONNECT) {
 		return 0;
 	}
 
-	/* Activate card */
+	/* Try to get ATR from card */
 	for (i = 1; i <= 5; i++) {
 		reader_serial_irdeto_mode = i % 2;
+
+		/* Request ICC */
 		cmd[0] = CTBCS_CLA;
 		cmd[1] = CTBCS_INS_REQUEST;
 		cmd[2] = CTBCS_P1_INTERFACE1;
@@ -155,7 +160,7 @@ int reader_serial_activate_card(uchar *atr, ushort *atr_size)
 		}
 	}
 
-	/* Store ATR */
+	/* Store Answer to Reset */
 	*atr_size = result_size - 2;
 	memcpy(atr, result, *atr_size);
 	cs_ri_log("ATR: %s", cs_hexdump(1, atr, *atr_size));
