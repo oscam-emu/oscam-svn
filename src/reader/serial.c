@@ -174,14 +174,15 @@ int reader_serial_card_inserted()
 	uchar result[260];
 	ushort result_size;
 
+	/* Get Status of CardTerminal */
 	cmd[0] = CTBCS_CLA;
 	cmd[1] = CTBCS_INS_STATUS;
-	cmd[2] = CTBCS_P1_INTERFACE1;
+	cmd[2] = CTBCS_P1_CT_KERNEL;
 	cmd[3] = CTBCS_P2_STATUS_ICC;
 	cmd[4] = 0x00;
 
-	int rc = reader_serial_check_for_card(cmd, 5, result, sizeof(result), &result_size);
-	return rc ? 0 : result[0];
+	int ret = reader_serial_check_for_card(cmd, 5, result, sizeof(result), &result_size);
+	return (ret == OK && result[0] == CTBCS_DATA_STATUS_CARD_CONNECT);
 }
 
 int reader_serial_device_init(char *device, int typ)
