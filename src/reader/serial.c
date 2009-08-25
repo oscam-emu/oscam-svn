@@ -106,6 +106,7 @@ int reader_serial_activate_card(uchar *atr, ushort *atr_size)
 	uchar result[260];
 	ushort result_size;
 
+	/* Reset CardTerminal */
 	cmd[0] = CTBCS_INS_RESET;
 	cmd[1] = CTBCS_P2_RESET_GET_ATR;
 	cmd[2] = 0x00;
@@ -132,9 +133,8 @@ int reader_serial_activate_card(uchar *atr, ushort *atr_size)
 	}
 
 	/* Activate card */
-//	for (i = 0; i < 5 && ((ret!=OK) || (result[result_size-2]!=0x90)) ; i++)
-	for (i = 0; i < 5; i++) {
-		reader_serial_irdeto_mode = i % 2 == 1;
+	for (i = 1; i <= 5; i++) {
+		reader_serial_irdeto_mode = i % 2;
 		cmd[0] = CTBCS_CLA;
 		cmd[1] = CTBCS_INS_REQUEST;
 		cmd[2] = CTBCS_P1_INTERFACE1;
@@ -142,23 +142,23 @@ int reader_serial_activate_card(uchar *atr, ushort *atr_size)
 		cmd[4] = 0x00;
 
 		ret = reader_serial_cmd2reader(cmd, 5, result, sizeof(result), &result_size);
-		if (ret == OK || result[result_size - 2] == 0x90) {
-			i = 100;
+		if (ret == OK && result_size > 0) {
 			break;
-		}
+		} else {
+			cs_log("Error activating card: %d", ret);
+			cs_sleepms(500);
 
-		cs_log("Error activating card: %d", ret);
-		cs_sleepms(500);
-	}
-	if (i < 100) {
-		return 0;
+			/* Cannot get the ATR */
+			if (i == 5) {
+				return 0;
+			}
+		}
 	}
 
 	/* Store ATR */
 	*atr_size = result_size - 2;
 	memcpy(atr, result, *atr_size);
 	cs_ri_log("ATR: %s", cs_hexdump(1, atr, *atr_size));
-	sleep(1);
 
 	return 1;
 }
