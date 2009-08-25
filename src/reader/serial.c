@@ -25,10 +25,10 @@ static int reader_serial_device_type(char *device, int typ)
 			if (!stat(device, &sb)) {
 				if (S_ISCHR(sb.st_mode)) {
 					int dev_major, dev_minor;
-
 					dev_major = major(sb.st_rdev);
 					dev_minor = minor(sb.st_rdev);
-					if ((cs_hw == CS_HW_DBOX2) && ((dev_major == 4) || (dev_major == 5)))
+
+					if ((cs_hw == CS_HW_DBOX2) && ((dev_major == 4) || (dev_major == 5))) {
 						switch (dev_minor & 0x3F) {
 							case 0:
 								rc = PORT_DB2COM1;
@@ -37,11 +37,14 @@ static int reader_serial_device_type(char *device, int typ)
 								rc = PORT_DB2COM2;
 								break;
 						}
+					}
+
 					cs_debug("device is major: %d, minor: %d, typ=%d", dev_major, dev_minor, rc);
 				}
 			}
 #endif
 			break;
+
 		case R_INTERN:
 			rc = PORT_SCI;
 			break;
