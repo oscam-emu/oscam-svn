@@ -11,20 +11,19 @@ int reader_serial_irdeto_mode;		// UGLY : to be removed
 int reader_serial_card_detect;		// UGLY : to be removed
 int reader_serial_mhz;			// UGLY : to be removed
 
-static int reader_serial_device_type(char *device, int typ)
+static int reader_serial_port_number(struct s_reader *reader)
 {
-	int rc = PORT_STD;
-
+	ushort pn = PORT_STD;
 #ifdef TUXBOX
 	struct stat sb;
 #endif
 
-	switch (reader[ridx].typ) {
+	switch (reader->typ) {
 		case R_MOUSE:
 		case R_SMART:
-			rc = PORT_STD;
+			pn = PORT_STD;
 #ifdef TUXBOX
-			if (!stat(device, &sb)) {
+			if (!stat(reader->device, &sb)) {
 				if (S_ISCHR(sb.st_mode)) {
 					int dev_major, dev_minor;
 					dev_major = major(sb.st_rdev);
@@ -33,26 +32,26 @@ static int reader_serial_device_type(char *device, int typ)
 					if ((cs_hw == CS_HW_DBOX2) && ((dev_major == 4) || (dev_major == 5))) {
 						switch (dev_minor & 0x3F) {
 							case 0:
-								rc = PORT_DB2COM1;
+								pn = PORT_DB2COM1;
 								break;
 							case 1:
-								rc = PORT_DB2COM2;
+								pn = PORT_DB2COM2;
 								break;
 						}
 					}
 
-					cs_debug("device is major: %d, minor: %d, typ=%d", dev_major, dev_minor, rc);
+					cs_debug("device is major: %d, minor: %d, pn=%d", dev_major, dev_minor, pn);
 				}
 			}
 #endif
 			break;
 
 		case R_INTERN:
-			rc = PORT_SCI;
+			pn = PORT_SCI;
 			break;
 	}
 
-	return rc;
+	return pn;
 }
 
 static int reader_serial_do_api(uchar dad, uchar *cmd, ushort cmd_size, uchar *result, ushort result_max_size, ushort *result_size, int dbg)
@@ -69,7 +68,7 @@ static int reader_serial_do_api(uchar dad, uchar *cmd, ushort cmd_size, uchar *r
 
 //	cs_ddump(cmd, cmd_size, "send %d bytes to ctapi", cmd_size);
 
-	// Call CSCTAPI
+	// Call CT-API
 	rc = CT_data(
 		CTAPI_CTN,	/* Terminal Number */
 		&dad,		/* Destination */
@@ -179,7 +178,7 @@ int reader_serial_init(struct s_reader *reader)
 {
 	int rc;
 
-	// Set some extern var to be used by csctapi
+	// Set some extern variables to be used by CT-API
 	snprintf(reader_serial_device, sizeof (reader_serial_device), "%s", reader->device);
 	reader_serial_card_detect = reader->detect;
 	reader_serial_mhz = reader->mhz;
@@ -188,7 +187,8 @@ int reader_serial_init(struct s_reader *reader)
 	int cs_ptyp_orig = cs_ptyp;
 	cs_ptyp = D_DEVICE;
 
-	ushort pn = reader_serial_device_type(reader->device, reader->typ);
+	// Lookup Port Number
+	ushort pn = reader_serial_port_number(reader);
 	if ((rc = CT_init(CTAPI_CTN, pn, reader->typ)) != OK) {
 		cs_log("Cannot open device: %s", reader->device);
 	}
