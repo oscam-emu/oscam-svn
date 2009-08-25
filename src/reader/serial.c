@@ -163,7 +163,7 @@ int reader_serial_activate_card(uchar *atr, ushort *atr_size)
 	return 1;
 }
 
-int reader_serial_card_inserted()
+int reader_serial_card_is_inserted()
 {
 	uchar cmd[5];
 	uchar result[260];

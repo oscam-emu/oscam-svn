@@ -40,7 +40,7 @@ static int reader_common_reset()
 	return rc;
 }
 
-static int reader_common_card_inserted()
+static int reader_common_card_is_inserted()
 {
 	/* Check that we don't have "disabled" this reader */
 	char filename[255];
@@ -52,7 +52,7 @@ static int reader_common_card_inserted()
 	if (file_exists(filename)) return 0;
 
 	// TODO: detect if this is a serial reader
-	return reader_serial_card_inserted();
+	return reader_serial_card_is_inserted();
 }
 
 int reader_common_device_init(char *device, int type)
@@ -74,7 +74,7 @@ void reader_common_card_info()
 
 int reader_common_check_health()
 {
-	if (reader_common_card_inserted()) {
+	if (reader_common_card_is_inserted()) {
 		if (!(reader[ridx].card_status & CARD_INSERTED)) {
 			cs_log("card detected");
 			reader[ridx].card_status = CARD_NEED_INIT;
