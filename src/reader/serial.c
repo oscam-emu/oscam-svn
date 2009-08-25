@@ -30,7 +30,7 @@ static ushort reader_serial_get_reader_type(struct s_reader *reader)
 					dev_major = major(sb.st_rdev);
 					dev_minor = minor(sb.st_rdev);
 
-					if ((cs_hw == CS_HW_DBOX2) && ((dev_major == 4) || (dev_major == 5))) {
+					if (cs_hw == CS_HW_DBOX2 && (dev_major == 4 || dev_major == 5)) {
 						switch (dev_minor & 0x3F) {
 							case 0:
 								reader_type = RTYP_DB2COM1;
