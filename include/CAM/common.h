@@ -11,7 +11,7 @@ int cam_common_process_emm(EMM_PACKET *);
 
 int cam_common_cmd2card(uchar *, ushort, uchar *, ushort, ushort *);
 
-ulong chk_provid(uchar *, ushort);
+ulong cam_common_get_provider_id(uchar *, ushort);
 void cam_common_guess_card_system(ECM_REQUEST *);
 
 #endif // __CAM_COMMON_H__
