@@ -7,7 +7,7 @@ int init_readerdb();
 int init_sidtab();
 int init_srvid();
 int search_boxkey(ushort, ulong, char *);
-void init_len4caid();
+void init_cam_common_len4caid();
 int init_irdeto_guess_tab();
 
 #  ifdef CS_ANTICASC

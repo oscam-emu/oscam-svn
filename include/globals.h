@@ -550,7 +550,7 @@ extern int pfd, rfd, fd_c2m, fd_m2c, cs_idx, *c_start, cs_ptyp, cs_dblevel, cs_h
 extern int *logidx, *loghistidx, *log_fd;
 extern int is_server, *mcl;
 extern uchar mbuf[1024];
-extern ushort len4caid[256];
+extern ushort cam_common_len4caid[256];
 extern pid_t master_pid;
 extern struct s_ecm *ecmcache;
 extern struct s_client *client;
