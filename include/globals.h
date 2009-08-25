@@ -239,7 +239,6 @@ struct s_ecm {
 	ushort caid;
 	ulong prid;
 	ulong grp;
-//      int level;
 };
 
 struct s_emm {
@@ -249,13 +248,11 @@ struct s_emm {
 };
 
 struct s_module {
-//      int fd;
 	int multi;
 	int type;
 	int watchdog;
 	char desc[16];
 	char *logtxt;
-//      int s_port;
 	in_addr_t s_ip;
 	void (*s_handler) ();
 	int (*recv) ();
@@ -494,15 +491,12 @@ struct s_config {
 	char ac_logfile[128];
 	struct s_cpmap *cpmap;
 #  endif
-//  struct s_reader reader[];
 };
 
 typedef struct ecm_request_t {
-
 	uchar ecm[256];
 	uchar cw[16];
 	uchar ecmd5[CS_ECMSTORESIZE];
-//      uchar l;
 	short l;
 	ushort caid;
 	ushort ocaid;
