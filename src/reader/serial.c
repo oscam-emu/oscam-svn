@@ -61,7 +61,7 @@ static ushort reader_serial_get_reader_type(struct s_reader *reader)
 
 static int reader_serial_do_api(uchar dad, uchar *cmd, ushort cmd_size, uchar *result, ushort result_max_size, ushort *result_size, int dbg)
 {
-	int rc;
+	char ret;
 	uchar sad = 2;
 
 	// Set result_size to the size of the result buffer (result_max_size)
@@ -74,7 +74,7 @@ static int reader_serial_do_api(uchar dad, uchar *cmd, ushort cmd_size, uchar *r
 //	cs_ddump(cmd, cmd_size, "send %d bytes to ctapi", cmd_size);
 
 	// Call CT-API
-	rc = CT_data(
+	ret = CT_data(
 		CTAPI_CTN,	/* Terminal Number */
 		&dad,		/* Destination */
 		&sad,		/* Source */
@@ -83,12 +83,12 @@ static int reader_serial_do_api(uchar dad, uchar *cmd, ushort cmd_size, uchar *r
 		result_size,	/* Length of Response */
 		result);	/* Response */
 
-//	cs_ddump(result, *result_size, "received %d bytes from ctapi with rc=%d", *result_size, rc);
+//	cs_ddump(result, *result_size, "received %d bytes from ctapi with ret=%d", *result_size, ret);
 
 	// Restore cs_ptyp
 	cs_ptyp = cs_ptyp_orig;
 
-	return rc;
+	return ret;
 }
 
 int reader_serial_cmd2card(uchar *cmd, ushort cmd_size, uchar *result, ushort result_max_size, ushort *result_size)
@@ -171,7 +171,7 @@ int reader_serial_card_is_inserted()
 	cmd[3] = CTBCS_P2_STATUS_ICC;
 	cmd[4] = 0x00;
 
-	int ret = reader_serial_cmd2reader(cmd, 5, result, sizeof(result), &result_size);
+	char ret = reader_serial_cmd2reader(cmd, 5, result, sizeof(result), &result_size);
 	if (ret != OK) {
 		cs_log("Error getting status of terminal: %d", ret);
 	}
@@ -181,7 +181,7 @@ int reader_serial_card_is_inserted()
 
 int reader_serial_init(struct s_reader *reader)
 {
-	int rc;
+	char ret;
 
 	// Set some extern variables to be used by CT-API
 	snprintf(reader_serial_device, sizeof (reader_serial_device), "%s", reader->device);
@@ -194,13 +194,13 @@ int reader_serial_init(struct s_reader *reader)
 
 	// Lookup Port Number
 	ushort reader_type = reader_serial_get_reader_type(reader);
-	if ((rc = CT_init(CTAPI_CTN, PORT_COM1, reader_type)) != OK) {
+	if ((ret = CT_init(CTAPI_CTN, PORT_COM1, reader_type)) != OK) {
 		cs_log("Cannot open device: %s", reader->device);
 	}
-	cs_debug("CT_init on %s: %d", reader->device, rc);
+	cs_debug("CT_init on %s: %d", reader->device, ret);
 
 	// Restore cs_ptyp
 	cs_ptyp = cs_ptyp_orig;
 
-	return (rc != OK) ? 2 : 0;
+	return ret == OK;
 }
