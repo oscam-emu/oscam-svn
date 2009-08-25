@@ -515,7 +515,7 @@ bool IO_Serial_SetProperties(IO_Serial * io, IO_Serial_Properties * props)
 #endif
 		if (!IO_Serial_Set_Smartreader_Freq(io, reader_serial_mhz, reader_serial_irdeto_mode)) {
 #ifdef DEBUG_IO
-			printf("IO: SMARTREADER .. ERROR switching to 6MHz\n");
+			printf("IO: SMARTREADER .. ERROR switching to %2.2fMHz\n", (float) reader_serial_mhz / 100.0);
 #endif
 			return FALSE;
 		}
