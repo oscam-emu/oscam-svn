@@ -25,7 +25,7 @@ static int reader_common_reset()
 {
 	reader_common_nullcard();
 
-	uchar atr[64];
+	uchar atr[33];		// Max 33 bytes according to ISO/IEC 7816-3
 	ushort atr_size = 0;
 	if (!reader_common_activate_card(atr, &atr_size))
 		return 0;
