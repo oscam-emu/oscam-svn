@@ -554,13 +554,13 @@ static void chk_token(char *token, char *value, int tag)
 	}
 }
 
-void init_len4caid()
+void init_cam_common_len4caid()
 {
 	int nr;
 	FILE *fp;
 	char *value;
 
-	memset(len4caid, 0, sizeof (ushort) << 8);
+	memset(cam_common_len4caid, 0, sizeof (ushort) << 8);
 	sprintf(token, "%s%s", cs_confdir, cs_l4ca);
 	if (!(fp = fopen(token, "r")))
 		return;
@@ -582,7 +582,7 @@ void init_len4caid()
 		if ((c = word_atob(value)) < 0)
 			continue;
 //printf("idx %02X = %04X\n", i, c); fflush(stdout);
-		len4caid[i] = c;
+		cam_common_len4caid[i] = c;
 		nr++;
 	}
 	fclose(fp);

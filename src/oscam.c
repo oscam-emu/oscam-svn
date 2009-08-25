@@ -2002,7 +2002,7 @@ int main(int argc, char *argv[])
 	init_signal();
 	cs_set_mloc(30, "init");
 	init_srvid();
-	init_len4caid();
+	init_cam_common_len4caid();
 	cs_init_statistics(cfg->usrfile);
 
 	if (pipe(fdp)) {

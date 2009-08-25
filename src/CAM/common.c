@@ -3,7 +3,7 @@
 
 #include <reader/common.h>
 
-ushort len4caid[256];		// table for guessing caid (by len)
+ushort cam_common_len4caid[256];		// table for guessing caid (by len)
 
 #define SC_IRDETO 1
 #define SC_CRYPTOWORKS 2
@@ -212,7 +212,7 @@ void guess_cardsystem(ECM_REQUEST * er)
 */
 
 	if (!er->caid)	// guess by len ..
-		er->caid = len4caid[er->ecm[2] + 3];
+		er->caid = cam_common_len4caid[er->ecm[2] + 3];
 
 	if (!er->caid)
 		er->caid = last_hope;
