@@ -1567,7 +1567,7 @@ void get_cw(ECM_REQUEST * er)
 		er->chid = (er->ecm[6] << 8) | er->ecm[7];
 
 	if (!er->prid)
-		er->prid = chk_provid(er->ecm, er->caid);
+		er->prid = cam_common_get_provider_id(er->ecm, er->caid);
 
 // quickfix for 0100:000065
 	if (er->caid == 0x100 && er->prid == 0x65 && er->srvid == 0)

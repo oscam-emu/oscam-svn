@@ -133,7 +133,7 @@ int cam_common_cmd2card(uchar *cmd, ushort cmd_size, uchar *result, ushort resul
 	return reader_common_cmd2card(cmd, cmd_size, result, result_max_size, result_size);
 }
 
-ulong chk_provid(uchar * ecm, ushort caid)
+ulong cam_common_get_provider_id(uchar *ecm, ushort caid)
 {
 	int i;
 	ulong provid = 0;
@@ -162,7 +162,7 @@ void cam_common_guess_card_system(ECM_REQUEST * er)
 	ushort last_hope = 0;
 
 	// viaccess - check by provid-search
-	if ((er->prid = chk_provid(er->ecm, 0x500)))
+	if ((er->prid = cam_common_get_provider_id(er->ecm, 0x500)))
 		er->caid = 0x500;
 
 	// nagra
