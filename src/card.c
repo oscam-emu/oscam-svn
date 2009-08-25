@@ -515,7 +515,7 @@ void start_cardreader()
 			reader[ridx].ph.c_init_log();
 	} else {
 		client[cs_idx].ip = cs_inet_addr("127.0.0.1");
-		if (reader_common_device_init(reader[ridx].device, reader[ridx].typ))
+		if (reader_common_init(&reader[ridx]))
 			cs_exit(1);
 	}
 

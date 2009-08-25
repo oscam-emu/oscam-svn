@@ -175,24 +175,24 @@ int reader_serial_card_is_inserted()
 	return (ret == OK && result[0] == CTBCS_DATA_STATUS_CARD_CONNECT);
 }
 
-int reader_serial_device_init(char *device, int typ)
+int reader_serial_init(struct s_reader *reader)
 {
 	int rc;
 
 	// Set some extern var to be used by csctapi
-	snprintf(reader_serial_device, sizeof (reader_serial_device), "%s", device);
-	reader_serial_card_detect = reader[ridx].detect;
-	reader_serial_mhz = reader[ridx].mhz;
+	snprintf(reader_serial_device, sizeof (reader_serial_device), "%s", reader->device);
+	reader_serial_card_detect = reader->detect;
+	reader_serial_mhz = reader->mhz;
 
 	// Save and Change cs_ptyp
 	int cs_ptyp_orig = cs_ptyp;
 	cs_ptyp = D_DEVICE;
 
-	ushort pn = reader_serial_device_type(device, typ);
-	if ((rc = CT_init(CTAPI_CTN, pn, reader[ridx].typ)) != OK) {
-		cs_log("Cannot open device: %s", device);
+	ushort pn = reader_serial_device_type(reader->device, reader->typ);
+	if ((rc = CT_init(CTAPI_CTN, pn, reader->typ)) != OK) {
+		cs_log("Cannot open device: %s", reader->device);
 	}
-	cs_debug("CT_init on %s: %d", device, rc);
+	cs_debug("CT_init on %s: %d", reader->device, rc);
 
 	// Restore cs_ptyp
 	cs_ptyp = cs_ptyp_orig;

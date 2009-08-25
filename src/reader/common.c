@@ -55,10 +55,10 @@ static int reader_common_card_is_inserted()
 	return reader_serial_card_is_inserted();
 }
 
-int reader_common_device_init(char *device, int type)
+int reader_common_init(struct s_reader *reader)
 {
 	// TODO: detect if this is a serial reader
-	return reader_serial_device_init(device, type);
+	return reader_serial_init(reader);
 }
 
 void reader_common_card_info()
