@@ -175,14 +175,21 @@ int reader_serial_device_init(char *device, int typ)
 {
 	int rc;
 
+	// Set some extern var to be used by csctapi
 	reader_serial_card_detect = reader[ridx].detect;
 	reader_serial_mhz = reader[ridx].mhz;
+
+	// Save and Change cs_ptyp
 	int cs_ptyp_orig = cs_ptyp;
 	cs_ptyp = D_DEVICE;
+
 	snprintf(reader_serial_device, sizeof (reader_serial_device), "%s", device);
-	if ((rc = CT_init(1, reader_serial_device_type(device, typ), reader[ridx].typ)) != OK)
+	if ((rc = CT_init(1, reader_serial_device_type(device, typ), reader[ridx].typ)) != OK) {
 		cs_log("Cannot open device: %s", device);
+	}
 	cs_debug("ct_init on %s: %d", device, rc);
+
+	// Restore cs_ptyp
 	cs_ptyp = cs_ptyp_orig;
 
 	return (rc != OK) ? 2 : 0;
