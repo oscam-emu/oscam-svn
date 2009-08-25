@@ -4,6 +4,8 @@
 #include <ctapi.h>
 #include <ctbcs.h>
 
+#define CTAPI_CTN 1
+
 char reader_serial_device[128];		// UGLY : to be removed
 int reader_serial_irdeto_mode;		// UGLY : to be removed
 int reader_serial_card_detect;		// UGLY : to be removed
@@ -56,8 +58,7 @@ static int reader_serial_device_type(char *device, int typ)
 static int reader_serial_do_api(uchar dad, uchar *cmd, ushort cmd_size, uchar *result, ushort result_max_size, ushort *result_size, int dbg)
 {
 	int rc;
-	unsigned short ctn = 1;
-	unsigned char sad = 2;
+	uchar sad = 2;
 
 	// Set result_size to the size of the result buffer (result_max_size)
 	*result_size = result_max_size;
@@ -70,7 +71,7 @@ static int reader_serial_do_api(uchar dad, uchar *cmd, ushort cmd_size, uchar *r
 
 	// Call CSCTAPI
 	rc = CT_data(
-		ctn,		/* Terminal Number */
+		CTAPI_CTN,	/* Terminal Number */
 		&dad,		/* Destination */
 		&sad,		/* Source */
 		cmd_size,	/* Length of command */
@@ -187,10 +188,10 @@ int reader_serial_device_init(char *device, int typ)
 	cs_ptyp = D_DEVICE;
 
 	snprintf(reader_serial_device, sizeof (reader_serial_device), "%s", device);
-	if ((rc = CT_init(1, reader_serial_device_type(device, typ), reader[ridx].typ)) != OK) {
+	if ((rc = CT_init(CTAPI_CTN, reader_serial_device_type(device, typ), reader[ridx].typ)) != OK) {
 		cs_log("Cannot open device: %s", device);
 	}
-	cs_debug("ct_init on %s: %d", device, rc);
+	cs_debug("CT_init on %s: %d", device, rc);
 
 	// Restore cs_ptyp
 	cs_ptyp = cs_ptyp_orig;
