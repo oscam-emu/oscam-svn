@@ -30,7 +30,7 @@ static int reader_common_reset()
 	if (!reader_common_activate_card(atr, &atr_size))
 		return 0;
 
-	int rc = cam_common_get_cardsystem(atr, atr_size);
+	int rc = cam_common_detect_card_system(atr, atr_size);
 	cs_ri_brk(1);
 
 	return rc;

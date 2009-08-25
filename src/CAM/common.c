@@ -5,33 +5,42 @@
 
 ushort cam_common_len4caid[256];		// table for guessing caid (by len)
 
-typedef enum cam_common_card_system {
+typedef enum {
+	CAM_UNKNOWN,
+
 	CAM_CONAX,
 	CAM_CRYPTOWORKS,
 	CAM_IRDETO,
 	CAM_SECA,
 	CAM_VIACCESS,
 	CAM_VIDEOGUARD
-} cam_common_card_system_t;
+} cam_common_card_system;
 
-int cam_common_get_cardsystem(uchar *atr, ushort atr_size)
+int cam_common_detect_card_system(uchar *atr, ushort atr_size)
 {
-	if (conax_card_init(atr, atr_size))
-		reader[ridx].card_system = CAM_CONAX;
-	else if (cryptoworks_card_init(atr, atr_size))
-		reader[ridx].card_system = CAM_CRYPTOWORKS;
-	else if (irdeto_card_init(atr, atr_size))
-		reader[ridx].card_system = CAM_IRDETO;
-	else if (seca_card_init(atr, atr_size))
-		reader[ridx].card_system = CAM_SECA;
-	else if (viaccess_card_init(atr, atr_size))
-		reader[ridx].card_system = CAM_VIACCESS;
-	else if (videoguard_card_init(atr, atr_size))
-		reader[ridx].card_system = CAM_VIDEOGUARD;
-	else
-		cs_ri_log("card system not supported");
+	cam_common_card_system card_system = CAM_UNKNOWN;
 
-	return reader[ridx].card_system;
+	// Test each CAM to detect the card_system
+	if (conax_card_init(atr, atr_size)) {
+		card_system = CAM_CONAX;
+	} else if (cryptoworks_card_init(atr, atr_size)) {
+		card_system = CAM_CRYPTOWORKS;
+	} else if (irdeto_card_init(atr, atr_size)) {
+		card_system = CAM_IRDETO;
+	} else if (seca_card_init(atr, atr_size)) {
+		card_system = CAM_SECA;
+	} else if (viaccess_card_init(atr, atr_size)) {
+		card_system = CAM_VIACCESS;
+	} else if (videoguard_card_init(atr, atr_size)) {
+		card_system = CAM_VIDEOGUARD;
+	} else {
+		cs_ri_log("card system not supported");
+	}
+
+	// Save the card_system value for the reader
+	reader[ridx].card_system = card_system;
+
+	return card_system;
 }
 
 void cam_common_card_info()
