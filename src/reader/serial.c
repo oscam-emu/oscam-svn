@@ -1,7 +1,9 @@
 #include <globals.h>
 #include <reader/serial.h>
 
+/* CT-API */
 #include <ctapi.h>
+#include <defines.h>
 #include <ctbcs.h>
 
 #define CTAPI_CTN 1
@@ -11,9 +13,9 @@ int reader_serial_irdeto_mode;		// UGLY : to be removed
 int reader_serial_card_detect;		// UGLY : to be removed
 int reader_serial_mhz;			// UGLY : to be removed
 
-static int reader_serial_port_number(struct s_reader *reader)
+static ushort reader_serial_get_reader_type(struct s_reader *reader)
 {
-	ushort pn = PORT_STD;
+	ushort reader_type = RTYP_STD;
 #ifdef TUXBOX
 	struct stat sb;
 #endif
@@ -21,7 +23,7 @@ static int reader_serial_port_number(struct s_reader *reader)
 	switch (reader->typ) {
 		case R_MOUSE:
 		case R_SMART:
-			pn = PORT_STD;
+			reader_type = RTYP_STD;
 #ifdef TUXBOX
 			if (!stat(reader->device, &sb)) {
 				if (S_ISCHR(sb.st_mode)) {
@@ -32,26 +34,26 @@ static int reader_serial_port_number(struct s_reader *reader)
 					if ((cs_hw == CS_HW_DBOX2) && ((dev_major == 4) || (dev_major == 5))) {
 						switch (dev_minor & 0x3F) {
 							case 0:
-								pn = PORT_DB2COM1;
+								reader_type = RTYP_DB2COM1;
 								break;
 							case 1:
-								pn = PORT_DB2COM2;
+								reader_type = RTYP_DB2COM2;
 								break;
 						}
 					}
 
-					cs_debug("device is major: %d, minor: %d, pn=%d", dev_major, dev_minor, pn);
+					cs_debug("device is major: %d, minor: %d, reader_type=%d", dev_major, dev_minor, reader_type);
 				}
 			}
 #endif
 			break;
 
 		case R_INTERN:
-			pn = PORT_SCI;
+			reader_type = RTYP_SCI;
 			break;
 	}
 
-	return pn;
+	return reader_type;
 }
 
 static int reader_serial_do_api(uchar dad, uchar *cmd, ushort cmd_size, uchar *result, ushort result_max_size, ushort *result_size, int dbg)
@@ -188,8 +190,8 @@ int reader_serial_init(struct s_reader *reader)
 	cs_ptyp = D_DEVICE;
 
 	// Lookup Port Number
-	ushort pn = reader_serial_port_number(reader);
-	if ((rc = CT_init(CTAPI_CTN, pn, reader->typ)) != OK) {
+	ushort reader_type = reader_serial_get_reader_type(reader);
+	if ((rc = CT_init(CTAPI_CTN, PORT_COM1, reader_type)) != OK) {
 		cs_log("Cannot open device: %s", reader->device);
 	}
 	cs_debug("CT_init on %s: %d", reader->device, rc);

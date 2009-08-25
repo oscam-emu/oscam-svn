@@ -201,7 +201,7 @@ int ICC_Async_Transmit(ICC_Async * icc, unsigned size, BYTE * data)
 	BYTE *buffer = NULL, *sent;
 	IFD_Timings timings;
 
-	if (icc->convention == ATR_CONVENTION_INVERSE && icc->ifd->io->com != RTYP_SCI) {
+	if (icc->convention == ATR_CONVENTION_INVERSE && icc->ifd->io->reader_type != RTYP_SCI) {
 		buffer = (BYTE *) calloc(sizeof (BYTE), size);
 		memcpy(buffer, data, size);
 		ICC_Async_InvertBuffer(size, buffer);
@@ -232,7 +232,7 @@ int ICC_Async_Receive(ICC_Async * icc, unsigned size, BYTE * data)
 	if (IFD_Towitoko_Receive(icc->ifd, &timings, size, data) != IFD_TOWITOKO_OK)
 		return ICC_ASYNC_IFD_ERROR;
 
-	if (icc->convention == ATR_CONVENTION_INVERSE && icc->ifd->io->com != RTYP_SCI)
+	if (icc->convention == ATR_CONVENTION_INVERSE && icc->ifd->io->reader_type != RTYP_SCI)
 		ICC_Async_InvertBuffer(size, data);
 
 	return ICC_ASYNC_OK;

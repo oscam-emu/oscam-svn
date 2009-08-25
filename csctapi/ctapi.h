@@ -21,7 +21,7 @@ extern "C" {
 
 	extern char CT_init(unsigned short Ctn,	/* Terminal Number */
 			    unsigned short pn,	/* Port Number */
-			    int reader_type	/* reader type (mouse, smartreader) */
+			    unsigned short reader_type	/* reader type (mouse, smartreader) */
 		);
 
 	extern char CT_close(
@@ -58,12 +58,6 @@ extern "C" {
 #  define CARD            0
 #  define CT              1
 #  define HOST            2
-
-	/* #define port-types */
-#  define PORT_STD	PORT_COM1
-#  define PORT_SCI	PORT_COM2
-#  define PORT_DB2COM1	PORT_COM3
-#  define PORT_DB2COM2	PORT_COM4
 
 #  ifdef __cplusplus
 }

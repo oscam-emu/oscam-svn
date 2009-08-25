@@ -170,7 +170,7 @@ int IFD_Towitoko_Init(IFD * ifd, IO_Serial * io, BYTE slot)
 	if (slot != IFD_TOWITOKO_SLOT_MULTICAM)
 		return IFD_TOWITOKO_PARAM_ERROR;
 
-	if (io->com == RTYP_SCI) {
+	if (io->reader_type == RTYP_SCI) {
 		ifd->io = io;
 		ifd->slot = slot;
 		ifd->type = IFD_TOWITOKO_MULTICAM;
@@ -254,7 +254,7 @@ int IFD_Towitoko_SetBaudrate(IFD * ifd, unsigned long baudrate)
 {
 	IO_Serial_Properties props;
 
-	if (ifd->io->com == RTYP_SCI) {
+	if (ifd->io->reader_type == RTYP_SCI) {
 		return IFD_TOWITOKO_OK;
 	}
 
@@ -290,7 +290,7 @@ int IFD_Towitoko_GetBaudrate(IFD * ifd, unsigned long *baudrate)
 {
 	IO_Serial_Properties props;
 
-	if (ifd->io->com == RTYP_SCI) {
+	if (ifd->io->reader_type == RTYP_SCI) {
 		return IFD_TOWITOKO_OK;
 	}
 
@@ -307,7 +307,7 @@ extern int IFD_Towitoko_SetParity(IFD * ifd, BYTE parity)
 {
 	IO_Serial_Properties props;
 
-	if (ifd->io->com == RTYP_SCI) {
+	if (ifd->io->reader_type == RTYP_SCI) {
 		return IFD_TOWITOKO_OK;
 	}
 #ifdef DEBUG_IFD
@@ -347,19 +347,19 @@ int IFD_Towitoko_GetStatus(IFD * ifd, BYTE * result)
 // status : 0 -start, 1 - card, 2- no card
 
 #ifdef SCI_DEV
-	if (ifd->io->com == RTYP_SCI) {
+	if (ifd->io->reader_type == RTYP_SCI) {
 		if (ioctl(ifd->io->fd, IOCTL_GET_IS_CARD_PRESENT, &in) < 0)
 			return IFD_TOWITOKO_IO_ERROR;
 	} else
 #endif
 #if defined(TUXBOX) && defined(PPC)
-	if ((ifd->io->com == RTYP_DB2COM1) || (ifd->io->com == RTYP_DB2COM2)) {
+	if ((ifd->io->reader_type == RTYP_DB2COM1) || (ifd->io->reader_type == RTYP_DB2COM2)) {
 		ushort msr = 1;
 		extern int fdmc;
 
 		IO_Serial_Ioctl_Lock(ifd->io, 1);
 		ioctl(fdmc, GET_PCDAT, &msr);
-		if (ifd->io->com == RTYP_DB2COM2)
+		if (ifd->io->reader_type == RTYP_DB2COM2)
 			in = (!(msr & 1));
 		else
 			in = ((msr & 0x0f00) == 0x0f00);
@@ -450,7 +450,7 @@ int IFD_Towitoko_ActivateICC(IFD * ifd)
 	printf("IFD: Activating card\n");
 #endif
 #ifdef SCI_DEV
-	if (ifd->io->com == RTYP_SCI) {
+	if (ifd->io->reader_type == RTYP_SCI) {
 		int in;
 
 #  if defined(TUXBOX) && defined(MIPSEL)
@@ -484,7 +484,7 @@ int IFD_Towitoko_DeactivateICC(IFD * ifd)
 #endif
 
 #ifdef SCI_DEV
-	if (ifd->io->com == RTYP_SCI) {
+	if (ifd->io->reader_type == RTYP_SCI) {
 		int in;
 
 #  if defined(TUXBOX) && defined(MIPSEL)
@@ -516,7 +516,7 @@ int IFD_Towitoko_ResetAsyncICC(IFD * ifd, ATR ** atr)
 #endif
 
 #ifdef SCI_DEV
-	if (ifd->io->com == RTYP_SCI) {
+	if (ifd->io->reader_type == RTYP_SCI) {
 		unsigned char buf[SCI_MAX_ATR_SIZE];
 		int n = 0;
 		SCI_PARAMETERS params;

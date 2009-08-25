@@ -72,8 +72,8 @@ typedef struct {
 	BYTE PnP_id[IO_SERIAL_PNPID_SIZE];	/* PnP Id of the serial device */
 	unsigned PnP_id_size;	/* Length of PnP Id */
 	bool usbserial;		/* Is serial USB device */
+	int reader_type;	/* Reader type */
 	int wr;
-	int reader_type;
 } IO_Serial;
 
 /* 
@@ -83,11 +83,11 @@ typedef struct {
 /* IO_Serial creation and deletion */
 //extern void IO_Serial_Reopen (IO_Serial * io);
 extern void IO_Serial_Flush(IO_Serial * io);
-extern IO_Serial *IO_Serial_New(int reader_type);
+extern IO_Serial *IO_Serial_New(void);
 extern void IO_Serial_Delete(IO_Serial * io);
 
 /* Initialization and closing */
-extern bool IO_Serial_Init(IO_Serial * io, unsigned com, bool usbserial, bool pnp);
+extern bool IO_Serial_Init(IO_Serial * io, unsigned com, bool usbserial, unsigned short reader_type, bool pnp);
 extern bool IO_Serial_Close(IO_Serial * io);
 
 /* Transmission properties */

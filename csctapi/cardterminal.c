@@ -71,14 +71,14 @@ CardTerminal *CardTerminal_New(void)
 	return ct;
 }
 
-char CardTerminal_Init(CardTerminal * ct, unsigned short pn, int reader_type)
+char CardTerminal_Init(CardTerminal * ct, unsigned short pn, unsigned short reader_type)
 {
 	char ret;
 	int i;
 	bool usbserial;
 
 	/* Create a new IO_Serial */
-	ct->io = IO_Serial_New(reader_type);
+	ct->io = IO_Serial_New();
 
 	/* Memory error */
 	if (ct->io == NULL)
@@ -96,7 +96,7 @@ char CardTerminal_Init(CardTerminal * ct, unsigned short pn, int reader_type)
 	}
 
 	/* Initialise serial port */
-	if (!IO_Serial_Init(ct->io, pn + 1, usbserial, FALSE)) {
+	if (!IO_Serial_Init(ct->io, pn + 1, usbserial, reader_type, FALSE)) {
 		IO_Serial_Delete(ct->io);
 		ct->io = NULL;
 		return ERR_TRANS;
