@@ -74,7 +74,7 @@ int reader_common_check_health()
 		if (!(reader[ridx].card_status & CARD_INSERTED)) {
 			cs_log("card detected");
 			reader[ridx].card_status = CARD_NEED_INIT;
-			reader[ridx].card_status = CARD_INSERTED | (reader_common_reset()? 0 : CARD_FAILURE);
+			reader[ridx].card_status = CARD_INSERTED | (reader_common_reset() ? 0 : CARD_FAILURE);
 			if (reader[ridx].card_status & CARD_FAILURE) {
 				cs_log("card initializing error");
 			} else {
