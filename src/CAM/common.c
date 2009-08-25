@@ -157,7 +157,7 @@ ulong chk_provid(uchar * ecm, ushort caid)
 	return provid;
 }
 
-void guess_cardsystem(ECM_REQUEST * er)
+void cam_common_guess_card_system(ECM_REQUEST * er)
 {
 	ushort last_hope = 0;
 

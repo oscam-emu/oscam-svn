@@ -1561,7 +1561,7 @@ void get_cw(ECM_REQUEST * er)
 	client[cs_idx].lastecm = time((time_t) 0);
 
 	if (!er->caid)
-		guess_cardsystem(er);
+		cam_common_guess_card_system(er);
 
 	if ((er->caid & 0xFF00) == 0x600 && !er->chid)
 		er->chid = (er->ecm[6] << 8) | er->ecm[7];
