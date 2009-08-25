@@ -14,6 +14,27 @@ typedef enum cam_common_card_system {
 	CAM_VIDEOGUARD
 } cam_common_card_system_t;
 
+int cam_common_get_cardsystem(uchar *atr, ushort atr_size)
+{
+	if (conax_card_init(atr, atr_size))
+		reader[ridx].card_system = CAM_CONAX;
+	if (cryptoworks_card_init(atr, atr_size))
+		reader[ridx].card_system = CAM_CRYPTOWORKS;
+	if (irdeto_card_init(atr, atr_size))
+		reader[ridx].card_system = CAM_IRDETO;
+	if (seca_card_init(atr, atr_size))
+		reader[ridx].card_system = CAM_SECA;
+	if (viaccess_card_init(atr, atr_size))
+		reader[ridx].card_system = CAM_VIACCESS;
+	if (videoguard_card_init(atr, atr_size))
+		reader[ridx].card_system = CAM_VIDEOGUARD;
+
+	if (!reader[ridx].card_system)
+		cs_ri_log("card system not supported");
+
+	return reader[ridx].card_system;
+}
+
 void cam_common_card_info()
 {
 	switch (reader[ridx].card_system) {
@@ -36,27 +57,6 @@ void cam_common_card_info()
 			videoguard_card_info();
 			break;
 	}
-}
-
-int cam_common_get_cardsystem(uchar *atr, ushort atr_size)
-{
-	if (conax_card_init(atr, atr_size))
-		reader[ridx].card_system = CAM_CONAX;
-	if (cryptoworks_card_init(atr, atr_size))
-		reader[ridx].card_system = CAM_CRYPTOWORKS;
-	if (irdeto_card_init(atr, atr_size))
-		reader[ridx].card_system = CAM_IRDETO;
-	if (seca_card_init(atr, atr_size))
-		reader[ridx].card_system = CAM_SECA;
-	if (viaccess_card_init(atr, atr_size))
-		reader[ridx].card_system = CAM_VIACCESS;
-	if (videoguard_card_init(atr, atr_size))
-		reader[ridx].card_system = CAM_VIDEOGUARD;
-
-	if (!reader[ridx].card_system)
-		cs_ri_log("card system not supported");
-
-	return reader[ridx].card_system;
 }
 
 int cam_common_process_ecm(ECM_REQUEST * er)
@@ -119,7 +119,8 @@ int cam_common_process_emm(EMM_PACKET * ep)
 	return rc;
 }
 
-int cam_common_cmd2card(uchar *cmd, ushort cmd_size, uchar *result, ushort result_max_size, ushort *result_size) {
+int cam_common_cmd2card(uchar *cmd, ushort cmd_size, uchar *result, ushort result_max_size, ushort *result_size)
+{
 	// Forward to the reader
 	return reader_common_cmd2card(cmd, cmd_size, result, result_max_size, result_size);
 }
