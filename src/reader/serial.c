@@ -157,10 +157,6 @@ int reader_serial_activate_card(uchar *atr, ushort *atr_size)
 	/* Store ATR */
 	*atr_size = result_size - 2;
 	memcpy(atr, result, *atr_size);
-#ifdef CS_RDR_INIT_HIST
-	reader[ridx].init_history_pos = 0;
-	memset(reader[ridx].init_history, 0, sizeof (reader[ridx].init_history));
-#endif
 	cs_ri_log("ATR: %s", cs_hexdump(1, atr, *atr_size));
 	sleep(1);
 

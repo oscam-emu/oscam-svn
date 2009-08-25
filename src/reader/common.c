@@ -13,6 +13,10 @@ static void reader_common_nullcard()
 	memset(reader[ridx].availkeys, 0, sizeof (reader[ridx].availkeys));
 	reader[ridx].acs = 0;
 	reader[ridx].nprov = 0;
+#ifdef CS_RDR_INIT_HIST
+	reader[ridx].init_history_pos = 0;
+	memset(reader[ridx].init_history, 0, sizeof (reader[ridx].init_history));
+#endif
 }
 
 static int reader_common_activate_card(uchar *atr, ushort *atr_size)
