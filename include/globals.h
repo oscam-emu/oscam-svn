@@ -115,8 +115,7 @@
 #  define D_READER		4	// Debug Reader/Proxy Process
 #  define D_CLIENT		8	// Debug Client Process
 #  define D_DEVICE		16	// Debug Reader I/O
-#  define D_WATCHDOG		32	// Debug Watchdog
-#  define D_ALL_DUMP		63
+#  define D_ALL_DUMP		31
 
 #  define R_MOUSE		0x1	// Reader smartcard mouse
 #  define R_INTERN		0x2	// Reader smartcard intern
