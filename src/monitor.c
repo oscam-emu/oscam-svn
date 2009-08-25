@@ -424,11 +424,11 @@ static void monitor_process_details(char *arg)
 			case 'c':
 			case 'm':
 				break;
-			case 'r':
 #ifdef CS_RDR_INIT_HIST
+			case 'r':
 				monitor_process_details_reader(pid, idx);
-#endif
 				break;
+#endif
 			case 'p':
 				break;
 		}
