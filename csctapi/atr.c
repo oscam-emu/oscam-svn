@@ -103,6 +103,10 @@ int ATR_InitFromArray(ATR * atr, BYTE atr_buffer[ATR_MAX_SIZE], unsigned length)
 			return (ATR_MALFORMED);
 		}
 
+		/* Check if the ATR is malformed */
+		if (pn >= ATR_MAX_PROTOCOLS)
+			return (ATR_MALFORMED);
+
 		/* Check TAi is present */
 		if ((TDi | 0xEF) == 0xFF) {
 			pointer++;
@@ -136,8 +140,6 @@ int ATR_InitFromArray(ATR * atr, BYTE atr_buffer[ATR_MAX_SIZE], unsigned length)
 			TDi = atr->ib[pn][ATR_INTERFACE_BYTE_TD].value = buffer[pointer];
 			atr->ib[pn][ATR_INTERFACE_BYTE_TD].present = TRUE;
 			(atr->TCK).present = ((TDi & 0x0F) != ATR_PROTOCOL_TYPE_T0);
-			if (pn >= ATR_MAX_PROTOCOLS)
-				return (ATR_MALFORMED);
 			pn++;
 		} else {
 			atr->ib[pn][ATR_INTERFACE_BYTE_TD].present = FALSE;
