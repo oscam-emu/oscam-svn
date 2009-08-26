@@ -57,8 +57,10 @@ static int reader_common_card_is_inserted()
 
 int reader_common_init(struct s_reader *reader)
 {
-	// TODO: detect if this is a serial reader
-	return reader_serial_init(reader);
+	if (reader[ridx].type & R_IS_SERIAL)
+		return reader_serial_init(reader);
+
+	return 0;
 }
 
 void reader_common_card_info()
