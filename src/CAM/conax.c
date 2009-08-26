@@ -95,12 +95,12 @@ int conax_card_init(uchar *atr, ushort atr_size)
 
 
 
-	cs_ri_log("type: conax, caid: %04X, serial: %llu, card: v%d", reader[ridx].caid[0], b2ll(6, reader[ridx].hexserial), cardver);
-	cs_ri_log("Conax-Provider:%d", reader[ridx].nprov);
+	cs_log("type: conax, caid: %04X, serial: %llu, card: v%d", reader[ridx].caid[0], b2ll(6, reader[ridx].hexserial), cardver);
+	cs_log("Conax-Provider:%d", reader[ridx].nprov);
 
 	for (j = 0; j < reader[ridx].nprov; j++) {
-		cs_ri_log("Provider:%d  Provider-Id:%06X", j + 1, b2ll(4, reader[ridx].prid[j]));
-		cs_ri_log("Provider:%d  SharedAddress:%08X", j + 1, b2ll(4, reader[ridx].sa[j]));
+		cs_log("Provider:%d  Provider-Id:%06X", j + 1, b2ll(4, reader[ridx].prid[j]));
+		cs_log("Provider:%d  SharedAddress:%08X", j + 1, b2ll(4, reader[ridx].sa[j]));
 	}
 
 	cs_log("ready for requests");
@@ -116,7 +116,7 @@ int conax_send_pin()
 	uchar result[260];
 	ushort result_size;
 	cam_common_cmd2card(insPIN, sizeof(insPIN), result, sizeof(result), &result_size);
-	cs_ri_log("[conax]-sending pincode to card");
+	cs_log("[conax]-sending pincode to card");
 
 	return 1;
 }
@@ -268,7 +268,7 @@ int conax_card_info()
 								break;
 						}
 					}
-					cs_ri_log("%s: %d, id: %04X, date: %s - %s, name: %s", txt[type], ++n, provid, pdate, pdate + 16, trim(provname));
+					cs_log("%s: %d, id: %04X, date: %s - %s, name: %s", txt[type], ++n, provid, pdate, pdate + 16, trim(provname));
 				}
 			}
 		}

@@ -208,7 +208,7 @@ int irdeto_card_init(uchar *atr, ushort atr_size)
 	cam_irdeto_chk_cmd(sc_GetCountryCode, 18, result, &result_size);
 	reader[ridx].acs = (result[0] << 8) | result[1];
 	reader[ridx].caid[0] = (result[5] << 8) | result[6];
-	cs_ri_log("type: %s, caid: %04X, acs: %x.%02x%s", (nagra) ? "aladin" : "irdeto", reader[ridx].caid[0], result[0], result[1], buf);
+	cs_log("type: %s, caid: %04X, acs: %x.%02x%s", (nagra) ? "aladin" : "irdeto", reader[ridx].caid[0], result[0], result[1], buf);
 
 	/*
 	 * Ascii/Hex-Serial
@@ -219,7 +219,7 @@ int irdeto_card_init(uchar *atr, ushort atr_size)
 	cam_irdeto_chk_cmd(sc_GetHEXSerial, 18, result, &result_size);
 	memcpy(reader[ridx].hexserial, result + 12, 8);
 	reader[ridx].nprov = result[10];
-	cs_ri_log("ascii serial: %s, hex serial: %02X%02X%02X, hex base: %02X", buf, result[12], result[13], result[14], result[15]);
+	cs_log("ascii serial: %s, hex serial: %02X%02X%02X, hex base: %02X", buf, result[12], result[13], result[14], result[15]);
 
 	/*
 	 * CardFile
@@ -371,7 +371,7 @@ int irdeto_card_info()
 			if ((result_size > 33) && (chid = b2i(2, result + 11))) {
 				chid_date(b2i(2, result + 20) - 0x7f7, ds, 15);
 				chid_date(b2i(2, result + 13) - 0x7f7, de, 15);
-				cs_ri_log("chid: %04X, date: %s - %s", chid, ds, de);
+				cs_log("chid: %04X, date: %s - %s", chid, ds, de);
 			} else {
 				break;
 			}
@@ -393,7 +393,7 @@ int irdeto_card_info()
 				reader[ridx].prid[i][0] = 0xf;
 		}
 		if (p)
-			cs_ri_log("providers: %d (%s)", p, buf + 1);
+			cs_log("providers: %d (%s)", p, buf + 1);
 
 		/*
 		 * ContryCode2
@@ -425,10 +425,10 @@ int irdeto_card_info()
 								chid_date(date = b2i(2, result + k + 2), t, 16);
 								chid_date(date + result[k + 4], t + 16, 16);
 								if (first) {
-									cs_ri_log("provider: %d, id: %06X", p, b2i(3, &reader[ridx].prid[i][1]));
+									cs_log("provider: %d, id: %06X", p, b2i(3, &reader[ridx].prid[i][1]));
 									first = 0;
 								}
-								cs_ri_log("chid: %04X, date: %s - %s", chid, t, t + 16);
+								cs_log("chid: %04X, date: %s - %s", chid, t, t + 16);
 							}
 						}
 					}

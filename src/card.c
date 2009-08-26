@@ -9,37 +9,6 @@ static struct s_emm *emmcache;
 static int last_idx = 1;
 static ushort idx = 1;
 
-void cs_ri_brk(int flag)
-{
-#ifdef CS_RDR_INIT_HIST
-	static int brk_pos = 0;
-
-	if (flag)
-		brk_pos = reader[ridx].init_history_pos;
-	else
-		reader[ridx].init_history_pos = brk_pos;
-#endif
-}
-
-void cs_ri_log(char *fmt, ...)
-{
-	int val;
-	char txt[256];
-
-	va_list params;
-
-	va_start(params, fmt);
-	vsprintf(txt, fmt, params);
-	va_end(params);
-	cs_log("%s", txt);
-#ifdef CS_RDR_INIT_HIST
-	val = sizeof (reader[ridx].init_history) - reader[ridx].init_history_pos - 1;
-	if (val > 0)
-		snprintf((char *) reader[ridx].init_history + reader[ridx].init_history_pos, val, "%s", txt);
-	reader[ridx].init_history_pos += strlen(txt) + 1;
-#endif
-}
-
 static void casc_check_dcw(int idx, int rc, uchar * cw)
 {
 	int i;

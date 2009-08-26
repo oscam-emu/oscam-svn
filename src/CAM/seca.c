@@ -112,7 +112,7 @@ int seca_card_init(uchar *atr, ushort atr_size)
 	reader[ridx].hexserial[1] = 0;
 	memcpy(reader[ridx].hexserial + 2, result + 2, 6);
 	serial = b2ll(5, result + 3);
-	cs_ri_log("type: seca, caid: %04X, serial: %llu, card: %s v%d.%d", reader[ridx].caid[0], serial, card, atr[9] & 0x0F, atr[9] >> 4);
+	cs_log("type: seca, caid: %04X, serial: %llu, card: %s v%d.%d", reader[ridx].caid[0], serial, card, atr[9] & 0x0F, atr[9] >> 4);
 	cam_common_cmd2card(ins16, sizeof(ins0e), result, sizeof(result), &result_size);	// read nr of providers
 	pmap = result[2] << 8 | result[3];
 	for (reader[ridx].nprov = 0, i = pmap; i; i >>= 1)
@@ -129,7 +129,7 @@ int seca_card_init(uchar *atr, ushort atr_size)
 				sprintf((char *) buf + strlen((char *) buf), ",%04lX", b2i(2, &reader[ridx].prid[i][2]));
 		}
 
-	cs_ri_log("providers: %d (%s)", reader[ridx].nprov, buf + 1);
+	cs_log("providers: %d (%s)", reader[ridx].nprov, buf + 1);
 // Unlock parental control
 	if (cfg->ulparent != 0) {
 		cam_common_cmd2card(ins30, sizeof(ins30), result, sizeof(result), &result_size);
@@ -285,7 +285,7 @@ int seca_card_info()
 	int i;
 
 	cs_log("card detected");
-	cs_ri_log("type: seca, caid: %04X, serial: %llu, card: %s ", reader[ridx].caid[0], serial, card);
+	cs_log("type: seca, caid: %04X, serial: %llu, card: %s ", reader[ridx].caid[0], serial, card);
 	for (i = 0; i < 16; i++)
 		if (pmap & (1 << i)) {
 			if (!set_provider_info(i))

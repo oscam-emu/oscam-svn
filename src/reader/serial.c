@@ -205,7 +205,7 @@ int reader_serial_get_atr(uchar *atr, ushort *atr_size)
 	/* Store Answer to Reset */
 	*atr_size = result_size - 2;
 	memcpy(atr, result, *atr_size);
-	cs_ri_log("ATR: %s", cs_hexdump(1, atr, *atr_size));
+	cs_log("ATR: %s", cs_hexdump(1, atr, *atr_size));
 
 	return 1;
 }

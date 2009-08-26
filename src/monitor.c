@@ -392,20 +392,6 @@ static void monitor_process_details_master(char *buf, int pid)
 //  monitor_send_details(buf, pid);
 }
 
-#ifdef CS_RDR_INIT_HIST
-static void monitor_process_details_reader(int pid, int idx)
-{
-	int r_idx;
-	char *p;
-
-	if ((r_idx = cs_idx2ridx(idx)) >= 0)
-		for (p = (char *) reader[r_idx].init_history; *p; p += strlen(p) + 1)
-			monitor_send_details(p, pid);
-	else
-		monitor_send_details("Missing reader index !", pid);
-}
-#endif
-
 static void monitor_process_details(char *arg)
 {
 	int pid, idx, val;
@@ -424,11 +410,6 @@ static void monitor_process_details(char *arg)
 			case 'c':
 			case 'm':
 				break;
-#ifdef CS_RDR_INIT_HIST
-			case 'r':
-				monitor_process_details_reader(pid, idx);
-				break;
-#endif
 			case 'p':
 				break;
 		}

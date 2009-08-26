@@ -107,7 +107,6 @@
 #    define CS_MAXPENDING		(CS_MAXPID<<1)
 #    define CS_ECMCACHESIZE		CS_MAXPID
 #    define CS_EMMCACHESIZE		(CS_MAXPID<<1)
-#    define CS_RDR_INIT_HIST
 #  endif
 
 #  define D_DUMP		1	// Debug Dumps
@@ -388,10 +387,6 @@ struct s_reader {
 	uchar gbox_prem;
 	int gbox_fd;
 	struct timeb gbox_lasthello;	// incoming time stamp
-#  endif
-#  ifdef CS_RDR_INIT_HIST
-	uchar init_history[1024];
-	int init_history_pos;
 #  endif
 };
 

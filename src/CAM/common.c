@@ -34,7 +34,7 @@ int cam_common_detect_card_system(uchar *atr, ushort atr_size)
 	} else if (videoguard_card_init(atr, atr_size)) {
 		card_system = CAM_VIDEOGUARD;
 	} else {
-		cs_ri_log("card system not supported");
+		cs_log("card system not supported");
 	}
 
 	// Save the card_system value for the reader

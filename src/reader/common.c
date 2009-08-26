@@ -13,10 +13,6 @@ static void reader_common_nullcard(struct s_reader *reader)
 	memset(reader->availkeys, 0, sizeof (reader->availkeys));
 	reader->acs = 0;
 	reader->nprov = 0;
-#ifdef CS_RDR_INIT_HIST
-	reader->init_history_pos = 0;
-	memset(reader->init_history, 0, sizeof (reader->init_history));
-#endif
 }
 
 static int reader_common_activate_card(struct s_reader *reader, uchar *atr, ushort *atr_size)
@@ -47,7 +43,6 @@ static int reader_common_reset(struct s_reader *reader)
 		return 0;
 
 	int rc = cam_common_detect_card_system(atr, atr_size);
-	cs_ri_brk(1);
 
 	return rc;
 }
@@ -81,7 +76,6 @@ void reader_common_card_info(struct s_reader *reader)
 
 	if (rc = reader_common_check_health(reader)) {
 		client[cs_idx].last = time((time_t) 0);
-		cs_ri_brk(0);
 		cam_common_card_info();
 	}
 }

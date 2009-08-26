@@ -148,9 +148,9 @@ int cryptoworks_send_pin()
 		memcpy(insPIN + 5, reader[ridx].pincode, 4);
 
 		cam_common_cmd2card(insPIN, sizeof(insPIN), result, sizeof(result), &result_size);
-		cs_ri_log("[cryptoworks]-sending pincode to card");
+		cs_log("[cryptoworks]-sending pincode to card");
 		if ((result[0] == 0x98) && (result[1] == 0x04))
-			cs_ri_log("[cryptoworks]-bad pincode");
+			cs_log("[cryptoworks]-bad pincode");
 
 		return (1);
 	}
@@ -168,9 +168,9 @@ int cryptoworks_disbale_pin()
 		memcpy(insPIN + 5, reader[ridx].pincode, 4);
 
 		cam_common_cmd2card(insPIN, sizeof(insPIN), result, sizeof(result), &result_size);
-		cs_ri_log("[cryptoworks]-disable pincode to card");
+		cs_log("[cryptoworks]-disable pincode to card");
 		if ((result[0] == 0x98) && (result[1] == 0x04))
-			cs_ri_log("[cryptoworks]-bad pincode");
+			cs_log("[cryptoworks]-bad pincode");
 		return (1);
 	}
 
@@ -222,7 +222,7 @@ int cryptoworks_card_init(uchar *atr, ushort atr_size)
 
 	if (read_record(0x80) >= 7)	// read serial
 		memcpy(reader[ridx].hexserial, result + 2, 5);
-	cs_ri_log("type: cryptoworks, caid: %04X, ascii serial: %llu, hex serial: %s", reader[ridx].caid[0], b2ll(5, reader[ridx].hexserial), cs_hexdump(0, reader[ridx].hexserial, 5));
+	cs_log("type: cryptoworks, caid: %04X, ascii serial: %llu, hex serial: %s", reader[ridx].caid[0], b2ll(5, reader[ridx].hexserial), cs_hexdump(0, reader[ridx].hexserial, 5));
 
 	if (read_record(0x9E) >= 66)	// read ISK
 	{
@@ -262,8 +262,8 @@ int cryptoworks_card_init(uchar *atr, ushort atr_size)
 		result[6] = 0;
 		pin = (char *) result + 2;
 	}
-	cs_ri_log("issuer: %s, id: %02X, bios: v%d, pin: %s, mfid: %04X", issuer, issuerid, atr[7], pin, mfid);
-	cs_ri_log("providers: %d (%s)", reader[ridx].nprov, ptxt + 1);
+	cs_log("issuer: %s, id: %02X, bios: v%d, pin: %s, mfid: %04X", issuer, issuerid, atr[7], pin, mfid);
+	cs_log("providers: %d (%s)", reader[ridx].nprov, ptxt + 1);
 	cs_log("ready for requests");
 
 	cryptoworks_disbale_pin();	//by KrazyIvan
@@ -564,7 +564,7 @@ int cryptoworks_card_info()
 			trim(l_name + 8);
 		}
 		l_name[0] = (l_name[8]) ? ',' : 0;
-		cs_ri_log("provider: %d, id: %02X%s", i + 1, reader[ridx].prid[i][3], l_name);
+		cs_log("provider: %d, id: %02X%s", i + 1, reader[ridx].prid[i][3], l_name);
 		select_file(0x0f, 0x20);	// select provider class
 		cam_common_cmd2card(insA21, sizeof(insA21), result, sizeof(result), &result_size);
 		if (result[0] == 0x9f) {
@@ -576,7 +576,7 @@ int cryptoworks_card_info()
 
 					chid_date(result + 28, ds, sizeof (ds) - 1);
 					chid_date(result + 30, de, sizeof (de) - 1);
-					cs_ri_log("chid: %02X%02X, date: %s - %s, name: %s", result[6], result[7], ds, de, trim((char *) result + 10));
+					cs_log("chid: %02X%02X, date: %s - %s, name: %s", result[6], result[7], ds, de, trim((char *) result + 10));
 				}
 			}
 		}
@@ -594,7 +594,7 @@ int cryptoworks_card_info()
 					chid_date(result + 28, ds, sizeof (ds) - 1);
 					chid_date(result + 30, de, sizeof (de) - 1);
 					result[27] = 0;
-					cs_ri_log("chid: %02X%02X, date: %s - %s, name: %s", result[6], result[7], ds, de, trim((char *) result + 10));
+					cs_log("chid: %02X%02X, date: %s - %s, name: %s", result[6], result[7], ds, de, trim((char *) result + 10));
 				}
 			}
 		}

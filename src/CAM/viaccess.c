@@ -59,7 +59,7 @@ static void show_class(const char *p, const uchar * b, int l)
 				if (p)
 					cs_log("%sclass: %02X, expiry date: %04d/%02d/%02d - %04d/%02d/%02d", p, cls, vd.year_s + 1980, vd.month_s, vd.day_s, vd.year_e + 1980, vd.month_e, vd.day_e);
 				else
-					cs_ri_log("class: %02X, expiry date: %04d/%02d/%02d - %04d/%02d/%02d", cls, vd.year_s + 1980, vd.month_s, vd.day_s, vd.year_e + 1980, vd.month_e, vd.day_e);
+					cs_log("class: %02X, expiry date: %04d/%02d/%02d - %04d/%02d/%02d", cls, vd.year_s + 1980, vd.month_s, vd.day_s, vd.year_e + 1980, vd.month_e, vd.day_e);
 			}
 }
 
@@ -178,7 +178,7 @@ int viaccess_card_init(uchar *atr, ushort atr_size)
 	cam_common_cmd2card(insb8, sizeof(insb8), result, sizeof(result), &result_size);	// read unique id
 	memcpy(reader[ridx].hexserial, result + 2, 5);
 //  cs_log("type: viaccess, ver: %s serial: %llu", ver, b2ll(5, result+2));
-	cs_ri_log("type: viaccess(%sstandard atr), caid: %04X, serial: %llu", atr[9] == 0x68 ? "" : "non-", reader[ridx].caid[0], b2ll(5, result + 2));
+	cs_log("type: viaccess(%sstandard atr), caid: %04X, serial: %llu", atr[9] == 0x68 ? "" : "non-", reader[ridx].caid[0], b2ll(5, result + 2));
 
 	i = 0;
 	insa4[2] = 0x00;
@@ -214,7 +214,7 @@ cs_log("name: %s", result);
 		i++;
 	}
 	reader[ridx].nprov = i;
-	cs_ri_log("providers: %d (%s)", reader[ridx].nprov, buf + 1);
+	cs_log("providers: %d (%s)", reader[ridx].nprov, buf + 1);
 
 	/* init the maybe existing aes key */
 	aes_set_key((char *) reader[ridx].aes_key);
@@ -631,7 +631,7 @@ int viaccess_card_info()
 		l = result[1];
 		insb8[4] = l;
 		cam_common_cmd2card(insb8, sizeof(insb8), result, sizeof(result), &result_size);	// read geo
-		cs_ri_log("provider: %d, id: %06X%s, sa: %08X, geo: %s", i, l_provid, l_name, l_sa, (l < 4) ? "empty" : cs_hexdump(1, result, l));
+		cs_log("provider: %d, id: %06X%s, sa: %08X, geo: %s", i, l_provid, l_name, l_sa, (l < 4) ? "empty" : cs_hexdump(1, result, l));
 
 		// read classes subscription
 		insac[2] = 0xa9;
