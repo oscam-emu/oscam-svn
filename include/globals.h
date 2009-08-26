@@ -117,20 +117,28 @@
 #  define D_DEVICE		16	// Debug Reader I/O
 #  define D_ALL_DUMP		31
 
-#  define R_MOUSE		0x1	// Reader smartcard mouse
-#  define R_INTERN		0x2	// Reader smartcard intern
-#  define R_SMART		0x5	// Smartreader+
-#  define R_CAMD35		0x10	// Reader cascading camd 3.5x
-#  define R_CAMD33		0x11	// Reader cascading camd 3.3x
-#  define R_NEWCAMD		0x12	// Reader cascading newcamd
-#  define R_RADEGAST		0x13	// Reader cascading radegast
-#  define R_CS378X		0x14	// Reader cascading camd 3.5x TCP
+#  define R_MOUSE		0x01	// Reader local serial : mouse
+#  define R_INTERN		0x02	// Reader local serial : intern
+#  define R_SMART		0x03	// Reader local serial : smartreader+
+
+#  define R_CAMD35		0x80	// Reader cascading network : camd 3.5x
+#  define R_CAMD33		0x81	// Reader cascading network : camd 3.3x
+#  define R_NEWCAMD		0x82	// Reader cascading network : newcamd
+#  define R_RADEGAST		0x83	// Reader cascading network : radegast
+#  define R_CS378X		0x84	// Reader cascading network : camd 3.5x TCP
 #  ifdef CS_WITH_GBOX
-#    define R_GBOX		0x20	// Reader cascading gbox
+#    define R_GBOX		0x85	// Reader cascading network : gbox
 #  endif
-#  define R_SERIAL		0x80	// Reader serial
-#  define R_IS_NETWORK		0x70
-#  define R_IS_CASCADING	0xF0
+#  define R_SERIAL		0xC0	// Reader cascading not network : serial
+
+#  define R_IS_LOCAL		~0x80		// 0x00 -> 0x7F : local
+#  define R_IS_CASCADING	0x80		// 0x80 -> 0xFF : cascading
+
+#  define R_IS_SERIAL		~0xC0		// 0x00 -> 0x3F : local serial
+#  define R_IS_NOT_SERIAL	~0x80 & 0x40	// 0x40 -> 0x7F : local not serial
+
+#  define R_IS_NETWORK		0x80 & ~0x40	// 0x80 -> 0xBF : cascading network
+#  define R_IS_NOT_NETWORK	0xC0		// 0xC0 -> 0xFF : cascading not network
 
 #  define CS_MAX_MOD		8
 #  define MOD_CONN_TCP		1
