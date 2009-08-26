@@ -181,9 +181,9 @@ int conax_do_ecm(ECM_REQUEST * er)
 						}
 						break;
 					case 0x31:
-						if ((result[i + 1] == 0x02 && result[i + 2] == 0x00 && result[i + 3] == 0x00) || (result[i + 1] == 0x02 && result[i + 2] == 0x40 && result[i + 3] == 0x00))
+						if ((result[i + 1] == 0x02 && result[i + 2] == 0x00 && result[i + 3] == 0x00) || (result[i + 1] == 0x02 && result[i + 2] == 0x40 && result[i + 3] == 0x00)) {
 							break;
-						else if (strcmp(reader[ridx].pincode, "none")) {
+						} else if (strcmp(reader[ridx].pincode, "none")) {
 							conax_send_pin();
 							memcpy(insA2_cmd + 5, buf, insA2[4]);
 							cam_common_cmd2card(insA2_cmd, 5 + insA2[4], result, sizeof(result), &result_size);	// write Header + ECM
