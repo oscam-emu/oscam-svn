@@ -151,6 +151,7 @@ int reader_serial_reset()
 
 int reader_serial_card_is_inserted()
 {
+	char ret;
 	uchar cmd[5];
 	uchar result[260];
 	ushort result_size;
@@ -162,7 +163,7 @@ int reader_serial_card_is_inserted()
 	cmd[3] = CTBCS_P2_STATUS_ICC;
 	cmd[4] = 0x00;
 
-	char ret = reader_serial_cmd2reader(cmd, 5, result, sizeof(result), &result_size);
+	ret = reader_serial_cmd2reader(cmd, 5, result, sizeof(result), &result_size);
 	if (ret != OK) {
 		cs_log("Error getting status of terminal (%d, %s) !", ret, cs_hexdump(1, result, result_size));
 	}
