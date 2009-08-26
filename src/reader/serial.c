@@ -101,9 +101,8 @@ static int reader_serial_cmd2reader(uchar *cmd, ushort cmd_size, uchar *result, 
 	return reader_serial_cmd2api(1, cmd, cmd_size, result, result_max_size, result_size, D_DEVICE);
 }
 
-int reader_serial_activate_card(uchar *atr, ushort *atr_size)
+int reader_serial_reset()
 {
-	int i;
 	char ret;
 	uchar cmd[5];
 	uchar result[260];
@@ -120,10 +119,16 @@ int reader_serial_activate_card(uchar *atr, ushort *atr_size)
 		return 0;
 	}
 
-	/* Check if card is inserted */
-	if (!reader_serial_card_is_inserted()) {
-		return 0;
-	}
+	return 1;
+}
+
+int reader_serial_get_atr(uchar *atr, ushort *atr_size)
+{
+	int i;
+	char ret;
+	uchar cmd[5];
+	uchar result[260];
+	ushort result_size;
 
 	/* Try to get ATR from card */
 	for (i = 1; i <= 5; i++) {

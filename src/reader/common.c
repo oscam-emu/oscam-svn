@@ -21,8 +21,18 @@ static void reader_common_nullcard(struct s_reader *reader)
 
 static int reader_common_activate_card(struct s_reader *reader, uchar *atr, ushort *atr_size)
 {
-	if (reader->type & R_IS_SERIAL)
-		return reader_serial_activate_card(atr, atr_size);
+	if (reader->type & R_IS_SERIAL) {
+		if (!reader_serial_reset()) {
+			return 0;
+		}
+
+		/* Check if card is inserted */
+		if (!reader_serial_card_is_inserted()) {
+			return 0;
+		}
+
+		return reader_serial_get_atr(atr, atr_size);
+	}
 
 	return 0;
 }
