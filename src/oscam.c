@@ -2075,7 +2075,7 @@ int main(int argc, char *argv[])
 	if (cfg->waitforcards) {
 		int card_init_done;
 
-		cs_log("Waiting for local card init ....");
+		cs_log("Waiting for local card init ...");
 
 		sleep(3);	// short sleep for card detect to work proberly
 
