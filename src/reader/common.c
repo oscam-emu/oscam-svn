@@ -92,7 +92,7 @@ void reader_common_card_info(struct s_reader *reader)
 
 	if (reader->card_status == CARD_INSERTED) {
 		client[cs_idx].last = time((time_t) 0);
-		if (cam_common_card_info()) {
+		if (cam_common_load_card_info()) {
 			/* Mark the reader as online */
 			reader[ridx].online = 1;
 		}
