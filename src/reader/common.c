@@ -138,7 +138,7 @@ void reader_common_check_health(struct s_reader *reader)
 
 int reader_common_ecm2cam(struct s_reader *reader, ECM_REQUEST * er)
 {
-	int rc = -1;
+	int rc = 0;
 
 	if (reader->online) {
 		if ((reader->caid[0] >> 8) == ((er->caid >> 8) & 0xFF)) {		// TODO: move this somewhere else
@@ -146,8 +146,6 @@ int reader_common_ecm2cam(struct s_reader *reader, ECM_REQUEST * er)
 			client[cs_idx].last_caid = er->caid;
 			client[cs_idx].last = time((time_t) 0);
 			rc = cam_common_process_ecm(er);
-		} else {
-			rc = 0;
 		}
 	}
 
@@ -156,7 +154,7 @@ int reader_common_ecm2cam(struct s_reader *reader, ECM_REQUEST * er)
 
 int reader_common_emm2cam(struct s_reader *reader, EMM_PACKET * ep)
 {
-	int rc = -1;
+	int rc = 0;
 
 	if (reader->online) {
 		client[cs_idx].last = time((time_t) 0);
