@@ -68,10 +68,9 @@ typedef struct {
 typedef struct {
 	int fd;			/* Handle of the serial device */
 	IO_Serial_Properties *props;
-	unsigned com;		/* Com port number (1..4) */
 	BYTE PnP_id[IO_SERIAL_PNPID_SIZE];	/* PnP Id of the serial device */
 	unsigned PnP_id_size;	/* Length of PnP Id */
-	bool usbserial;		/* Is serial USB device */
+	char device[128];	/* Device path */
 	int reader_type;	/* Reader type */
 	int wr;
 } IO_Serial;
@@ -87,7 +86,7 @@ extern IO_Serial *IO_Serial_New(void);
 extern void IO_Serial_Delete(IO_Serial * io);
 
 /* Initialization and closing */
-extern bool IO_Serial_Init(IO_Serial * io, unsigned com, bool usbserial, unsigned short reader_type, bool pnp);
+extern bool IO_Serial_Init(IO_Serial * io, char *device, unsigned short reader_type, bool pnp);
 extern bool IO_Serial_Close(IO_Serial * io);
 
 /* Transmission properties */
@@ -106,7 +105,6 @@ extern bool IO_Serial_Read(IO_Serial * io, unsigned timeout, unsigned size, BYTE
 extern bool IO_Serial_Write(IO_Serial * io, unsigned delay, unsigned size, BYTE * data);
 
 /* Serial port atributes */
-extern unsigned IO_Serial_GetCom(IO_Serial * io);
 extern void IO_Serial_GetPnPId(IO_Serial * io, BYTE * pnp_id, unsigned *length);
 
 /* smartreader Frequency set */

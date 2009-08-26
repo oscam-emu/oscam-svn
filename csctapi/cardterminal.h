@@ -64,7 +64,7 @@ typedef struct {
 extern CardTerminal *CardTerminal_New();
 
 /* Intialice a CardTerminal in a given port */
-extern char CardTerminal_Init(CardTerminal * ct, unsigned short pn, unsigned short reader_type);
+extern char CardTerminal_Init(CardTerminal * ct, char *device, unsigned short reader_type);
 
 /* Send a CT-BCS command to a CardTerminal */
 extern char CardTerminal_Command(CardTerminal * ct, APDU_Cmd * cmd, APDU_Rsp ** rsp);

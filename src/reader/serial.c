@@ -11,7 +11,6 @@
 
 #define CTAPI_CTN 1
 
-char reader_serial_device[128];		// UGLY : to be removed
 int reader_serial_irdeto_mode;		// UGLY : to be removed
 int reader_serial_card_detect;		// UGLY : to be removed
 int reader_serial_mhz;			// UGLY : to be removed
@@ -109,7 +108,6 @@ int reader_serial_init(struct s_reader *reader)
 	char ret;
 
 	// Set some extern variables to be used by CT-API
-	snprintf(reader_serial_device, sizeof (reader_serial_device), "%s", reader->device);
 	reader_serial_card_detect = reader->detect;
 	reader_serial_mhz = reader->mhz;
 
@@ -119,7 +117,7 @@ int reader_serial_init(struct s_reader *reader)
 
 	// Lookup Port Number
 	ushort reader_type = reader_serial_get_reader_type(reader);
-	if ((ret = CT_init(CTAPI_CTN, PORT_COM1, reader_type)) != OK) {
+	if ((ret = CT_init(CTAPI_CTN, reader->device, reader_type)) != OK) {
 		cs_log("Cannot open device: %s", reader->device);
 	}
 	cs_debug("CT_init on %s: %d", reader->device, ret);

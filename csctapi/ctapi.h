@@ -20,8 +20,8 @@ extern "C" {
 #  define MAX_APDULEN     1040
 
 	extern char CT_init(unsigned short Ctn,	/* Terminal Number */
-			    unsigned short pn,	/* Port Number */
-			    unsigned short reader_type	/* reader type (mouse, smartreader) */
+			    char *device,	/* Device Path */
+			    unsigned short reader_type	/* Reader Type (mouse, smartreader) */
 		);
 
 	extern char CT_close(

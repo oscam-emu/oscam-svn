@@ -50,8 +50,6 @@
 #  include <linux/serial.h>
 #endif
 
-#define IO_SERIAL_FILENAME_LENGTH 	32
-
 /*
  * Internal functions declaration
  */
@@ -61,8 +59,6 @@ static int IO_Serial_Bitrate(int bitrate);
 static bool IO_Serial_WaitToRead(int hnd, unsigned delay_ms, unsigned timeout_ms);
 
 static bool IO_Serial_WaitToWrite(IO_Serial * io, unsigned delay_ms, unsigned timeout_ms);
-
-static void IO_Serial_DeviceName(unsigned com, bool usbserial, char *filename, unsigned length);
 
 static bool IO_Serial_InitPnP(IO_Serial * io);
 
@@ -77,7 +73,6 @@ static void IO_Serial_ClearPropertiesCache(IO_Serial * io);
 static int _in_echo_read = 0;
 int io_serial_need_dummy_char = 0;
 
-extern char reader_serial_device[];
 extern int reader_serial_mhz;
 extern int reader_serial_irdeto_mode;
 
@@ -178,31 +173,24 @@ IO_Serial *IO_Serial_New(void)
 	return io;
 }
 
-bool IO_Serial_Init(IO_Serial * io, unsigned com, bool usbserial, unsigned short reader_type, bool pnp)
+bool IO_Serial_Init(IO_Serial * io, char *device, unsigned short reader_type, bool pnp)
 {
-	char filename[IO_SERIAL_FILENAME_LENGTH];
-
-	IO_Serial_DeviceName(com, usbserial, filename, IO_SERIAL_FILENAME_LENGTH);
-
 #ifdef DEBUG_IO
-	printf("IO: Opening serial port %s\n", filename);
+	printf("IO: Opening serial port %s\n", io->device);
 #endif
 
-	if (com < 1)
-		return FALSE;
-
-	io->com = com;
+	memcpy(io->device, device, sizeof(io->device));
 
 #ifdef SCI_DEV
 	if (reader_type == RTYP_SCI)
-		io->fd = open(filename, O_RDWR);
+		io->fd = open(io->device, O_RDWR);
 	else
 #endif
 
 #ifdef OS_MACOSX
-		io->fd = open(filename, O_RDWR | O_NOCTTY | O_NDELAY);
+		io->fd = open(io->device, O_RDWR | O_NOCTTY | O_NDELAY);
 #else
-		io->fd = open(filename, O_RDWR | O_NOCTTY | O_SYNC);
+		io->fd = open(io->device, O_RDWR | O_NOCTTY | O_SYNC);
 #endif
 
 	if (io->fd < 0)
@@ -219,7 +207,6 @@ bool IO_Serial_Init(IO_Serial * io, unsigned com, bool usbserial, unsigned short
 	if (reader_type != RTYP_SCI)
 		IO_Serial_InitPnP(io);
 
-	io->usbserial = usbserial;
 	io->reader_type = reader_type;
 
 	if (reader_type != RTYP_SCI)
@@ -687,12 +674,6 @@ void IO_Serial_GetPnPId(IO_Serial * io, BYTE * pnp_id, unsigned *length)
 	memcpy(pnp_id, io->PnP_id, io->PnP_id_size);
 }
 
-unsigned IO_Serial_GetCom(IO_Serial * io)
-{
-	return io->com;
-}
-
-
 bool IO_Serial_Read(IO_Serial * io, unsigned timeout, unsigned size, BYTE * data)
 {
 	BYTE c;
@@ -820,12 +801,8 @@ bool IO_Serial_Write(IO_Serial * io, unsigned delay, unsigned size, BYTE * data)
 
 bool IO_Serial_Close(IO_Serial * io)
 {
-	char filename[IO_SERIAL_FILENAME_LENGTH];
-
-	IO_Serial_DeviceName(io->com, io->usbserial, filename, IO_SERIAL_FILENAME_LENGTH);
-
 #ifdef DEBUG_IO
-	printf("IO: Clossing serial port %s\n", filename);
+	printf("IO: Clossing serial port %s\n", io->device);
 #endif
 
 #if defined(TUXBOX) && defined(PPC)
@@ -1041,10 +1018,8 @@ static void IO_Serial_Clear(IO_Serial * io)
 {
 	io->fd = -1;
 	io->props = NULL;
-	io->com = 0;
 	memset(io->PnP_id, 0, IO_SERIAL_PNPID_SIZE);
 	io->PnP_id_size = 0;
-	io->usbserial = FALSE;
 	io->wr = 0;
 }
 
@@ -1089,15 +1064,6 @@ static void IO_Serial_ClearPropertiesCache(IO_Serial * io)
 		free(io->props);
 		io->props = NULL;
 	}
-}
-
-static void IO_Serial_DeviceName(unsigned com, bool usbserial, char *filename, unsigned length)
-{
-	snprintf(filename, length, "%s", reader_serial_device);
-//      if(com==1)
-//              snprintf (filename, length, "/dev/tts/%d", com - 1);
-//      else
-//              snprintf (filename, length, "/dev/sci%d", com - 2);
 }
 
 static bool IO_Serial_InitPnP(IO_Serial * io)
