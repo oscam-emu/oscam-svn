@@ -173,8 +173,7 @@ int cam_seca_load_card_info()
 {
 	int i;
 
-	cs_log("card detected");
-	cs_log("type: seca, caid: %04X, serial: %llu, card: %s ", reader[ridx].caid[0], serial, card);
+	cs_log("caid: %04X, serial: %llu, card: %s ", reader[ridx].caid[0], serial, card);
 	for (i = 0; i < 16; i++)
 		if (pmap & (1 << i)) {
 			if (!set_provider_info(i))

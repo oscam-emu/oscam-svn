@@ -304,9 +304,6 @@ int cam_irdeto_load_card_info()
 	uchar result[260];
 	ushort result_size;
 
-	cs_log("card detected");
-	cs_log("type: irdeto");
-
 	if (nagra) {
 		for (sc_GetChid[7] = 5;; sc_GetChid[7] |= 0x80) {
 			ushort chid;

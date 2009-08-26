@@ -365,9 +365,6 @@ int cam_cryptoworks_load_card_info()
 	ushort result_size;
 	char l_name[20 + 8] = ", name: ";
 
-	cs_log("card detected");
-	cs_log("type: cryptoworks");
-
 	for (i = 0; i < reader[ridx].nprov; i++) {
 		l_name[8] = 0;
 		select_file(0x1f, reader[ridx].prid[i][3]);	// select provider

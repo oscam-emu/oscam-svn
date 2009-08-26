@@ -255,8 +255,6 @@ int cam_viaccess_load_card_info()
 	show_cls = reader[ridx].show_cls;
 	memset(&last_geo, 0, sizeof (last_geo));
 
-	cs_log("card detected");
-
 	// set pin
 	card_send_ins(ins24, pin, result, sizeof(result), &result_size);
 

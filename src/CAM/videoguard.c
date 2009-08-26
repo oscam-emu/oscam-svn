@@ -806,8 +806,6 @@ int cam_videoguard_card_init(uchar *atr, ushort atr_size)
 int cam_videoguard_load_card_info()
 {
 	/* info is displayed in init, or when processing info */
-	cs_log("card detected");
-	cs_log("type: Videoguard");
 	read_tiers();
 
 	return 1;
