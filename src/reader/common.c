@@ -143,6 +143,8 @@ int reader_common_emm2cam(EMM_PACKET * ep)
 
 int reader_common_cmd2card(uchar *cmd, ushort cmd_size, uchar *result, ushort result_max_size, ushort *result_size)
 {
-	// TODO: detect if this is a serial reader
-	return (reader_serial_cmd2card(cmd, cmd_size, result, result_max_size, result_size) == 0);
+	if (reader->type & R_IS_SERIAL)
+		return (reader_serial_cmd2card(cmd, cmd_size, result, result_max_size, result_size) == 0);
+
+	return 0;
 }
