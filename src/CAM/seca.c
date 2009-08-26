@@ -58,7 +58,7 @@ int set_provider_info(int i)
 		}
 	}
 	memcpy(l_name + 8, result + 2, 16);
-	l_name[sizeof (l_name)] = 0;
+	l_name[sizeof (l_name) - 1] = 0;
 	trim(l_name + 8);
 	l_name[0] = (l_name[8]) ? ',' : 0;
 	reader[ridx].availkeys[i][0] = valid;	//misusing availkeys to register validity of provider

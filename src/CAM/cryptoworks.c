@@ -563,7 +563,7 @@ int cryptoworks_card_info()
 		select_file(0x0e, 0x11);	// read provider name
 		if (read_record(0xD6) >= 16) {
 			strncpy(l_name + 8, (const char *) result + 2, sizeof (l_name) - 9);
-			l_name[sizeof (l_name)] = 0;
+			l_name[sizeof (l_name) - 1] = 0;
 			trim(l_name + 8);
 		}
 		l_name[0] = (l_name[8]) ? ',' : 0;
