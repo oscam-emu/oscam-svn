@@ -37,6 +37,8 @@ static void reader_common_clear_memory(struct s_reader *reader)
 
 static int reader_common_card_is_inserted(struct s_reader *reader)
 {
+	int rc = 0;
+
 	/* Check that we don't have "disabled" this reader */
 	char filename[255];
 	if (strrchr (reader->device, '/')) {
@@ -47,10 +49,10 @@ static int reader_common_card_is_inserted(struct s_reader *reader)
 	if (file_exists(filename)) return 0;
 
 	if ((reader->type & R_IS_SERIAL) != 0) {
-		return reader_serial_card_is_inserted();
+		rc = reader_serial_card_is_inserted();
 	}
 
-	return 0;
+	return rc;
 }
 
 static int reader_common_get_atr(struct s_reader *reader)
@@ -65,7 +67,7 @@ static int reader_common_get_atr(struct s_reader *reader)
 		cs_log("Reader : ATR = %s", cs_hexdump(1, reader->card_atr, reader->card_atr_size));
 	}
 
-	return 0;
+	return rc;
 }
 
 static int reader_common_init_card(struct s_reader *reader)
@@ -88,11 +90,13 @@ static int reader_common_init_card(struct s_reader *reader)
 
 int reader_common_init(struct s_reader *reader)
 {
+	int rc = 0;
+
 	if ((reader->type & R_IS_SERIAL) != 0) {
-		return reader_serial_init(reader);
+		rc = reader_serial_init(reader);
 	}
 
-	return 0;
+	return rc;
 }
 
 void reader_common_load_card_info(struct s_reader *reader)
@@ -183,9 +187,11 @@ int reader_common_process_emm(struct s_reader *reader, EMM_PACKET * ep)
 
 int reader_common_cmd2card(struct s_reader *reader, uchar *cmd, ushort cmd_size, uchar *result, ushort result_max_size, ushort *result_size)
 {
+	int rc = 0;
+
 	if ((reader->type & R_IS_SERIAL) != 0) {
-		return (reader_serial_cmd2card(cmd, cmd_size, result, result_max_size, result_size) == 0);
+		rc = (reader_serial_cmd2card(cmd, cmd_size, result, result_max_size, result_size) == 0);
 	}
 
-	return 0;
+	return rc;
 }
