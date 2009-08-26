@@ -180,7 +180,7 @@ int seca_do_ecm(ECM_REQUEST * er)
 //  i=get_prov_index(er->ecm[3],er->ecm[4]);
 	i = get_prov_index((char *) er->ecm + 3);
 	if ((i == -1) || (reader[ridx].availkeys[i][0] == 0))	//if provider not found or expired
-		return (0);
+		return 0;
 	ins3c[2] = i;
 	ins3c[3] = er->ecm[7];	//key nr
 	ins3c[4] = (((er->ecm[1] & 0x0f) * 256) + er->ecm[2]) - 0x05;
@@ -203,15 +203,15 @@ int seca_do_ecm(ECM_REQUEST * er)
 	}
 
 	if ((result[0] != 0x90) || (result[1] != 0x00))
-		return (0);
+		return 0;
 	cam_common_cmd2card(ins3a, sizeof(ins3a), result, sizeof(result), &result_size);	//get cw's
 	cs_debug("cwdump:%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x.", result[0], result[1], result[2], result[3], result[4], result[5], result[6], result[7], result[8], result[9], result[10], result[11], result[12], result[13], result[14], result[15], result[16],
 		 result[17]);
 	if ((result[16] != 0x90) || (result[17] != 0x00))
-		return (0);	//exit if response is not 90 00 //TODO: if response is 9027 ppv mode is possible!
+		return 0;	//exit if response is not 90 00 //TODO: if response is 9027 ppv mode is possible!
 	memcpy(er->cw, result, 16);
-	return (1);
 
+	return 1;
 }
 
 int seca_do_emm(EMM_PACKET * ep)

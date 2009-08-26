@@ -748,9 +748,11 @@ int videoguard_do_ecm(ECM_REQUEST * er)
 			} else {
 				memcpy(er->cw + 0, CW1, 8);
 			}
+
 			return 1;
 		}
 	}
+
 	return 0;
 }
 

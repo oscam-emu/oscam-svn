@@ -448,8 +448,8 @@ int cryptoworks_do_ecm(ECM_REQUEST * er)
 		}
 #endif
 	}
-//  return(rc ? 1 : 0);
-	return ((r == 3) ? 1 : 0);
+
+	return (r == 3);
 }
 
 int cryptoworks_do_emm(EMM_PACKET * ep)

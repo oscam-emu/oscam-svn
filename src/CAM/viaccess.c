@@ -273,7 +273,7 @@ int viaccess_do_ecm(ECM_REQUEST * er)
 		keynr = ecm88Data[4] & 0x0F;
 		if (!chk_prov(ident, keynr)) {
 			cs_debug("smartcardviaccess ecm: provider or key not found on card");
-			return (0);
+			return 0;
 		}
 		ecm88Data += 5;
 		ecm88Len -= 5;
@@ -350,7 +350,7 @@ int viaccess_do_ecm(ECM_REQUEST * er)
 		aes_decrypt(er->cw, 16);
 	}
 
-	return (rc ? 1 : 0);
+	return rc;
 }
 
 int viaccess_do_emm(EMM_PACKET * ep)

@@ -305,9 +305,9 @@ int irdeto_do_ecm(ECM_REQUEST * er)
 	cmd[4] = (er->ecm[2]) - 3;
 	memcpy(cmd + sizeof (sc_EcmCmd), &er->ecm[6], cmd[4]);
 	if (irdeto_do_cmd(cmd, 0x9D00, result, sizeof(result), &result_size))
-		return (0);
+		return 0;
 	if (result_size < 24)
-		return (0);
+		return 0;
 	ReverseSessionKeyCrypt(sc_CamKey, result + 6);
 	ReverseSessionKeyCrypt(sc_CamKey, result + 14);
 	memcpy(er->cw, result + 6, 16);
