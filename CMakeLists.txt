@@ -71,7 +71,7 @@ link_directories (${OPTIONAL_LINK_DIR})
 #----------------------- global options ------------------------------
 
 # we want to have detection of all the errors
-add_definitions ("-Wall -Werror -Wno-strict-aliasing -Wmissing-declarations -Wnested-externs -Wredundant-decls -Wundef")
+add_definitions ("-Wall -Werror -Wno-strict-aliasing -Wmissing-declarations -Wnested-externs -Wredundant-decls -Wundef -Winline")
 
 if (OSCamOperatingSystem MATCHES "Linux")
     add_definitions ("-DOS_LINUX")
