@@ -30,29 +30,29 @@ int cam_common_detect_card_system(uchar *atr, ushort atr_size)
 {
 	cam_common_card_system card_system = CAM_UNKNOWN;
 
-	cs_log("CAM : Detecting card system ..");
+	cs_log("CAM: Detecting card system ...");
 
 	/* Test each CAM to detect the card_system */
 	if (cam_conax_card_init(atr, atr_size)) {
 		card_system = CAM_CONAX;
-		cs_log("CAM : Conax selected");
+		cs_log("CAM: Conax selected");
 	} else if (cam_cryptoworks_card_init(atr, atr_size)) {
 		card_system = CAM_CRYPTOWORKS;
-		cs_log("CAM : Cryptoworks selected");
+		cs_log("CAM: Cryptoworks selected");
 	} else if (cam_irdeto_card_init(atr, atr_size)) {
 		card_system = CAM_IRDETO;
-		cs_log("CAM : Irdeto selected");
+		cs_log("CAM: Irdeto selected");
 	} else if (cam_seca_card_init(atr, atr_size)) {
 		card_system = CAM_SECA;
-		cs_log("CAM : Seca selected");
+		cs_log("CAM: Seca selected");
 	} else if (cam_viaccess_card_init(atr, atr_size)) {
 		card_system = CAM_VIACCESS;
-		cs_log("CAM : Viaccess selected");
+		cs_log("CAM: Viaccess selected");
 	} else if (cam_videoguard_card_init(atr, atr_size)) {
 		card_system = CAM_VIDEOGUARD;
-		cs_log("CAM : Videoguard selected");
+		cs_log("CAM: Videoguard selected");
 	} else {
-		cs_log("CAM : Card system not supported !");
+		cs_log("CAM: Card system not supported !");
 	}
 
 	/* Save the card_system value for the reader */
@@ -65,7 +65,7 @@ int cam_common_load_card_info()
 {
 	int rc = 0;
 
-	cs_log("CAM : Loading card ..");
+	cs_log("CAM: Loading card ...");
 
 	switch (reader[ridx].card_system) {
 		case CAM_CONAX:
@@ -89,9 +89,9 @@ int cam_common_load_card_info()
 	}
 
 	if (rc) {
-		cs_log("CAM : Card information loaded");
+		cs_log("CAM: Card information loaded");
 	} else {
-		cs_log("CAM : Cannot load card information !");
+		cs_log("CAM: Cannot load card information !");
 	}
 
 	return rc;
@@ -245,7 +245,7 @@ void cam_common_guess_card_system(ECM_REQUEST * er)
 	}
 */
 
-	if (!er->caid)	// guess by len ..
+	if (!er->caid)	// guess by len
 		er->caid = cam_common_len4caid[er->ecm[2] + 3];
 
 	if (!er->caid)
