@@ -131,7 +131,7 @@ void reader_common_check_health(struct s_reader *reader)
 			/* Try to initialize the card */
 			if (!reader_common_init_card(reader)) {
 				reader->card_status |= CARD_FAILURE;
-				cs_log("Reader: Card initializing error for %s", reader->label);
+				cs_log("Reader: Cannot initialize card in %s !", reader->label);
 			} else {
 				client[cs_idx].au = ridx;
 			}
