@@ -95,6 +95,8 @@ void reader_common_card_info(struct s_reader *reader)
 		if (cam_common_load_card_info()) {
 			/* Mark the reader as online */
 			reader[ridx].online = 1;
+
+			cs_log("Reader : Ready for requests (%s)", reader->label);
 		}
 	}
 }
@@ -106,12 +108,12 @@ void reader_common_check_health(struct s_reader *reader)
 		/* Check if card was just inserted */
 		if ((reader->card_status & CARD_INSERTED) == 0) {
 			reader->card_status = CARD_INSERTED;
-			cs_log("card detected in %s", reader->label);
+			cs_log("Reader : Card detected in %s", reader->label);
 
 			/* Try to initialize the card */
 			if (!reader_common_reset(reader)) {
 				reader->card_status |= CARD_FAILURE;
-				cs_log("card initializing error for %s", reader->label);
+				cs_log("Reader : Card initializing error for %s", reader->label);
 			} else {
 				client[cs_idx].au = ridx;
 				reader_common_card_info(reader);
@@ -128,7 +130,7 @@ void reader_common_check_health(struct s_reader *reader)
 	} else {
 		/* Check if card was just ejected */
 		if (reader->card_status & CARD_INSERTED) {
-			cs_log("card ejected from %s", reader->label);
+			cs_log("Reader : Card ejected from %s", reader->label);
 
 			/* Clear all infos from card */
 			reader_common_clear_memory(reader);

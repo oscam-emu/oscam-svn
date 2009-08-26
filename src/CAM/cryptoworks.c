@@ -272,11 +272,10 @@ int cam_cryptoworks_card_init(uchar *atr, ushort atr_size)
 	}
 	cs_log("issuer: %s, id: %02X, bios: v%d, pin: %s, mfid: %04X", issuer, issuerid, atr[7], pin, mfid);
 	cs_log("providers: %d (%s)", reader[ridx].nprov, ptxt + 1);
-	cs_log("ready for requests");
 
 	cryptoworks_disbale_pin();	//by KrazyIvan
 
-	return (1);
+	return 1;
 }
 
 #ifdef LALL

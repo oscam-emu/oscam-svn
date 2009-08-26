@@ -133,8 +133,6 @@ int cam_conax_card_init(uchar *atr, ushort atr_size)
 		cs_log("Provider:%d  SharedAddress:%08X", j + 1, b2ll(4, reader[ridx].sa[j]));
 	}
 
-	cs_log("ready for requests");
-
 	return 1;
 }
 

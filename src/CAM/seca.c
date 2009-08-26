@@ -164,7 +164,6 @@ int cam_seca_card_init(uchar *atr, ushort atr_size)
 		cs_log("parental locked");
 	}
 
-	cs_log("ready for requests");
 	return 1;
 }
 

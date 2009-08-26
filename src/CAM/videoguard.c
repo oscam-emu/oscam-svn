@@ -797,15 +797,13 @@ int cam_videoguard_card_init(uchar *atr, ushort atr_size)
 		return 0;
 	}
 
-	cs_log("type: Videoguard, caid: %04X, serial: %02X%02X%02X%02X, BoxID: %02X%02X%02X%02X", reader[ridx].caid[0], reader[ridx].hexserial[4], reader[ridx].hexserial[5], reader[ridx].hexserial[6], reader[ridx].hexserial[7], boxID[0], boxID[1], boxID[2], boxID[3]);
+	cs_log("caid: %04X, serial: %02X%02X%02X%02X, BoxID: %02X%02X%02X%02X", reader[ridx].caid[0], reader[ridx].hexserial[4], reader[ridx].hexserial[5], reader[ridx].hexserial[6], reader[ridx].hexserial[7], boxID[0], boxID[1], boxID[2], boxID[3]);
 
-	cs_log("ready for requests");
 	return 1;
 }
 
 int cam_videoguard_load_card_info()
 {
-	/* info is displayed in init, or when processing info */
 	read_tiers();
 
 	return 1;
@@ -861,7 +859,6 @@ int cam_videoguard_process_emm(EMM_PACKET * ep)
 		}
 
 		cs_log("EMM request return code : %02X%02X", result[0], result[1]);
-//cs_dump(ep->emm, 64, "EMM:");
 		if (status_ok(result)) {
 			read_tiers();
 		}

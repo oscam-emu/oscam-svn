@@ -292,7 +292,6 @@ int cam_irdeto_card_init(uchar *atr, ushort atr_size)
 			break;
 	}
 
-	cs_log("ready for requests");
 	return 1;
 }
 

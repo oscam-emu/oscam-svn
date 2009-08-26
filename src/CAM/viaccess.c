@@ -233,7 +233,6 @@ cs_log("name: %s", result);
 
 	memset(&last_geo, 0, sizeof (last_geo));
 
-	cs_log("ready for requests");
 	return 1;
 }
 
