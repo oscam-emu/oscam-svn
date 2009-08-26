@@ -118,9 +118,8 @@ int reader_serial_init(struct s_reader *reader)
 	// Lookup Port Number
 	ushort reader_type = reader_serial_get_reader_type(reader);
 	if ((ret = CT_init(CTAPI_CTN, reader->device, reader_type)) != OK) {
-		cs_log("Cannot open device: %s", reader->device);
+		cs_log("Reader: Cannot open device \"%s\" (%d) !", reader->device, ret);
 	}
-	cs_debug("CT_init on %s: %d", reader->device, ret);
 
 	// Restore cs_ptyp
 	cs_ptyp = cs_ptyp_orig;
@@ -142,7 +141,7 @@ int reader_serial_reset()
 
 	ret = reader_serial_cmd2reader(cmd, 3, result, sizeof(result), &result_size);
 	if (ret != OK) {
-		cs_log("Error resetting terminal card (%d, %s) !", ret, cs_hexdump(1, result, result_size));
+		cs_log("Reader: Error resetting terminal card (%d, %s) !", ret, cs_hexdump(1, result, result_size));
 		return 0;
 	}
 
@@ -165,7 +164,7 @@ int reader_serial_card_is_inserted()
 
 	ret = reader_serial_cmd2reader(cmd, 5, result, sizeof(result), &result_size);
 	if (!(ret == OK && result_size == 3 && result[1] == CTBCS_SW1_OK && result[2] == CTBCS_SW2_OK)) {
-		cs_log("Error getting status of terminal (%d, %s) !", ret, cs_hexdump(1, result, result_size));
+		cs_log("Reader: Error getting status of terminal (%d, %s) !", ret, cs_hexdump(1, result, result_size));
 		return 0;
 	}
 
@@ -200,7 +199,7 @@ int reader_serial_get_atr(uchar *atr, ushort *atr_size)
 			/* All is ok */
 			return 1;
 		} else {
-			cs_log("Error getting ATR from card (%d, %s) !", ret, cs_hexdump(1, result, result_size));
+			cs_log("Reader: Error getting ATR from card (%d, %s) !", ret, cs_hexdump(1, result, result_size));
 			cs_sleepms(500);
 		}
 	}
