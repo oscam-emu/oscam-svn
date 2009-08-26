@@ -61,9 +61,9 @@ set (OPTIONAL_LINK_DIR "" CACHE STRING "Some optional link directories")
 set (OPTIONAL_INCLUDE_DIR "" CACHE STRING "Some optional include directories")
 
 include_directories (
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/csctapi
     ${CMAKE_CURRENT_SOURCE_DIR}/cscrypt
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${OPTIONAL_INCLUDE_DIR}
     )
 link_directories (${OPTIONAL_LINK_DIR})
