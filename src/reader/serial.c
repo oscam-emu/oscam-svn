@@ -181,7 +181,7 @@ int reader_serial_get_atr(uchar *atr, ushort *atr_size)
 	ushort result_size;
 
 	/* Try to get ATR from card */
-	for (i = 1; i <= 5; i++) {
+	for (i = 0; i < 5; i++) {
 		reader_serial_irdeto_mode = i % 2;
 
 		/* Request ICC */
@@ -193,22 +193,19 @@ int reader_serial_get_atr(uchar *atr, ushort *atr_size)
 
 		ret = reader_serial_cmd2reader(cmd, 5, result, sizeof(result), &result_size);
 		if (ret == OK && result_size > 0) {
-			break;
+			/* Store Answer to Reset */
+			*atr_size = result_size - 2;
+			memcpy(atr, result, *atr_size);
+			cs_log("ATR: %s", cs_hexdump(1, atr, *atr_size));
+
+			/* All is ok */
+			return 1;
 		} else {
 			cs_log("Error activating card: %d", ret);
 			cs_sleepms(500);
-
-			/* Cannot get the ATR */
-			if (i == 5) {
-				return 0;
-			}
 		}
 	}
 
-	/* Store Answer to Reset */
-	*atr_size = result_size - 2;
-	memcpy(atr, result, *atr_size);
-	cs_log("ATR: %s", cs_hexdump(1, atr, *atr_size));
-
-	return 1;
+	/* Cannot get the ATR */
+	return 0;
 }
