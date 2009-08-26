@@ -8,6 +8,8 @@
 #include "simples.h"
 #include "log.h"
 
+extern int io_serial_need_dummy_char;
+
 static void reader_common_nullcard(struct s_reader *reader)
 {
 	reader->card_system = 0;
@@ -110,7 +112,6 @@ int reader_common_check_health(struct s_reader *reader)
 			client[cs_idx].lastecm = 0;
 			client[cs_idx].au = -1;
 
-			extern int io_serial_need_dummy_char;
 			io_serial_need_dummy_char = 0;
 
 			cs_log("card ejected");

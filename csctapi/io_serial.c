@@ -77,13 +77,17 @@ static void IO_Serial_ClearPropertiesCache(IO_Serial * io);
 static int _in_echo_read = 0;
 int io_serial_need_dummy_char = 0;
 
+extern char reader_serial_device[];
+extern int reader_serial_mhz;
+extern int reader_serial_irdeto_mode;
+
 int fdmc = (-1);
 
 #if defined(TUXBOX) && defined(PPC)
+extern int *oscam_sem;
+
 void IO_Serial_Ioctl_Lock(IO_Serial * io, int flag)
 {
-	extern int *oscam_sem;
-
 	if ((io->reader_type != RTYP_DB2COM1) && (io->reader_type != RTYP_DB2COM2))
 		return;
 	if (!flag)
@@ -504,9 +508,6 @@ bool IO_Serial_SetProperties(IO_Serial * io, IO_Serial_Properties * props)
 	//   printf("IO: Setting properties: com%d, %ld bps; %d bits/byte; %s parity; %d stopbits; dtr=%d; rts=%d\n", io->com, props->input_bitrate, props->bits, props->parity == IO_SERIAL_PARITY_EVEN ? "Even" : props->parity == IO_SERIAL_PARITY_ODD ? "Odd" : "None", props->stopbits, props->dtr, props->rts);
 	memset(&newtio, 0, sizeof (newtio));
 	/* Set the bitrate */
-
-	extern int reader_serial_mhz;
-	extern int reader_serial_irdeto_mode;
 
 	if (io->reader_type == RTYP_SMART) {
 #ifdef DEBUG_IO
@@ -1092,8 +1093,6 @@ static void IO_Serial_ClearPropertiesCache(IO_Serial * io)
 
 static void IO_Serial_DeviceName(unsigned com, bool usbserial, char *filename, unsigned length)
 {
-	extern char reader_serial_device[];
-
 	snprintf(filename, length, "%s", reader_serial_device);
 //      if(com==1)
 //              snprintf (filename, length, "/dev/tts/%d", com - 1);

@@ -74,6 +74,8 @@
 static int IFD_Towitoko_GetReaderInfo(IFD * ifd);
 static void IFD_Towitoko_Clear(IFD * ifd);
 
+extern int reader_serial_card_detect;
+
 #ifdef USE_GPIO
 
 int gpio_outen, gpio_out, gpio_in;
@@ -372,8 +374,6 @@ int IFD_Towitoko_GetStatus(IFD * ifd, BYTE * result)
 	else
 #endif
 	{
-		extern int reader_serial_card_detect;
-
 		if (ioctl(ifd->io->fd, TIOCMGET, &modembits) < 0)
 			return IFD_TOWITOKO_IO_ERROR;
 		switch (reader_serial_card_detect & 0x7f) {
