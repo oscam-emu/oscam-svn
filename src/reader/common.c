@@ -56,7 +56,7 @@ static int reader_common_card_is_inserted(struct s_reader *reader)
 static int reader_common_get_atr(struct s_reader *reader)
 {
 	if ((reader->type & R_IS_SERIAL) != 0) {
-		return reader_serial_get_atr(reader->card_atr, &reader->card_atr_size));
+		return reader_serial_get_atr(reader->card_atr, &reader->card_atr_size);
 	}
 
 	return 0;
@@ -70,7 +70,7 @@ static int reader_common_init_card(struct s_reader *reader)
 	}
 
 	/* Detect the card system */
-	if (!cam_common_detect_card_system(atr, atr_size)) {
+	if (!cam_common_detect_card_system(reader->card_atr, reader->card_atr_size)) {
 		return 0;
 	}
 
