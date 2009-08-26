@@ -79,9 +79,7 @@ int reader_common_init(struct s_reader *reader)
 
 void reader_common_card_info(struct s_reader *reader)
 {
-	int rc = -1;
-
-	if ((rc = reader_common_check_health(reader))) {
+	if (reader_common_check_health(reader)) {
 		client[cs_idx].last = time((time_t) 0);
 		cam_common_card_info();
 	}
