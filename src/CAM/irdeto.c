@@ -442,7 +442,5 @@ int irdeto_card_info()
 		}
 	}
 
-	reader[ridx].online = 1;
-
 	return 1;
 }

@@ -662,7 +662,5 @@ int viaccess_card_info()
 		cam_common_cmd2card(insa4, sizeof(insa4), result, sizeof(result), &result_size);	// select next provider
 	}
 
-	reader[ridx].online = 1;
-
-	return 0;
+	return 1;
 }

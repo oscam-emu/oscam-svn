@@ -862,7 +862,7 @@ int videoguard_do_emm(EMM_PACKET * ep)
 
 	}
 
-	return (rc);
+	return rc;
 }
 
 int videoguard_card_info()
@@ -872,7 +872,5 @@ int videoguard_card_info()
 	cs_log("type: Videoguard");
 	read_tiers();
 
-	reader[ridx].online = 1;
-
-	return (1);
+	return 1;
 }

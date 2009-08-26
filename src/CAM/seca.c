@@ -301,8 +301,6 @@ int seca_card_info()
 				return (0);
 		}
 
-	reader[ridx].online = 1;
-
 	return 1;
 }
 #endif
@@ -360,8 +358,6 @@ int seca_card_info()
 	if (valid == 1)	//if not expired
 		cs_log("SA:%02X%02X%02X%02X.", result[18], result[19], result[20], result[21]);
 
-	reader[ridx].online = 1;
-
-	return (1);
+	return 1;
 }
 #endif

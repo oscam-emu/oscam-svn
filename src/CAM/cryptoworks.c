@@ -609,7 +609,5 @@ int cryptoworks_card_info()
 
 	}
 
-	reader[ridx].online = 1;
-
-	return (1);
+	return 1;
 }
