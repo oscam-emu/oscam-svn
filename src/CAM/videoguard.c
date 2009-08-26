@@ -510,7 +510,90 @@ static void read_tiers()
 	}
 }
 
-int videoguard_card_init(uchar *atr, ushort atr_size)
+static unsigned int num_addr(const unsigned char *data)
+{
+	return ((data[3] & 0x30) >> 4) + 1;
+}
+
+static int addr_mode(const unsigned char *data)
+{
+	switch (data[3] & 0xC0) {
+		case 0x40:
+			return 3;
+		case 0x80:
+			return 2;
+		default:
+			return 0;
+	}
+}
+
+static const unsigned char *payload_addr(const unsigned char *data, const unsigned char *a)
+{
+	int s;
+	int l;
+	const unsigned char *ptr = NULL;
+
+	switch (addr_mode(data)) {
+		case 2:
+			s = 3;
+			break;
+		case 3:
+			s = 4;
+			break;
+		default:
+			return NULL;
+	}
+
+	int position = -1;
+
+	for (l = 0; l < num_addr(data); l++) {
+		if (!memcmp(&data[l * 4 + 4], a + 4, s)) {
+			position = l;
+			break;
+		}
+	}
+
+	/* skip header, the list of address, and the separator (the two 00 00) */
+	ptr = data + 4 + 4 * num_addr(data) + 2;
+
+	/* skip optional 00 */
+	if (*ptr == 0x00)
+		ptr++;
+
+	/* skip the 1st bitmap len */
+	ptr++;
+
+	/* check */
+	if (*ptr != 0x02)
+		return NULL;
+
+	/* skip the 1st timestamp 02 00 or 02 06 xx aabbccdd yy */
+	ptr += 2 + ptr[1];
+
+	for (l = 0; l < position; l++) {
+
+		/* skip the payload of the previous SA */
+		ptr += 1 + ptr[0];
+
+		/* skip optional 00 */
+		if (*ptr == 0x00)
+			ptr++;
+
+		/* skip the bitmap len */
+		ptr++;
+
+		/* check */
+		if (*ptr != 0x02)
+			return NULL;
+
+		/* skip the timestamp 02 00 or 02 06 xx aabbccdd yy */
+		ptr += 2 + ptr[1];
+	}
+
+	return ptr;
+}
+
+int cam_videoguard_card_init(uchar *atr, ushort atr_size)
 {
 	/* known atrs */
 	unsigned char atr_bskyb[] = { 0x3F, 0x7F, 0x13, 0x25, 0x03, 0x33, 0xB0, 0x06, 0x69, 0xFF, 0x4A, 0x50, 0xD0, 0x00, 0x00, 0x53, 0x59, 0x00, 0x00, 0x00 };
@@ -536,7 +619,7 @@ int videoguard_card_init(uchar *atr, ushort atr_size)
 		cs_log("Type: Videoguard YES DBS Israel");
 	} else {
 		/* not a known videoguard */
-		return (0);
+		return 0;
 	}
 
 #ifdef OS_LINUX
@@ -662,7 +745,6 @@ int videoguard_card_init(uchar *atr, ushort atr_size)
 	reader[ridx].nprov = 1;
 	memset(reader[ridx].prid, 0x00, sizeof (reader[ridx].prid));
 
-
 	const unsigned char seed1[] = {
 		0xb9, 0xd5, 0xef, 0xd5, 0xf5, 0xd5, 0xfb, 0xd5, 0x31, 0xd6, 0x43, 0xd6, 0x55, 0xd6, 0x61, 0xd6,
 		0x85, 0xd6, 0x9d, 0xd6, 0xaf, 0xd6, 0xc7, 0xd6, 0xd9, 0xd6, 0x09, 0xd7, 0x15, 0xd7, 0x21, 0xd7,
@@ -717,14 +799,21 @@ int videoguard_card_init(uchar *atr, ushort atr_size)
 
 	cs_log("type: Videoguard, caid: %04X, serial: %02X%02X%02X%02X, BoxID: %02X%02X%02X%02X", reader[ridx].caid[0], reader[ridx].hexserial[4], reader[ridx].hexserial[5], reader[ridx].hexserial[6], reader[ridx].hexserial[7], boxID[0], boxID[1], boxID[2], boxID[3]);
 
-	///read_tiers();
-
 	cs_log("ready for requests");
-
-	return (1);
+	return 1;
 }
 
-int videoguard_do_ecm(ECM_REQUEST * er)
+int cam_videoguard_load_card_info()
+{
+	/* info is displayed in init, or when processing info */
+	cs_log("card detected");
+	cs_log("type: Videoguard");
+	read_tiers();
+
+	return 1;
+}
+
+int cam_videoguard_process_ecm(ECM_REQUEST * er)
 {
 	static unsigned char ins40[5] = { 0xD1, 0x40, 0x40, 0x80, 0xFF };
 	static const unsigned char ins54[5] = { 0xD3, 0x54, 0x00, 0x00, 0x00 };
@@ -756,90 +845,7 @@ int videoguard_do_ecm(ECM_REQUEST * er)
 	return 0;
 }
 
-static unsigned int num_addr(const unsigned char *data)
-{
-	return ((data[3] & 0x30) >> 4) + 1;
-}
-
-static int addr_mode(const unsigned char *data)
-{
-	switch (data[3] & 0xC0) {
-		case 0x40:
-			return 3;
-		case 0x80:
-			return 2;
-		default:
-			return 0;
-	}
-}
-
-static const unsigned char *payload_addr(const unsigned char *data, const unsigned char *a)
-{
-	int s;
-	int l;
-	const unsigned char *ptr = NULL;
-
-	switch (addr_mode(data)) {
-		case 2:
-			s = 3;
-			break;
-		case 3:
-			s = 4;
-			break;
-		default:
-			return NULL;
-	}
-
-	int position = -1;
-
-	for (l = 0; l < num_addr(data); l++) {
-		if (!memcmp(&data[l * 4 + 4], a + 4, s)) {
-			position = l;
-			break;
-		}
-	}
-
-	/* skip header, the list of address, and the separator (the two 00 00) */
-	ptr = data + 4 + 4 * num_addr(data) + 2;
-
-	/* skip optional 00 */
-	if (*ptr == 0x00)
-		ptr++;
-
-	/* skip the 1st bitmap len */
-	ptr++;
-
-	/* check */
-	if (*ptr != 0x02)
-		return NULL;
-
-	/* skip the 1st timestamp 02 00 or 02 06 xx aabbccdd yy */
-	ptr += 2 + ptr[1];
-
-	for (l = 0; l < position; l++) {
-
-		/* skip the payload of the previous SA */
-		ptr += 1 + ptr[0];
-
-		/* skip optional 00 */
-		if (*ptr == 0x00)
-			ptr++;
-
-		/* skip the bitmap len */
-		ptr++;
-
-		/* check */
-		if (*ptr != 0x02)
-			return NULL;
-
-		/* skip the timestamp 02 00 or 02 06 xx aabbccdd yy */
-		ptr += 2 + ptr[1];
-	}
-
-	return ptr;
-}
-
-int videoguard_do_emm(EMM_PACKET * ep)
+int cam_videoguard_process_emm(EMM_PACKET * ep)
 {
 	unsigned char ins42[5] = { 0xD1, 0x42, 0x00, 0x00, 0xFF };
 	uchar result[260];
@@ -865,14 +871,4 @@ int videoguard_do_emm(EMM_PACKET * ep)
 	}
 
 	return rc;
-}
-
-int videoguard_card_info()
-{
-	/* info is displayed in init, or when processing info */
-	cs_log("card detected");
-	cs_log("type: Videoguard");
-	read_tiers();
-
-	return 1;
 }

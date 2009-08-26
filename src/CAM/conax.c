@@ -55,7 +55,20 @@ static int CheckSctLen(const uchar * data, int off)
 	return l;
 }
 
-int conax_card_init(uchar *atr, ushort atr_size)
+static int conax_send_pin()
+{
+	unsigned char insPIN[] = { 0xDD, 0xC8, 0x00, 0x00, 0x07, 0x1D, 0x05, 0x01, 0x00, 0x00, 0x00, 0x00 };	//letzte vier ist der Pin-Code
+	memcpy(insPIN + 8, reader[ridx].pincode, 4);
+
+	uchar result[260];
+	ushort result_size;
+	cam_common_cmd2card(insPIN, sizeof(insPIN), result, sizeof(result), &result_size);
+	cs_log("[conax]-sending pincode to card");
+
+	return 1;
+}
+
+int cam_conax_card_init(uchar *atr, ushort atr_size)
 {
 	int i, j, n;
 	uchar atr_0b00[] = { '0', 'B', '0', '0' };
@@ -112,8 +125,6 @@ int conax_card_init(uchar *atr, ushort atr_size)
 
 	reader[ridx].nprov = j;
 
-
-
 	cs_log("type: conax, caid: %04X, serial: %llu, card: v%d", reader[ridx].caid[0], b2ll(6, reader[ridx].hexserial), cardver);
 	cs_log("Conax-Provider:%d", reader[ridx].nprov);
 
@@ -127,21 +138,55 @@ int conax_card_init(uchar *atr, ushort atr_size)
 	return 1;
 }
 
-static int conax_send_pin()
+int cam_conax_load_card_info()
 {
-	unsigned char insPIN[] = { 0xDD, 0xC8, 0x00, 0x00, 0x07, 0x1D, 0x05, 0x01, 0x00, 0x00, 0x00, 0x00 };	//letzte vier ist der Pin-Code
-	memcpy(insPIN + 8, reader[ridx].pincode, 4);
+	int type, i, j, k, n = 0;
+	ushort provid;
+	char provname[32], pdate[32];
+	uchar insC6[] = { 0xDD, 0xC6, 0x00, 0x00, 0x03, 0x1C, 0x01, 0x00 };
+	uchar ins26[] = { 0xDD, 0x26, 0x00, 0x00, 0x03, 0x1C, 0x01, 0x01 };
+	uchar insCA[] = { 0xDD, 0xCA, 0x00, 0x00, 0x00 };
+	char *txt[] = { "Package", "PPV-Event" };
+	uchar *cmd[] = { insC6, ins26 };
 
-	uchar result[260];
-	ushort result_size;
-	cam_common_cmd2card(insPIN, sizeof(insPIN), result, sizeof(result), &result_size);
-	cs_log("[conax]-sending pincode to card");
+	cs_log("card detected");
+	cs_log("type: conax");
+
+	for (type = 0; type < 2; type++) {
+		n = 0;
+		uchar result[260];
+		ushort result_size;
+		cam_common_cmd2card(cmd[type], 5 + cmd[type][4], result, sizeof(result), &result_size);
+		while (result[result_size - 2] == 0x98) {
+			insCA[4] = result[1];	// get len
+			cam_common_cmd2card(insCA, sizeof(insCA), result, sizeof(result), &result_size);	// read
+			if ((result[result_size - 2] == 0x90) || (result[result_size - 2] == 0x98)) {
+				for (j = 0; j < result_size - 2; j += result[j + 1] + 2) {
+					provid = (result[j + 2 + type] << 8) | result[j + 3 + type];
+					for (k = 0, i = j + 4 + type; (i < j + result[j + 1]) && (k < 2); i += result[i + 1] + 2) {
+						int l;
+
+						switch (result[i]) {
+							case 0x01:
+								l = (result[i + 1] < (sizeof (provname) - 1)) ? result[i + 1] : sizeof (provname) - 1;
+								memcpy(provname, result + i + 2, l);
+								provname[l] = '\0';
+								break;
+							case 0x30:
+								chid_date(result + i + 2, pdate + (k++ << 4), 15);
+								break;
+						}
+					}
+					cs_log("%s: %d, id: %04X, date: %s - %s, name: %s", txt[type], ++n, provid, pdate, pdate + 16, trim(provname));
+				}
+			}
+		}
+	}
 
 	return 1;
 }
 
-
-int conax_do_ecm(ECM_REQUEST * er)
+int cam_conax_process_ecm(ECM_REQUEST * er)
 {
 	int i, j, n, rc = 0;
 	unsigned char insA2[] = { 0xDD, 0xA2, 0x00, 0x00, 0x00 };
@@ -205,24 +250,21 @@ int conax_do_ecm(ECM_REQUEST * er)
 
 						}
 						break;
-
 				}
-
-
 
 		}
 	}
+
 	return (rc == 3);
 }
 
-int conax_do_emm(EMM_PACKET * ep)
+int cam_conax_process_emm(EMM_PACKET * ep)
 {
 	/* by KrazyIvan
 	 *   EMM with lenght 83 and 85, is the same as ECM and PPV.
 	 *     EMM with lenght AA and A8 (keyupdate).
 	 *       82 70 82 00 00 00 00 2c 86 52 70 79 64 10 16 bc
 	 *         */
-
 
 	unsigned char insEMM[] = { 0xDD, 0x84, 0x00, 0x00, 0x00 };
 	unsigned char cmd[260];
@@ -241,57 +283,7 @@ int conax_do_emm(EMM_PACKET * ep)
 	uchar result[260];
 	ushort result_size;
 	cam_common_cmd2card(cmd, 5 + insEMM[4], result, sizeof(result), &result_size);
-
 	rc = ((result[0] == 0x90) && (result[1] == 0x00));
 
-	return (rc);
-
-}
-
-int conax_card_info()
-{
-	int type, i, j, k, n = 0;
-	ushort provid;
-	char provname[32], pdate[32];
-	uchar insC6[] = { 0xDD, 0xC6, 0x00, 0x00, 0x03, 0x1C, 0x01, 0x00 };
-	uchar ins26[] = { 0xDD, 0x26, 0x00, 0x00, 0x03, 0x1C, 0x01, 0x01 };
-	uchar insCA[] = { 0xDD, 0xCA, 0x00, 0x00, 0x00 };
-	char *txt[] = { "Package", "PPV-Event" };
-	uchar *cmd[] = { insC6, ins26 };
-
-	cs_log("card detected");
-	cs_log("type: conax");
-
-	for (type = 0; type < 2; type++) {
-		n = 0;
-		uchar result[260];
-		ushort result_size;
-		cam_common_cmd2card(cmd[type], 5 + cmd[type][4], result, sizeof(result), &result_size);
-		while (result[result_size - 2] == 0x98) {
-			insCA[4] = result[1];	// get len
-			cam_common_cmd2card(insCA, sizeof(insCA), result, sizeof(result), &result_size);	// read
-			if ((result[result_size - 2] == 0x90) || (result[result_size - 2] == 0x98)) {
-				for (j = 0; j < result_size - 2; j += result[j + 1] + 2) {
-					provid = (result[j + 2 + type] << 8) | result[j + 3 + type];
-					for (k = 0, i = j + 4 + type; (i < j + result[j + 1]) && (k < 2); i += result[i + 1] + 2) {
-						int l;
-
-						switch (result[i]) {
-							case 0x01:
-								l = (result[i + 1] < (sizeof (provname) - 1)) ? result[i + 1] : sizeof (provname) - 1;
-								memcpy(provname, result + i + 2, l);
-								provname[l] = '\0';
-								break;
-							case 0x30:
-								chid_date(result + i + 2, pdate + (k++ << 4), 15);
-								break;
-						}
-					}
-					cs_log("%s: %d, id: %04X, date: %s - %s, name: %s", txt[type], ++n, provid, pdate, pdate + 16, trim(provname));
-				}
-			}
-		}
-	}
-
-	return 1;
+	return rc;
 }

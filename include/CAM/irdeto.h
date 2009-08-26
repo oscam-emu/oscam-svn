@@ -1,11 +1,10 @@
 #ifndef __CAM_IRDETO_H__
 #  define __CAM_IRDETO_H__
 
-#  define ADDRLEN      4        // Address length in EMM commands
+int cam_irdeto_card_init(uchar *, ushort);
+int cam_irdeto_load_card_info();
 
-int irdeto_card_init(uchar *, ushort);
-int irdeto_do_ecm(ECM_REQUEST *);
-int irdeto_do_emm(EMM_PACKET *);
-int irdeto_card_info();
+int cam_irdeto_process_ecm(ECM_REQUEST *);
+int cam_irdeto_process_emm(EMM_PACKET *);
 
 #endif // __CAM_IRDETO_H__

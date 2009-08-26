@@ -7,6 +7,8 @@
 
 #include <time.h>
 
+#  define ADDRLEN      4        // Address length in EMM commands
+
 #define cam_irdeto_chk_cmd(cmd, l, result, result_size) { \
         if (cam_common_cmd2card(cmd, sizeof(cmd), result, sizeof(result), result_size)) return 0; \
 	if (l && (*result_size!=l)) return 0; \
@@ -176,7 +178,7 @@ static int irdeto_do_cmd(uchar * buf, ushort good, uchar *result, ushort result_
 	return (good != b2i(2, result + *result_size - 2));
 }
 
-int irdeto_card_init(uchar *atr, ushort atr_size)
+int cam_irdeto_card_init(uchar *atr, ushort atr_size)
 {
 	int i, camkey = 0, cs_ptyp_orig = cs_ptyp;
 	uchar buf[256] = { 0 };
@@ -294,69 +296,7 @@ int irdeto_card_init(uchar *atr, ushort atr_size)
 	return 1;
 }
 
-int irdeto_do_ecm(ECM_REQUEST * er)
-{
-	static const uchar sc_EcmCmd[] = { 0x05, 0x00, 0x00, 0x02, 0x00 };
-	uchar cmd[272];
-	uchar result[260];
-	ushort result_size;
-
-	memcpy(cmd, sc_EcmCmd, sizeof (sc_EcmCmd));
-	cmd[4] = (er->ecm[2]) - 3;
-	memcpy(cmd + sizeof (sc_EcmCmd), &er->ecm[6], cmd[4]);
-	if (irdeto_do_cmd(cmd, 0x9D00, result, sizeof(result), &result_size))
-		return 0;
-	if (result_size < 24)
-		return 0;
-	ReverseSessionKeyCrypt(sc_CamKey, result + 6);
-	ReverseSessionKeyCrypt(sc_CamKey, result + 14);
-	memcpy(er->cw, result + 6, 16);
-
-	return 1;
-}
-
-int irdeto_do_emm(EMM_PACKET * ep)
-{
-	static const uchar sc_EmmCmd[] = { 0x01, 0x00, 0x00, 0x00, 0x00 };
-
-	int i, l = (ep->emm[3] & 0x07), ok = 0;
-	int mode = (ep->emm[3] >> 3);
-	uchar *emm = ep->emm;
-
-	ep->type = emm[3];
-	if (mode & 0x10)	// Hex addressed
-		ok = (mode == reader[ridx].hexserial[3] && (!l || !memcmp(&emm[4], reader[ridx].hexserial, l)));
-	else	// Provider addressed
-		for (i = 0; i < reader[ridx].nprov; i++)
-			if ((ok = (mode == reader[ridx].prid[i][0] && (!l || !memcmp(&emm[4], &reader[ridx].prid[i][1], l)))))
-				break;
-	if (ok) {
-		l++;
-		if (l <= ADDRLEN) {
-			const int dataLen = SCT_LEN(emm) - 5 - l;	// sizeof of emm bytes (nanos)
-			uchar cmd[272];
-			uchar result[260];
-			ushort result_size;
-			uchar *ptr = cmd;
-
-			memcpy(ptr, sc_EmmCmd, sizeof (sc_EmmCmd));	// copy card command
-			ptr[4] = dataLen + ADDRLEN;	// set card command emm size
-			ptr += sizeof (sc_EmmCmd);
-			emm += 3;
-			memset(ptr, 0, ADDRLEN);	// clear addr range
-			memcpy(ptr, emm, l);	// copy addr bytes
-			ptr += ADDRLEN;
-			emm += l;
-			memcpy(ptr, &emm[2], dataLen);	// copy emm bytes
-			return (irdeto_do_cmd(cmd, 0, result, sizeof(result), &result_size) ? 0 : 1);
-		} else
-			cs_log("addrlen %d > %d", l, ADDRLEN);
-	}
-
-	return 0;
-}
-
-int irdeto_card_info()
+int cam_irdeto_load_card_info()
 {
 	int i, p;
 	uchar buf[256] = { 0 };
@@ -443,4 +383,66 @@ int irdeto_card_info()
 	}
 
 	return 1;
+}
+
+int cam_irdeto_process_ecm(ECM_REQUEST * er)
+{
+	static const uchar sc_EcmCmd[] = { 0x05, 0x00, 0x00, 0x02, 0x00 };
+	uchar cmd[272];
+	uchar result[260];
+	ushort result_size;
+
+	memcpy(cmd, sc_EcmCmd, sizeof (sc_EcmCmd));
+	cmd[4] = (er->ecm[2]) - 3;
+	memcpy(cmd + sizeof (sc_EcmCmd), &er->ecm[6], cmd[4]);
+	if (irdeto_do_cmd(cmd, 0x9D00, result, sizeof(result), &result_size))
+		return 0;
+	if (result_size < 24)
+		return 0;
+	ReverseSessionKeyCrypt(sc_CamKey, result + 6);
+	ReverseSessionKeyCrypt(sc_CamKey, result + 14);
+	memcpy(er->cw, result + 6, 16);
+
+	return 1;
+}
+
+int cam_irdeto_process_emm(EMM_PACKET * ep)
+{
+	static const uchar sc_EmmCmd[] = { 0x01, 0x00, 0x00, 0x00, 0x00 };
+
+	int i, l = (ep->emm[3] & 0x07), ok = 0;
+	int mode = (ep->emm[3] >> 3);
+	uchar *emm = ep->emm;
+
+	ep->type = emm[3];
+	if (mode & 0x10)	// Hex addressed
+		ok = (mode == reader[ridx].hexserial[3] && (!l || !memcmp(&emm[4], reader[ridx].hexserial, l)));
+	else	// Provider addressed
+		for (i = 0; i < reader[ridx].nprov; i++)
+			if ((ok = (mode == reader[ridx].prid[i][0] && (!l || !memcmp(&emm[4], &reader[ridx].prid[i][1], l)))))
+				break;
+	if (ok) {
+		l++;
+		if (l <= ADDRLEN) {
+			const int dataLen = SCT_LEN(emm) - 5 - l;	// sizeof of emm bytes (nanos)
+			uchar cmd[272];
+			uchar result[260];
+			ushort result_size;
+			uchar *ptr = cmd;
+
+			memcpy(ptr, sc_EmmCmd, sizeof (sc_EmmCmd));	// copy card command
+			ptr[4] = dataLen + ADDRLEN;	// set card command emm size
+			ptr += sizeof (sc_EmmCmd);
+			emm += 3;
+			memset(ptr, 0, ADDRLEN);	// clear addr range
+			memcpy(ptr, emm, l);	// copy addr bytes
+			ptr += ADDRLEN;
+			emm += l;
+			memcpy(ptr, &emm[2], dataLen);	// copy emm bytes
+			return (irdeto_do_cmd(cmd, 0, result, sizeof(result), &result_size) ? 0 : 1);
+		} else
+			cs_log("addrlen %d > %d", l, ADDRLEN);
+	}
+
+	return 0;
 }

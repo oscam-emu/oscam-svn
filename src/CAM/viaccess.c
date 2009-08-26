@@ -141,7 +141,7 @@ static int card_send_ins(const uchar *cmd, const uchar *data, uchar *result, ush
 	return cam_common_cmd2card(buf, 5 + cmd[4], result, result_max_size, result_size);
 }
 
-int viaccess_card_init(uchar *atr, ushort atr_size)
+int cam_viaccess_card_init(uchar *atr, ushort atr_size)
 {
 	int i;
 	uchar buf[256];
@@ -231,12 +231,115 @@ cs_log("name: %s", result);
 			cs_log("Parental lock disabled");
 	}
 
-	cs_log("ready for requests");
 	memset(&last_geo, 0, sizeof (last_geo));
-	return (1);
+
+	cs_log("ready for requests");
+	return 1;
 }
 
-int viaccess_do_ecm(ECM_REQUEST * er)
+int cam_viaccess_load_card_info()
+{
+	int i, l, scls, show_cls;
+	static uchar insac[] = { 0xca, 0xac, 0x00, 0x00, 0x00 };	// select data
+	static uchar insb8[] = { 0xca, 0xb8, 0x00, 0x00, 0x00 };	// read selected data
+	static uchar insa4[] = { 0xca, 0xa4, 0x00, 0x00, 0x00 };	// select issuer
+	static uchar insc0[] = { 0xca, 0xc0, 0x00, 0x00, 0x00 };	// read data item
+	static uchar ins24[] = { 0xca, 0x24, 0x00, 0x00, 0x09 };	// set pin
+
+	static uchar cls[] = { 0x00, 0x21, 0xff, 0x9f };
+	static uchar pin[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04 };
+
+	uchar result[260];
+	ushort result_size;
+
+	show_cls = reader[ridx].show_cls;
+	memset(&last_geo, 0, sizeof (last_geo));
+
+	cs_log("card detected");
+
+	// set pin
+	card_send_ins(ins24, pin, result, sizeof(result), &result_size);
+
+	insac[2] = 0xa4;
+	cam_common_cmd2card(insac, sizeof(insac), result, sizeof(result), &result_size);	// request unique id
+	insb8[4] = 0x07;
+	cam_common_cmd2card(insb8, sizeof(insb8), result, sizeof(result), &result_size);	// read unique id
+	cs_log("serial: %llu", b2ll(5, result + 2));
+
+	scls = 0;
+	insa4[2] = 0x00;
+	cam_common_cmd2card(insa4, sizeof(insa4), result, sizeof(result), &result_size);	// select issuer 0
+	for (i = 1; (result[result_size - 2] == 0x90) && (result[result_size - 1] == 0); i++) {
+		ulong l_provid, l_sa;
+		uchar l_name[64];
+
+		insc0[4] = 0x1a;
+		cam_common_cmd2card(insc0, sizeof(insc0), result, sizeof(result), &result_size);	// show provider properties
+		result[2] &= 0xF0;
+		l_provid = b2i(3, result);
+
+		insac[2] = 0xa5;
+		cam_common_cmd2card(insac, sizeof(insac), result, sizeof(result), &result_size);	// request sa
+		insb8[4] = 0x06;
+		cam_common_cmd2card(insb8, sizeof(insb8), result, sizeof(result), &result_size);	// read sa
+		l_sa = b2i(4, result + 2);
+
+		insac[2] = 0xa7;
+		cam_common_cmd2card(insac, sizeof(insac), result, sizeof(result), &result_size);	// request name
+		insb8[4] = 0x02;
+		cam_common_cmd2card(insb8, sizeof(insb8), result, sizeof(result), &result_size);	// read name nano + len
+		l = result[1];
+		insb8[4] = l;
+		cam_common_cmd2card(insb8, sizeof(insb8), result, sizeof(result), &result_size);	// read name
+		result[l] = 0;
+		trim((char *) result);
+		if (result[0])
+			snprintf((char *) l_name, sizeof (l_name), ", name: %s", result);
+		else
+			l_name[0] = 0;
+
+		// read GEO
+		insac[2] = 0xa6;
+		cam_common_cmd2card(insac, sizeof(insac), result, sizeof(result), &result_size);	// request GEO
+		insb8[4] = 0x02;
+		cam_common_cmd2card(insb8, sizeof(insb8), result, sizeof(result), &result_size);	// read GEO nano + len
+		l = result[1];
+		insb8[4] = l;
+		cam_common_cmd2card(insb8, sizeof(insb8), result, sizeof(result), &result_size);	// read geo
+		cs_log("provider: %d, id: %06X%s, sa: %08X, geo: %s", i, l_provid, l_name, l_sa, (l < 4) ? "empty" : cs_hexdump(1, result, l));
+
+		// read classes subscription
+		insac[2] = 0xa9;
+		insac[4] = 4;
+		card_send_ins(insac, cls, result, sizeof(result), &result_size);	// request class subs
+		scls = 0;
+		while ((result[result_size - 2] == 0x90) && (result[result_size - 1] == 0)) {
+			insb8[4] = 0x02;
+			cam_common_cmd2card(insb8, sizeof(insb8), result, sizeof(result), &result_size);	// read class subs nano + len
+			if ((result[result_size - 2] == 0x90) && (result[result_size - 1] == 0)) {
+				int fshow;
+
+				l = result[1];
+				//fshow=(client[cs_idx].dbglvl==D_DUMP)?1:(scls < show_cls)?1:0;
+				fshow = (scls < show_cls);
+				insb8[4] = l;
+				cam_common_cmd2card(insb8, sizeof(insb8), result, sizeof(result), &result_size);	// read class subs
+				if ((result[result_size - 2] == 0x90) && (fshow) && (result[result_size - 1] == 0x00 || result[result_size - 1] == 0x08)) {
+					show_class(NULL, result, result_size - 2);
+					scls++;
+				}
+			}
+		}
+
+		insac[4] = 0;
+		insa4[2] = 0x02;
+		cam_common_cmd2card(insa4, sizeof(insa4), result, sizeof(result), &result_size);	// select next provider
+	}
+
+	return 1;
+}
+
+int cam_viaccess_process_ecm(ECM_REQUEST * er)
 {
 	static unsigned char insa4[] = { 0xca, 0xa4, 0x04, 0x00, 0x03 };	// set provider id
 	static unsigned char ins88[] = { 0xca, 0x88, 0x00, 0x00, 0x00 };	// set ecm
@@ -353,7 +456,7 @@ int viaccess_do_ecm(ECM_REQUEST * er)
 	return rc;
 }
 
-int viaccess_do_emm(EMM_PACKET * ep)
+int cam_viaccess_process_emm(EMM_PACKET * ep)
 {
 	static unsigned char insa4[] = { 0xca, 0xa4, 0x04, 0x00, 0x03 };		// set provider id
 	static unsigned char insf0[] = { 0xca, 0xf0, 0x00, 0x01, 0x22 };		// set adf
@@ -560,107 +663,6 @@ int viaccess_do_emm(EMM_PACKET * ep)
 
 	   End Sub
 	 */
+
 	return rc;
-}
-
-int viaccess_card_info()
-{
-	int i, l, scls, show_cls;
-	static uchar insac[] = { 0xca, 0xac, 0x00, 0x00, 0x00 };	// select data
-	static uchar insb8[] = { 0xca, 0xb8, 0x00, 0x00, 0x00 };	// read selected data
-	static uchar insa4[] = { 0xca, 0xa4, 0x00, 0x00, 0x00 };	// select issuer
-	static uchar insc0[] = { 0xca, 0xc0, 0x00, 0x00, 0x00 };	// read data item
-	static uchar ins24[] = { 0xca, 0x24, 0x00, 0x00, 0x09 };	// set pin
-
-	static uchar cls[] = { 0x00, 0x21, 0xff, 0x9f };
-	static uchar pin[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04 };
-
-	uchar result[260];
-	ushort result_size;
-
-	show_cls = reader[ridx].show_cls;
-	memset(&last_geo, 0, sizeof (last_geo));
-
-	cs_log("card detected");
-
-	// set pin
-	card_send_ins(ins24, pin, result, sizeof(result), &result_size);
-
-	insac[2] = 0xa4;
-	cam_common_cmd2card(insac, sizeof(insac), result, sizeof(result), &result_size);	// request unique id
-	insb8[4] = 0x07;
-	cam_common_cmd2card(insb8, sizeof(insb8), result, sizeof(result), &result_size);	// read unique id
-	cs_log("serial: %llu", b2ll(5, result + 2));
-
-	scls = 0;
-	insa4[2] = 0x00;
-	cam_common_cmd2card(insa4, sizeof(insa4), result, sizeof(result), &result_size);	// select issuer 0
-	for (i = 1; (result[result_size - 2] == 0x90) && (result[result_size - 1] == 0); i++) {
-		ulong l_provid, l_sa;
-		uchar l_name[64];
-
-		insc0[4] = 0x1a;
-		cam_common_cmd2card(insc0, sizeof(insc0), result, sizeof(result), &result_size);	// show provider properties
-		result[2] &= 0xF0;
-		l_provid = b2i(3, result);
-
-		insac[2] = 0xa5;
-		cam_common_cmd2card(insac, sizeof(insac), result, sizeof(result), &result_size);	// request sa
-		insb8[4] = 0x06;
-		cam_common_cmd2card(insb8, sizeof(insb8), result, sizeof(result), &result_size);	// read sa
-		l_sa = b2i(4, result + 2);
-
-		insac[2] = 0xa7;
-		cam_common_cmd2card(insac, sizeof(insac), result, sizeof(result), &result_size);	// request name
-		insb8[4] = 0x02;
-		cam_common_cmd2card(insb8, sizeof(insb8), result, sizeof(result), &result_size);	// read name nano + len
-		l = result[1];
-		insb8[4] = l;
-		cam_common_cmd2card(insb8, sizeof(insb8), result, sizeof(result), &result_size);	// read name
-		result[l] = 0;
-		trim((char *) result);
-		if (result[0])
-			snprintf((char *) l_name, sizeof (l_name), ", name: %s", result);
-		else
-			l_name[0] = 0;
-
-		// read GEO
-		insac[2] = 0xa6;
-		cam_common_cmd2card(insac, sizeof(insac), result, sizeof(result), &result_size);	// request GEO
-		insb8[4] = 0x02;
-		cam_common_cmd2card(insb8, sizeof(insb8), result, sizeof(result), &result_size);	// read GEO nano + len
-		l = result[1];
-		insb8[4] = l;
-		cam_common_cmd2card(insb8, sizeof(insb8), result, sizeof(result), &result_size);	// read geo
-		cs_log("provider: %d, id: %06X%s, sa: %08X, geo: %s", i, l_provid, l_name, l_sa, (l < 4) ? "empty" : cs_hexdump(1, result, l));
-
-		// read classes subscription
-		insac[2] = 0xa9;
-		insac[4] = 4;
-		card_send_ins(insac, cls, result, sizeof(result), &result_size);	// request class subs
-		scls = 0;
-		while ((result[result_size - 2] == 0x90) && (result[result_size - 1] == 0)) {
-			insb8[4] = 0x02;
-			cam_common_cmd2card(insb8, sizeof(insb8), result, sizeof(result), &result_size);	// read class subs nano + len
-			if ((result[result_size - 2] == 0x90) && (result[result_size - 1] == 0)) {
-				int fshow;
-
-				l = result[1];
-				//fshow=(client[cs_idx].dbglvl==D_DUMP)?1:(scls < show_cls)?1:0;
-				fshow = (scls < show_cls);
-				insb8[4] = l;
-				cam_common_cmd2card(insb8, sizeof(insb8), result, sizeof(result), &result_size);	// read class subs
-				if ((result[result_size - 2] == 0x90) && (fshow) && (result[result_size - 1] == 0x00 || result[result_size - 1] == 0x08)) {
-					show_class(NULL, result, result_size - 2);
-					scls++;
-				}
-			}
-		}
-
-		insac[4] = 0;
-		insa4[2] = 0x02;
-		cam_common_cmd2card(insa4, sizeof(insa4), result, sizeof(result), &result_size);	// select next provider
-	}
-
-	return 1;
 }

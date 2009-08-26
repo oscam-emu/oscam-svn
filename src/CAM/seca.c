@@ -73,7 +73,24 @@ static int set_provider_info(int i)
 	return 1;
 }
 
-int seca_card_init(uchar *atr, ushort atr_size)
+// static int get_prov_index (uchar providhigh, uchar providlow)//returns provider id or -1 if not found
+static int get_prov_index(char *provid)	//returns provider id or -1 if not found
+{
+	int prov;
+
+	for (prov = 0; prov < reader[ridx].nprov; prov++)	//search for provider index
+		if (!memcmp(provid, &reader[ridx].prid[prov][2], 2))
+			return (prov);
+//  for (prov=0; prov<reader[ridx].nprov; prov++) //search for provider index
+//    if ( (providhigh == reader[ridx].prid[prov][2]) &&
+//         (providlow == reader[ridx].prid[prov][3]) )
+//    { 
+//      return(prov);
+//    }
+	return (-1);
+}
+
+int cam_seca_card_init(uchar *atr, ushort atr_size)
 {
 	uchar buf[256];
 	static uchar ins0e[] = { 0xc1, 0x0e, 0x00, 0x00, 0x08 };	// get serial number (UA)
@@ -146,29 +163,86 @@ int seca_card_init(uchar *atr, ushort atr_size)
 	} else {
 		cs_log("parental locked");
 	}
+
 	cs_log("ready for requests");
-	return (1);
+	return 1;
 }
 
-// static int get_prov_index (uchar providhigh, uchar providlow)//returns provider id or -1 if not found
-static int get_prov_index(char *provid)	//returns provider id or -1 if not found
+#ifndef LALL
+int cam_seca_load_card_info()
 {
-	int prov;
+	int i;
 
-	for (prov = 0; prov < reader[ridx].nprov; prov++)	//search for provider index
-		if (!memcmp(provid, &reader[ridx].prid[prov][2], 2))
-			return (prov);
-//  for (prov=0; prov<reader[ridx].nprov; prov++) //search for provider index
-//    if ( (providhigh == reader[ridx].prid[prov][2]) &&
-//         (providlow == reader[ridx].prid[prov][3]) )
-//    { 
-//      return(prov);
-//    }
-	return (-1);
+	cs_log("card detected");
+	cs_log("type: seca, caid: %04X, serial: %llu, card: %s ", reader[ridx].caid[0], serial, card);
+	for (i = 0; i < 16; i++)
+		if (pmap & (1 << i)) {
+			if (!set_provider_info(i))
+				return (0);
+		}
+
+	return 1;
 }
+#endif
+#ifdef LALL
+int cam_seca_load_card_info()
+{
+	static uchar ins12[] = { 0xc1, 0x12, 0x00, 0x00, 0x19 };	// get provider info
+	uchar result[260];
+	ushort result_size;
+	int year, month, day;
+	struct tm *lt;
+	time_t t;
+	int valid = 0;		//0=false, 1=true
+	char l_name[16 + 8 + 1] = ", name: ";
 
+	ins12[2] = i;	//select provider
+	cam_common_cmd2card(ins12, sizeof(ins12), result, sizeof(result), &result_size);	// show provider properties
+	cs_debug("hexdump:%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x.", result[0], result[1], result[2], result[3], result[4], result[5], result[6], result[7], result[8], result[9], result[10], result[11], result[12], result[13], result[14],
+		 result[15], result[16], result[17], result[18], result[19], result[20], result[21], result[22], result[23], result[24], result[25], result[26]);
 
-int seca_do_ecm(ECM_REQUEST * er)
+	if ((result[25] != 0x90) || (result[26] != 0x00))
+		return (0);
+	reader[ridx].prid[i][0] = 0;
+	reader[ridx].prid[i][1] = 0;	//blanken high byte provider code
+	memcpy(&reader[ridx].prid[i][2], result, 2);
+//  sprintf(buf+strlen(buf), ",%06X", b2i(3, &reader[ridx].prid[i][1]));
+
+	year = (result[22] >> 1) + 1990;
+	month = ((result[22] & 0x1) * 256 + (result[23] & 0xe0)) >> 5;
+	day = (result[23] & 0x1f);
+	t = time(NULL);
+	lt = localtime(&t);
+	if (lt->tm_year + 1900 != year)
+		if (lt->tm_year + 1900 < year)
+			valid = 1;
+		else
+			valid = 0;
+	else if (lt->tm_mon + 1 != month)
+		if (lt->tm_mon + 1 < month)
+			valid = 1;
+		else
+			valid = 0;
+	else if (lt->tm_mday != day)
+		if (lt->tm_mday < day)
+			valid = 1;
+		else
+			valid = 0;
+	memcpy(l_name + 8, result + 2, 16);
+	l_name[sizeof (l_name)] = 0;
+	trim(l_name + 8);
+	l_name[0] = (l_name[8]) ? ',' : 0;
+	reader[ridx].availkeys[i][0] = valid;	//misusing availkeys to register validity of provider
+	cs_log("provider: %d, valid: %i, expiry date: %i/%i/%i%s", i + 1, valid, year, month, day, l_name);
+	memcpy(&reader[ridx].sa[i][0], result + 18, 4);
+	if (valid == 1)	//if not expired
+		cs_log("SA:%02X%02X%02X%02X.", result[18], result[19], result[20], result[21]);
+
+	return 1;
+}
+#endif
+
+int cam_seca_process_ecm(ECM_REQUEST * er)
 {
 	static unsigned char ins3c[] = { 0xc1, 0x3c, 0x00, 0x00, 0x00 };	// coding cw
 	static unsigned char ins3a[] = { 0xc1, 0x3a, 0x00, 0x00, 0x10 };	// decoding cw
@@ -214,7 +288,7 @@ int seca_do_ecm(ECM_REQUEST * er)
 	return 1;
 }
 
-int seca_do_emm(EMM_PACKET * ep)
+int cam_seca_process_emm(EMM_PACKET * ep)
 {
 	static unsigned char ins40[] = { 0xc1, 0x40, 0x00, 0x00, 0x00 };
 	uchar result[260];
@@ -284,80 +358,6 @@ int seca_do_emm(EMM_PACKET * ep)
 	if ((result[0] == 0x90) && ((result[1] == 0x00) || (result[1] == 0x19)))
 		if (set_provider_info(i) != 0)	//after successfull EMM, print new provider info
 			return (1);
-	return (0);
 
+	return 0;
 }
-
-#ifndef LALL
-int seca_card_info()
-{
-	int i;
-
-	cs_log("card detected");
-	cs_log("type: seca, caid: %04X, serial: %llu, card: %s ", reader[ridx].caid[0], serial, card);
-	for (i = 0; i < 16; i++)
-		if (pmap & (1 << i)) {
-			if (!set_provider_info(i))
-				return (0);
-		}
-
-	return 1;
-}
-#endif
-#ifdef LALL
-int seca_card_info()
-{
-	static uchar ins12[] = { 0xc1, 0x12, 0x00, 0x00, 0x19 };	// get provider info
-	uchar result[260];
-	ushort result_size;
-	int year, month, day;
-	struct tm *lt;
-	time_t t;
-	int valid = 0;		//0=false, 1=true
-	char l_name[16 + 8 + 1] = ", name: ";
-
-	ins12[2] = i;	//select provider
-	cam_common_cmd2card(ins12, sizeof(ins12), result, sizeof(result), &result_size);	// show provider properties
-	cs_debug("hexdump:%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x.", result[0], result[1], result[2], result[3], result[4], result[5], result[6], result[7], result[8], result[9], result[10], result[11], result[12], result[13], result[14],
-		 result[15], result[16], result[17], result[18], result[19], result[20], result[21], result[22], result[23], result[24], result[25], result[26]);
-
-	if ((result[25] != 0x90) || (result[26] != 0x00))
-		return (0);
-	reader[ridx].prid[i][0] = 0;
-	reader[ridx].prid[i][1] = 0;	//blanken high byte provider code
-	memcpy(&reader[ridx].prid[i][2], result, 2);
-//  sprintf(buf+strlen(buf), ",%06X", b2i(3, &reader[ridx].prid[i][1]));
-
-	year = (result[22] >> 1) + 1990;
-	month = ((result[22] & 0x1) * 256 + (result[23] & 0xe0)) >> 5;
-	day = (result[23] & 0x1f);
-	t = time(NULL);
-	lt = localtime(&t);
-	if (lt->tm_year + 1900 != year)
-		if (lt->tm_year + 1900 < year)
-			valid = 1;
-		else
-			valid = 0;
-	else if (lt->tm_mon + 1 != month)
-		if (lt->tm_mon + 1 < month)
-			valid = 1;
-		else
-			valid = 0;
-	else if (lt->tm_mday != day)
-		if (lt->tm_mday < day)
-			valid = 1;
-		else
-			valid = 0;
-	memcpy(l_name + 8, result + 2, 16);
-	l_name[sizeof (l_name)] = 0;
-	trim(l_name + 8);
-	l_name[0] = (l_name[8]) ? ',' : 0;
-	reader[ridx].availkeys[i][0] = valid;	//misusing availkeys to register validity of provider
-	cs_log("provider: %d, valid: %i, expiry date: %i/%i/%i%s", i + 1, valid, year, month, day, l_name);
-	memcpy(&reader[ridx].sa[i][0], result + 18, 4);
-	if (valid == 1)	//if not expired
-		cs_log("SA:%02X%02X%02X%02X.", result[18], result[19], result[20], result[21]);
-
-	return 1;
-}
-#endif

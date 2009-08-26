@@ -1,9 +1,10 @@
 #ifndef __CAM_CONAX_H__
 #  define __CAM_CONAX_H__
 
-int conax_card_init(uchar *, ushort);
-int conax_do_ecm(ECM_REQUEST *);
-int conax_do_emm(EMM_PACKET *);
-int conax_card_info();
+int cam_conax_card_init(uchar *, ushort);
+int cam_conax_load_card_info();
+
+int cam_conax_process_ecm(ECM_REQUEST *);
+int cam_conax_process_emm(EMM_PACKET *);
 
 #endif // __CAM_CONAX_H__

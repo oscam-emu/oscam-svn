@@ -185,7 +185,7 @@ static int cryptoworks_disbale_pin()
 	return (0);
 }
 
-int cryptoworks_card_init(uchar *atr, ushort atr_size)
+int cam_cryptoworks_card_init(uchar *atr, ushort atr_size)
 {
 	int i;
 	unsigned int mfid = 0x3F20;
@@ -280,7 +280,7 @@ int cryptoworks_card_init(uchar *atr, ushort atr_size)
 }
 
 #ifdef LALL
-bool cSmartCardCryptoworks::Decode(const cEcmInfo * ecm, const unsigned char *data, unsigned char *cw)
+static bool cSmartCardCryptoworks::Decode(const cEcmInfo * ecm, const unsigned char *data, unsigned char *cw)
 {
 	static unsigned char ins4c[] = { 0xA4, 0x4C, 0x00, 0x00, 0x00 };
 
@@ -356,7 +356,70 @@ bool cSmartCardCryptoworks::Decode(const cEcmInfo * ecm, const unsigned char *da
 }
 #endif
 
-int cryptoworks_do_ecm(ECM_REQUEST * er)
+int cam_cryptoworks_load_card_info()
+{
+	int i;
+	uchar insA21[] = { 0xA4, 0xA2, 0x01, 0x00, 0x05, 0x8C, 0x00, 0x00, 0x00, 0x00 };
+	uchar insB2[] = { 0xA4, 0xB2, 0x00, 0x00, 0x00 };
+	uchar result[260];
+	ushort result_size;
+	char l_name[20 + 8] = ", name: ";
+
+	cs_log("card detected");
+	cs_log("type: cryptoworks");
+
+	for (i = 0; i < reader[ridx].nprov; i++) {
+		l_name[8] = 0;
+		select_file(0x1f, reader[ridx].prid[i][3]);	// select provider
+		select_file(0x0e, 0x11);	// read provider name
+		if (read_record(0xD6) >= 16) {
+			strncpy(l_name + 8, (const char *) result + 2, sizeof (l_name) - 9);
+			l_name[sizeof (l_name) - 1] = 0;
+			trim(l_name + 8);
+		}
+		l_name[0] = (l_name[8]) ? ',' : 0;
+		cs_log("provider: %d, id: %02X%s", i + 1, reader[ridx].prid[i][3], l_name);
+		select_file(0x0f, 0x20);	// select provider class
+		cam_common_cmd2card(insA21, sizeof(insA21), result, sizeof(result), &result_size);
+		if (result[0] == 0x9f) {
+			insB2[4] = result[1];
+			for (insB2[3] = 0; (result[0] != 0x94) || (result[1] != 0x2); insB2[3] = 1) {
+				cam_common_cmd2card(insB2, sizeof(insB2), result, sizeof(result), &result_size);	// read chid
+				if (result[0] != 0x94) {
+					char ds[16], de[16];
+
+					chid_date(result + 28, ds, sizeof (ds) - 1);
+					chid_date(result + 30, de, sizeof (de) - 1);
+					cs_log("chid: %02X%02X, date: %s - %s, name: %s", result[6], result[7], ds, de, trim((char *) result + 10));
+				}
+			}
+		}
+		//================================================================================
+		//by KrazyIvan
+		select_file(0x0f, 0x00);	// select provider channel 
+		cam_common_cmd2card(insA21, sizeof(insA21), result, sizeof(result), &result_size);
+		if (result[0] == 0x9f) {
+			insB2[4] = result[1];
+			for (insB2[3] = 0; (result[0] != 0x94) || (result[1] != 0x2); insB2[3] = 1) {
+				cam_common_cmd2card(insB2, sizeof(insB2), result, sizeof(result), &result_size);	// read chid
+				if (result[0] != 0x94) {
+					char ds[16], de[16];
+
+					chid_date(result + 28, ds, sizeof (ds) - 1);
+					chid_date(result + 30, de, sizeof (de) - 1);
+					result[27] = 0;
+					cs_log("chid: %02X%02X, date: %s - %s, name: %s", result[6], result[7], ds, de, trim((char *) result + 10));
+				}
+			}
+		}
+		//================================================================================
+
+	}
+
+	return 1;
+}
+
+int cam_cryptoworks_process_ecm(ECM_REQUEST * er)
 {
 	int r = 0;
 	static unsigned char ins4C[] = { 0xA4, 0x4C, 0x00, 0x00, 0x00 };
@@ -452,7 +515,7 @@ int cryptoworks_do_ecm(ECM_REQUEST * er)
 	return (r == 3);
 }
 
-int cryptoworks_do_emm(EMM_PACKET * ep)
+int cam_cryptoworks_process_emm(EMM_PACKET * ep)
 {
 	uchar insEMM_GA[] = { 0xA4, 0x44, 0x00, 0x00, 0x00 };
 	uchar insEMM_SA[] = { 0xA4, 0x48, 0x00, 0x00, 0x00 };
@@ -546,68 +609,5 @@ int cryptoworks_do_emm(EMM_PACKET * ep)
 			break;
 	}
 
-	return (rc);
-}
-
-int cryptoworks_card_info()
-{
-	int i;
-	uchar insA21[] = { 0xA4, 0xA2, 0x01, 0x00, 0x05, 0x8C, 0x00, 0x00, 0x00, 0x00 };
-	uchar insB2[] = { 0xA4, 0xB2, 0x00, 0x00, 0x00 };
-	uchar result[260];
-	ushort result_size;
-	char l_name[20 + 8] = ", name: ";
-
-	cs_log("card detected");
-	cs_log("type: cryptoworks");
-
-	for (i = 0; i < reader[ridx].nprov; i++) {
-		l_name[8] = 0;
-		select_file(0x1f, reader[ridx].prid[i][3]);	// select provider
-		select_file(0x0e, 0x11);	// read provider name
-		if (read_record(0xD6) >= 16) {
-			strncpy(l_name + 8, (const char *) result + 2, sizeof (l_name) - 9);
-			l_name[sizeof (l_name) - 1] = 0;
-			trim(l_name + 8);
-		}
-		l_name[0] = (l_name[8]) ? ',' : 0;
-		cs_log("provider: %d, id: %02X%s", i + 1, reader[ridx].prid[i][3], l_name);
-		select_file(0x0f, 0x20);	// select provider class
-		cam_common_cmd2card(insA21, sizeof(insA21), result, sizeof(result), &result_size);
-		if (result[0] == 0x9f) {
-			insB2[4] = result[1];
-			for (insB2[3] = 0; (result[0] != 0x94) || (result[1] != 0x2); insB2[3] = 1) {
-				cam_common_cmd2card(insB2, sizeof(insB2), result, sizeof(result), &result_size);	// read chid
-				if (result[0] != 0x94) {
-					char ds[16], de[16];
-
-					chid_date(result + 28, ds, sizeof (ds) - 1);
-					chid_date(result + 30, de, sizeof (de) - 1);
-					cs_log("chid: %02X%02X, date: %s - %s, name: %s", result[6], result[7], ds, de, trim((char *) result + 10));
-				}
-			}
-		}
-		//================================================================================
-		//by KrazyIvan
-		select_file(0x0f, 0x00);	// select provider channel 
-		cam_common_cmd2card(insA21, sizeof(insA21), result, sizeof(result), &result_size);
-		if (result[0] == 0x9f) {
-			insB2[4] = result[1];
-			for (insB2[3] = 0; (result[0] != 0x94) || (result[1] != 0x2); insB2[3] = 1) {
-				cam_common_cmd2card(insB2, sizeof(insB2), result, sizeof(result), &result_size);	// read chid
-				if (result[0] != 0x94) {
-					char ds[16], de[16];
-
-					chid_date(result + 28, ds, sizeof (ds) - 1);
-					chid_date(result + 30, de, sizeof (de) - 1);
-					result[27] = 0;
-					cs_log("chid: %02X%02X, date: %s - %s, name: %s", result[6], result[7], ds, de, trim((char *) result + 10));
-				}
-			}
-		}
-		//================================================================================
-
-	}
-
-	return 1;
+	return rc;
 }
