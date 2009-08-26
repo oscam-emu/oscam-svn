@@ -702,7 +702,7 @@ static void newcamd_auth_client(in_addr_t ip)
 	// it will reconnect in a few second.
 
 	if (ok) {
-		FILTER pufilt_noau = { 0 };
+		FILTER pufilt_noau = { 0, 0, { 0 } };
 		FILTER *pufilt = 0;
 
 		key = des_login_key_get(cfg->ncd_key, passwdcrypt, strlen((char *) passwdcrypt));
