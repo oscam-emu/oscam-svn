@@ -29,7 +29,7 @@ static int set_provider_info(int i)
 		 result[15], result[16], result[17], result[18], result[19], result[20], result[21], result[22], result[23], result[24], result[25], result[26]);
 
 	if ((result[25] != 0x90) || (result[26] != 0x00))
-		return (0);
+		return 0;
 	reader[ridx].prid[i][0] = 0;
 	reader[ridx].prid[i][1] = 0;	//blanken high byte provider code
 	memcpy(&reader[ridx].prid[i][2], result, 2);
@@ -105,7 +105,7 @@ int cam_seca_card_init(uchar *atr, ushort atr_size)
 
 	buf[0] = 0x00;
 	if ((atr[10] != 0x0e) || (atr[11] != 0x6c) || (atr[12] != 0xb6) || (atr[13] != 0xd6))
-		return (0);
+		return 0;
 	switch (atr[7] << 8 | atr[8]) {
 		case 0x5084:
 			card = "Generic";
@@ -150,7 +150,7 @@ int cam_seca_card_init(uchar *atr, ushort atr_size)
 	for (i = 0; i < 16; i++) {
 		if (pmap & (1 << i)) {
 			if (!set_provider_info(i))
-				return (0);
+				return 0;
 			else
 				sprintf((char *) buf + strlen((char *) buf), ",%04lX", b2i(2, &reader[ridx].prid[i][2]));
 		}
@@ -236,11 +236,11 @@ int cam_seca_process_emm(EMM_PACKET * ep)
 //      i=get_prov_index(ep->emm[3],ep->emm[4]);
 		i = get_prov_index((char *) ep->emm + 3);
 		if (i == -1)
-			return (0);
+			return 0;
 		else	//prov id found, now test for SA (only first 3 bytes, custom byte does not count)
 		if ((ep->emm[5] != reader[ridx].sa[i][0]) || (ep->emm[6] != reader[ridx].sa[i][1]) || (ep->emm[7] != reader[ridx].sa[i][2])) {
 			cs_log("EMM: Shared update did not match; EMM SA:%02X%02X%02X, Reader SA:%02X,%02X,%02X.", ep->emm[5], ep->emm[6], ep->emm[7], reader[ridx].sa[i][0], reader[ridx].sa[i][1], reader[ridx].sa[i][2]);
-			return (0);
+			return 0;
 		} else {
 			cs_log("EMM: Shared update matched for EMM SA %02X%02X%02X.", ep->emm[5], ep->emm[6], ep->emm[7]);
 			ins40[3] = ep->emm[9];
@@ -254,21 +254,21 @@ int cam_seca_process_emm(EMM_PACKET * ep)
 		if ((reader[ridx].hexserial[2] != ep->emm[3]) || (reader[ridx].hexserial[3] != ep->emm[4]) || (reader[ridx].hexserial[4] != ep->emm[5]) || (reader[ridx].hexserial[5] != ep->emm[6]) || (reader[ridx].hexserial[6] != ep->emm[7]) || (reader[ridx].hexserial[7] != ep->emm[8])) {
 			cs_log("EMM: Unique update did not match; EMM Serial:%02X%02X%02X%02X%02X%02X, Reader Serial:%02X%02X%02X%02X%02X%02X.", ep->emm[3], ep->emm[4], ep->emm[5], ep->emm[6], ep->emm[7], ep->emm[8], reader[ridx].hexserial[2], reader[ridx].hexserial[3], reader[ridx].hexserial[4],
 			       reader[ridx].hexserial[5], reader[ridx].hexserial[6], reader[ridx].hexserial[7]);
-			return (0);
+			return 0;
 		} else {
 			cs_log("EMM: Unique update matched EMM Serial:%02X%02X%02X%02X%02X.", ep->emm[3], ep->emm[4], ep->emm[5], ep->emm[6], ep->emm[7], ep->emm[8]);
 			//first find out prov id
 //                      i=get_prov_index(ep->emm[9],ep->emm[10]);
 			i = get_prov_index((char *) ep->emm + 9);
 			if (i == -1)
-				return (0);
+				return 0;
 			ins40[3] = ep->emm[12];
 			ins40[4] = (ep->emm[1] & 0x0f) * 256 + ep->emm[2] - 0x0A;
 			memcpy(ins40data, ep->emm + 13, 256 - 13);
 		}
 	}	//end unique EMM
 	else
-		return (0);	//geen 0x84 en geen 0x82
+		return 0;	//geen 0x84 en geen 0x82
 
 	ins40[2] = i;
 //  length = ((er->ecm[1]<<8 || er->ecm[2])&0x0fff);
@@ -278,17 +278,19 @@ int cam_seca_process_emm(EMM_PACKET * ep)
 	cam_common_cmd2card(ins40_cmd, ins40[4], result, sizeof(result), &result_size);	//emm request
 	cs_debug("emmdump:%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x.", result[0], result[1], result[2], result[3], result[4], result[5], result[6], result[7], result[8], result[9], result[10], result[11], result[12], result[13], result[14], result[15], result[16],
 		 result[17]);
-//TODO  if ((result[16] != 0x90) || (result[17] != 0x00)) return (0);
+//TODO  if ((result[16] != 0x90) || (result[17] != 0x00)) return 0;
 //  if ((result[16] != 0x90) || (result[17] != 0x19))
 //        seca_card_init(); //if return code = 90 19 then PPUA changed. //untested!!
 //  else
 	if (result[0] == 0x97) {
 		cs_log("EMM: Update not necessary.");
-		return (1);	//Update not necessary
+		return 1;	//Update not necessary
 	}
-	if ((result[0] == 0x90) && ((result[1] == 0x00) || (result[1] == 0x19)))
-		if (set_provider_info(i) != 0)	//after successfull EMM, print new provider info
-			return (1);
+	if ((result[0] == 0x90) && ((result[1] == 0x00) || (result[1] == 0x19))) {
+		if (set_provider_info(i) != 0) {	//after successfull EMM, print new provider info
+			return 1;
+		}
+	}
 
 	return 0;
 }
