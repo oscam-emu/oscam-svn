@@ -2083,7 +2083,7 @@ int main(int argc, char *argv[])
 			card_init_done = 1;
 
 			for (i = 0; i < CS_MAXREADER; i++) {
-				if (!reader[i].online && reader[i].card_status) {
+				if (!reader[i].online && reader[i].card_status != 0) {
 					if (!(reader[i].card_status & CARD_FAILURE)) {
 						card_init_done = 0;
 						break;
