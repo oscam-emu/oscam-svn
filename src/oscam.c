@@ -1270,12 +1270,14 @@ int write_ecm_request(int fd, ECM_REQUEST * er)
 	return (write_to_pipe(fd, PIP_ID_ECM, (uchar *) er, sizeof (ECM_REQUEST)));
 }
 
-int write_ecm_DCW(int fd, ECM_REQUEST * er)
+/*
+static int write_ecm_DCW(int fd, ECM_REQUEST * er)
 {
 	return (write_to_pipe(fd, PIP_ID_DCW, (uchar *) er, sizeof (ECM_REQUEST)));
 }
+*/
 
-void logCWtoFile(ECM_REQUEST * er)
+static void logCWtoFile(ECM_REQUEST * er)
 {
 	/* This function writes the current CW from ECM struct to a cwl file.
 	   The filename is re-calculated and file re-opened every time.

@@ -13,7 +13,7 @@ static uchar cwexp[] = { 1, 0, 1 };
 static BIGNUM exp, ucpk;
 static int ucpk_valid = 0;
 
-void RotateBytes1(unsigned char *out, unsigned char *in, int n)
+static void RotateBytes1(unsigned char *out, unsigned char *in, int n)
 {
 	// loop is executed atleast once, so it's not a good idea to
 	// call with n=0 !!
@@ -23,7 +23,7 @@ void RotateBytes1(unsigned char *out, unsigned char *in, int n)
 	} while (--n);
 }
 
-void RotateBytes2(unsigned char *in, int n)
+static void RotateBytes2(unsigned char *in, int n)
 {
 	// loop is executed atleast once, so it's not a good idea to
 	// call with n=0 !!
@@ -37,7 +37,7 @@ void RotateBytes2(unsigned char *in, int n)
 	} while (in < e);
 }
 
-int Input(BIGNUM * d, unsigned char *in, int n, int LE)
+static int Input(BIGNUM * d, unsigned char *in, int n, int LE)
 {
 	if (LE) {
 		unsigned char tmp[n];
@@ -48,7 +48,7 @@ int Input(BIGNUM * d, unsigned char *in, int n, int LE)
 		return (BN_bin2bn(in, n, d) != 0);
 }
 
-int Output(unsigned char *out, int n, BIGNUM * r, int LE)
+static int Output(unsigned char *out, int n, BIGNUM * r, int LE)
 {
 	int s = BN_num_bytes(r);
 
@@ -71,7 +71,7 @@ int Output(unsigned char *out, int n, BIGNUM * r, int LE)
 	return (s);
 }
 
-int RSA(unsigned char *out, unsigned char *in, int n, BIGNUM * exp, BIGNUM * mod, int LE)
+static int RSA(unsigned char *out, unsigned char *in, int n, BIGNUM * exp, BIGNUM * mod, int LE)
 {
 	int rc = 0;
 	BN_CTX *ctx;
@@ -92,7 +92,7 @@ int RSA(unsigned char *out, unsigned char *in, int n, BIGNUM * exp, BIGNUM * mod
 	return (rc);
 }
 
-int CheckSctLen(const uchar * data, int off)
+static int CheckSctLen(const uchar * data, int off)
 {
 	int l = SCT_LEN(data);
 
@@ -142,7 +142,8 @@ static int read_record(uchar rec)
 	return (result_size - 2);
 }
 
-int cryptoworks_send_pin()
+/*
+static int cryptoworks_send_pin()
 {
 	unsigned char insPIN[] = { 0xA4, 0x20, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00 };	//Verify PIN  
 	uchar result[260];
@@ -161,8 +162,9 @@ int cryptoworks_send_pin()
 
 	return (0);
 }
+*/
 
-int cryptoworks_disbale_pin()
+static int cryptoworks_disbale_pin()
 {
 	unsigned char insPIN[] = { 0xA4, 0x26, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00 };	//disable PIN  
 	uchar result[260];

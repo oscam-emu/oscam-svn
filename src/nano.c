@@ -6,7 +6,7 @@
 //#define CS_NANO_GEO   0x9F
 #define CS_NANO_CLASS 0xE2
 
-int find_nano(uchar * ecm, int l, uchar nano, int s)
+static int find_nano(uchar * ecm, int l, uchar nano, int s)
 {
 	uchar *snano;
 

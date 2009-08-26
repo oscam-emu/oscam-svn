@@ -9,7 +9,7 @@ static unsigned short pmap = 0;	// provider-maptable
 unsigned long long serial;
 char *card;
 
-int set_provider_info(int i)
+static int set_provider_info(int i)
 {
 	static uchar ins12[] = { 0xc1, 0x12, 0x00, 0x00, 0x19 };	// get provider info
 	uchar result[260];

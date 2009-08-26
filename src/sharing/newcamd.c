@@ -3,6 +3,7 @@
 
 #include "oscam.h"
 #include "card.h"
+#include "chk.h"
 #include "simples.h"
 #include "log.h"
 
@@ -204,7 +205,7 @@ static int network_cmd_no_data_receive(int handle, ushort * netMsgId, uchar * de
 	return buffer[2];
 }
 
-int connect_nonb(int sockfd, const struct sockaddr *saptr, socklen_t salen, int nsec)
+static int connect_nonb(int sockfd, const struct sockaddr *saptr, socklen_t salen, int nsec)
 {
 	int flags, n, error;
 	socklen_t len;
@@ -291,7 +292,7 @@ int network_tcp_connection_open(char *hostname, ushort port)
 	return client[cs_idx].udp_fd;
 }
 
-void newcamd_reply_ka()
+static void newcamd_reply_ka()
 {
 	if (!client[cs_idx].udp_fd) {
 		cs_debug("invalid client fd=%d", client[cs_idx].udp_fd);
@@ -1068,7 +1069,7 @@ static void newcamd_server()
 *	client functions
 */
 
-int newcamd_client_init()
+static int newcamd_client_init()
 {
 	static struct sockaddr_in loc_sa;
 	struct protoent *ptrp;

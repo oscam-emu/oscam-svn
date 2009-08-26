@@ -36,7 +36,7 @@ void ac_init_stat(int i)
 		cs_exit(0);
 }
 
-int idx_from_ac_idx(int ac_idx)
+static int idx_from_ac_idx(int ac_idx)
 {
 	int i;
 

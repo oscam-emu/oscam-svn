@@ -72,10 +72,10 @@ static int allow_customize_debug = 1;	/* exchanging memory-related functions at
 					 * don't match etc. */
 
 /* may be changed as long as `allow_customize' is set */
-static void *(*malloc_locked_func) (size_t) = malloc;
-static void (*free_locked_func) (void *) = free;
+//static void *(*malloc_locked_func) (size_t) = malloc;
+//static void (*free_locked_func) (void *) = free;
 static void *(*malloc_func) (size_t) = malloc;
-static void *(*realloc_func) (void *, size_t) = realloc;
+//static void *(*realloc_func) (void *, size_t) = realloc;
 static void (*free_func) (void *) = free;
 
 /* may be changed as long as `allow_customize_debug' is set */
@@ -96,14 +96,13 @@ static long (*get_debug_options_func) (void) = CRYPTO_dbg_get_options;
 /* applications can use CRYPTO_malloc_debug_init() to select above case
  * at run-time */
 static void (*malloc_debug_func) (void *, int, const char *, int, int) = NULL;
-static void (*realloc_debug_func) (void *, void *, int, const char *, int, int)
-	= NULL;
+//static void (*realloc_debug_func) (void *, void *, int, const char *, int, int) = NULL;
 static void (*free_debug_func) (void *, int) = NULL;
-static void (*set_debug_options_func) (long) = NULL;
-static long (*get_debug_options_func) (void) = NULL;
+//static void (*set_debug_options_func) (long) = NULL;
+//static long (*get_debug_options_func) (void) = NULL;
 #endif
 
-
+/*
 int CRYPTO_set_mem_functions(void *(*m) (size_t), void *(*r) (void *, size_t), void (*f) (void *))
 {
 	if (!allow_customize)
@@ -204,6 +203,7 @@ void CRYPTO_free_locked(void *str)
 	if (free_debug_func != NULL)
 		free_debug_func(NULL, 1);
 }
+*/
 
 void *CRYPTO_malloc(int num, const char *file, int line)
 {
@@ -224,6 +224,7 @@ void *CRYPTO_malloc(int num, const char *file, int line)
 	return ret;
 }
 
+/*
 void *CRYPTO_realloc(void *str, int num, const char *file, int line)
 {
 	void *ret = NULL;
@@ -239,6 +240,7 @@ void *CRYPTO_realloc(void *str, int num, const char *file, int line)
 
 	return ret;
 }
+*/
 
 void CRYPTO_free(void *str)
 {
@@ -252,6 +254,7 @@ void CRYPTO_free(void *str)
 		free_debug_func(NULL, 1);
 }
 
+/*
 void *CRYPTO_remalloc(void *a, int num, const char *file, int line)
 {
 	if (a != NULL)
@@ -273,3 +276,4 @@ long CRYPTO_get_mem_debug_options(void)
 		return get_debug_options_func();
 	return 0;
 }
+*/

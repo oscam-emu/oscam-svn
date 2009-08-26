@@ -1,3 +1,4 @@
+#include "crc32.h"
 
 /* crc32.c -- compute the CRC-32 of a data stream
  * Copyright (C) 1995-1996 Mark Adler
@@ -69,10 +70,7 @@ static unsigned long crc_table[256] = {
 #define DO4(buf) DO2(buf); DO2(buf);
 #define DO8(buf) DO4(buf); DO4(buf);
 
-unsigned long crc32(crc, buf, len)
-unsigned long crc;
-const unsigned char *buf;
-unsigned int len;
+unsigned long crc32(unsigned long crc, const unsigned char *buf, unsigned int len)
 {
 	if (!buf)
 		return (0L);

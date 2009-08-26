@@ -375,13 +375,13 @@ struct CmdTab {
 };
 
 struct CmdTab *cmd_table = NULL;
-void memorize_cmd_table(const unsigned char *mem, int size)
+static void memorize_cmd_table(const unsigned char *mem, int size)
 {
 	cmd_table = (struct CmdTab *) malloc(sizeof (unsigned char) * size);
 	memcpy(cmd_table, mem, size);
 }
 
-int cmd_table_get_info(const unsigned char *cmd, unsigned char *rlen, unsigned char *rmode)
+static int cmd_table_get_info(const unsigned char *cmd, unsigned char *rlen, unsigned char *rmode)
 {
 	struct CmdTabEntry *pcte = cmd_table->e;
 	int i;

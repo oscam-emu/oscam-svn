@@ -4,6 +4,7 @@
 #  include "aes/aes.h"
 #endif
 
+#include "crc32.h"
 #include "des.h"
 #include "bn.h"
 

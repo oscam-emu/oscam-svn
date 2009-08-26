@@ -127,7 +127,7 @@ int conax_card_init(uchar *atr, ushort atr_size)
 	return 1;
 }
 
-int conax_send_pin()
+static int conax_send_pin()
 {
 	unsigned char insPIN[] = { 0xDD, 0xC8, 0x00, 0x00, 0x07, 0x1D, 0x05, 0x01, 0x00, 0x00, 0x00, 0x00 };	//letzte vier ist der Pin-Code
 	memcpy(insPIN + 8, reader[ridx].pincode, 4);

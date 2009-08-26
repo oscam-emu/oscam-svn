@@ -165,9 +165,7 @@ static void casc_get_dcw(int n)
 		casc_check_dcw(n, 0, ecmtask[n].cw);	// simulate "not found"
 }
 
-
-
-int casc_process_ecm(ECM_REQUEST * er)
+static int casc_process_ecm(ECM_REQUEST * er)
 {
 	int rc, n, i, sflag;
 	time_t t;		//, tls;

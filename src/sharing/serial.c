@@ -938,7 +938,7 @@ static void sharing_serial_fork(int idx, char *url)
 	}
 }
 
-void init_sharing_serial(int idx)
+static void init_sharing_serial(int idx)
 {
 	char *p;
 

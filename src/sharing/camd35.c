@@ -303,7 +303,7 @@ static void casc_set_account()
 	client[cs_idx].crypted = 1;
 }
 
-int camd35_client_init()
+static int camd35_client_init()
 {
 	static struct sockaddr_in loc_sa;
 	struct protoent *ptrp;
@@ -364,7 +364,7 @@ int camd35_client_init()
 	return (0);
 }
 
-int camd35_client_init_log()
+static int camd35_client_init_log()
 {
 	static struct sockaddr_in loc_sa;
 	struct protoent *ptrp;
