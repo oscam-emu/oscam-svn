@@ -4,7 +4,10 @@
 
 #include "log.h"
 
+#include <fcntl.h>
 #include <termios.h>
+#include <sys/ioctl.h>
+
 #ifdef OS_LINUX
 #  include <linux/serial.h>	// ULGY : to be merged into csctapi
 #endif

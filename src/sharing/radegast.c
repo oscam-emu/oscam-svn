@@ -5,6 +5,8 @@
 #include "simples.h"
 #include "log.h"
 
+#include <time.h>
+
 static int radegast_send(uchar * buf)
 {
 	int l = buf[1] + 2;

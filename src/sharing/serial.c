@@ -5,7 +5,12 @@
 #include "simples.h"
 #include "log.h"
 
+#include <fcntl.h>
+#include <stdlib.h>
+#include <sys/poll.h>
 #include <termios.h>
+#include <time.h>
+#include <unistd.h>
 
 #define HSIC_CRC 0xA5
 #define SSSP_MAX_PID 8

@@ -5,6 +5,8 @@
 #include "simples.h"
 #include "log.h"
 
+#include <time.h>
+
 #define REQ_SIZE	4
 static uchar camdbug[256];	// camd send wrong order
 static uchar *req;

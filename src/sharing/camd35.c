@@ -7,6 +7,10 @@
 
 #include "sharing/newcamd.h"	// UGLY : to be removed !
 
+#include <stdlib.h>
+#include <time.h>
+#include <unistd.h>
+
 #define REQ_SIZE	328	// 256 + 20 + 0x34
 static uchar upwd[64] = { 0 };
 static uchar *req;

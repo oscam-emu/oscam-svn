@@ -1,6 +1,8 @@
 #ifndef __SIMPLES_H__
 #  define __SIMPLES_H__
 
+#include <netdb.h>
+
 void aes_set_key(char *);
 void aes_encrypt_idx(int, uchar *, int);
 void aes_decrypt(uchar *, int);

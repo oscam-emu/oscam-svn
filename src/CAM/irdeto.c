@@ -5,6 +5,8 @@
 #include "simples.h"
 #include "log.h"
 
+#include <time.h>
+
 #define cam_irdeto_chk_cmd(cmd, l, result, result_size) { \
         if (cam_common_cmd2card(cmd, sizeof(cmd), result, sizeof(result), result_size)) return 0; \
 	if (l && (*result_size!=l)) return 0; \

@@ -10,6 +10,9 @@
 #  include "boxkeys.np"
 #endif
 
+#include <stdlib.h>
+#include <arpa/inet.h>
+
 static char *cs_conf = "oscam.conf";
 static char *cs_user = "oscam.user";
 static char *cs_srvr = "oscam.server";

@@ -1,33 +1,20 @@
 #ifndef __GLOBALS_H__
 #  define __GLOBALS_H__
 
-#  include <stdlib.h>
-#  include <stdio.h>
-#  include <assert.h>
-#  include <fcntl.h>
-#  include <sys/ioctl.h>
-#  include <sys/poll.h>
-#  include <ctype.h>
-#  include <sys/types.h>
-#  include <sys/stat.h>
-#  include <sys/shm.h>
-#  include <sys/wait.h>
-#  include <unistd.h>
-#  include <sys/mman.h>
-#  include <stdarg.h>
-#  include <time.h>
-#  include <sys/timeb.h>
-#  include <limits.h>
+/* To be removed after further testing : */
+//#  include <assert.h>
+//#  include <limits.h>
+//#  include <sys/mman.h>
+//#  include <stdio.h>
+//#  include <sys/socket.h>
+//#  include <netinet/in.h>
 
-#  include <sys/socket.h>
-#  include <netinet/in.h>
-#  include <arpa/inet.h>
-#  include <netdb.h>
-#  include <string.h>
-#  include <signal.h>
 #  include <errno.h>
+#  include <string.h>
+#  include <sys/types.h>
 
-#  include <pthread.h>
+#  include <sys/timeb.h>
+#  include <netdb.h>
 
 #  include "cscrypt.h"
 

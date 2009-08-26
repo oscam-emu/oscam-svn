@@ -6,7 +6,11 @@
 #include "monitor.h"
 #include "simples.h"
 
+#include <stdarg.h>
 #include <syslog.h>
+#include <sys/stat.h>
+#include <time.h>
+#include <unistd.h>
 
 char logfile[256] = CS_LOGFILE;
 

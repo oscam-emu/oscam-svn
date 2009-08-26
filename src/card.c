@@ -13,6 +13,10 @@
 #include "simples.h"
 #include "log.h"
 
+#include <stdlib.h>
+#include <time.h>
+#include <unistd.h>
+
 int ridx = 0, logfd = 0;
 
 static int proxy;

@@ -5,6 +5,8 @@
 #include "simples.h"
 #include "log.h"
 
+#include <time.h>
+
 static unsigned short pmap = 0;	// provider-maptable
 unsigned long long serial;
 char *card;

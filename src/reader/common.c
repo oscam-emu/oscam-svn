@@ -8,6 +8,9 @@
 #include "simples.h"
 #include "log.h"
 
+#include <signal.h>
+#include <time.h>
+
 extern int io_serial_need_dummy_char;
 
 static void reader_common_nullcard(struct s_reader *reader)

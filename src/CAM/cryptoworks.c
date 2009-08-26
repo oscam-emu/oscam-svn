@@ -6,6 +6,8 @@
 #include "log.h"
 #include "config.h"		// UGLY : to be removed !
 
+#include <stdlib.h>
+
 #define MAX_LEN 256
 
 //static uchar ISK[0x40];

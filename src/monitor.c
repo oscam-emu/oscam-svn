@@ -5,6 +5,11 @@
 #include "oscam.h"
 #include "log.h"
 
+#include <signal.h>
+#include <stdlib.h>
+#include <time.h>
+#include <unistd.h>
+
 static int auth = 0;
 
 static void monitor_check_ip()

@@ -19,6 +19,14 @@
 #include "sharing/radegast.h"
 #include "sharing/serial.h"
 
+#include <arpa/inet.h>
+#include <pthread.h>
+#include <signal.h>
+#include <stdlib.h>
+#include <sys/shm.h>
+#include <sys/wait.h>
+#include <unistd.h>
+
 /*****************************************************************************
         Globals
 *****************************************************************************/

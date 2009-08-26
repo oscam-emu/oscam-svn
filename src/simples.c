@@ -1,6 +1,11 @@
 #include "globals.h"
 #include "simples.h"
 
+#include <ctype.h>
+#include <stdlib.h>
+#include <sys/poll.h>
+#include <arpa/inet.h>
+
 static AES_KEY aeskey;
 
 void aes_set_key(char *key)

@@ -7,6 +7,11 @@
 #include "simples.h"
 #include "log.h"
 
+#include <fcntl.h>
+#include <stdlib.h>
+#include <time.h>
+#include <unistd.h>
+
 #define CWS_NETMSGSIZE 272
 
 #define CWS_FIRSTCMDNO 0xe0
