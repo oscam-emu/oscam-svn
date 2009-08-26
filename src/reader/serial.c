@@ -142,7 +142,7 @@ int reader_serial_reset()
 
 	ret = reader_serial_cmd2reader(cmd, 3, result, sizeof(result), &result_size);
 	if (ret != OK) {
-		cs_log("Error reset terminal: %d", ret);
+		cs_log("Error resetting terminal card (%d, %s) !", ret, cs_hexdump(1, result, result_size));
 		return 0;
 	}
 
@@ -164,7 +164,7 @@ int reader_serial_card_is_inserted()
 
 	char ret = reader_serial_cmd2reader(cmd, 5, result, sizeof(result), &result_size);
 	if (ret != OK) {
-		cs_log("Error getting status of terminal: %d", ret);
+		cs_log("Error getting status of terminal (%d, %s) !", ret, cs_hexdump(1, result, result_size));
 	}
 
 	return (ret == OK && result[0] == CTBCS_DATA_STATUS_CARD_CONNECT);
@@ -198,7 +198,7 @@ int reader_serial_get_atr(uchar *atr, ushort *atr_size)
 			/* All is ok */
 			return 1;
 		} else {
-			cs_log("Error activating card: %d", ret);
+			cs_log("Error getting ATR from card (%d, %s) !", ret, cs_hexdump(1, result, result_size));
 			cs_sleepms(500);
 		}
 	}
