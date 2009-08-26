@@ -20,7 +20,7 @@ static ushort reader_serial_get_reader_type(struct s_reader *reader)
 	struct stat sb;
 #endif
 
-	switch (reader->typ) {
+	switch (reader->type) {
 		case R_MOUSE:
 			reader_type = RTYP_STD;
 #ifdef TUXBOX

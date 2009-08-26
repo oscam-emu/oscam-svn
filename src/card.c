@@ -211,7 +211,7 @@ int casc_process_ecm(ECM_REQUEST * er)
 		return (-2);
 	}
 	memcpy(&ecmtask[n], er, sizeof (ECM_REQUEST));
-	if (reader[ridx].typ == R_NEWCAMD)
+	if (reader[ridx].type == R_NEWCAMD)
 		ecmtask[n].idx = (reader[ridx].ncd_msgid == 0) ? 2 : reader[ridx].ncd_msgid + 1;
 	else
 		ecmtask[n].idx = idx++;
@@ -294,7 +294,7 @@ static void card_get_ecm(ECM_REQUEST * er)
 	}
 	er->rc = reader_common_ecm2cam(er);
 	write_ecm_answer(fd_c2m, er);
-	//if(reader[ridx].typ=='r') reader[ridx].qlen--;
+	//if(reader[ridx].type == 'r') reader[ridx].qlen--;
 }
 
 static void card_send_dcw(ECM_REQUEST * er)
@@ -474,11 +474,11 @@ void start_cardreader()
 {
 	cs_ptyp = D_READER;
 
-	if ((proxy = reader[ridx].typ & R_IS_CASCADING)) {
+	if ((proxy = reader[ridx].type & R_IS_CASCADING)) {
 		client[cs_idx].typ = 'p';
 		client[cs_idx].port = reader[ridx].r_port;
 		strcpy(client[cs_idx].usr, reader[ridx].r_usr);
-		switch (reader[ridx].typ) {
+		switch (reader[ridx].type) {
 			case R_CAMD33:
 				sharing_camd33_module(&reader[ridx].ph);
 				break;

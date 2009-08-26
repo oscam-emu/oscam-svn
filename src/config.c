@@ -1120,31 +1120,31 @@ static void chk_reader(char *token, char *value, struct s_reader *rdr)
 	}
 	if (!strcmp(token, "protocol")) {
 		if (!strcmp(value, "mouse"))
-			rdr->typ = R_MOUSE;
+			rdr->type = R_MOUSE;
 		if (!strcmp(value, "smartreader"))
-			rdr->typ = R_SMART;
+			rdr->type = R_SMART;
 		if (!strcmp(value, "internal"))
-			rdr->typ = R_INTERN;
+			rdr->type = R_INTERN;
 		if (!strcmp(value, "intern"))
-			rdr->typ = R_INTERN;
+			rdr->type = R_INTERN;
 		if (!strcmp(value, "serial"))
-			rdr->typ = R_SERIAL;
+			rdr->type = R_SERIAL;
 		if (!strcmp(value, "camd35"))
-			rdr->typ = R_CAMD35;
+			rdr->type = R_CAMD35;
 		if (!strcmp(value, "cs378x"))
-			rdr->typ = R_CS378X;
+			rdr->type = R_CS378X;
 		if (!strcmp(value, "cs357x"))
-			rdr->typ = R_CAMD35;
+			rdr->type = R_CAMD35;
 #ifdef CS_WITH_GBOX
 		if (!strcmp(value, "gbox"))
-			rdr->typ = R_GBOX;
+			rdr->type = R_GBOX;
 #endif
 		if (!strcmp(value, "newcamd") || !strcmp(value, "newcamd525")) {
-			rdr->typ = R_NEWCAMD;
+			rdr->type = R_NEWCAMD;
 			rdr->ncd_proto = NCD_525;
 		}
 		if (!strcmp(value, "newcamd524")) {
-			rdr->typ = R_NEWCAMD;
+			rdr->type = R_NEWCAMD;
 			rdr->ncd_proto = NCD_524;
 		}
 	}
@@ -1208,7 +1208,7 @@ int init_readerdb()
 		if ((token[0] == '[') && (token[l - 1] == ']')) {
 			token[l - 1] = 0;
 			tag = (!strcmp("reader", strtolower(token + 1)));
-			if (reader[nr].label[0] && reader[nr].typ)
+			if (reader[nr].label[0] && reader[nr].type)
 				nr++;
 			memset(&reader[nr], 0, sizeof (struct s_reader));
 			reader[nr].tcp_rto = 30;

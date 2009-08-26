@@ -550,7 +550,7 @@ static FILTER mk_user_ftab()
 			for (r = 0; !add && r < CS_MAXREADER; r++) {
 				if (reader[r].grp & client[cs_idx].grp) {
 					if (!reader[r].ftab.nfilts) {
-						if (reader[r].typ & R_IS_NETWORK)
+						if (reader[r].type & R_IS_NETWORK)
 							add = 1;
 						for (j = 0; !add && j < reader[r].nprov; j++)
 							if (b2i(3, &reader[r].prid[j][1]) == psfilt->prids[i])
@@ -673,7 +673,7 @@ static int newcamd_auth_client(in_addr_t ip)
 			    && cfg->ncd_ptab.ports[client[cs_idx].port_idx].ftab.filts[0].caid != reader[au].ftab.filts[0].caid) {
 				cs_log("AU wont be used on this port -> disable AU");
 				au = -1;
-			} else if (reader[au].card_system <= 0 && !(reader[au].typ & R_IS_CASCADING)) {
+			} else if (reader[au].card_system <= 0 && !(reader[au].type & R_IS_CASCADING)) {
 				// Init for AU enabled card not finished, reject Client
 				ok = 0;
 				au = -2;	// Flag zur Logausgabe

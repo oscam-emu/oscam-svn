@@ -312,7 +312,7 @@ int camd35_client_init()
 		cs_log("invalid port %d for server %s", reader[ridx].r_port, reader[ridx].device);
 		return (1);
 	}
-	is_udp = (reader[ridx].typ == R_CAMD35);
+	is_udp = (reader[ridx].type == R_CAMD35);
 	if ((ptrp = getprotobyname(is_udp ? "udp" : "tcp")))
 		p_proto = ptrp->p_proto;
 	else

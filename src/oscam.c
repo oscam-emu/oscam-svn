@@ -554,7 +554,7 @@ int cs_fork(in_addr_t ip, in_port_t port)
 							if (reader[ridx].r_port)
 								cs_log("proxy started (pid=%d, server=%s)", pid, reader[ridx].device);
 							else {
-								if (reader[ridx].typ == R_MOUSE || reader[ridx].typ == R_SMART)
+								if (reader[ridx].type == R_MOUSE || reader[ridx].type == R_SMART)
 									cs_log("reader started (pid=%d, device=%s, detect=%s%s, mhz=%d)", pid, reader[ridx].device, reader[ridx].detect & 0x80 ? "!" : "", RDR_CD_TXT[reader[ridx].detect & 0x7f], reader[ridx].mhz);
 								else
 									cs_log("reader started (pid=%d, device=%s)", pid, reader[ridx].device);
@@ -865,7 +865,7 @@ void cs_resolve()
 	struct s_auth *account;
 
 	for (i = 0; i < CS_MAXREADER; i++)
-		if ((idx = reader[i].cs_idx) && (reader[i].typ & R_IS_NETWORK)) {
+		if ((idx = reader[i].cs_idx) && (reader[i].type & R_IS_NETWORK)) {
 			client[cs_idx].last = time((time_t) 0);
 			if (rht = gethostbyname(reader[i].device)) {
 				memcpy(&client[idx].udp_sa.sin_addr, rht->h_addr, sizeof (client[idx].udp_sa.sin_addr));
@@ -1533,13 +1533,13 @@ void request_cw(ECM_REQUEST * er, int flag, int reader_types)
 				break;
 				// only local cards  
 			case 1:
-				if (!(reader[i].typ & R_IS_NETWORK))
+				if (!(reader[i].type & R_IS_NETWORK))
 					if (er->reader[i] & flag)
 						write_ecm_request(reader[i].fd, er);
 				break;
 				// only network
 			case 2:
-				if ((reader[i].typ & R_IS_NETWORK))
+				if ((reader[i].type & R_IS_NETWORK))
 					if (er->reader[i] & flag)
 						write_ecm_request(reader[i].fd, er);
 				break;
@@ -1779,10 +1779,10 @@ struct timeval *chk_pending(struct timeb tp_ctimeout)
 			if (!er->stage) {
 				for (j = 0, act = 1; (act) && (j < CS_MAXREADER); j++) {
 					if (cfg->preferlocalcards && !er->locals_done) {
-						if ((er->reader[j] & 1) && !(reader[j].typ & R_IS_NETWORK))
+						if ((er->reader[j] & 1) && !(reader[j].type & R_IS_NETWORK))
 							act = 0;
 					} else if (cfg->preferlocalcards && er->locals_done) {
-						if ((er->reader[j] & 1) && (reader[j].typ & R_IS_NETWORK))
+						if ((er->reader[j] & 1) && (reader[j].type & R_IS_NETWORK))
 							act = 0;
 					} else {
 						if (er->reader[j] & 1)
@@ -1800,7 +1800,7 @@ struct timeval *chk_pending(struct timeb tp_ctimeout)
 
 						er->locals_done = 1;
 						for (i = 0; i < CS_MAXREADER; i++) {
-							if (reader[i].typ & R_IS_NETWORK) {
+							if (reader[i].type & R_IS_NETWORK) {
 								inc_stage = 0;
 							}
 						}

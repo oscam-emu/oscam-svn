@@ -251,7 +251,7 @@ static char *monitor_get_proto(int idx)
 			if ((i = cs_idx2ridx(idx)) < 0)	// should never happen
 				ctyp = (client[idx].typ == 'p') ? "proxy" : "reader";
 			else {
-				switch (reader[i].typ)	// TODO like ph
+				switch (reader[i].type)	// TODO like ph
 				{
 					case R_MOUSE:
 						ctyp = "mouse";

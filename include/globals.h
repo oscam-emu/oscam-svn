@@ -323,7 +323,7 @@ struct s_reader {
 	int fd;
 	ulong grp;
 	int fallback;
-	int typ;
+	int type;
 	int card_system;
 	char label[32];
 	char device[128];
