@@ -1,8 +1,9 @@
-#include <globals.h>
-#include <CAM/viaccess.h>
-#include <CAM/common.h>
+#include "globals.h"
+#include "CAM/viaccess.h"
+#include "CAM/common.h"
 
-#include <simples.h>
+#include "simples.h"
+#include "log.h"
 
 struct geo_cache {
 	ulong provid;

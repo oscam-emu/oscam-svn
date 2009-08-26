@@ -9,5 +9,6 @@ void cs_close_log();
 int cs_init_statistics(char *);
 void cs_statistics(int);
 void cs_dump(uchar *, int, char *, ...);
+void cs_write_log(char *);
 
 #endif // __LOG_H__

@@ -1,7 +1,10 @@
-#include <globals.h>
-#include <log.h>
+#include "globals.h"
+#include "log.h"
 
-#include <ac.h>
+#include "ac.h"
+#include "oscam.h"
+#include "monitor.h"
+#include "simples.h"
 
 #include <syslog.h>
 

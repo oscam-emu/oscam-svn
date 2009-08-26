@@ -1,7 +1,10 @@
-#include <globals.h>
-#include <sharing/newcamd.h>
+#include "globals.h"
+#include "sharing/newcamd.h"
 
-#include <oscam.h>
+#include "oscam.h"
+#include "card.h"
+#include "simples.h"
+#include "log.h"
 
 #define CWS_NETMSGSIZE 272
 
@@ -273,7 +276,7 @@ int connect_nonb(int sockfd, const struct sockaddr *saptr, socklen_t salen, int 
 	return (0);
 }
 
-int network_tcp_connection_open(uchar * hostname, ushort port)
+int network_tcp_connection_open(char *hostname, ushort port)
 {
 	int flags;
 
@@ -316,7 +319,7 @@ static int connect_newcamd_server()
 
 	// 1. Connect
 	//
-	handle = network_tcp_connection_open((uchar *) reader[ridx].device, reader[ridx].r_port);
+	handle = network_tcp_connection_open(reader[ridx].device, reader[ridx].r_port);
 	if (handle < 0)
 		return -1;
 
@@ -426,25 +429,29 @@ static int newcamd_recv(uchar * buf, int l)
 {
 	int rc, rs;
 
-	if (is_server)
+	if (is_server) {
 		rs = network_message_receive(client[cs_idx].udp_fd, &client[cs_idx].ncd_msgid, buf, client[cs_idx].ncd_skey, COMMTYPE_SERVER);
-	else {
+	} else {
 		if (!client[cs_idx].udp_fd)
 			return (-1);
 		rs = network_message_receive(client[cs_idx].udp_fd, &reader[ridx].ncd_msgid, buf, reader[ridx].ncd_skey, COMMTYPE_CLIENT);
 	}
-	if (rs < 5)
+	if (rs < 5) {
 		rc = (-1);
-	else
+	} else {
 		rc = rs;
+	}
 	cs_ddump(buf, rs, "received %d bytes from %s", rs, remote_txt());
 	client[cs_idx].last = time((time_t *) 0);
-	if (rc == -1)
-		if (rs > 0)
+	if (rc == -1) {
+		if (rs > 0) {
 			cs_log("packet to small (%d bytes)", rs);
-		else
+		} else {
 			cs_log("Connection closed to %s", remote_txt());
-	return (rc);
+		}
+	}
+
+	return rc;
 }
 
 static unsigned int seed;
@@ -542,7 +549,7 @@ static FILTER mk_user_ftab()
 
 	// 2. PROVID
 	if (!client[cs_idx].ftab.nfilts) {
-		int r, f, add;
+		int r, add;
 
 		for (i = 0; i < psfilt->nprids; i++) {
 			// use server PROVID(s) (and only those which are in user's groups)
@@ -601,7 +608,7 @@ static FILTER mk_user_ftab()
 	return filt;
 }
 
-static int newcamd_auth_client(in_addr_t ip)
+static void newcamd_auth_client(in_addr_t ip)
 {
 	int i, ok = 0;
 	uchar *usr = NULL, *pwd = NULL;

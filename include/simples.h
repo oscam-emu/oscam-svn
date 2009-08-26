@@ -16,7 +16,7 @@ ulong cs_atoi(char *, int, int);
 int byte_atob(char *);
 long word_atob(char *);
 int key_atob(char *, uchar *);
-int key_atob4(char *, uchar *);
+int key_atob14(char *, uchar *);
 char *key_btoa(char *, uchar *);
 char *cs_hexdump(int, uchar *, int);
 in_addr_t cs_inet_order(in_addr_t);

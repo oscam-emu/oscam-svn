@@ -1,6 +1,8 @@
+#include "des.h"
+
 #include <stdio.h>
 #include <string.h>
-#include "des.h"
+#include <stdlib.h>
 
 static byte PC2[8][6] = {
 	{14, 17, 11, 24, 1, 5},

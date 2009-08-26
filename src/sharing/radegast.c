@@ -1,7 +1,9 @@
-#include <globals.h>
-#include <sharing/radegast.h>
+#include "globals.h"
+#include "sharing/radegast.h"
 
-#include <oscam.h>
+#include "oscam.h"
+#include "simples.h"
+#include "log.h"
 
 static int radegast_send(uchar * buf)
 {
@@ -12,7 +14,7 @@ static int radegast_send(uchar * buf)
 
 static int radegast_recv(uchar * buf, int l)
 {
-	int i, n;
+	int n;
 
 	if (!pfd)
 		return (-1);
@@ -27,18 +29,23 @@ static void radegast_auth_client(in_addr_t ip)
 	struct s_auth *account;
 	struct s_ip *p_ip;
 
-	for (ok = 0, p_ip = cfg->rad_allowed; (p_ip) && (!ok); p_ip = p_ip->next)
+	for (ok = 0, p_ip = cfg->rad_allowed; (p_ip) && (!ok); p_ip = p_ip->next) {
 		ok = ((ip >= p_ip->ip[0]) && (ip <= p_ip->ip[1]));
+	}
 	if (!ok) {
 		cs_auth_client((struct s_auth *) 0, NULL);
 		cs_exit(0);
 	}
-	for (ok = 0, account = cfg->account; (cfg->rad_usr[0]) && (account) && (!ok); account = account->next)
-		if (ok = (!strcmp(cfg->rad_usr, account->usr)))
-			if (cs_auth_client(account, NULL))
+	for (ok = 0, account = cfg->account; (cfg->rad_usr[0]) && (account) && (!ok); account = account->next) {
+		if ((ok = (!strcmp(cfg->rad_usr, account->usr)))) {
+			if (cs_auth_client(account, NULL)) {
 				cs_exit(0);
-	if (!ok)
+			}
+		}
+	}
+	if (!ok) {
 		cs_auth_client((struct s_auth *) (-1), NULL);
+	}
 }
 
 static int get_request(uchar * buf)

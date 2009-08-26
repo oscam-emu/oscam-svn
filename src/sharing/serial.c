@@ -1,8 +1,9 @@
-#include <globals.h>
-#include <sharing/serial.h>
+#include "globals.h"
+#include "sharing/serial.h"
 
-#include <oscam.h>
-#include <simples.h>
+#include "oscam.h"
+#include "simples.h"
+#include "log.h"
 
 #include <termios.h>
 
@@ -617,7 +618,7 @@ static void sharing_serial_disconnect()
 
 static void sharing_serial_auth_client(int proto)
 {
-	int ok;
+	int ok = 0;
 
 	// After reload base account ptrs may be placed in other address,
 	// and we may can't find it in this process. 
@@ -926,12 +927,14 @@ static void sharing_serial_fork(int idx, char *url)
 		client[cs_idx].au = (-1);
 		client[cs_idx].usr[0] = '\0';
 		client[cs_idx].login = time((time_t *) 0);
-		if (pfd = init_sharing_serial_device(sharing_serial_device))
+		if ((pfd = init_sharing_serial_device(sharing_serial_device))) {
 			sharing_serial_server();
-		else
+		} else {
 			sleep(60);	// retry in 1 min. (USB-Device ?)
-		if (pfd)
+		}
+		if (pfd) {
 			close(pfd);
+		}
 	}
 }
 

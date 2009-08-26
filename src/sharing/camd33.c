@@ -1,8 +1,9 @@
-#include <globals.h>
-#include <sharing/camd33.h>
+#include "globals.h"
+#include "sharing/camd33.h"
 
-#include <oscam.h>
-#include <simples.h>
+#include "oscam.h"
+#include "simples.h"
+#include "log.h"
 
 #define REQ_SIZE	4
 static uchar camdbug[256];	// camd send wrong order
@@ -56,13 +57,13 @@ static void camd33_request_emm()
 	}
 }
 
-static int camd33_auth_client(in_addr_t ip)
+static void camd33_auth_client(in_addr_t ip)
 {
 	int i, rc;
 	uchar *usr = NULL, *pwd = NULL;
 	struct s_auth *account;
 
-	if (client[cs_idx].crypted = cfg->c33_crypted) {
+	if ((client[cs_idx].crypted = cfg->c33_crypted)) {
 		struct s_ip *p_ip;
 
 		for (p_ip = cfg->c33_plain; (p_ip) && (client[cs_idx].crypted); p_ip = p_ip->next)

@@ -1,8 +1,12 @@
-#include <globals.h>
-#include <reader/common.h>
+#include "globals.h"
+#include "reader/common.h"
 
-#include <reader/serial.h>
-#include <simples.h>
+#include "reader/serial.h"
+
+#include "CAM/common.h"
+
+#include "simples.h"
+#include "log.h"
 
 static void reader_common_nullcard(struct s_reader *reader)
 {
@@ -74,7 +78,7 @@ void reader_common_card_info(struct s_reader *reader)
 {
 	int rc = -1;
 
-	if (rc = reader_common_check_health(reader)) {
+	if ((rc = reader_common_check_health(reader))) {
 		client[cs_idx].last = time((time_t) 0);
 		cam_common_card_info();
 	}
@@ -124,7 +128,7 @@ int reader_common_ecm2cam(struct s_reader *reader, ECM_REQUEST * er)
 {
 	int rc = -1;
 
-	if (rc = reader_common_check_health(reader)) {
+	if ((rc = reader_common_check_health(reader))) {
 		if ((reader->caid[0] >> 8) == ((er->caid >> 8) & 0xFF)) {
 			client[cs_idx].last_srvid = er->srvid;
 			client[cs_idx].last_caid = er->caid;
@@ -141,7 +145,7 @@ int reader_common_emm2cam(struct s_reader *reader, EMM_PACKET * ep)
 {
 	int rc = -1;
 
-	if (rc = reader_common_check_health(reader)) {
+	if ((rc = reader_common_check_health(reader))) {
 		client[cs_idx].last = time((time_t) 0);
 		rc = cam_common_process_emm(ep);
 	}

@@ -6,9 +6,10 @@ int init_userdb();
 int init_readerdb();
 int init_sidtab();
 int init_srvid();
-int search_boxkey(ushort, ulong, char *);
 void init_cam_common_len4caid();
 int init_irdeto_guess_tab();
+
+int search_boxkey(ushort, ulong, char *);
 
 #  ifdef CS_ANTICASC
 //void start_anticascader();

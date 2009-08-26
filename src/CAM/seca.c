@@ -1,6 +1,9 @@
-#include <globals.h>
-#include <CAM/seca.h>
-#include <CAM/common.h>
+#include "globals.h"
+#include "CAM/seca.h"
+#include "CAM/common.h"
+
+#include "simples.h"
+#include "log.h"
 
 static unsigned short pmap = 0;	// provider-maptable
 unsigned long long serial;
@@ -35,21 +38,25 @@ int set_provider_info(int i)
 	day = (result[23] & 0x1f);
 	t = time(NULL);
 	lt = localtime(&t);
-	if (lt->tm_year + 1900 != year)
-		if (lt->tm_year + 1900 < year)
+	if (lt->tm_year + 1900 != year) {
+		if (lt->tm_year + 1900 < year) {
 			valid = 1;
-		else
+		} else {
 			valid = 0;
-	else if (lt->tm_mon + 1 != month)
-		if (lt->tm_mon + 1 < month)
+		}
+	} else if (lt->tm_mon + 1 != month) {
+		if (lt->tm_mon + 1 < month) {
 			valid = 1;
-		else
+		} else {
 			valid = 0;
-	else if (lt->tm_mday != day)
-		if (lt->tm_mday < day)
+		}
+	} else if (lt->tm_mday != day) {
+		if (lt->tm_mday < day) {
 			valid = 1;
-		else
+		} else {
 			valid = 0;
+		}
+	}
 	memcpy(l_name + 8, result + 2, 16);
 	l_name[sizeof (l_name)] = 0;
 	trim(l_name + 8);

@@ -1,7 +1,9 @@
-#include <globals.h>
-#include <monitor.h>
+#include "globals.h"
+#include "monitor.h"
 
-#include <simples.h>
+#include "simples.h"
+#include "oscam.h"
+#include "log.h"
 
 static int auth = 0;
 
@@ -159,7 +161,7 @@ static int monitor_recv(uchar * buf, int l)
 		}
 	}
 	buf[n] = '\0';
-	if (n = strlen(trim((char *) buf)))
+	if ((n = strlen(trim((char *) buf))))
 		client[cs_idx].last = time((time_t *) 0);
 	return (n);
 }
@@ -394,7 +396,7 @@ static void monitor_process_details_master(char *buf, int pid)
 
 static void monitor_process_details(char *arg)
 {
-	int pid, idx, val;
+	int pid, idx;
 	char sbuf[256];
 
 	if (!arg)

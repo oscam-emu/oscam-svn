@@ -1,8 +1,11 @@
-#include <globals.h>
-#include <sharing/camd35.h>
+#include "globals.h"
+#include "sharing/camd35.h"
 
-#include <oscam.h>
-#include <simples.h>
+#include "oscam.h"
+#include "simples.h"
+#include "log.h"
+
+#include "sharing/newcamd.h"	// UGLY : to be removed !
 
 #define REQ_SIZE	328	// 256 + 20 + 0x34
 static uchar upwd[64] = { 0 };
@@ -53,7 +56,7 @@ static int camd35_auth_client(uchar * ucrc)
 
 static int camd35_recv(uchar * buf, int l)
 {
-	int rc, n, s, rs;
+	int rc, n = 0, s, rs;
 	unsigned char recrc[4];
 
 	for (rc = rs = s = 0; !rc; s++)
@@ -93,7 +96,7 @@ static int camd35_recv(uchar * buf, int l)
 				cs_ddump(buf, rs, "received %d bytes from %s", rs, remote_txt());
 				if (rs != boundary(4, rs))
 					cs_debug("WARNING: packet size has wrong decryption boundary");
-				n = (buf[0] == 3) ? n = 0x34 : 0;
+				n = (buf[0] == 3) ? 0x34 : 0;
 				n = boundary(4, n + 20 + buf[1]);
 				if (n < rs)
 					cs_debug("ignoring %d bytes of garbage", rs - n);
@@ -372,10 +375,11 @@ int camd35_client_init_log()
 		return (1);
 	}
 
-	if (ptrp = getprotobyname("udp"))
+	if ((ptrp = getprotobyname("udp"))) {
 		p_proto = ptrp->p_proto;
-	else
+	} else {
 		p_proto = 17;	// use defaults on error
+	}
 
 	memset((char *) &loc_sa, 0, sizeof (loc_sa));
 	loc_sa.sin_family = AF_INET;
@@ -457,7 +461,7 @@ static int camd35_recv_log(ushort * caid, ulong * provid, ushort * srvid)
 {
 	int i;
 	uchar buf[512], *ptr, *ptr2;
-	ushort idx;
+	ushort idx = 0;
 
 	if (!logfd)
 		return (-1);

@@ -1,17 +1,23 @@
 #define CS_CORE
 
-#include <globals.h>
-#include <oscam.h>
+#include "globals.h"
+#include "oscam.h"
 
-#include <simples.h>
-#include <ac.h>
-#include <monitor.h>
+#include "ac.h"
+#include "card.h"
+#include "chk.h"
+#include "config.h"
+#include "log.h"
+#include "monitor.h"
+#include "simples.h"
 
-#include <sharing/camd33.h>
-#include <sharing/camd35.h>
-#include <sharing/newcamd.h>
-#include <sharing/radegast.h>
-#include <sharing/serial.h>
+#include "CAM/common.h"
+
+#include "sharing/camd33.h"
+#include "sharing/camd35.h"
+#include "sharing/newcamd.h"
+#include "sharing/radegast.h"
+#include "sharing/serial.h"
 
 /*****************************************************************************
         Globals
@@ -465,9 +471,9 @@ static void cs_child_chk(int i)
 				} else {
 #ifdef CS_ANTICASC
 					char usr[32];
-					ushort ac_idx;
-					ushort ac_limit;
-					uchar ac_penalty;
+					ushort ac_idx = 0;
+					ushort ac_limit = 0;
+					uchar ac_penalty = 0;
 
 					if (cfg->ac_enabled) {
 						strncpy(usr, client[i].usr, sizeof (usr) - 1);
@@ -825,22 +831,25 @@ static int start_listener(struct s_module *ph, int port_idx)
 	return (ph->ptab->ports[port_idx].fd);
 }
 
-static void *cs_client_resolve(void *dummy)
+static void cs_client_resolve(void *dummy)
 {
 	while (1) {
 		struct hostent *rht;
 		struct s_auth *account;
 		struct sockaddr_in udp_sa;
 
-		for (account = cfg->account; account; account = account->next)
+		for (account = cfg->account; account; account = account->next) {
 			if (account->dyndns[0]) {
-				if (rht = gethostbyname((const char *) account->dyndns)) {
+				if ((rht = gethostbyname((const char *) account->dyndns))) {
 					memcpy(&udp_sa.sin_addr, rht->h_addr, sizeof (udp_sa.sin_addr));
 					account->dynip = cs_inet_order(udp_sa.sin_addr.s_addr);
-				} else
+				} else {
 					cs_log("can't resolve hostname %s (user: %s)", account->dyndns, account->usr);
+				}
+
 				client[cs_idx].last = time((time_t) 0);
 			}
+		}
 		sleep(cfg->resolvedelay);
 	}
 }
@@ -850,9 +859,9 @@ static void start_client_resolver()
 	int i;
 	pthread_t tid;
 
-	if (i = pthread_create(&tid, (pthread_attr_t *) 0, cs_client_resolve, (void *) 0))
+	if ((i = pthread_create(&tid, (pthread_attr_t *) 0, (void *) cs_client_resolve, (void *) 0))) {
 		cs_log("ERROR: can't create resolver-thread (err=%d)", i);
-	else {
+	} else {
 		cs_log("resolver thread started");
 		pthread_detach(tid);
 	}
@@ -862,18 +871,20 @@ void cs_resolve()
 {
 	int i, idx;
 	struct hostent *rht;
-	struct s_auth *account;
 
-	for (i = 0; i < CS_MAXREADER; i++)
+	for (i = 0; i < CS_MAXREADER; i++) {
 		if ((idx = reader[i].cs_idx) && (reader[i].type & R_IS_NETWORK)) {
 			client[cs_idx].last = time((time_t) 0);
-			if (rht = gethostbyname(reader[i].device)) {
+			if ((rht = gethostbyname(reader[i].device))) {
 				memcpy(&client[idx].udp_sa.sin_addr, rht->h_addr, sizeof (client[idx].udp_sa.sin_addr));
 				client[idx].ip = cs_inet_order(client[idx].udp_sa.sin_addr.s_addr);
-			} else
+			} else {
 				cs_log("can't resolve %s", reader[i].device);
+			}
+
 			client[cs_idx].last = time((time_t) 0);
 		}
+	}
 }
 
 #ifdef USE_PTHREAD
@@ -884,7 +895,7 @@ static void cs_logger()
 {
 	*log_fd = client[cs_idx].fd_m2c;
 	while (1) {
-		uchar *ptr;
+		char *ptr;
 
 		//struct timeval tv;
 		fd_set fds;
@@ -1191,13 +1202,13 @@ int write_to_pipe(int fd, int id, uchar * data, int n)
  * read all kind of data from pipe specified by fd
  * special-flag redir: if set AND data is ECM: this will redirected to appr. client
  */
-int read_from_pipe(int fd, uchar ** data, int redir)
+int read_from_pipe(int fd, char **data, int redir)
 {
 	int rc;
 	static int hdr = 0;
-	static uchar buf[1024 + 1 + 3 + sizeof (int)];
+	static char buf[1024 + 1 + 3 + sizeof (int)];
 
-	*data = (uchar *) 0;
+	*data = (char *) 0;
 	rc = PIP_ID_NUL;
 
 	if (!hdr) {
@@ -1247,7 +1258,8 @@ int read_from_pipe(int fd, uchar ** data, int redir)
 			}
 		}
 	}
-	return (rc);
+
+	return rc;
 }
 
 /*
@@ -1363,6 +1375,7 @@ int write_ecm_answer(int fd, ECM_REQUEST * er)
 	return (write_ecm_request(fd, er));
 }
 
+/*
 static int cs_read_timer(int fd, uchar * buf, int l, int msec)
 {
 	struct timeval tv;
@@ -1385,6 +1398,7 @@ static int cs_read_timer(int fd, uchar * buf, int l, int msec)
 
 	return (rc);
 }
+*/
 
 ECM_REQUEST *get_ecmtask()
 {
@@ -1484,7 +1498,7 @@ static void chk_dcw(int fd)
 {
 	ECM_REQUEST *er, *ert;
 
-	if (read_from_pipe(fd, (uchar **) & er, 0) != PIP_ID_ECM)
+	if (read_from_pipe(fd, (char **) (&er), 0) != PIP_ID_ECM)
 		return;
 	//cs_log("dcw check from reader %d for idx %d (rc=%d)", er->reader[0], er->cpti, er->rc);
 	ert = &ecmtask[er->cpti];
@@ -1642,7 +1656,6 @@ void get_cw(ECM_REQUEST * er)
 			ttab = &client[cs_idx].ttab;
 			for (n = 0; (n < CS_MAXTUNTAB); n++)
 				if ((er->caid == ttab->bt_caidfrom[n]) && ((er->srvid == ttab->bt_srvid[n]) || (ttab->bt_srvid[n]) == mask_all)) {
-					int l;
 					char hack_n3[13] = { 0x70, 0x51, 0xc7, 0x00, 0x00, 0x00, 0x01, 0x10, 0x10, 0x00, 0x87, 0x12, 0x07 };
 					char hack_n2[13] = { 0x70, 0x51, 0xc9, 0x00, 0x00, 0x00, 0x01, 0x10, 0x10, 0x00, 0x48, 0x12, 0x07 };
 					er->caid = ttab->bt_caidto[n];
@@ -1897,7 +1910,7 @@ int process_input(uchar * buf, int l, int timeout)
 static void process_master_pipe()
 {
 	int n;
-	uchar *ptr;
+	char *ptr;
 
 	switch (n = read_from_pipe(mfdr, &ptr, 1)) {
 		case PIP_ID_LOG:

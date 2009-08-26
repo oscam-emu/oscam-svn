@@ -1,6 +1,9 @@
-#include <globals.h>
-#include <CAM/irdeto.h>
-#include <CAM/common.h>
+#include "globals.h"
+#include "CAM/irdeto.h"
+#include "CAM/common.h"
+
+#include "simples.h"
+#include "log.h"
 
 #define cam_irdeto_chk_cmd(cmd, l, result, result_size) { \
         if (cam_common_cmd2card(cmd, sizeof(cmd), result, sizeof(result), result_size)) return 0; \
@@ -173,9 +176,9 @@ static int irdeto_do_cmd(uchar * buf, ushort good, uchar *result, ushort result_
 
 int irdeto_card_init(uchar *atr, ushort atr_size)
 {
-	int i, p, camkey = 0, cs_ptyp_orig = cs_ptyp;
+	int i, camkey = 0, cs_ptyp_orig = cs_ptyp;
 	uchar buf[256] = { 0 };
-	uchar sc_GetROM[] = { 0xA0, 0xCA, 0x00, 0x00, 3, 0x10, 0, 0x11 };
+//	uchar sc_GetROM[] = { 0xA0, 0xCA, 0x00, 0x00, 3, 0x10, 0, 0x11 };
 	uchar result[260];
 	ushort result_size;
 
@@ -323,7 +326,7 @@ int irdeto_do_emm(EMM_PACKET * ep)
 		ok = (mode == reader[ridx].hexserial[3] && (!l || !memcmp(&emm[4], reader[ridx].hexserial, l)));
 	else	// Provider addressed
 		for (i = 0; i < reader[ridx].nprov; i++)
-			if (ok = (mode == reader[ridx].prid[i][0] && (!l || !memcmp(&emm[4], &reader[ridx].prid[i][1], l))))
+			if ((ok = (mode == reader[ridx].prid[i][0] && (!l || !memcmp(&emm[4], &reader[ridx].prid[i][1], l)))))
 				break;
 	if (ok) {
 		l++;

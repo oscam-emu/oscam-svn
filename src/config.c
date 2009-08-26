@@ -1,8 +1,10 @@
-#include <globals.h>
-#include <config.h>
+#include "globals.h"
+#include "config.h"
 
-#include <simples.h>
-#include <ac.h>
+#include "simples.h"
+#include "ac.h"
+#include "log.h"
+#include "oscam.h"
 
 #ifdef CS_WITH_BOXKEYS
 #  include "boxkeys.np"
@@ -597,11 +599,11 @@ int search_boxkey(ushort caid, ulong provid, char *key)
 	char c_caid[512];
 
 	sprintf(c_caid, "%s%s", cs_confdir, cs_cert);
-	if (fp = fopen(c_caid, "r")) {
+	if ((fp = fopen(c_caid, "r"))) {
 		for (; (!rc) && fgets(c_caid, sizeof (c_caid), fp);) {
 			char *c_provid, *c_key;
 
-			if (c_provid = strchr(c_caid, '#'))
+			if ((c_provid = strchr(c_caid, '#')))
 				*c_provid = '\0';
 			if (!(c_provid = strchr(c_caid, ':')))
 				continue;
@@ -847,7 +849,7 @@ int init_userdb()
 	return (0);
 }
 
-static ushort *chk_entry4sidtab(char *value, struct s_sidtab *sidtab, int what)
+static void chk_entry4sidtab(char *value, struct s_sidtab *sidtab, int what)
 {
 	int i, b;
 	char *ptr;
@@ -864,7 +866,7 @@ static ushort *chk_entry4sidtab(char *value, struct s_sidtab *sidtab, int what)
 			i++;
 	}
 	if (!i)
-		return (0);
+		return;
 	if (b == sizeof (ushort))
 		slist = malloc(i * sizeof (ushort));
 	else
@@ -909,7 +911,7 @@ static void chk_sidtab(char *token, char *value, struct s_sidtab *sidtab)
 
 int init_sidtab()
 {
-	int tag = 0, nr, nro;
+	int nr, nro;
 	FILE *fp;
 	char *value;
 	struct s_sidtab *ptr;
@@ -935,7 +937,7 @@ int init_sidtab()
 	}
 	nr = 0;
 	while (fgets(token, sizeof (token), fp)) {
-		int i, l;
+		int l;
 		void *ptr;
 
 		if ((l = strlen(trim(token))) < 3)
@@ -1019,7 +1021,6 @@ static void chk_reader(char *token, char *value, struct s_reader *rdr)
 {
 	int i;
 	char *ptr;
-	unsigned long tmp;
 
 	/*
 	 *    case sensitive first

@@ -1,10 +1,14 @@
-#include <globals.h>
-#include <CAM/cryptoworks.h>
-#include <CAM/common.h>
+#include "globals.h"
+#include "CAM/cryptoworks.h"
+#include "CAM/common.h"
+
+#include "simples.h"
+#include "log.h"
+#include "config.h"		// UGLY : to be removed !
 
 #define MAX_LEN 256
 
-static uchar ISK[0x40];
+//static uchar ISK[0x40];
 static uchar cwexp[] = { 1, 0, 1 };
 static BIGNUM exp, ucpk;
 static int ucpk_valid = 0;
@@ -235,12 +239,12 @@ int cryptoworks_card_init(uchar *atr, ushort atr_size)
 			BN_bin2bn(keybuf, 64, ipk);
 			RSA(result + 2, result + 2, 0x40, &exp, ipk, 0);
 			BN_free(ipk);
-			if (ucpk_valid = (result[2] == ((mfid & 0xFF) >> 1))) {
+			if ((ucpk_valid = (result[2] == ((mfid & 0xFF) >> 1)))) {
 				result[2] |= 0x80;
 				BN_bin2bn(result + 2, 0x40, &ucpk);
 				cs_ddump(result + 2, 0x40, "IPK available -> session-key:");
 			} else {
-				if (ucpk_valid = (keybuf[0] == (((mfid & 0xFF) >> 1) | 0x80))) {
+				if ((ucpk_valid = (keybuf[0] == (((mfid & 0xFF) >> 1) | 0x80)))) {
 					BN_bin2bn(keybuf, 0x40, &ucpk);
 					cs_ddump(keybuf, 0x40, "session-key found:");
 				} else
@@ -350,7 +354,6 @@ bool cSmartCardCryptoworks::Decode(const cEcmInfo * ecm, const unsigned char *da
 
 int cryptoworks_do_ecm(ECM_REQUEST * er)
 {
-	int rc = 0;
 	int r = 0;
 	static unsigned char ins4C[] = { 0xA4, 0x4C, 0x00, 0x00, 0x00 };
 	static unsigned char insC0[] = { 0xA4, 0xC0, 0x00, 0x00, 0x1C };

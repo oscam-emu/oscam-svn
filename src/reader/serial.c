@@ -1,5 +1,8 @@
-#include <globals.h>
-#include <reader/serial.h>
+#include "globals.h"
+#include "reader/serial.h"
+
+#include "simples.h"
+#include "log.h"
 
 /* CT-API */
 #include <ctapi.h>

@@ -1,6 +1,8 @@
-#include <globals.h>
-#include <CAM/videoguard.h>
-#include <CAM/common.h>
+#include "globals.h"
+#include "CAM/videoguard.h"
+#include "CAM/common.h"
+
+#include "log.h"
 
 #include <termios.h>
 #ifdef OS_LINUX

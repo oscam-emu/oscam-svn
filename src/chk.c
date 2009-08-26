@@ -1,5 +1,8 @@
-#include <globals.h>
-#include <chk.h>
+#include "globals.h"
+#include "chk.h"
+
+#include "nano.h"
+#include "log.h"
 
 static int chk_srvid_match(ECM_REQUEST * er, SIDTAB * sidtab)
 {
@@ -32,7 +35,6 @@ static int chk_srvid_match(ECM_REQUEST * er, SIDTAB * sidtab)
 int chk_srvid(ECM_REQUEST * er, int idx)
 {
 	int nr, rc = 0;
-	char *ptr;
 	SIDTAB *sidtab;
 
 	if (!client[idx].sidtabok) {
@@ -146,17 +148,21 @@ int chk_ufilters(ECM_REQUEST * er)
 		}
 	}
 
-	if (!(rc = chk_class(er, &client[cs_idx].cltab, "user", client[cs_idx].usr)))
-		if (!er->rcEx)
+	if (!(rc = chk_class(er, &client[cs_idx].cltab, "user", client[cs_idx].usr))) {
+		if (!er->rcEx) {
 			er->rcEx = (E1_USER << 4) | E2_CLASS;
-		else if (!(rc = chk_chid(er, &client[cs_idx].fchid, "user", client[cs_idx].usr)))
-			if (!er->rcEx)
+		} else if (!(rc = chk_chid(er, &client[cs_idx].fchid, "user", client[cs_idx].usr))) {
+			if (!er->rcEx) {
 				er->rcEx = (E1_USER << 4) | E2_CHID;
+			}
+		}
+	}
 
-	if (rc)
+	if (rc) {
 		er->rcEx = 0;
+	}
 
-	return (rc);
+	return rc;
 }
 
 int chk_rsfilter(ECM_REQUEST * er, int disable_server_filt)

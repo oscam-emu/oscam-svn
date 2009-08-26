@@ -1,9 +1,15 @@
-#include <globals.h>
-#include <CAM/conax.h>
-#include <CAM/common.h>
+#include "globals.h"
+#include "CAM/conax.h"
+#include "CAM/common.h"
 
+#include "simples.h"
+#include "log.h"
+
+#define MAX_LEN 256
+
+/*
 static unsigned int Conax_ToDate(char data0, char data1)
-{	/* decimal: yyyymmdd */
+{	// decimal: yyyymmdd
 	int y, m, d;
 	unsigned int l;
 
@@ -13,6 +19,7 @@ static unsigned int Conax_ToDate(char data0, char data1)
 	l = (y * 100 + m) * 100 + d;
 	return l;
 }
+*/
 
 static char *chid_date(uchar *ptr, char *buf, int l)
 {
@@ -34,6 +41,18 @@ static int read_record(uchar *cmd, ushort cmd_size, uchar *result, ushort result
 	if ((result[*result_size - 2] != 0x90) || (result[*result_size - 1]))
 		return -1;
 	return (*result_size - 2);
+}
+
+static int CheckSctLen(const uchar * data, int off)
+{
+	int l = SCT_LEN(data);
+
+	if (l + off > MAX_LEN) {
+		cs_debug("smartcard: section too long %d > %d", l, MAX_LEN - off);
+		l = -1;
+	}
+
+	return l;
 }
 
 int conax_card_init(uchar *atr, ushort atr_size)

@@ -1,5 +1,5 @@
-#include <globals.h>
-#include <simples.h>
+#include "globals.h"
+#include "simples.h"
 
 static AES_KEY aeskey;
 
@@ -206,7 +206,7 @@ char *cs_inet_ntoa(in_addr_t n)
 
 in_addr_t cs_inet_addr(char *txt)
 {
-	in_addr_t n;
+	in_addr_t n = 0;
 
 	if (!inet_byteorder)
 		inet_byteorder = ((inet_addr("1.2.3.4") + 1) == inet_addr("1.2.3.5")) ? 1 : 2;
@@ -218,7 +218,8 @@ in_addr_t cs_inet_addr(char *txt)
 			n = inet_network(txt);
 			break;
 	}
-	return (n);
+
+	return n;
 }
 
 ulong b2i(int n, uchar * b)
@@ -231,6 +232,8 @@ ulong b2i(int n, uchar * b)
 		case 4:
 			return ((b[0] << 24) | (b[1] << 16) | (b[2] << 8) | b[3]);
 	}
+
+	return 0;
 }
 
 ullong b2ll(int n, uchar * b)

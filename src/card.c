@@ -1,6 +1,17 @@
-#include <globals.h>
-#include <card.h>
-#include <oscam.h>
+#include "globals.h"
+#include "card.h"
+
+#include "reader/common.h"
+
+#include "sharing/camd33.h"
+#include "sharing/camd35.h"
+#include "sharing/newcamd.h"
+#include "sharing/radegast.h"
+#include "sharing/serial.h"
+
+#include "oscam.h"
+#include "simples.h"
+#include "log.h"
 
 int ridx = 0, logfd = 0;
 
@@ -404,7 +415,7 @@ static int card_listen(int fd1, int fd2)
 
 static void card_do_pipe()
 {
-	uchar *ptr;
+	char *ptr;
 
 	switch (read_from_pipe(fd_m2c, &ptr, 0)) {
 		case PIP_ID_ECM:

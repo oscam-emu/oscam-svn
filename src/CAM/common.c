@@ -1,7 +1,17 @@
-#include <globals.h>
-#include <CAM/common.h>
+#include "globals.h"
+#include "CAM/common.h"
 
-#include <reader/common.h>
+#include "CAM/conax.h"
+#include "CAM/cryptoworks.h"
+#include "CAM/irdeto.h"
+#include "CAM/seca.h"
+#include "CAM/viaccess.h"
+#include "CAM/videoguard.h"
+
+#include "reader/common.h"
+
+#include "simples.h"
+#include "log.h"
 
 ushort cam_common_len4caid[256];		// table for guessing caid (by len)
 
