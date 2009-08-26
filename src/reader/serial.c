@@ -59,7 +59,7 @@ static ushort reader_serial_get_reader_type(struct s_reader *reader)
 	return reader_type;
 }
 
-static int reader_serial_do_api(uchar dad, uchar *cmd, ushort cmd_size, uchar *result, ushort result_max_size, ushort *result_size, int dbg)
+static int reader_serial_cmd2api(uchar dad, uchar *cmd, ushort cmd_size, uchar *result, ushort result_max_size, ushort *result_size, int dbg)
 {
 	char ret;
 	uchar sad = 2;
@@ -93,12 +93,12 @@ static int reader_serial_do_api(uchar dad, uchar *cmd, ushort cmd_size, uchar *r
 
 int reader_serial_cmd2card(uchar *cmd, ushort cmd_size, uchar *result, ushort result_max_size, ushort *result_size)
 {
-	return reader_serial_do_api(0, cmd, cmd_size, result, result_max_size, result_size, D_DEVICE);
+	return reader_serial_cmd2api(0, cmd, cmd_size, result, result_max_size, result_size, D_DEVICE);
 }
 
 static int reader_serial_cmd2reader(uchar *cmd, ushort cmd_size, uchar *result, ushort result_max_size, ushort *result_size)
 {
-	return reader_serial_do_api(1, cmd, cmd_size, result, result_max_size, result_size, D_DEVICE);
+	return reader_serial_cmd2api(1, cmd, cmd_size, result, result_max_size, result_size, D_DEVICE);
 }
 
 int reader_serial_activate_card(uchar *atr, ushort *atr_size)
