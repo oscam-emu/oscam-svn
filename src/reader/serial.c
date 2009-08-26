@@ -5,9 +5,9 @@
 #include "log.h"
 
 /* CT-API */
-#include <ctapi.h>
-#include <defines.h>
-#include <ctbcs.h>
+#include "ctapi.h"
+#include "ctbcs.h"
+#include "defines.h"
 
 #define CTAPI_CTN 1
 
