@@ -278,8 +278,8 @@ int cam_cryptoworks_card_init(uchar *atr, ushort atr_size)
 	return 1;
 }
 
-#ifdef LALL
-static bool cSmartCardCryptoworks::Decode(const cEcmInfo * ecm, const unsigned char *data, unsigned char *cw)
+/*
+static int cSmartCardCryptoworks_Decode(const cEcmInfo * ecm, const unsigned char *data, unsigned char *cw)
 {
 	static unsigned char ins4c[] = { 0xA4, 0x4C, 0x00, 0x00, 0x00 };
 
@@ -353,7 +353,7 @@ static bool cSmartCardCryptoworks::Decode(const cEcmInfo * ecm, const unsigned c
 	}
 	return false;
 }
-#endif
+*/
 
 int cam_cryptoworks_load_card_info()
 {
@@ -496,16 +496,14 @@ int cam_cryptoworks_process_ecm(ECM_REQUEST * er)
 				i += n + 2;
 			}
 		}
-#ifdef LALL
-#  #######################################################################
+
 		if ((result[result_size - 2] == 0x9f) && (result[result_size - 1] == 0x1c)) {
 			cam_common_cmd2card(insC0, sizeof(insC0), result, sizeof(result), &result_size);
 			if ((result_size > 26) && (result[result_size - 2] == 0x90) && (result[result_size - 1] == 0)) {
-				if (rc = (((result[20] & 0x50) == 0x50) && (!(result[21] & 0x01)) && (result[23] & 0x80)))
+				if ((r = (((result[20] & 0x50) == 0x50) && (!(result[21] & 0x01)) && (result[23] & 0x80))))
 					memcpy(er->cw, result + 2, 16);
 			}
 		}
-#endif
 	}
 
 	return (r == 3);

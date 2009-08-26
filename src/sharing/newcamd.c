@@ -1094,11 +1094,9 @@ static int newcamd_client_init()
 	client[cs_idx].ip = 0;
 	memset((char *) &loc_sa, 0, sizeof (loc_sa));
 	loc_sa.sin_family = AF_INET;
-#ifdef LALL
 	if (cfg->serverip[0])
-		loc_sa.sin_addr.s_addr = inet_addr(cfg->serverip);
+		loc_sa.sin_addr.s_addr = cs_inet_addr(cfg->serverip);
 	else
-#endif
 		loc_sa.sin_addr.s_addr = INADDR_ANY;
 	loc_sa.sin_port = htons(reader[ridx].l_port);
 

@@ -434,6 +434,7 @@ struct s_config {
 	struct s_srvid *srvid;
 	struct s_sidtab *sidtab;
 	int mon_port;
+	char serverip[4];		// TODO: use this from config, generalize for network protocols
 	in_addr_t mon_srvip;
 	struct s_ip *mon_allowed;
 	int mon_aulow;
