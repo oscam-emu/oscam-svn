@@ -13,6 +13,8 @@
 
 #include "CAM/common.h"
 
+#include "reader/common.h"
+
 #include "sharing/camd33.h"
 #include "sharing/camd35.h"
 #include "sharing/newcamd.h"
