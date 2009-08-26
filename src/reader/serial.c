@@ -179,8 +179,8 @@ int reader_serial_get_atr(uchar *atr, ushort *atr_size)
 	ushort result_size;
 
 	/* Try to get ATR from card */
-	for (i = 0; i < 5; i++) {
-		reader_serial_irdeto_mode = i % 2;
+	for (i = 0; i < 3; i++) {
+		reader_serial_irdeto_mode = (i % 2);
 
 		/* Request ICC */
 		cmd[0] = CTBCS_CLA;
