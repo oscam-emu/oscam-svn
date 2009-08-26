@@ -35,7 +35,7 @@ static void reader_common_clear_memory(struct s_reader *reader)
 
 static int reader_common_activate_card(struct s_reader *reader, uchar *atr, ushort *atr_size)
 {
-	if (reader->type & R_IS_SERIAL) {
+	if ((reader->type & R_IS_SERIAL) != 0) {
 		if (!reader_serial_reset()) {
 			return 0;
 		}
@@ -80,7 +80,7 @@ static int reader_common_card_is_inserted(struct s_reader *reader)
 
 int reader_common_init(struct s_reader *reader)
 {
-	if (reader->type & R_IS_SERIAL)
+	if ((reader->type & R_IS_SERIAL) != 0)
 		return reader_serial_init(reader);
 
 	return 0;
@@ -129,7 +129,7 @@ void reader_common_check_health(struct s_reader *reader)
 		}
 	} else {
 		/* Check if card was just ejected */
-		if (reader->card_status & CARD_INSERTED) {
+		if ((reader->card_status & CARD_INSERTED) != 0) {
 			cs_log("Reader : Card ejected from %s", reader->label);
 
 			/* Clear all infos from card */
@@ -168,7 +168,7 @@ int reader_common_process_emm(struct s_reader *reader, EMM_PACKET * ep)
 
 int reader_common_cmd2card(struct s_reader *reader, uchar *cmd, ushort cmd_size, uchar *result, ushort result_max_size, ushort *result_size)
 {
-	if (reader->type & R_IS_SERIAL)
+	if ((reader->type & R_IS_SERIAL) != 0)
 		return (reader_serial_cmd2card(cmd, cmd_size, result, result_max_size, result_size) == 0);
 
 	return 0;
