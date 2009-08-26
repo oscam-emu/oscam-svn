@@ -91,6 +91,14 @@ static int get_prov_index(char *provid)	//returns provider id or -1 if not found
 
 int cam_seca_card_init(uchar *atr, ushort atr_size)
 {
+	if ((atr[10] != 0x0e) || (atr[11] != 0x6c) || (atr[12] != 0xb6) || (atr[13] != 0xd6))
+		return 0;
+
+	return 1;
+}
+
+int cam_seca_load_card_info()
+{
 	uchar buf[256];
 	static uchar ins0e[] = { 0xc1, 0x0e, 0x00, 0x00, 0x08 };	// get serial number (UA)
 	static uchar ins16[] = { 0xc1, 0x16, 0x00, 0x00, 0x07 };	// get nr. of prividers
@@ -104,9 +112,8 @@ int cam_seca_card_init(uchar *atr, ushort atr_size)
 	ushort result_size;
 
 	buf[0] = 0x00;
-	if ((atr[10] != 0x0e) || (atr[11] != 0x6c) || (atr[12] != 0xb6) || (atr[13] != 0xd6))
-		return 0;
-	switch (atr[7] << 8 | atr[8]) {
+
+	switch (reader[ridx].card_atr[7] << 8 | reader[ridx].card_atr[8]) {
 		case 0x5084:
 			card = "Generic";
 			break;
@@ -138,7 +145,7 @@ int cam_seca_card_init(uchar *atr, ushort atr_size)
 	reader[ridx].hexserial[1] = 0;
 	memcpy(reader[ridx].hexserial + 2, result + 2, 6);
 	serial = b2ll(5, result + 3);
-	cs_log("caid: %04X, serial: %llu, card: %s v%d.%d", reader[ridx].caid[0], serial, card, atr[9] & 0x0F, atr[9] >> 4);
+	cs_log("caid: %04X, serial: %llu, card: %s v%d.%d", reader[ridx].caid[0], serial, card, reader[ridx].card_atr[9] & 0x0F, reader[ridx].card_atr[9] >> 4);
 	cam_common_cmd2card(ins16, sizeof(ins0e), result, sizeof(result), &result_size);	// read nr of providers
 	pmap = result[2] << 8 | result[3];
 	for (reader[ridx].nprov = 0, i = pmap; i; i >>= 1)
@@ -165,11 +172,6 @@ int cam_seca_card_init(uchar *atr, ushort atr_size)
 		cs_log("parental locked");
 	}
 
-	return 1;
-}
-
-int cam_seca_load_card_info()
-{
 	return 1;
 }
 
