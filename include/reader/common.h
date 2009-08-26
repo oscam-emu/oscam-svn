@@ -7,7 +7,7 @@
 
 int reader_common_init(struct s_reader *);
 void reader_common_card_info(struct s_reader *reader);
-int reader_common_check_health(struct s_reader *reader);
+void reader_common_check_health(struct s_reader *reader);
 
 int reader_common_ecm2cam(struct s_reader *reader, ECM_REQUEST *);
 int reader_common_emm2cam(struct s_reader *reader, EMM_PACKET *);

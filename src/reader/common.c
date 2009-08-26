@@ -13,15 +13,24 @@
 
 extern int io_serial_need_dummy_char;
 
-static void reader_common_nullcard(struct s_reader *reader)
+static void reader_common_clear_memory(struct s_reader *reader)
 {
+	reader->online = 0;
+	reader->card_status = 0;
 	reader->card_system = 0;
+
 	memset(reader->hexserial, 0, sizeof (reader->hexserial));
 	memset(reader->prid, 0xFF, sizeof (reader->prid));
 	memset(reader->caid, 0, sizeof (reader->caid));
 	memset(reader->availkeys, 0, sizeof (reader->availkeys));
 	reader->acs = 0;
 	reader->nprov = 0;
+
+	client[cs_idx].lastemm = 0;
+	client[cs_idx].lastecm = 0;
+	client[cs_idx].au = -1;
+
+	io_serial_need_dummy_char = 0;
 }
 
 static int reader_common_activate_card(struct s_reader *reader, uchar *atr, ushort *atr_size)
@@ -44,7 +53,7 @@ static int reader_common_activate_card(struct s_reader *reader, uchar *atr, usho
 
 static int reader_common_reset(struct s_reader *reader)
 {
-	reader_common_nullcard(reader);
+	reader_common_clear_memory(reader);
 
 	uchar atr[33];		// Max 33 bytes according to ISO/IEC 7816-3
 	ushort atr_size = 0;
@@ -79,26 +88,33 @@ int reader_common_init(struct s_reader *reader)
 
 void reader_common_card_info(struct s_reader *reader)
 {
-	if (reader_common_check_health(reader)) {
+	reader_common_check_health(reader);
+
+	if (reader->card_status == CARD_INSERTED) {
 		client[cs_idx].last = time((time_t) 0);
 		cam_common_card_info();
 	}
 }
 
-int reader_common_check_health(struct s_reader *reader)
+void reader_common_check_health(struct s_reader *reader)
 {
+	/* Check if there is a card inserted in the reader */
 	if (reader_common_card_is_inserted(reader)) {
-		if (!(reader->card_status & CARD_INSERTED)) {
-			cs_log("card detected");
-			reader->card_status = CARD_NEED_INIT;
-			reader->card_status = CARD_INSERTED | (reader_common_reset(reader) ? 0 : CARD_FAILURE);
-			if (reader->card_status & CARD_FAILURE) {
-				cs_log("card initializing error");
+		/* Check if card was just inserted */
+		if ((reader->card_status & CARD_INSERTED) == 0) {
+			reader->card_status = CARD_INSERTED;
+			cs_log("card detected in %s", reader->label);
+
+			/* Try to initialize the card */
+			if (!reader_common_reset(reader)) {
+				reader->card_status |= CARD_FAILURE;
+				cs_log("card initializing error for %s", reader->label);
 			} else {
 				client[cs_idx].au = ridx;
 				reader_common_card_info(reader);
 			}
 
+			/* ? */
 			int i;
 			for (i = 1; i < CS_MAXPID; i++) {
 				if (client[i].pid && client[i].typ == 'c' && client[i].usr[0]) {
@@ -107,35 +123,29 @@ int reader_common_check_health(struct s_reader *reader)
 			}
 		}
 	} else {
+		/* Check if card was just ejected */
 		if (reader->card_status & CARD_INSERTED) {
-			reader_common_nullcard(reader);
-			client[cs_idx].lastemm = 0;
-			client[cs_idx].lastecm = 0;
-			client[cs_idx].au = -1;
+			cs_log("card ejected from %s", reader->label);
 
-			io_serial_need_dummy_char = 0;
-
-			cs_log("card ejected");
+			/* Clear all infos from card */
+			reader_common_clear_memory(reader);
 		}
-		reader->card_status = 0;
-		reader->online = 0;
 	}
-
-	return (reader->card_status == CARD_INSERTED);
 }
 
 int reader_common_ecm2cam(struct s_reader *reader, ECM_REQUEST * er)
 {
 	int rc = -1;
 
-	if ((rc = reader_common_check_health(reader))) {
-		if ((reader->caid[0] >> 8) == ((er->caid >> 8) & 0xFF)) {
+	if (reader->online) {
+		if ((reader->caid[0] >> 8) == ((er->caid >> 8) & 0xFF)) {		// TODO: move this somewhere else
 			client[cs_idx].last_srvid = er->srvid;
 			client[cs_idx].last_caid = er->caid;
 			client[cs_idx].last = time((time_t) 0);
 			rc = cam_common_process_ecm(er);
-		} else
+		} else {
 			rc = 0;
+		}
 	}
 
 	return rc;
@@ -145,7 +155,7 @@ int reader_common_emm2cam(struct s_reader *reader, EMM_PACKET * ep)
 {
 	int rc = -1;
 
-	if ((rc = reader_common_check_health(reader))) {
+	if (reader->online) {
 		client[cs_idx].last = time((time_t) 0);
 		rc = cam_common_process_emm(ep);
 	}
