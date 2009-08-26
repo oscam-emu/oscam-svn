@@ -1077,7 +1077,7 @@ static bool IO_Serial_InitPnP(IO_Serial * io)
 	props.bits = 7;
 	props.stopbits = 1;
 	props.dtr = IO_SERIAL_HIGH;
-//      props.rts = IO_SERIAL_HIGH;
+//	props.rts = IO_SERIAL_HIGH;
 	props.rts = IO_SERIAL_LOW;
 
 	if (!IO_Serial_SetProperties(io, &props))
