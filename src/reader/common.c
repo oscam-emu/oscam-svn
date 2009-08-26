@@ -21,8 +21,10 @@ static void reader_common_nullcard(struct s_reader *reader)
 
 static int reader_common_activate_card(struct s_reader *reader, uchar *atr, ushort *atr_size)
 {
-	// TODO: detect if this is a serial reader
-	return reader_serial_activate_card(atr, atr_size);
+	if (reader->type & R_IS_SERIAL)
+		return reader_serial_activate_card(atr, atr_size);
+
+	return 0;
 }
 
 static int reader_common_reset(struct s_reader *reader)
