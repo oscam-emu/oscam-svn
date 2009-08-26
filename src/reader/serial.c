@@ -101,6 +101,32 @@ static int reader_serial_cmd2reader(uchar *cmd, ushort cmd_size, uchar *result, 
 	return reader_serial_cmd2api(1, cmd, cmd_size, result, result_max_size, result_size, D_DEVICE);
 }
 
+int reader_serial_init(struct s_reader *reader)
+{
+	char ret;
+
+	// Set some extern variables to be used by CT-API
+	snprintf(reader_serial_device, sizeof (reader_serial_device), "%s", reader->device);
+	reader_serial_card_detect = reader->detect;
+	reader_serial_mhz = reader->mhz;
+
+	// Save and Change cs_ptyp
+	int cs_ptyp_orig = cs_ptyp;
+	cs_ptyp = D_DEVICE;
+
+	// Lookup Port Number
+	ushort reader_type = reader_serial_get_reader_type(reader);
+	if ((ret = CT_init(CTAPI_CTN, PORT_COM1, reader_type)) != OK) {
+		cs_log("Cannot open device: %s", reader->device);
+	}
+	cs_debug("CT_init on %s: %d", reader->device, ret);
+
+	// Restore cs_ptyp
+	cs_ptyp = cs_ptyp_orig;
+
+	return ret == OK;
+}
+
 int reader_serial_reset()
 {
 	char ret;
@@ -120,6 +146,27 @@ int reader_serial_reset()
 	}
 
 	return 1;
+}
+
+int reader_serial_card_is_inserted()
+{
+	uchar cmd[5];
+	uchar result[260];
+	ushort result_size;
+
+	/* Get Status of CardTerminal */
+	cmd[0] = CTBCS_CLA;
+	cmd[1] = CTBCS_INS_STATUS;
+	cmd[2] = CTBCS_P1_CT_KERNEL;
+	cmd[3] = CTBCS_P2_STATUS_ICC;
+	cmd[4] = 0x00;
+
+	char ret = reader_serial_cmd2reader(cmd, 5, result, sizeof(result), &result_size);
+	if (ret != OK) {
+		cs_log("Error getting status of terminal: %d", ret);
+	}
+
+	return (ret == OK && result[0] == CTBCS_DATA_STATUS_CARD_CONNECT);
 }
 
 int reader_serial_get_atr(uchar *atr, ushort *atr_size)
@@ -161,51 +208,4 @@ int reader_serial_get_atr(uchar *atr, ushort *atr_size)
 	cs_ri_log("ATR: %s", cs_hexdump(1, atr, *atr_size));
 
 	return 1;
-}
-
-int reader_serial_card_is_inserted()
-{
-	uchar cmd[5];
-	uchar result[260];
-	ushort result_size;
-
-	/* Get Status of CardTerminal */
-	cmd[0] = CTBCS_CLA;
-	cmd[1] = CTBCS_INS_STATUS;
-	cmd[2] = CTBCS_P1_CT_KERNEL;
-	cmd[3] = CTBCS_P2_STATUS_ICC;
-	cmd[4] = 0x00;
-
-	char ret = reader_serial_cmd2reader(cmd, 5, result, sizeof(result), &result_size);
-	if (ret != OK) {
-		cs_log("Error getting status of terminal: %d", ret);
-	}
-
-	return (ret == OK && result[0] == CTBCS_DATA_STATUS_CARD_CONNECT);
-}
-
-int reader_serial_init(struct s_reader *reader)
-{
-	char ret;
-
-	// Set some extern variables to be used by CT-API
-	snprintf(reader_serial_device, sizeof (reader_serial_device), "%s", reader->device);
-	reader_serial_card_detect = reader->detect;
-	reader_serial_mhz = reader->mhz;
-
-	// Save and Change cs_ptyp
-	int cs_ptyp_orig = cs_ptyp;
-	cs_ptyp = D_DEVICE;
-
-	// Lookup Port Number
-	ushort reader_type = reader_serial_get_reader_type(reader);
-	if ((ret = CT_init(CTAPI_CTN, PORT_COM1, reader_type)) != OK) {
-		cs_log("Cannot open device: %s", reader->device);
-	}
-	cs_debug("CT_init on %s: %d", reader->device, ret);
-
-	// Restore cs_ptyp
-	cs_ptyp = cs_ptyp_orig;
-
-	return ret == OK;
 }
