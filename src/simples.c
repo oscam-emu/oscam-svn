@@ -169,21 +169,24 @@ char *key_btoa(char *asc, uchar * bin)
 		asc = buf;
 	for (i = 0; i < 16; i++)
 		sprintf(asc + (i << 1), "%02X", bin[i]);
-	return (asc);
+
+	return asc;
 }
 
 char *cs_hexdump(int m, uchar * buf, int n)
 {
-	int i;
+	int i = 0;
 	static char dump[520];
 
-	dump[i = 0] = '\0';
+	dump[i] = '\0';
 	m = (m) ? 3 : 2;
 	if (m * n >= sizeof (dump))
 		n = (sizeof (dump) / m) - 1;
 	while (i < n)
 		sprintf(dump + (m * i++), "%02X%s", *buf++, (m > 2) ? " " : "");
-	return (dump);
+	if (m == 3) dump[(3 * i) - 1] = '\0';
+
+	return dump;
 }
 
 static int inet_byteorder = 0;
@@ -198,7 +201,8 @@ in_addr_t cs_inet_order(in_addr_t n)
 			n = ((n & 0xff000000) >> 24) | ((n & 0x00ff0000) >> 8) | ((n & 0x0000ff00) << 8) | ((n & 0x000000ff) << 24);
 			break;
 	}
-	return (n);
+
+	return n;
 }
 
 char *cs_inet_ntoa(in_addr_t n)
