@@ -313,17 +313,22 @@ struct s_client {
 };
 
 struct s_reader {
+	char label[32];
+	char device[128];
+	int type;
+
+	int card_system;
+	int detect;
+	int mhz;
+	int custom_speed;
+
+	int online;
+	int card_status;
+
 	int cs_idx;
 	int fd;
 	ulong grp;
 	int fallback;
-	int type;
-	int card_system;
-	char label[32];
-	char device[128];
-	int detect;
-	int mhz;
-	int custom_speed;
 	int r_port;
 	char r_usr[64];
 	char r_pwd[64];
@@ -347,8 +352,6 @@ struct s_reader {
 	int logemm;
 	int cachemm;
 	int rewritemm;
-	int online;
-	int card_status;
 	struct s_module ph;
 	uchar ncd_key[16];
 	uchar ncd_skey[16];
