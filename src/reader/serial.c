@@ -164,11 +164,12 @@ int reader_serial_card_is_inserted()
 	cmd[4] = 0x00;
 
 	ret = reader_serial_cmd2reader(cmd, 5, result, sizeof(result), &result_size);
-	if (ret != OK) {
+	if (!(ret == OK && result_size == 3 && result[1] == CTBCS_SW1_OK && result[2] == CTBCS_SW2_OK)) {
 		cs_log("Error getting status of terminal (%d, %s) !", ret, cs_hexdump(1, result, result_size));
+		return 0;
 	}
 
-	return (ret == OK && result[0] == CTBCS_DATA_STATUS_CARD_CONNECT);
+	return (result[0] == CTBCS_DATA_STATUS_CARD_CONNECT);
 }
 
 int reader_serial_get_atr(uchar *atr, ushort *atr_size)
@@ -191,7 +192,7 @@ int reader_serial_get_atr(uchar *atr, ushort *atr_size)
 		cmd[4] = 0x00;
 
 		ret = reader_serial_cmd2reader(cmd, 5, result, sizeof(result), &result_size);
-		if (ret == OK && result_size > 2) {
+		if (ret == OK && result_size > 2 && result[result_size - 2] == CTBCS_SW1_REQUEST_ASYNC_OK && result[result_size -1] == CTBCS_SW2_REQUEST_ASYNC_OK) {
 			/* Store Answer to Reset */
 			*atr_size = result_size - 2;
 			memcpy(atr, result, *atr_size);
