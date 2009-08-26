@@ -30,8 +30,6 @@ int cam_common_detect_card_system(uchar *atr, ushort atr_size)
 {
 	cam_common_card_system card_system = CAM_UNKNOWN;
 
-	cs_log("CAM: Detecting card system ...");
-
 	/* Test each CAM to detect the card_system */
 	if (cam_conax_card_init(atr, atr_size)) {
 		card_system = CAM_CONAX;
