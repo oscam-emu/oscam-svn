@@ -46,9 +46,7 @@ static int reader_common_reset(struct s_reader *reader)
 	if (!reader_common_activate_card(reader, atr, &atr_size))
 		return 0;
 
-	int rc = cam_common_detect_card_system(atr, atr_size);
-
-	return rc;
+	return cam_common_detect_card_system(atr, atr_size);
 }
 
 static int reader_common_card_is_inserted(struct s_reader *reader)
@@ -121,7 +119,7 @@ int reader_common_check_health(struct s_reader *reader)
 		reader->online = 0;
 	}
 
-	return reader->card_status == CARD_INSERTED;
+	return (reader->card_status == CARD_INSERTED);
 }
 
 int reader_common_ecm2cam(struct s_reader *reader, ECM_REQUEST * er)
