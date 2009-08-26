@@ -18,6 +18,8 @@ static void reader_common_clear_memory(struct s_reader *reader)
 	reader->online = 0;
 	reader->card_status = 0;
 	reader->card_system = 0;
+	memset(reader->card_atr, 0, sizeof (reader->card_atr));
+	reader->card_atr_size = 0;
 
 	memset(reader->hexserial, 0, sizeof (reader->hexserial));
 	memset(reader->prid, 0xFF, sizeof (reader->prid));
@@ -51,28 +53,31 @@ static int reader_common_card_is_inserted(struct s_reader *reader)
 	return 0;
 }
 
-static int reader_common_init_card(struct s_reader *reader)
+static int reader_common_get_atr(struct s_reader *reader)
 {
-	uchar atr[33];		// Max 33 bytes according to ISO/IEC 7816-3
-	ushort atr_size = 0;
-
 	if ((reader->type & R_IS_SERIAL) != 0) {
-		if (!reader_serial_reset()) {
-			return 0;
-		}
-
-		if (!reader_serial_get_atr(atr, &atr_size)) {
-			return 0;
-		}
-
-		if (cam_common_detect_card_system(atr, atr_size)) {
-			reader_common_load_card_info(reader);
-
-			return 1;
-		}
+		return reader_serial_get_atr(reader->card_atr, &reader->card_atr_size));
 	}
 
 	return 0;
+}
+
+static int reader_common_init_card(struct s_reader *reader)
+{
+	/* Get Answer to Reset from card */
+	if (!reader_common_get_atr(reader)) {
+		return 0;
+	}
+
+	/* Detect the card system */
+	if (!cam_common_detect_card_system(atr, atr_size)) {
+		return 0;
+	}
+
+	/* Load information from card */
+	reader_common_load_card_info(reader);
+
+	return 1;
 }
 
 int reader_common_init(struct s_reader *reader)
@@ -94,7 +99,7 @@ void reader_common_load_card_info(struct s_reader *reader)
 
 		client[cs_idx].last = time((time_t) 0);
 
-		/* Load card information */
+		/* Ask the CAM to load the card information */
 		if (cam_common_load_card_info()) {
 			/* Mark the reader as online */
 			reader[ridx].online = 1;
@@ -149,6 +154,7 @@ int reader_common_process_ecm(struct s_reader *reader, ECM_REQUEST * er)
 			client[cs_idx].last_srvid = er->srvid;
 			client[cs_idx].last_caid = er->caid;
 			client[cs_idx].last = time((time_t) 0);
+
 			rc = cam_common_process_ecm(er);
 		}
 	}
@@ -162,6 +168,7 @@ int reader_common_process_emm(struct s_reader *reader, EMM_PACKET * ep)
 
 	if (reader->online) {
 		client[cs_idx].last = time((time_t) 0);
+
 		rc = cam_common_process_emm(ep);
 	}
 

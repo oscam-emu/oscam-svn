@@ -314,6 +314,9 @@ struct s_reader {
 	int type;
 
 	int card_system;
+	uchar card_atr[33];	// Max 33 bytes according to ISO/IEC 7816-3
+	ushort card_atr_size;
+
 	int detect;
 	int mhz;
 	int custom_speed;
