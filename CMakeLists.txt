@@ -70,6 +70,9 @@ link_directories (${OPTIONAL_LINK_DIR})
 
 #----------------------- global options ------------------------------
 
+# we want to have detection of all the errors
+add_definitions ("-Wall -Werror")
+
 if (OSCamOperatingSystem MATCHES "Linux")
     add_definitions ("-DOS_LINUX")
     set (DEFAULT_CS_CONFDIR "/usr/local/etc")
