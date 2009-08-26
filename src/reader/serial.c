@@ -21,7 +21,7 @@ static ushort reader_serial_get_reader_type(struct s_reader *reader)
 #endif
 
 	switch (reader->type) {
-		case R_MOUSE:
+		case R_MOUSE :
 			reader_type = RTYP_STD;
 #ifdef TUXBOX
 			if (!stat(reader->device, &sb)) {
@@ -32,10 +32,10 @@ static ushort reader_serial_get_reader_type(struct s_reader *reader)
 
 					if (cs_hw == CS_HW_DBOX2 && (dev_major == 4 || dev_major == 5)) {
 						switch (dev_minor & 0x3F) {
-							case 0:
+							case 0 :
 								reader_type = RTYP_DB2COM1;
 								break;
-							case 1:
+							case 1 :
 								reader_type = RTYP_DB2COM2;
 								break;
 						}
@@ -47,11 +47,11 @@ static ushort reader_serial_get_reader_type(struct s_reader *reader)
 #endif
 			break;
 
-		case R_SMART:
+		case R_SMART :
 			reader_type = RTYP_SMART;
 			break;
 
-		case R_INTERN:
+		case R_INTERN :
 			reader_type = RTYP_SCI;
 			break;
 	}

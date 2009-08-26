@@ -1127,8 +1127,10 @@ static void chk_reader(char *token, char *value, struct s_reader *rdr)
 			rdr->type = R_INTERN;
 		if (!strcmp(value, "intern"))
 			rdr->type = R_INTERN;
+
 		if (!strcmp(value, "serial"))
 			rdr->type = R_SERIAL;
+
 		if (!strcmp(value, "camd35"))
 			rdr->type = R_CAMD35;
 		if (!strcmp(value, "cs378x"))
