@@ -190,11 +190,10 @@ int reader_serial_get_atr(uchar *atr, ushort *atr_size)
 		cmd[4] = 0x00;
 
 		ret = reader_serial_cmd2reader(cmd, 5, result, sizeof(result), &result_size);
-		if (ret == OK && result_size > 0) {
+		if (ret == OK && result_size > 2) {
 			/* Store Answer to Reset */
 			*atr_size = result_size - 2;
 			memcpy(atr, result, *atr_size);
-			cs_log("ATR: %s", cs_hexdump(1, atr, *atr_size));
 
 			/* All is ok */
 			return 1;

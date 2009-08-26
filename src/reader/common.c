@@ -55,8 +55,14 @@ static int reader_common_card_is_inserted(struct s_reader *reader)
 
 static int reader_common_get_atr(struct s_reader *reader)
 {
+	int rc = 0;
+
 	if ((reader->type & R_IS_SERIAL) != 0) {
-		return reader_serial_get_atr(reader->card_atr, &reader->card_atr_size);
+		rc = reader_serial_get_atr(reader->card_atr, &reader->card_atr_size);
+	}
+
+	if (rc) {
+		cs_log("Reader : ATR = %s", cs_hexdump(1, reader->card_atr, reader->card_atr_size));
 	}
 
 	return 0;
