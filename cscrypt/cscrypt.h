@@ -1,15 +1,16 @@
-#ifdef HAVE_AES
-#  include <openssl/aes.h>
-#else
-#  include "aes/aes.h"
-#endif
+#ifndef __CSCRYPT_H__
+#  define __CSCRYPT_H__
 
-#include "crc32.h"
-#include "des.h"
-#include "bn.h"
+#  ifdef HAVE_AES
+#    include <openssl/aes.h>
+#  else
+#    include "aes/aes.h"
+#  endif
 
-#ifndef HEADER_CSCRYPT_H
-#  define HEADER_CSCRYPT_H
+#  include "bn.h"
+#  include "crc32.h"
+#  include "des.h"
+#  include "md5.h"
 
 #  ifdef  __cplusplus
 extern "C" {
@@ -27,12 +28,8 @@ extern "C" {
 #    define u_int32_t unsigned long
 #  endif
 
-#  define MD5_DIGEST_LENGTH 16
-	char *__md5_crypt(const char *, const char *);
-	unsigned char *MD5(const unsigned char *, unsigned long, unsigned char *);
-	unsigned long crc32(unsigned long, const unsigned char *, unsigned int);
-
 #  ifdef  __cplusplus
 }
 #  endif
-#endif
+
+#endif // __CSCRYPT_H__

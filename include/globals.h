@@ -29,7 +29,7 @@
 
 #  include <pthread.h>
 
-#  include <cscrypt.h>
+#  include "cscrypt.h"
 
 #  include "os-types.h"
 

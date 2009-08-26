@@ -78,8 +78,8 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdio.h>
-//#include <crypt.h>
-#include "cscrypt.h"
+
+#include "md5.h"
 
 /* MD5 context. */
 struct MD5Context {
