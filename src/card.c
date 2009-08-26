@@ -292,7 +292,7 @@ static void card_get_ecm(ECM_REQUEST * er)
 		casc_process_ecm(er);
 		return;
 	}
-	er->rc = reader_common_ecm2cam(er);
+	er->rc = reader_common_ecm2cam(&reader[ridx], er);
 	write_ecm_answer(fd_c2m, er);
 	//if(reader[ridx].type == 'r') reader[ridx].qlen--;
 }
@@ -327,7 +327,7 @@ static int card_do_emm(EMM_PACKET * ep)
 		}
 
 	if ((rc = ecs) < 2) {
-		rc = (proxy) ? 0 : reader_common_emm2cam(ep);
+		rc = (proxy) ? 0 : reader_common_emm2cam(&reader[ridx], ep);
 		if (!ecs) {
 			i = card_store_emm(ep->emm, ep->type);
 			no = 1;
@@ -428,7 +428,7 @@ static int card_listen(int fd1, int fd2)
 	}
 
 	if (!proxy)
-		reader_common_check_health();
+		reader_common_check_health(&reader[ridx]);
 
 	return 0;
 }
@@ -448,7 +448,7 @@ static void card_do_pipe()
 			card_do_emm((EMM_PACKET *) ptr);
 			break;
 		case PIP_ID_CIN:
-			reader_common_card_info();
+			reader_common_card_info(&reader[ridx]);
 			break;
 	}
 }

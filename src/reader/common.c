@@ -4,34 +4,34 @@
 #include <reader/serial.h>
 #include <simples.h>
 
-static void reader_common_nullcard()
+static void reader_common_nullcard(struct s_reader *reader)
 {
-	reader[ridx].card_system = 0;
-	memset(reader[ridx].hexserial, 0, sizeof (reader[ridx].hexserial));
-	memset(reader[ridx].prid, 0xFF, sizeof (reader[ridx].prid));
-	memset(reader[ridx].caid, 0, sizeof (reader[ridx].caid));
-	memset(reader[ridx].availkeys, 0, sizeof (reader[ridx].availkeys));
-	reader[ridx].acs = 0;
-	reader[ridx].nprov = 0;
+	reader->card_system = 0;
+	memset(reader->hexserial, 0, sizeof (reader->hexserial));
+	memset(reader->prid, 0xFF, sizeof (reader->prid));
+	memset(reader->caid, 0, sizeof (reader->caid));
+	memset(reader->availkeys, 0, sizeof (reader->availkeys));
+	reader->acs = 0;
+	reader->nprov = 0;
 #ifdef CS_RDR_INIT_HIST
-	reader[ridx].init_history_pos = 0;
-	memset(reader[ridx].init_history, 0, sizeof (reader[ridx].init_history));
+	reader->init_history_pos = 0;
+	memset(reader->init_history, 0, sizeof (reader->init_history));
 #endif
 }
 
-static int reader_common_activate_card(uchar *atr, ushort *atr_size)
+static int reader_common_activate_card(struct s_reader *reader, uchar *atr, ushort *atr_size)
 {
 	// TODO: detect if this is a serial reader
 	return reader_serial_activate_card(atr, atr_size);
 }
 
-static int reader_common_reset()
+static int reader_common_reset(struct s_reader *reader)
 {
-	reader_common_nullcard();
+	reader_common_nullcard(reader);
 
 	uchar atr[33];		// Max 33 bytes according to ISO/IEC 7816-3
 	ushort atr_size = 0;
-	if (!reader_common_activate_card(atr, &atr_size))
+	if (!reader_common_activate_card(reader, atr, &atr_size))
 		return 0;
 
 	int rc = cam_common_detect_card_system(atr, atr_size);
@@ -40,15 +40,15 @@ static int reader_common_reset()
 	return rc;
 }
 
-static int reader_common_card_is_inserted()
+static int reader_common_card_is_inserted(struct s_reader *reader)
 {
 	/* Check that we don't have "disabled" this reader */
 	char filename[255];
-	if (strrchr (reader[ridx].device, '/')) {
-		snprintf(filename, sizeof(filename), "%sdisable-%s", cs_confdir, strrchr(reader[ridx].device, '/')+1);
+	if (strrchr (reader->device, '/')) {
+		snprintf(filename, sizeof(filename), "%sdisable-%s", cs_confdir, strrchr(reader->device, '/')+1);
 		if (file_exists(filename)) return 0;
 	}
-	snprintf(filename, sizeof(filename), "%sdisable-%s", cs_confdir, reader[ridx].label);
+	snprintf(filename, sizeof(filename), "%sdisable-%s", cs_confdir, reader->label);
 	if (file_exists(filename)) return 0;
 
 	// TODO: detect if this is a serial reader
@@ -57,35 +57,35 @@ static int reader_common_card_is_inserted()
 
 int reader_common_init(struct s_reader *reader)
 {
-	if (reader[ridx].type & R_IS_SERIAL)
+	if (reader->type & R_IS_SERIAL)
 		return reader_serial_init(reader);
 
 	return 0;
 }
 
-void reader_common_card_info()
+void reader_common_card_info(struct s_reader *reader)
 {
 	int rc = -1;
 
-	if (rc = reader_common_check_health()) {
+	if (rc = reader_common_check_health(reader)) {
 		client[cs_idx].last = time((time_t) 0);
 		cs_ri_brk(0);
 		cam_common_card_info();
 	}
 }
 
-int reader_common_check_health()
+int reader_common_check_health(struct s_reader *reader)
 {
-	if (reader_common_card_is_inserted()) {
-		if (!(reader[ridx].card_status & CARD_INSERTED)) {
+	if (reader_common_card_is_inserted(reader)) {
+		if (!(reader->card_status & CARD_INSERTED)) {
 			cs_log("card detected");
-			reader[ridx].card_status = CARD_NEED_INIT;
-			reader[ridx].card_status = CARD_INSERTED | (reader_common_reset() ? 0 : CARD_FAILURE);
-			if (reader[ridx].card_status & CARD_FAILURE) {
+			reader->card_status = CARD_NEED_INIT;
+			reader->card_status = CARD_INSERTED | (reader_common_reset(reader) ? 0 : CARD_FAILURE);
+			if (reader->card_status & CARD_FAILURE) {
 				cs_log("card initializing error");
 			} else {
 				client[cs_idx].au = ridx;
-				reader_common_card_info();
+				reader_common_card_info(reader);
 			}
 
 			int i;
@@ -96,8 +96,8 @@ int reader_common_check_health()
 			}
 		}
 	} else {
-		if (reader[ridx].card_status & CARD_INSERTED) {
-			reader_common_nullcard();
+		if (reader->card_status & CARD_INSERTED) {
+			reader_common_nullcard(reader);
 			client[cs_idx].lastemm = 0;
 			client[cs_idx].lastecm = 0;
 			client[cs_idx].au = -1;
@@ -107,19 +107,19 @@ int reader_common_check_health()
 
 			cs_log("card ejected");
 		}
-		reader[ridx].card_status = 0;
-		reader[ridx].online = 0;
+		reader->card_status = 0;
+		reader->online = 0;
 	}
 
-	return reader[ridx].card_status == CARD_INSERTED;
+	return reader->card_status == CARD_INSERTED;
 }
 
-int reader_common_ecm2cam(ECM_REQUEST * er)
+int reader_common_ecm2cam(struct s_reader *reader, ECM_REQUEST * er)
 {
 	int rc = -1;
 
-	if (rc = reader_common_check_health()) {
-		if ((reader[ridx].caid[0] >> 8) == ((er->caid >> 8) & 0xFF)) {
+	if (rc = reader_common_check_health(reader)) {
+		if ((reader->caid[0] >> 8) == ((er->caid >> 8) & 0xFF)) {
 			client[cs_idx].last_srvid = er->srvid;
 			client[cs_idx].last_caid = er->caid;
 			client[cs_idx].last = time((time_t) 0);
@@ -131,11 +131,11 @@ int reader_common_ecm2cam(ECM_REQUEST * er)
 	return rc;
 }
 
-int reader_common_emm2cam(EMM_PACKET * ep)
+int reader_common_emm2cam(struct s_reader *reader, EMM_PACKET * ep)
 {
 	int rc = -1;
 
-	if (rc = reader_common_check_health()) {
+	if (rc = reader_common_check_health(reader)) {
 		client[cs_idx].last = time((time_t) 0);
 		rc = cam_common_process_emm(ep);
 	}
@@ -143,9 +143,9 @@ int reader_common_emm2cam(EMM_PACKET * ep)
 	return rc;
 }
 
-int reader_common_cmd2card(uchar *cmd, ushort cmd_size, uchar *result, ushort result_max_size, ushort *result_size)
+int reader_common_cmd2card(struct s_reader *reader, uchar *cmd, ushort cmd_size, uchar *result, ushort result_max_size, ushort *result_size)
 {
-	if (reader[ridx].type & R_IS_SERIAL)
+	if (reader->type & R_IS_SERIAL)
 		return (reader_serial_cmd2card(cmd, cmd_size, result, result_max_size, result_size) == 0);
 
 	return 0;
