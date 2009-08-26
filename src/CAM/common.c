@@ -53,7 +53,7 @@ int cam_common_detect_card_system(uchar *atr, ushort atr_size)
 	return card_system;
 }
 
-int cam_common_card_info()
+int cam_common_load_card_info()
 {
 	int rc = 0;
 
