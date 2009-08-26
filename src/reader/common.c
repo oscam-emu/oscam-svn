@@ -136,7 +136,7 @@ void reader_common_check_health(struct s_reader *reader)
 	}
 }
 
-int reader_common_ecm2cam(struct s_reader *reader, ECM_REQUEST * er)
+int reader_common_process_ecm(struct s_reader *reader, ECM_REQUEST * er)
 {
 	int rc = 0;
 
@@ -152,7 +152,7 @@ int reader_common_ecm2cam(struct s_reader *reader, ECM_REQUEST * er)
 	return rc;
 }
 
-int reader_common_emm2cam(struct s_reader *reader, EMM_PACKET * ep)
+int reader_common_process_emm(struct s_reader *reader, EMM_PACKET * ep)
 {
 	int rc = 0;
 
