@@ -180,6 +180,7 @@ bool IO_Serial_Init(IO_Serial * io, char *device, unsigned short reader_type, bo
 #endif
 
 	memcpy(io->device, device, sizeof(io->device));
+	io->reader_type = reader_type;
 
 #ifdef SCI_DEV
 	if (reader_type == RTYP_SCI)
@@ -206,8 +207,6 @@ bool IO_Serial_Init(IO_Serial * io, char *device, unsigned short reader_type, bo
 
 	if (reader_type != RTYP_SCI)
 		IO_Serial_InitPnP(io);
-
-	io->reader_type = reader_type;
 
 	if (reader_type != RTYP_SCI)
 		IO_Serial_Flush(io);
@@ -1074,7 +1073,13 @@ static bool IO_Serial_InitPnP(IO_Serial * io)
 	props.bits = 8;
 	props.stopbits = 1;
 	props.dtr = IO_SERIAL_HIGH;
-	props.rts = IO_SERIAL_HIGH;
+	if (io->reader_type == RTYP_PHOENIX) {
+		props.rts = IO_SERIAL_LOW;
+	} else if (io->reader_type == RTYP_SMARTMOUSE) {
+		props.rts = IO_SERIAL_HIGH;
+	} else {
+		props.rts = IO_SERIAL_LOW;
+	}
 
 	if (!IO_Serial_SetProperties(io, &props))
 		return FALSE;
