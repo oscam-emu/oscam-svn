@@ -2077,7 +2077,7 @@ int main(int argc, char *argv[])
 
 		cs_log("Waiting for local card init ...");
 
-		sleep(3);	// short sleep for card detect to work proberly
+		sleep(5);	// short sleep for card detect to work proberly
 
 		for (;;) {
 			card_init_done = 1;
