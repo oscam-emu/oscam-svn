@@ -152,8 +152,6 @@ int IFD_Towitoko_Init(IFD * ifd, IO_Serial * io, BYTE slot)
 	int ret;
 
 #ifdef USE_GPIO
-	extern int reader_serial_card_detect;
-
 	if (reader_serial_card_detect > 4) {
 		gpio_detect = reader_serial_card_detect - 3;
 		pin = 1 << gpio_detect;
