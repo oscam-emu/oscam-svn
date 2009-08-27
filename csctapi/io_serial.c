@@ -518,7 +518,7 @@ bool IO_Serial_SetProperties(IO_Serial * io, IO_Serial_Properties * props)
 			struct serial_struct nuts;
 
 			ioctl(io->fd, TIOCGSERIAL, &nuts);
-			nuts.custom_divisor = nuts.baud_base / 9600 * 3.57 / 6;
+			nuts.custom_divisor = nuts.baud_base / (9600 * 6 / 3.57);
 			nuts.flags &= ~ASYNC_SPD_MASK;
 			nuts.flags |= ASYNC_SPD_CUST;
 			ioctl(io->fd, TIOCSSERIAL, &nuts);
@@ -537,7 +537,7 @@ bool IO_Serial_SetProperties(IO_Serial * io, IO_Serial_Properties * props)
 			struct serial_struct nuts;
 
 			ioctl(io->fd, TIOCGSERIAL, &nuts);
-			nuts.custom_divisor = nuts.baud_base / 5713;
+			nuts.custom_divisor = nuts.baud_base / (9600 * 3.57 / 6);
 			nuts.flags &= ~ASYNC_SPD_MASK;
 			nuts.flags |= ASYNC_SPD_CUST;
 			ioctl(io->fd, TIOCSSERIAL, &nuts);
@@ -562,7 +562,7 @@ bool IO_Serial_SetProperties(IO_Serial * io, IO_Serial_Properties * props)
 			struct serial_struct nuts;
 
 			ioctl(io->fd, TIOCGSERIAL, &nuts);
-			nuts.custom_divisor = nuts.baud_base / 9600 * 6 / 10;
+			nuts.custom_divisor = nuts.baud_base / (9600 * 10 / 6);
 			nuts.flags &= ~ASYNC_SPD_MASK;
 			nuts.flags |= ASYNC_SPD_CUST;
 			ioctl(io->fd, TIOCSSERIAL, &nuts);
