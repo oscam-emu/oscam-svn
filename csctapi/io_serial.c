@@ -70,11 +70,11 @@ static void IO_Serial_SetPropertiesCache(IO_Serial * io, IO_Serial_Properties * 
 
 static void IO_Serial_ClearPropertiesCache(IO_Serial * io);
 
-static int _in_echo_read = 0;
-int io_serial_need_dummy_char = 0;
-
 extern int reader_serial_mhz;
 extern int reader_serial_irdeto_mode;
+
+static int _in_echo_read = 0;
+extern int reader_serial_need_dummy_char;
 
 int fdmc = (-1);
 
@@ -694,7 +694,7 @@ bool IO_Serial_Read(IO_Serial * io, unsigned timeout, unsigned size, BYTE * data
 	printf("IO: Receiving: ");
 	fflush(stdout);
 #endif
-	for (count = 0; count < size * (_in_echo_read ? (1 + io_serial_need_dummy_char) : 1); count++) {
+	for (count = 0; count < size * (_in_echo_read ? (1 + reader_serial_need_dummy_char) : 1); count++) {
 		if (IO_Serial_WaitToRead(io->fd, 0, timeout)) {
 			if (read(io->fd, &c, 1) != 1) {
 #ifdef DEBUG_IO
@@ -703,7 +703,7 @@ bool IO_Serial_Read(IO_Serial * io, unsigned timeout, unsigned size, BYTE * data
 #endif
 				return FALSE;
 			}
-			data[_in_echo_read ? count / (1 + io_serial_need_dummy_char) : count] = c;
+			data[_in_echo_read ? count / (1 + reader_serial_need_dummy_char) : count] = c;
 
 #ifdef DEBUG_IO
 			printf("%X ", c);
@@ -755,15 +755,15 @@ bool IO_Serial_Write(IO_Serial * io, unsigned delay, unsigned size, BYTE * data)
 
 		if (IO_Serial_WaitToWrite(io, delay, 1000)) {
 			for (i_w = 0; i_w < to_send; i_w++) {
-				data_w[(1 + io_serial_need_dummy_char) * i_w] = data[count + i_w];
-				if (io_serial_need_dummy_char) {
+				data_w[(1 + reader_serial_need_dummy_char) * i_w] = data[count + i_w];
+				if (reader_serial_need_dummy_char) {
 					data_w[2 * i_w + 1] = 0x00;
 				}
 			}
-			unsigned int u = write(io->fd, data_w, (1 + io_serial_need_dummy_char) * to_send);
+			unsigned int u = write(io->fd, data_w, (1 + reader_serial_need_dummy_char) * to_send);
 
 			_in_echo_read = 1;
-			if (u != (1 + io_serial_need_dummy_char) * to_send) {
+			if (u != (1 + reader_serial_need_dummy_char) * to_send) {
 #ifdef DEBUG_IO
 				printf("ERROR\n");
 				fflush(stdout);
@@ -777,7 +777,7 @@ bool IO_Serial_Write(IO_Serial * io, unsigned delay, unsigned size, BYTE * data)
 				io->wr += to_send;
 
 #ifdef DEBUG_IO
-			for (i = 0; i < (1 + io_serial_need_dummy_char) * to_send; i++)
+			for (i = 0; i < (1 + reader_serial_need_dummy_char) * to_send; i++)
 				printf("%X ", data_w[count + i]);
 			fflush(stdout);
 #endif

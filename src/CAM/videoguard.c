@@ -15,6 +15,8 @@
 #define MAX_ATR_LEN 33	// max. ATR length
 #define MAX_HIST    15	// max. number of historical characters
 
+extern int reader_serial_need_dummy_char;
+
 //////  ====================================================================================
 
 int aes_active = 0;
@@ -360,8 +362,6 @@ static void cCamCryptVG2_RotateRightAndHash(unsigned char *p)
 
 static unsigned char CW1[8], CW2[8];
 
-extern int io_serial_need_dummy_char;
-
 struct CmdTabEntry {
 	unsigned char cla;
 	unsigned char cmd;
@@ -606,7 +606,7 @@ int cam_videoguard_card_init(uchar *atr, ushort atr_size)
 	if ((atr_size == sizeof (atr_bskyb)) && (memcmp(atr, atr_bskyb, atr_size) == 0)) {
 		cs_log("Type: Videoguard BSkyB");
 		/* BSkyB seems to need one additionnal byte in the serial communication... */
-		io_serial_need_dummy_char = 1;
+		reader_serial_need_dummy_char = 1;
 	} else if ((atr_size == sizeof (atr_bskyb_new)) && (memcmp(atr, atr_bskyb_new, atr_size) == 0)) {
 		cs_log("Type: Videoguard BSkyB - New");
 	} else if ((atr_size == sizeof (atr_skyitalia)) && (memcmp(atr, atr_skyitalia, atr_size) == 0)) {

@@ -14,6 +14,7 @@
 int reader_serial_irdeto_mode;		// UGLY : to be removed
 int reader_serial_card_detect;		// UGLY : to be removed
 int reader_serial_mhz;			// UGLY : to be removed
+int reader_serial_need_dummy_char;	// UGLY : to be removed
 
 static ushort reader_serial_get_reader_type(struct s_reader *reader)
 {
@@ -182,6 +183,8 @@ int reader_serial_get_atr(uchar *atr, ushort *atr_size)
 	uchar cmd[5];
 	uchar result[260];
 	ushort result_size;
+
+	reader_serial_need_dummy_char = 0;
 
 	/* Try to get ATR from card */
 	for (i = 0; i < 3; i++) {

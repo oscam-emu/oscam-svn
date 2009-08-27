@@ -11,8 +11,6 @@
 #include <signal.h>
 #include <time.h>
 
-extern int io_serial_need_dummy_char;
-
 static void reader_common_clear_memory(struct s_reader *reader)
 {
 	reader->online = 0;
@@ -31,8 +29,6 @@ static void reader_common_clear_memory(struct s_reader *reader)
 	client[cs_idx].lastemm = 0;
 	client[cs_idx].lastecm = 0;
 	client[cs_idx].au = -1;
-
-	io_serial_need_dummy_char = 0;
 }
 
 static int reader_common_card_is_inserted(struct s_reader *reader)
