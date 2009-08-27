@@ -21,7 +21,7 @@ extern "C" {
 
 	extern char CT_init(unsigned short Ctn,	/* Terminal Number */
 			    char *device,	/* Device Path */
-			    unsigned short reader_type	/* Reader Type (mouse, smartreader) */
+			    unsigned short reader_type	/* Reader Type (phoenix, sci, smartreader) */
 		);
 
 	extern char CT_close(

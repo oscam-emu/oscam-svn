@@ -106,7 +106,7 @@ use "mhz" parameter to set serial speed, default:0
 \fBprotocol\fP = \fBreader protocol\fP
 .RS 3n
 reader protocol, \fIrequired\fR:
- mouse
+ phoenix
  smartreader
  internal
  intern
@@ -180,24 +180,24 @@ list of EMM-nanos to block (in hex w/o 0x)
 .SH EXAMPLES
 .TP 3n
 \(bu
-serial mouse compatible reader
+serial phoenix compatible reader
  
  [reader]
- label    = myserialmousereader
+ label    = myserialphoenixreader
  detect   = cd
- protocol = mouse
+ protocol = phoenix
  device   = /dev/ttyS1
  group    = 1
  caid     = 0100
  services = myservice
 .TP 3n
 \(bu
-USB mouse compatible reader
+USB phoenix compatible reader
  
  [reader]
- label    = myusbmousereader
+ label    = myusbphoenixreader
  detect   = cd
- protocol = mouse
+ protocol = phoenix
  device   = /dev/ttyUSB0
  aeskey   = 0102030405060708090a0b0c0d0e0f10
  group    = 2

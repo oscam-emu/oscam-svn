@@ -570,7 +570,7 @@ int cs_fork(in_addr_t ip, in_port_t port)
 							if (reader[ridx].r_port)
 								cs_log("proxy started (pid=%d, server=%s)", pid, reader[ridx].device);
 							else {
-								if (reader[ridx].type == R_MOUSE || reader[ridx].type == R_SMART)
+								if (reader[ridx].type == R_PHOENIX || reader[ridx].type == R_SMART)
 									cs_log("reader started (pid=%d, device=%s, detect=%s%s, mhz=%d)", pid, reader[ridx].device, reader[ridx].detect & 0x80 ? "!" : "", RDR_CD_TXT[reader[ridx].detect & 0x7f], reader[ridx].mhz);
 								else
 									cs_log("reader started (pid=%d, device=%s)", pid, reader[ridx].device);

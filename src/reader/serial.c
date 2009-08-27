@@ -23,7 +23,7 @@ static ushort reader_serial_get_reader_type(struct s_reader *reader)
 #endif
 
 	switch (reader->type) {
-		case R_MOUSE :
+		case R_PHOENIX :
 			reader_type = RTYP_STD;
 #ifdef TUXBOX
 			if (!stat(reader->device, &sb)) {

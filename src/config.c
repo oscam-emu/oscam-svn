@@ -1123,8 +1123,8 @@ static void chk_reader(char *token, char *value, struct s_reader *rdr)
 			rdr->custom_speed = 1;
 	}
 	if (!strcmp(token, "protocol")) {
-		if (!strcmp(value, "mouse"))
-			rdr->type = R_MOUSE;
+		if (!strcmp(value, "phoenix"))
+			rdr->type = R_PHOENIX;
 		if (!strcmp(value, "smartreader"))
 			rdr->type = R_SMART;
 		if (!strcmp(value, "internal"))

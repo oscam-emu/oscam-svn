@@ -103,7 +103,7 @@
 #  define D_DEVICE		16	// Debug Reader I/O
 #  define D_ALL_DUMP		31
 
-#  define R_MOUSE		0x01	// Reader local serial : mouse
+#  define R_PHOENIX		0x01	// Reader local serial : phoenix
 #  define R_INTERN		0x02	// Reader local serial : intern
 #  define R_SMART		0x03	// Reader local serial : smartreader+
 

@@ -260,8 +260,8 @@ static char *monitor_get_proto(int idx)
 			else {
 				switch (reader[i].type)	// TODO like ph
 				{
-					case R_MOUSE:
-						ctyp = "mouse";
+					case R_PHOENIX:
+						ctyp = "phoenix";
 						break;
 					case R_INTERN:
 						ctyp = "intern";

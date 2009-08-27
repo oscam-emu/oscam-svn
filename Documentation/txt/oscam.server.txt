@@ -74,7 +74,7 @@ SECTION DESCRIPTIONS
 
        protocol = reader protocol
 	  reader protocol, required:
-	   mouse
+	   phoenix
 	   smartreader
 	   internal
 	   intern
@@ -128,23 +128,23 @@ SECTION DESCRIPTIONS
 	   example: blocknano = 45,93,7a,ff
 
 EXAMPLES
-	 serial mouse compatible reader
+	 serial phoenix compatible reader
 
 	   [reader]
-	   label    = myserialmousereader
+	   label    = myserialphoenixreader
 	   detect   = cd
-	   protocol = mouse
+	   protocol = phoenix
 	   device   = /dev/ttyS1
 	   group    = 1
 	   caid     = 0100
 	   services = myservice
 
-	 USB mouse compatible reader
+	 USB phoenix compatible reader
 
 	   [reader]
-	   label    = myusbmousereader
+	   label    = myusbphoenixreader
 	   detect   = cd
-	   protocol = mouse
+	   protocol = phoenix
 	   device   = /dev/ttyUSB0
 	   aeskey   = 0102030405060708090a0b0c0d0e0f10
 	   group    = 2
