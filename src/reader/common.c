@@ -101,14 +101,14 @@ void reader_common_load_card_info(struct s_reader *reader)
 
 	if (reader->card_status == CARD_INSERTED) {
 		/* Disable the reader if it was already online */
-		reader[ridx].online = 0;
+		reader->online = 0;
 
 		client[cs_idx].last = time((time_t) 0);
 
 		/* Ask the CAM to load the card information */
 		if (cam_common_load_card_info()) {
 			/* Mark the reader as online */
-			reader[ridx].online = 1;
+			reader->online = 1;
 
 			cs_log("Reader: Ready for requests (%s)", reader->label);
 		}
