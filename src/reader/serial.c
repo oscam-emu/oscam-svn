@@ -17,14 +17,14 @@ int reader_serial_mhz;			// UGLY : to be removed
 
 static ushort reader_serial_get_reader_type(struct s_reader *reader)
 {
-	ushort reader_type = RTYP_STD;
+	ushort reader_type = RTYP_PHOENIX;
 #ifdef TUXBOX
 	struct stat sb;
 #endif
 
 	switch (reader->type) {
 		case R_PHOENIX :
-			reader_type = RTYP_STD;
+			reader_type = RTYP_PHOENIX;
 #ifdef TUXBOX
 			if (!stat(reader->device, &sb)) {
 				if (S_ISCHR(sb.st_mode)) {
@@ -49,8 +49,12 @@ static ushort reader_serial_get_reader_type(struct s_reader *reader)
 #endif
 			break;
 
-		case R_SMART :
-			reader_type = RTYP_SMART;
+		case R_SMARTMOUSE :
+			reader_type = RTYP_SMARTMOUSE;
+			break;
+
+		case R_SMARTREADER :
+			reader_type = RTYP_SMARTREADER;
 			break;
 
 		case R_INTERN :

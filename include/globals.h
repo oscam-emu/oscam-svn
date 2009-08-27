@@ -104,8 +104,9 @@
 #  define D_ALL_DUMP		31
 
 #  define R_PHOENIX		0x01	// Reader local serial : phoenix
-#  define R_INTERN		0x02	// Reader local serial : intern
-#  define R_SMART		0x03	// Reader local serial : smartreader+
+#  define R_SMARTMOUSE		0x02	// Reader local serial : smartmouse
+#  define R_INTERN		0x03	// Reader local serial : internal
+#  define R_SMARTREADER		0x04	// Reader local serial : smartreader+
 
 #  define R_CAMD35		0x80	// Reader cascading network : camd 3.5x
 #  define R_CAMD33		0x81	// Reader cascading network : camd 3.3x

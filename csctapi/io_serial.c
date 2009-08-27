@@ -496,7 +496,7 @@ bool IO_Serial_SetProperties(IO_Serial * io, IO_Serial_Properties * props)
 	memset(&newtio, 0, sizeof (newtio));
 	/* Set the bitrate */
 
-	if (io->reader_type == RTYP_SMART) {
+	if (io->reader_type == RTYP_SMARTREADER) {
 #ifdef DEBUG_IO
 		printf("IO: SMARTREADER .. switching to frequency to %2.2fMHz\n", (float) reader_serial_mhz / 100.0);
 #endif

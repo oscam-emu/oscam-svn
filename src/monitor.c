@@ -263,11 +263,14 @@ static char *monitor_get_proto(int idx)
 					case R_PHOENIX:
 						ctyp = "phoenix";
 						break;
+					case R_SMARTMOUSE:
+						ctyp = "smartmouse";
+						break;
 					case R_INTERN:
 						ctyp = "intern";
 						break;
-					case R_SMART:
-						ctyp = "smartreader";
+					case R_SMARTREADER:
+						ctyp = "smartreader+";
 						break;
 					case R_CAMD35:
 						ctyp = "camd 3.5x";
