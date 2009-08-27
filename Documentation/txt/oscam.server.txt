@@ -75,7 +75,8 @@ SECTION DESCRIPTIONS
        protocol = reader protocol
 	  reader protocol, required:
 	   phoenix
-	   smartreader
+	   smartmouse
+	   smartreader+
 	   internal
 	   intern
 	   serial
