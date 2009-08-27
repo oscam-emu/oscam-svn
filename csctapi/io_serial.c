@@ -729,9 +729,6 @@ bool IO_Serial_Read(IO_Serial * io, unsigned timeout, unsigned size, BYTE * data
 	return TRUE;
 }
 
-
-
-
 bool IO_Serial_Write(IO_Serial * io, unsigned delay, unsigned size, BYTE * data)
 {
 	unsigned count, to_send;
@@ -1071,14 +1068,13 @@ static bool IO_Serial_InitPnP(IO_Serial * io)
 	IO_Serial_Properties props;
 	int i = 0;
 
-	props.input_bitrate = 1200;
-	props.output_bitrate = 1200;
+	props.input_bitrate = 9600;
+	props.output_bitrate = 9600;
 	props.parity = IO_SERIAL_PARITY_NONE;
-	props.bits = 7;
+	props.bits = 8;
 	props.stopbits = 1;
 	props.dtr = IO_SERIAL_HIGH;
-//	props.rts = IO_SERIAL_HIGH;
-	props.rts = IO_SERIAL_LOW;
+	props.rts = IO_SERIAL_HIGH;
 
 	if (!IO_Serial_SetProperties(io, &props))
 		return FALSE;

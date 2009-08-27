@@ -185,10 +185,7 @@ int IFD_Towitoko_Init(IFD * ifd, IO_Serial * io, BYTE slot)
 	props.stopbits = 2;
 	props.parity = IO_SERIAL_PARITY_EVEN;
 	props.dtr = IO_SERIAL_HIGH;
-//      props.dtr = IO_SERIAL_LOW;
-//      props.rts = IO_SERIAL_HIGH;
-	props.rts = IO_SERIAL_LOW;
-
+	props.rts = IO_SERIAL_HIGH;
 
 	if (!IO_Serial_SetProperties(io, &props))
 		return IFD_TOWITOKO_IO_ERROR;
@@ -627,7 +624,7 @@ int IFD_Towitoko_ResetAsyncICC(IFD * ifd, ATR ** atr)
 		struct timespec req_ts;
 
 		req_ts.tv_sec = 0;
-		req_ts.tv_nsec = 50000000;
+		req_ts.tv_nsec = 10000000;
 #endif
 
 		for (i = 0; i < 3; i++) {
@@ -647,12 +644,17 @@ int IFD_Towitoko_ResetAsyncICC(IFD * ifd, ATR ** atr)
 				set_gpio1(0);
 			} else
 #endif
-				IO_Serial_RTS_Set(ifd->io);
+				if (ifd->io->reader_type == RTYP_PHOENIX)
+					IO_Serial_RTS_Set(ifd->io);
+				else if (ifd->io->reader_type == RTYP_SMARTMOUSE)
+					IO_Serial_RTS_Clr(ifd->io);
+				else
+					IO_Serial_RTS_Set(ifd->io);
 
 #ifdef HAVE_NANOSLEEP
 			nanosleep(&req_ts, NULL);
 #else
-			usleep(50000L);
+			usleep(10000L);
 #endif
 #ifdef USE_GPIO
 			if (gpio_detect) {
@@ -660,7 +662,13 @@ int IFD_Towitoko_ResetAsyncICC(IFD * ifd, ATR ** atr)
 				set_gpio1(1);
 			} else
 #endif
-				IO_Serial_RTS_Clr(ifd->io);
+
+				if (ifd->io->reader_type == RTYP_PHOENIX)
+					IO_Serial_RTS_Clr(ifd->io);
+				else if (ifd->io->reader_type == RTYP_SMARTMOUSE)
+					IO_Serial_RTS_Set(ifd->io);
+				else
+					IO_Serial_RTS_Clr(ifd->io);
 
 			IO_Serial_Ioctl_Lock(ifd->io, 0);
 
