@@ -15,6 +15,7 @@
 
 #  include <sys/timeb.h>
 #  include <netdb.h>
+#  include <arpa/inet.h>
 
 #  include "cscrypt.h"
 
