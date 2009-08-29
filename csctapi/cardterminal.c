@@ -71,7 +71,7 @@ CardTerminal *CardTerminal_New(void)
 	return ct;
 }
 
-char CardTerminal_Init(CardTerminal * ct, char *device, unsigned short reader_type)
+char CardTerminal_Init(CardTerminal * ct, char *device, unsigned long frequency, unsigned short reader_type)
 {
 	char ret;
 	int i;
@@ -84,7 +84,7 @@ char CardTerminal_Init(CardTerminal * ct, char *device, unsigned short reader_ty
 		return ERR_MEMORY;
 
 	/* Initialise serial port */
-	if (!IO_Serial_Init(ct->io, device, reader_type, FALSE)) {
+	if (!IO_Serial_Init(ct->io, device, frequency, reader_type, FALSE)) {
 		IO_Serial_Delete(ct->io);
 		ct->io = NULL;
 		return ERR_TRANS;

@@ -70,8 +70,7 @@ static void IO_Serial_SetPropertiesCache(IO_Serial * io, IO_Serial_Properties * 
 
 static void IO_Serial_ClearPropertiesCache(IO_Serial * io);
 
-extern int reader_serial_mhz;
-extern int reader_serial_irdeto_mode;
+static bool IO_Serial_Set_Smartreader_Freq(IO_Serial * io);
 
 static int _in_echo_read = 0;
 extern int reader_serial_need_dummy_char;
@@ -88,10 +87,10 @@ void IO_Serial_Ioctl_Lock(IO_Serial * io, int flag)
 	if (!flag)
 		*oscam_sem = 0;
 	else
-		while (*oscam_sem != io->com) {
+		while (*oscam_sem != io->reader_type) {
 			while (*oscam_sem)
-				usleep((io->com) * 2000);
-			*oscam_sem = io->com;
+				usleep(() * 2000);
+			*oscam_sem = io->reader_type;
 			usleep(1000);
 		}
 }
@@ -173,13 +172,14 @@ IO_Serial *IO_Serial_New(void)
 	return io;
 }
 
-bool IO_Serial_Init(IO_Serial * io, char *device, unsigned short reader_type, bool pnp)
+bool IO_Serial_Init(IO_Serial * io, char *device, unsigned long frequency, unsigned short reader_type, bool pnp)
 {
 #ifdef DEBUG_IO
-	printf("IO: Opening serial port %s\n", io->device);
+	printf("IO: Opening serial port %s\n", device);
 #endif
 
 	memcpy(io->device, device, sizeof(io->device));
+	io->frequency = frequency;
 	io->reader_type = reader_type;
 
 #ifdef SCI_DEV
@@ -205,11 +205,10 @@ bool IO_Serial_Init(IO_Serial * io, char *device, unsigned short reader_type, bo
 		}
 #endif
 
-	if (reader_type != RTYP_SCI)
-		IO_Serial_InitPnP(io);
-
-	if (reader_type != RTYP_SCI)
-		IO_Serial_Flush(io);
+	if (reader_type != RTYP_SCI) {
+		if (pnp)
+			IO_Serial_InitPnP(io);
+	}
 
 	return TRUE;
 }
@@ -437,6 +436,20 @@ bool IO_Serial_GetProperties(IO_Serial * io, IO_Serial_Properties * props)
 			break;
 	}
 
+	/* Check for custom bitrate */
+#ifdef OS_LINUX
+	if (props->input_bitrate == 38400 && props->output_bitrate == 38400) {
+		struct serial_struct s;
+		if (ioctl(io->fd, TIOCGSERIAL, &s) >= 0) {
+			if ((s.flags & ASYNC_SPD_CUST) != 0) {
+				unsigned long effective_bitrate = (unsigned long) s.baud_base / s.custom_divisor;
+				props->input_bitrate = effective_bitrate;
+				props->output_bitrate = effective_bitrate;
+			}
+		}
+	}
+#endif
+
 	switch (currtio.c_cflag & CSIZE) {
 		case CS5:
 			props->bits = 5;
@@ -484,98 +497,81 @@ bool IO_Serial_GetProperties(IO_Serial * io, IO_Serial_Properties * props)
 bool IO_Serial_SetProperties(IO_Serial * io, IO_Serial_Properties * props)
 {
 	struct termios newtio;
-//	unsigned int modembits;
 
 #ifdef SCI_DEV
 	if (io->reader_type == RTYP_SCI)
 		return FALSE;
 #endif
 
-	//   printf("IO: Setting properties: com%d, %ld bps; %d bits/byte; %s parity; %d stopbits; dtr=%d; rts=%d\n", io->com, props->input_bitrate, props->bits, props->parity == IO_SERIAL_PARITY_EVEN ? "Even" : props->parity == IO_SERIAL_PARITY_ODD ? "Odd" : "None", props->stopbits, props->dtr, props->rts);
 	memset(&newtio, 0, sizeof (newtio));
+
 	/* Set the bitrate */
+#ifdef DEBUG_IO
+	printf("IO: Optimal bitrate should be = %lu\n", props->output_bitrate);
+#endif
+#ifdef OS_LINUX
+	/* Check if the bitrate is not a standard value */
+	if (props->output_bitrate != props->input_bitrate || (props->output_bitrate == 230400 || props->output_bitrate == 115200 || props->output_bitrate == 57600 || props->output_bitrate == 38400 || props->output_bitrate == 19200 || props->output_bitrate == 9600 || props->output_bitrate == 4800 || props->output_bitrate == 2400 || props->output_bitrate == 1800 || props->output_bitrate == 1200 || props->output_bitrate == 600 || props->output_bitrate == 300 || props->output_bitrate == 200 || props->output_bitrate == 150 || props->output_bitrate == 134 || props->output_bitrate == 110 || props->output_bitrate == 75 || props->output_bitrate == 50 || props->output_bitrate == 0)) {
+#  ifdef DEBUG_IO
+		printf("IO: Using standard bitrate of %lu\n", props->output_bitrate);
+#  endif
+#endif
+		/* Standard bitrate */
+		cfsetospeed(&newtio, IO_Serial_Bitrate(props->output_bitrate));
+		cfsetispeed(&newtio, IO_Serial_Bitrate(props->input_bitrate));
+#ifdef OS_LINUX
+	} else {
+		/* Special bitrate : these structures are only available on linux as fas as we know so limit this code to OS_LINUX */
+		unsigned long standard_bitrate = props->output_bitrate;
+
+		struct serial_struct s;
+		if (ioctl(io->fd, TIOCGSERIAL, &s) >= 0) {
+			unsigned long wanted_bitrate = props->output_bitrate;
+			unsigned long custom_divisor = ((unsigned long) s.baud_base + (wanted_bitrate / 2)) / wanted_bitrate;
+			unsigned long effective_bitrate = (unsigned long) s.baud_base / custom_divisor;
+
+			/* Check if a custom_divisor is needed */
+			if (effective_bitrate == 230400 || effective_bitrate == 115200 || effective_bitrate == 57600 || effective_bitrate == 38400 || effective_bitrate == 19200 || effective_bitrate == 9600 || effective_bitrate == 4800 || effective_bitrate == 2400 || effective_bitrate == 1800 || effective_bitrate == 1200 || effective_bitrate == 600 || effective_bitrate == 300 || effective_bitrate == 200 || effective_bitrate == 150 || effective_bitrate == 134 || effective_bitrate == 110 || effective_bitrate == 75 || effective_bitrate == 50 || effective_bitrate == 0) {
+				/* Use standard bitrate value */
+				if ((s.flags & ASYNC_SPD_CUST) != 0) {
+					s.flags |= ASYNC_SPD_MASK;
+					s.flags &= ~ASYNC_SPD_CUST;
+					ioctl(io->fd, TIOCSSERIAL, &s);
+				}
+				standard_bitrate = effective_bitrate;
+#ifdef DEBUG_IO
+				printf("IO: Using standard bitrate of %lu (baud_base too small)\n", standard_bitrate);
+#endif
+			} else {
+				/* Use custom divisor */
+				s.custom_divisor = custom_divisor;
+				s.flags &= ~ASYNC_SPD_MASK;
+				s.flags |= ASYNC_SPD_CUST;
+				if (ioctl(io->fd, TIOCSSERIAL, &s) >= 0) {
+					standard_bitrate = 38400;
+				}
+#ifdef DEBUG_IO
+				printf("IO: Using special bitrate of = %lu (%+.2f%% off)\n", effective_bitrate, ((double) (effective_bitrate - wanted_bitrate)) / wanted_bitrate);
+#endif
+			}
+		}
+
+		/* Set the standard bitrate value */
+		cfsetospeed(&newtio, IO_Serial_Bitrate(standard_bitrate));
+		cfsetispeed(&newtio, IO_Serial_Bitrate(standard_bitrate));
+	}
+#endif
 
 	if (io->reader_type == RTYP_SMARTREADER) {
 #ifdef DEBUG_IO
-		printf("IO: SMARTREADER .. switching to frequency to %2.2fMHz\n", (float) reader_serial_mhz / 100.0);
+		printf("IO: SMARTREADER .. switching to frequency to %2.2fMHz\n", (float) io->frequency / 1000000);
 #endif
-		if (!IO_Serial_Set_Smartreader_Freq(io, reader_serial_mhz, reader_serial_irdeto_mode)) {
+		if (!IO_Serial_Set_Smartreader_Freq(io)) {
 #ifdef DEBUG_IO
-			printf("IO: SMARTREADER .. ERROR switching to %2.2fMHz\n", (float) reader_serial_mhz / 100.0);
+			printf("IO: SMARTREADER .. ERROR switching to %2.2fMHz\n", (float) io->frequency / 1000000);
 #endif
 			return FALSE;
 		}
-	}
-
-	if (reader_serial_mhz == 600) {
-		/* for 6MHz */
-		if (reader_serial_irdeto_mode) {
-			cfsetospeed(&newtio, IO_Serial_Bitrate(props->output_bitrate));
-			cfsetispeed(&newtio, IO_Serial_Bitrate(props->input_bitrate));
-		} else {
-#ifdef OS_LINUX
-			/* these structures are only available on linux as fas as we know so limit this code to OS_LINUX */
-			struct serial_struct nuts;
-
-			ioctl(io->fd, TIOCGSERIAL, &nuts);
-			nuts.custom_divisor = nuts.baud_base / (9600 * 6 / 3.57);
-			nuts.flags &= ~ASYNC_SPD_MASK;
-			nuts.flags |= ASYNC_SPD_CUST;
-			ioctl(io->fd, TIOCSSERIAL, &nuts);
-			cfsetospeed(&newtio, IO_Serial_Bitrate(38400));
-			cfsetispeed(&newtio, IO_Serial_Bitrate(38400));
-#else
-			cfsetospeed(&newtio, IO_Serial_Bitrate(props->output_bitrate));
-			cfsetispeed(&newtio, IO_Serial_Bitrate(props->input_bitrate));
-#endif
-		}
-	} else if (reader_serial_mhz == 357 || reader_serial_mhz == 358) {
-		/* for 3.57 MHz */
-		if (reader_serial_irdeto_mode) {
-#ifdef OS_LINUX
-			/* these structures are only available on linux as fas as we know so limit this code to OS_LINUX */
-			struct serial_struct nuts;
-
-			ioctl(io->fd, TIOCGSERIAL, &nuts);
-			nuts.custom_divisor = nuts.baud_base / (9600 * 3.57 / 6);
-			nuts.flags &= ~ASYNC_SPD_MASK;
-			nuts.flags |= ASYNC_SPD_CUST;
-			ioctl(io->fd, TIOCSSERIAL, &nuts);
-			cfsetospeed(&newtio, IO_Serial_Bitrate(38400));
-			cfsetispeed(&newtio, IO_Serial_Bitrate(38400));
-#else
-			cfsetospeed(&newtio, IO_Serial_Bitrate(props->output_bitrate));
-			cfsetispeed(&newtio, IO_Serial_Bitrate(props->input_bitrate));
-#endif
-		} else {
-			cfsetospeed(&newtio, IO_Serial_Bitrate(props->output_bitrate));
-			cfsetispeed(&newtio, IO_Serial_Bitrate(props->input_bitrate));
-		}
-	} else if (reader_serial_mhz == 1000) {
-		/* for 10 MHz */
-		if (reader_serial_irdeto_mode) {
-			cfsetospeed(&newtio, IO_Serial_Bitrate(props->output_bitrate));
-			cfsetispeed(&newtio, IO_Serial_Bitrate(props->input_bitrate));
-		} else {
-#ifdef OS_LINUX
-			/* these structures are only available on linux as fas as we know so limit this code to OS_LINUX */
-			struct serial_struct nuts;
-
-			ioctl(io->fd, TIOCGSERIAL, &nuts);
-			nuts.custom_divisor = nuts.baud_base / (9600 * 10 / 6);
-			nuts.flags &= ~ASYNC_SPD_MASK;
-			nuts.flags |= ASYNC_SPD_CUST;
-			ioctl(io->fd, TIOCSSERIAL, &nuts);
-			cfsetospeed(&newtio, IO_Serial_Bitrate(38400));
-			cfsetispeed(&newtio, IO_Serial_Bitrate(38400));
-#else
-			cfsetospeed(&newtio, IO_Serial_Bitrate(props->output_bitrate));
-			cfsetispeed(&newtio, IO_Serial_Bitrate(props->input_bitrate));
-#endif
-		}
-	} else {
-		/* invalid */
-		return FALSE;
 	}
 
 	/* Set the character size */
@@ -653,8 +649,7 @@ bool IO_Serial_SetProperties(IO_Serial * io, IO_Serial_Properties * props)
 	IO_Serial_SetPropertiesCache(io, props);
 
 #ifdef DEBUG_IO
-	printf("IO: Setting properties: com%d, %ld bps; %d bits/byte; %s parity; %d stopbits; dtr=%d; rts=%d\n", io->com, props->input_bitrate, props->bits, props->parity == IO_SERIAL_PARITY_EVEN ? "Even" : props->parity == IO_SERIAL_PARITY_ODD ? "Odd" : "None", props->stopbits, props->dtr,
-	       props->rts);
+	printf("IO: Setting properties: device=%s, %ld bps; %d bits/byte; %s parity; %d stopbits; dtr=%d; rts=%d\n", io->device, props->input_bitrate, props->bits, props->parity == IO_SERIAL_PARITY_EVEN ? "Even" : props->parity == IO_SERIAL_PARITY_ODD ? "Odd" : "None", props->stopbits, props->dtr, props->rts);
 #endif
 	return TRUE;
 }
@@ -1067,8 +1062,8 @@ static bool IO_Serial_InitPnP(IO_Serial * io)
 	IO_Serial_Properties props;
 	int i = 0;
 
-	props.input_bitrate = 9600;
-	props.output_bitrate = 9600;
+	props.input_bitrate = io->frequency / 372;
+	props.output_bitrate = io->frequency / 372;
 	props.parity = IO_SERIAL_PARITY_NONE;
 	props.bits = 8;
 	props.stopbits = 1;
@@ -1091,8 +1086,7 @@ static bool IO_Serial_InitPnP(IO_Serial * io)
 	return TRUE;
 }
 
-
-bool IO_Serial_Set_Smartreader_Freq(IO_Serial * io, int freq, int irdeto_mode)
+static bool IO_Serial_Set_Smartreader_Freq(IO_Serial * io)
 {
 	struct termios term;
 	struct termios orig;
@@ -1113,13 +1107,13 @@ bool IO_Serial_Set_Smartreader_Freq(IO_Serial * io, int freq, int irdeto_mode)
 	cfsetispeed(&term, 9600);
 	tcsetattr(io->fd, TCSANOW, &term);
 
-	// our freq comes in as 358, 357 or 600 so it needs this to be in KHz for the FR command
-	freq *= 10;
+	// our freq comes in as Hz and it needs this to be in KHz for the FR command
+	unsigned long freq = io->frequency / 1000;
 	fr[1] = (unsigned char) ((freq & 0xff00) >> 8);
 	fr[2] = (unsigned char) (freq & 0x00ff);
 
 	// Irdeto card supposedly need NN set to 1 .. to be confirmed
-	if (irdeto_mode)
+//	if (irdeto_mode) TODO: use NN from ATR
 		nn[1] = 0x01;
 
 	// send the commands

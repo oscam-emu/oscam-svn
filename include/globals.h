@@ -319,8 +319,7 @@ struct s_reader {
 	ushort card_atr_size;
 
 	int detect;
-	int mhz;
-	int custom_speed;
+	unsigned long frequency;
 
 	int online;
 	int card_status;

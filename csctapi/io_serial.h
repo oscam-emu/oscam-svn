@@ -66,12 +66,13 @@ typedef struct {
 
 /* IO_Serial exported datatype */
 typedef struct {
-	int fd;			/* Handle of the serial device */
+	int fd;				/* Handle of the serial device */
 	IO_Serial_Properties *props;
 	BYTE PnP_id[IO_SERIAL_PNPID_SIZE];	/* PnP Id of the serial device */
-	unsigned PnP_id_size;	/* Length of PnP Id */
-	char device[128];	/* Device path */
-	int reader_type;	/* Reader type */
+	unsigned PnP_id_size;		/* Length of PnP Id */
+	char device[128];		/* Device path */
+	int reader_type;		/* Reader type */
+	unsigned long frequency;	/* Frequency (Hz) */
 	int wr;
 } IO_Serial;
 
@@ -86,7 +87,7 @@ extern IO_Serial *IO_Serial_New(void);
 extern void IO_Serial_Delete(IO_Serial * io);
 
 /* Initialization and closing */
-extern bool IO_Serial_Init(IO_Serial * io, char *device, unsigned short reader_type, bool pnp);
+extern bool IO_Serial_Init(IO_Serial * io, char *device, unsigned long frequency, unsigned short reader_type, bool pnp);
 extern bool IO_Serial_Close(IO_Serial * io);
 
 /* Transmission properties */
@@ -106,8 +107,5 @@ extern bool IO_Serial_Write(IO_Serial * io, unsigned delay, unsigned size, BYTE 
 
 /* Serial port atributes */
 extern void IO_Serial_GetPnPId(IO_Serial * io, BYTE * pnp_id, unsigned *length);
-
-/* smartreader Frequency set */
-extern bool IO_Serial_Set_Smartreader_Freq(IO_Serial * io, int freq, int irdeto_mode);
 
 #endif /* IO_SERIAL */

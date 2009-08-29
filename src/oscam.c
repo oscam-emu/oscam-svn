@@ -571,7 +571,7 @@ int cs_fork(in_addr_t ip, in_port_t port)
 								cs_log("proxy started (pid=%d, server=%s)", pid, reader[ridx].device);
 							else {
 								if (reader[ridx].type == R_PHOENIX || reader[ridx].type == R_SMARTMOUSE || reader[ridx].type == R_SMARTREADER)
-									cs_log("reader started (pid=%d, device=%s, detect=%s%s, mhz=%d)", pid, reader[ridx].device, reader[ridx].detect & 0x80 ? "!" : "", RDR_CD_TXT[reader[ridx].detect & 0x7f], reader[ridx].mhz);
+									cs_log("reader started (pid=%d, device=%s, detect=%s%s, frequency=%2.2fMHz)", pid, reader[ridx].device, reader[ridx].detect & 0x80 ? "!" : "", RDR_CD_TXT[reader[ridx].detect & 0x7f], (float) reader[ridx].frequency / 1000000);
 								else
 									cs_log("reader started (pid=%d, device=%s)", pid, reader[ridx].device);
 								client[i].ip = client[0].ip;

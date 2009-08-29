@@ -54,15 +54,12 @@
 
 #define IFD_TOWITOKO_TIMEOUT             1000
 #define IFD_TOWITOKO_DELAY               0
-#define IFD_TOWITOKO_BAUDRATE            9600
 #define IFD_TOWITOKO_PS                  15
 #define IFD_TOWITOKO_MAX_TRANSMIT        255
 //#define IFD_TOWITOKO_ATR_TIMEOUT       200
 //#define IFD_TOWITOKO_ATR_TIMEOUT       400
 #define IFD_TOWITOKO_ATR_TIMEOUT	 800
 #define IFD_TOWITOKO_ATR_MIN_LENGTH      1
-#define IFD_TOWITOKO_CLOCK_RATE          (625L * 9600L)
-//#define IFD_TOWITOKO_CLOCK_RATE          (372L * 9600L)
 
 #define HI(a) 				(((a) & 0xff00) >> 8)
 #define LO(a) 				((a) & 0x00ff)
@@ -163,7 +160,7 @@ int IFD_Towitoko_Init(IFD * ifd, IO_Serial * io, BYTE slot)
 #endif
 
 #ifdef DEBUG_IFD
-	printf("IFD: Initialicing slot number %d, com=%d\n", slot, io->com);
+	printf("IFD: Initialicing slot number %d, device=%s\n", slot, io->device);
 #endif
 
 //      if ((slot != IFD_TOWITOKO_SLOT_MULTICAM) && (slot != IFD_TOWITOKO_SLOT_A) && (slot != IFD_TOWITOKO_SLOT_B))
@@ -177,10 +174,9 @@ int IFD_Towitoko_Init(IFD * ifd, IO_Serial * io, BYTE slot)
 		return IFD_TOWITOKO_OK;
 	}
 
-
 	/* Default serial port settings */
-	props.input_bitrate = IFD_TOWITOKO_BAUDRATE;
-	props.output_bitrate = IFD_TOWITOKO_BAUDRATE;
+	props.input_bitrate = io->frequency / 372;
+	props.output_bitrate = io->frequency / 372;
 	props.bits = 8;
 	props.stopbits = 2;
 	props.parity = IO_SERIAL_PARITY_EVEN;
@@ -202,7 +198,7 @@ int IFD_Towitoko_Init(IFD * ifd, IO_Serial * io, BYTE slot)
 	ifd->slot = slot;
 	ifd->type = IFD_TOWITOKO_MULTICAM;
 
-	ret = IFD_Towitoko_SetBaudrate(ifd, IFD_TOWITOKO_BAUDRATE);
+	ret = IFD_Towitoko_SetBaudrate(ifd, io->frequency / 372);
 
 	if (ret != IFD_TOWITOKO_OK) {
 		IFD_Towitoko_Clear(ifd);
@@ -277,7 +273,6 @@ int IFD_Towitoko_SetBaudrate(IFD * ifd, unsigned long baudrate)
 
 	if (props.output_bitrate == baudrate)
 		return IFD_TOWITOKO_OK;
-
 
 	/* Set serial device bitrate */
 	props.output_bitrate = baudrate;
@@ -439,7 +434,7 @@ int IFD_Towitoko_GetStatus(IFD * ifd, BYTE * result)
 	(*result) = status[0];
 
 #ifdef DEBUG_IFD
-	printf("IFD: com%d Status = %s / %s\n", ifd->io->com, IFD_TOWITOKO_CARD(status[0]) ? "card" : "no card", IFD_TOWITOKO_CHANGE(status[0]) ? "change" : "no change");
+	printf("IFD: device=%s Status = %s / %s\n", ifd->io->device, IFD_TOWITOKO_CARD(status[0]) ? "card" : "no card", IFD_TOWITOKO_CHANGE(status[0]) ? "change" : "no change");
 #endif
 
 	return IFD_TOWITOKO_OK;
@@ -851,7 +846,7 @@ unsigned IFD_Towitoko_GetNumSlots(IFD * ifd)
 
 unsigned long IFD_Towitoko_GetClockRate(IFD * ifd)
 {
-	return IFD_TOWITOKO_CLOCK_RATE;
+	return ifd->io->frequency;
 }
 
 unsigned long IFD_Towitoko_GetMaxBaudrate(IFD * ifd)

@@ -1106,21 +1106,12 @@ static void chk_reader(char *token, char *value, struct s_reader *rdr)
 			else if ((value[0] == '!') && (!strcmp(value + 1, RDR_CD_TXT[i])))
 				rdr->detect = i | 0x80;
 		}
-	if (!strcmp(token, "mhz")) {
-		if (!strcmp(value, "1000"))
-			rdr->mhz = 1000;
-		if (!strcmp(value, "600"))
-			rdr->mhz = 600;
-		if (!strcmp(value, "357"))
-			rdr->mhz = 357;
-		if (!strcmp(value, "358"))
-			rdr->mhz = 358;
-	}
-	if (!strcmp(token, "customspeed")) {
-		if (!strcmp(value, "0"))
-			rdr->custom_speed = 0;
-		if (!strcmp(value, "1"))
-			rdr->custom_speed = 1;
+	if (!strcmp(token, "frequency")) {
+		char *endptr;
+		double mhz = strtod(value, &endptr);
+		if (*endptr == '\0') {
+			rdr->frequency = mhz * 1000000;
+		}
 	}
 	if (!strcmp(token, "protocol")) {
 		if (!strcmp(value, "phoenix"))
@@ -1222,8 +1213,7 @@ int init_readerdb()
 			reader[nr].tcp_rto = 30;
 			reader[nr].show_cls = 10;
 			reader[nr].maxqlen = CS_MAXQLEN;
-			reader[nr].mhz = 357;
-			reader[nr].custom_speed = 1;
+			reader[nr].frequency = 3571200;
 			strcpy(reader[nr].pincode, "none");
 			for (i = 1; i < CS_MAXCAIDTAB; reader[nr].ctab.mask[i++] = 0xffff);
 			continue;

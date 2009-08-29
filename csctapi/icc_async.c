@@ -33,7 +33,6 @@
  * Not exported constants definition
  */
 #define ICC_ASYNC_MAX_TRANSMIT	255
-#define ICC_ASYNC_BAUDRATE	9600
 
 /*
  * Not exported functions declaration
@@ -69,13 +68,13 @@ int ICC_Async_Init(ICC_Async * icc, IFD * ifd)
 		return ICC_ASYNC_IFD_ERROR;
 
 	/* Initialize Baudrate */
-//      if (IFD_Towitoko_SetBaudrate (ifd, ICC_ASYNC_BAUDRATE)!= IFD_TOWITOKO_OK)
-	if (IFD_Towitoko_SetBaudrate(ifd, 9600) != IFD_TOWITOKO_OK)
-		return ICC_ASYNC_IFD_ERROR;
+//	if (IFD_Towitoko_SetBaudrate(ifd, ICC_ASYNC_BAUDRATE) != IFD_TOWITOKO_OK)
+//		return ICC_ASYNC_IFD_ERROR;
 
 	/* Activate ICC */
 	if (IFD_Towitoko_ActivateICC(ifd) != IFD_TOWITOKO_OK)
 		return ICC_ASYNC_IFD_ERROR;
+
 	/* Reset ICC */
 	if (IFD_Towitoko_ResetAsyncICC(ifd, &(icc->atr)) != IFD_TOWITOKO_OK) {
 		icc->atr = NULL;
@@ -116,8 +115,10 @@ int ICC_Async_Init(ICC_Async * icc, IFD * ifd)
 	}
 
 	/* Initialize member variables */
-	icc->baudrate = ICC_ASYNC_BAUDRATE;
 	icc->ifd = ifd;
+
+	if (IFD_Towitoko_GetBaudrate(ifd, &icc->baudrate) != IFD_TOWITOKO_OK)
+		return ICC_ASYNC_IFD_ERROR;
 
 #  ifdef NO_PAR_SWITCH
 	if (icc->convention == ATR_CONVENTION_INVERSE) {
@@ -186,13 +187,12 @@ int ICC_Async_BeginTransmission(ICC_Async * icc)
 		if (IFD_Towitoko_SetParity(icc->ifd, IFD_TOWITOKO_PARITY_EVEN) != IFD_TOWITOKO_OK)
 			return ICC_ASYNC_IFD_ERROR;
 	}
-
-	/* Setup baudrate for  this ICC */
-
-/*	if (IFD_Towitoko_SetBaudrate (icc->ifd, icc->baudrate)!= IFD_TOWITOKO_OK)
-		return ICC_ASYNC_IFD_ERROR;
-*/
 #endif
+
+	/* Setup baudrate for this ICC */
+	if (IFD_Towitoko_SetBaudrate(icc->ifd, icc->baudrate) != IFD_TOWITOKO_OK)
+		return ICC_ASYNC_IFD_ERROR;
+
 	return ICC_ASYNC_OK;
 }
 

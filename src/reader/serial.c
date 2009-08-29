@@ -11,9 +11,7 @@
 
 #define CTAPI_CTN 1
 
-int reader_serial_irdeto_mode;		// UGLY : to be removed
 int reader_serial_card_detect;		// UGLY : to be removed
-int reader_serial_mhz;			// UGLY : to be removed
 int reader_serial_need_dummy_char;	// UGLY : to be removed
 
 static ushort reader_serial_get_reader_type(struct s_reader *reader)
@@ -114,7 +112,6 @@ int reader_serial_init(struct s_reader *reader)
 
 	// Set some extern variables to be used by CT-API
 	reader_serial_card_detect = reader->detect;
-	reader_serial_mhz = reader->mhz;
 
 	// Save and Change cs_ptyp
 	int cs_ptyp_orig = cs_ptyp;
@@ -122,7 +119,7 @@ int reader_serial_init(struct s_reader *reader)
 
 	// Lookup Port Number
 	ushort reader_type = reader_serial_get_reader_type(reader);
-	if ((ret = CT_init(CTAPI_CTN, reader->device, reader_type)) != OK) {
+	if ((ret = CT_init(CTAPI_CTN, reader->device, reader->frequency, reader_type)) != OK) {
 		cs_log("Reader: Cannot open device \"%s\" (%d) !", reader->device, ret);
 	}
 
@@ -188,8 +185,6 @@ int reader_serial_get_atr(uchar *atr, ushort *atr_size)
 
 	/* Try to get ATR from card */
 	for (i = 0; i < 3; i++) {
-		reader_serial_irdeto_mode = (i % 2);
-
 		/* Request ICC */
 		cmd[0] = CTBCS_CLA;
 		cmd[1] = CTBCS_INS_REQUEST;
