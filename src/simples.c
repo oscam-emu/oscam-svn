@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <sys/poll.h>
 #include <arpa/inet.h>
+#include <sys/select.h>
 
 #ifdef NO_FTIME
 #  include <sys/time.h>
