@@ -70,9 +70,6 @@ link_directories (${OPTIONAL_LINK_DIR})
 
 #----------------------- global options ------------------------------
 
-# we want to have detection of all the errors
-add_definitions ("-Wall -Werror -Wno-strict-aliasing -Wmissing-declarations -Wnested-externs -Wredundant-decls -Wundef -Winline -Waggregate-return -Wbad-function-cast -Wmissing-field-initializers -Wcast-align")
-
 if (OSCamOperatingSystem MATCHES "Linux")
     add_definitions ("-DOS_LINUX")
     set (DEFAULT_CS_CONFDIR "/usr/local/etc")
@@ -177,6 +174,10 @@ elseif (OSCamOperatingSystem MATCHES "Amino")
 elseif (OSCamOperatingSystem MATCHES "Windows/cygwin")
 endif (OSCamOperatingSystem MATCHES "Linux")
 
+#----------------------- some compile option to better check the code ---------------
+
+set (CMAKE_C_FLAGS_CODECHECK "-Wall -Werror -Wno-strict-aliasing -Wmissing-declarations -Wnested-externs -Wredundant-decls -Wundef -Winline -Waggregate-return -Wbad-function-cast -Wmissing-field-initializers -Wcast-align")
+
 #----------------------- global compile and link options ------------------------------
 
 # some optimisations
@@ -243,6 +244,11 @@ include (CPack)
 #----------------------- printout resume -----------------------------
 
 message (STATUS "")
+if (CMAKE_BUILD_TYPE)
+    message (STATUS "  build type: ${CMAKE_BUILD_TYPE}")
+else (CMAKE_BUILD_TYPE)
+    message (STATUS "  build type: unspecified")
+endif (CMAKE_BUILD_TYPE)
 message (STATUS "  operating system: ${OSCamOperatingSystem}")
 message (STATUS "  system type: ${CS_OSTYPE}")
 message (STATUS "  system: ${CS_OS_SYS}")
