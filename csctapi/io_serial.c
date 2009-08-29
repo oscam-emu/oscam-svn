@@ -89,7 +89,7 @@ void IO_Serial_Ioctl_Lock(IO_Serial * io, int flag)
 	else
 		while (*oscam_sem != io->reader_type) {
 			while (*oscam_sem)
-				usleep(() * 2000);
+				usleep(2000);
 			*oscam_sem = io->reader_type;
 			usleep(1000);
 		}
@@ -99,7 +99,6 @@ static bool IO_Serial_DTR_RTS_dbox2(int mcport, int dtr, int set)
 {
 	int rc;
 	unsigned short msr;
-	unsigned int mbit;
 	unsigned short rts_bits[2] = { 0x10, 0x800 };
 	unsigned short dtr_bits[2] = { 0x100, 0 };
 

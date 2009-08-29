@@ -29,6 +29,15 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#ifdef TUXBOX
+#  include <sys/stat.h>
+#endif
+
+#ifdef CS_NOSHM
+#  include <sys/mman.h>
+#  include <fcntl.h>
+#endif
+
 /*****************************************************************************
         Globals
 *****************************************************************************/

@@ -1,6 +1,10 @@
 #include "globals.h"
 #include "reader/serial.h"
 
+#ifdef TUXBOX
+#  include <sys/stat.h>
+#endif
+
 #include "simples.h"
 #include "log.h"
 

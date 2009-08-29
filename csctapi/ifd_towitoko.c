@@ -73,6 +73,10 @@ static void IFD_Towitoko_Clear(IFD * ifd);
 
 extern int reader_serial_card_detect;
 
+#if defined(TUXBOX) && defined(PPC)
+	extern int fdmc;
+#endif
+
 #ifdef USE_GPIO
 
 int gpio_outen, gpio_out, gpio_in;
@@ -353,7 +357,6 @@ int IFD_Towitoko_GetStatus(IFD * ifd, BYTE * result)
 #if defined(TUXBOX) && defined(PPC)
 	if ((ifd->io->reader_type == RTYP_DB2COM1) || (ifd->io->reader_type == RTYP_DB2COM2)) {
 		ushort msr = 1;
-		extern int fdmc;
 
 		IO_Serial_Ioctl_Lock(ifd->io, 1);
 		ioctl(fdmc, GET_PCDAT, &msr);

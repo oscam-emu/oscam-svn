@@ -6,6 +6,10 @@
 #include <sys/poll.h>
 #include <arpa/inet.h>
 
+#ifdef NO_FTIME
+#  include <sys/time.h>
+#endif
+
 static AES_KEY aeskey;
 
 void aes_set_key(char *key)
