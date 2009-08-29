@@ -6,6 +6,7 @@
 #include "log.h"
 
 #include <time.h>
+#include <stdlib.h>
 
 #define REQ_SIZE	4
 static uchar camdbug[256];	// camd send wrong order

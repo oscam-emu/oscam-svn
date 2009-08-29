@@ -4,6 +4,8 @@
 
 #include "log.h"
 
+#include <stdlib.h>
+
 #define MAX_ATR_LEN 33	// max. ATR length
 #define MAX_HIST    15	// max. number of historical characters
 

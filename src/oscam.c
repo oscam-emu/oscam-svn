@@ -34,6 +34,7 @@
 #endif
 
 #ifdef CS_NOSHM
+#  include <sys/stat.h>
 #  include <sys/mman.h>
 #  include <fcntl.h>
 #endif
