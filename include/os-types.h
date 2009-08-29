@@ -72,7 +72,6 @@ typedef unsigned long long ullong;
 #    define NO_FTIME
 #    define CS_HW_DBOX2	1
 #    define CS_HW_DREAM	2
-#    define SCI_DEV 1
 #    ifndef NO_PAR_SWITCH
 #      define NO_PAR_SWITCH
 #    endif

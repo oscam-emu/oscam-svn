@@ -3,8 +3,12 @@
 
 /* config.h.in.  Generated from configure.ac by autoheader.  */
 
-/* Debug CT-API */
+/* define the correct serial device for tuxbox systems */
+#ifdef TUXBOX
+# define SCI_DEV 1
+#endif
 
+/* Debug CT-API */
 /* #undef DEBUG_CTAPI */
 //#define DEBUG_CTAPI 1
 
