@@ -18,6 +18,9 @@
 int reader_serial_card_detect;		// UGLY : to be removed
 int reader_serial_need_dummy_char;	// UGLY : to be removed
 
+unsigned long reader_serial_bitrate_optimal;
+unsigned long reader_serial_bitrate_effective;
+
 static ushort reader_serial_get_reader_type(struct s_reader *reader)
 {
 	ushort reader_type = RTYP_PHOENIX;
@@ -212,4 +215,12 @@ int reader_serial_get_atr(uchar *atr, ushort *atr_size)
 
 	/* Cannot get the ATR */
 	return 0;
+}
+
+int reader_serial_get_bitrates(unsigned long *bitrate_optimal, unsigned long *bitrate_effective)
+{
+	*bitrate_optimal = reader_serial_bitrate_optimal;
+	*bitrate_effective = reader_serial_bitrate_effective;
+
+	return 1;
 }

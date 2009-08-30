@@ -66,10 +66,37 @@ static int reader_common_get_atr(struct s_reader *reader)
 	return rc;
 }
 
+static int reader_common_get_bitrates(struct s_reader *reader)
+{
+	int rc = 0;
+	unsigned long reader_bitrate_optimal;
+	unsigned long reader_bitrate_effective;
+
+	if ((reader->type & R_IS_SERIAL) != 0) {
+		rc = reader_serial_get_bitrates(&reader_bitrate_optimal, &reader_bitrate_effective);
+	}
+
+	if (rc) {
+		if (reader_bitrate_effective == reader_bitrate_optimal) {
+			cs_log("Reader: Using optimal bitrate of %lu bit/s", reader_bitrate_optimal);
+		} else {
+			cs_log("Reader: Using approximatif bitrate of %lu bit/s", reader_bitrate_effective);
+			cs_log("Reader: Optimal bitrate is %lu bit/s (%+.2f%% off)", reader_bitrate_optimal, (((double) reader_bitrate_effective) - reader_bitrate_optimal) / reader_bitrate_optimal);
+		}
+	}
+
+	return rc;
+}
+
 static int reader_common_init_card(struct s_reader *reader)
 {
 	/* Get Answer to Reset from card */
 	if (!reader_common_get_atr(reader)) {
+		return 0;
+	}
+
+	/* Show some information about bitrate */
+	if (!reader_common_get_bitrates(reader)) {
 		return 0;
 	}
 

@@ -6,6 +6,7 @@ int reader_serial_reset();
 
 int reader_serial_card_is_inserted();
 int reader_serial_get_atr(uchar *, ushort *);
+int reader_serial_get_bitrates(unsigned long *, unsigned long *);
 
 int reader_serial_cmd2card(uchar *, ushort, uchar *, ushort, ushort *);
 

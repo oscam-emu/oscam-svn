@@ -75,6 +75,9 @@ static bool IO_Serial_Set_Smartreader_Freq(IO_Serial * io);
 static int _in_echo_read = 0;
 extern int reader_serial_need_dummy_char;
 
+extern unsigned long reader_serial_bitrate_optimal;
+extern unsigned long reader_serial_bitrate_effective;
+
 int fdmc = (-1);
 
 #if defined(TUXBOX) && defined(PPC)
@@ -504,6 +507,9 @@ bool IO_Serial_SetProperties(IO_Serial * io, IO_Serial_Properties * props)
 
 	memset(&newtio, 0, sizeof (newtio));
 
+	/* Save the optimal bitrate value for OScam */
+	reader_serial_bitrate_optimal = props->output_bitrate;
+
 	/* Set the bitrate */
 #ifdef DEBUG_IO
 	printf("IO: Optimal bitrate should be = %lu\n", props->output_bitrate);
@@ -518,6 +524,9 @@ bool IO_Serial_SetProperties(IO_Serial * io, IO_Serial_Properties * props)
 		/* Standard bitrate */
 		cfsetospeed(&newtio, IO_Serial_Bitrate(props->output_bitrate));
 		cfsetispeed(&newtio, IO_Serial_Bitrate(props->input_bitrate));
+
+		/* Save the effective bitrate value for OScam */
+		reader_serial_bitrate_effective = props->output_bitrate;
 #ifdef OS_LINUX
 	} else {
 		/* Special bitrate : these structures are only available on linux as fas as we know so limit this code to OS_LINUX */
@@ -553,6 +562,9 @@ bool IO_Serial_SetProperties(IO_Serial * io, IO_Serial_Properties * props)
 				printf("IO: Using special bitrate of = %lu (%+.2f%% off)\n", effective_bitrate, ((double) (effective_bitrate - wanted_bitrate)) / wanted_bitrate);
 #endif
 			}
+
+			/* Save the effective bitrate value for OScam */
+			reader_serial_bitrate_effective = effective_bitrate;
 		}
 
 		/* Set the standard bitrate value */
