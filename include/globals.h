@@ -1,14 +1,6 @@
 #ifndef __GLOBALS_H__
 #  define __GLOBALS_H__
 
-/* To be removed after further testing : */
-//#  include <assert.h>
-//#  include <limits.h>
-//#  include <sys/mman.h>
-//#  include <stdio.h>
-//#  include <sys/socket.h>
-//#  include <netinet/in.h>
-
 #  include <errno.h>
 #  include <string.h>
 #  include <sys/types.h>
