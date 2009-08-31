@@ -1099,13 +1099,16 @@ static void chk_reader(char *token, char *value, struct s_reader *rdr)
 			exit(1);
 		}
 	}
-	if (!strcmp(token, "detect"))
+	if (!strcmp(token, "detect")) {
+		strtoupper(value);
+
 		for (i = 0; RDR_CD_TXT[i]; i++) {
 			if (!strcmp(value, RDR_CD_TXT[i]))
 				rdr->detect = i;
 			else if ((value[0] == '!') && (!strcmp(value + 1, RDR_CD_TXT[i])))
 				rdr->detect = i | 0x80;
 		}
+	}
 	if (!strcmp(token, "frequency")) {
 		char *endptr;
 		double mhz = strtod(value, &endptr);
