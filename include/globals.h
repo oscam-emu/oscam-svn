@@ -128,9 +128,9 @@
 
 #  ifdef CS_CORE
 char *PIP_ID_TXT[] = { "ECM", "EMM", "LOG", "CIN", "HUP", NULL };
-char *RDR_CD_TXT[] = { "cd", "dsr", "cts", "ring", "none",
+char *RDR_CD_TXT[] = { "CD", "DSR", "CTS", "RING", "NONE",
 #    ifdef USE_GPIO
-	"gpio2", "gpio3", "gpio4", "gpio5", "gpio6", "gpio7",
+	"GPIO2", "GPIO3", "GPIO4", "GPIO5", "GPIO6", "GPIO7",
 #    endif
 	NULL
 };
