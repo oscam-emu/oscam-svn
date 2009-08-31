@@ -66,7 +66,8 @@ char *strtolower(char *txt)
 
 	for (p = txt; *p; p++)
 		*p = tolower(*p);
-	return (txt);
+
+	return txt;
 }
 
 int gethexval(char c)
