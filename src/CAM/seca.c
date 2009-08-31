@@ -100,15 +100,12 @@ int cam_seca_detect(uchar *atr, ushort atr_size)
 
 int cam_seca_load_card()
 {
-	uchar buf[256];
 	static uchar ins0e[] = { 0xc1, 0x0e, 0x00, 0x00, 0x08 };	// get serial number (UA)
 	static uchar ins16[] = { 0xc1, 0x16, 0x00, 0x00, 0x07 };	// get nr. of prividers
-	int i;
+	static uchar ins30[] = { 0xc1, 0x30, 0x00, 0x01, 0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff };	// Unlock parental control
 
-// Unlock parental control
-// c1 30 00 01 09
-// 00 00 00 00 00 00 00 00 ff
-	static uchar ins30[] = { 0xc1, 0x30, 0x00, 0x01, 0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff };
+	int i;
+	uchar buf[256];
 	uchar result[260];
 	ushort result_size;
 
@@ -165,7 +162,8 @@ int cam_seca_load_card()
 	}
 
 	cs_log("providers: %d (%s)", reader[ridx].nprov, buf + 1);
-// Unlock parental control
+
+	// Unlock parental control
 	if (cfg->ulparent != 0) {
 		cam_common_cmd2card(ins30, sizeof(ins30), result, sizeof(result), &result_size);
 		cs_log("ins30_answer: %02x%02x", result[0], result[1]);
