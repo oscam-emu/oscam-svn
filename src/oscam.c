@@ -2089,7 +2089,7 @@ int main(int argc, char *argv[])
 	if (cfg->waitforcards) {
 		int card_init_done;
 
-		cs_log("Waiting for local card init ...");
+		cs_log("Waiting for local card(s) to be ready ...");
 
 		sleep(5);	// short sleep for card detect to work proberly
 
@@ -2113,7 +2113,7 @@ int main(int argc, char *argv[])
 			alarm(cfg->cmaxidle + cfg->ctimeout / 1000 + 1);
 		}
 
-		cs_log("Init for all local cards done !");
+		cs_log("Loading of local card(s) done !");
 	}
 #ifdef CS_ANTICASC
 	if (!cfg->ac_enabled)
