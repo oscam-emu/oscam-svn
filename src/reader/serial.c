@@ -48,8 +48,6 @@ static ushort reader_serial_get_reader_type(struct s_reader *reader)
 								break;
 						}
 					}
-
-					cs_debug("device is major: %d, minor: %d, reader_type=%d", dev_major, dev_minor, reader_type);
 				}
 			}
 #endif
@@ -76,16 +74,14 @@ static int reader_serial_cmd2api(uchar dad, uchar *cmd, ushort cmd_size, uchar *
 	char ret;
 	uchar sad = 2;
 
-	// Set result_size to the size of the result buffer (result_max_size)
+	/* Set result_size to the size of the result buffer (result_max_size) */
 	*result_size = result_max_size;
 
-	// Save and Change cs_ptyp
+	/* Save and Change cs_ptyp */
 	int cs_ptyp_orig = cs_ptyp;
 	cs_ptyp = dbg;
 
-//	cs_ddump(cmd, cmd_size, "send %d bytes to ctapi", cmd_size);
-
-	// Call CT-API
+	/* Call CT-API */
 	ret = CT_data(
 		CTAPI_CTN,	/* Terminal Number */
 		&dad,		/* Destination */
@@ -95,9 +91,7 @@ static int reader_serial_cmd2api(uchar dad, uchar *cmd, ushort cmd_size, uchar *
 		result_size,	/* Length of Response */
 		result);	/* Response */
 
-//	cs_ddump(result, *result_size, "received %d bytes from ctapi with ret=%d", *result_size, ret);
-
-	// Restore cs_ptyp
+	/* Restore cs_ptyp */
 	cs_ptyp = cs_ptyp_orig;
 
 	return ret;
@@ -117,20 +111,22 @@ int reader_serial_init(struct s_reader *reader)
 {
 	char ret;
 
-	// Set some extern variables to be used by CT-API
+	/* Set some extern variables to be used by CT-API */
 	reader_serial_card_detect = reader->detect;
 
-	// Save and Change cs_ptyp
+	/* Save and Change cs_ptyp */
 	int cs_ptyp_orig = cs_ptyp;
 	cs_ptyp = D_DEVICE;
 
-	// Lookup Port Number
+	/* Lookup reader type */
 	ushort reader_type = reader_serial_get_reader_type(reader);
+
+	/* Initialize CardTerminal */
 	if ((ret = CT_init(CTAPI_CTN, reader->device, reader->frequency, reader_type)) != OK) {
 		cs_log("Reader: Cannot open device \"%s\" (%d) !", reader->device, ret);
 	}
 
-	// Restore cs_ptyp
+	/* Restore cs_ptyp */
 	cs_ptyp = cs_ptyp_orig;
 
 	return (ret == OK);
