@@ -33,22 +33,22 @@ int cam_common_detect(uchar *atr, ushort atr_size)
 	/* Test each CAM to detect the card_system */
 	if (cam_conax_detect(atr, atr_size)) {
 		card_system = CAM_CONAX;
-		cs_log("CAM: Conax selected");
+		cs_log("CAM: Conax detected");
 	} else if (cam_cryptoworks_detect(atr, atr_size)) {
 		card_system = CAM_CRYPTOWORKS;
-		cs_log("CAM: Cryptoworks selected");
+		cs_log("CAM: Cryptoworks detected");
 	} else if (cam_irdeto_detect(atr, atr_size)) {
 		card_system = CAM_IRDETO;
-		cs_log("CAM: Irdeto selected");
+		cs_log("CAM: Irdeto detected");
 	} else if (cam_seca_detect(atr, atr_size)) {
 		card_system = CAM_SECA;
-		cs_log("CAM: Seca selected");
+		cs_log("CAM: Seca detected");
 	} else if (cam_viaccess_detect(atr, atr_size)) {
 		card_system = CAM_VIACCESS;
-		cs_log("CAM: Viaccess selected");
+		cs_log("CAM: Viaccess detected");
 	} else if (cam_videoguard_detect(atr, atr_size)) {
 		card_system = CAM_VIDEOGUARD;
-		cs_log("CAM: Videoguard selected");
+		cs_log("CAM: Videoguard detected");
 	} else {
 		cs_log("CAM: Card system not supported !");
 	}
