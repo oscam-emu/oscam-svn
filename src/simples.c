@@ -70,6 +70,16 @@ char *strtolower(char *txt)
 	return txt;
 }
 
+char *strtoupper(char *txt)
+{
+	char *p;
+
+	for (p = txt; *p; p++)
+		*p = toupper(*p);
+
+	return txt;
+}
+
 int gethexval(char c)
 {
 	if ((c >= '0') && (c <= '9'))
