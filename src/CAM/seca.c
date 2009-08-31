@@ -89,15 +89,16 @@ static int get_prov_index(char *provid)	//returns provider id or -1 if not found
 	return (-1);
 }
 
-int cam_seca_card_init(uchar *atr, ushort atr_size)
+int cam_seca_detect(uchar *atr, ushort atr_size)
 {
-	if ((atr[10] != 0x0e) || (atr[11] != 0x6c) || (atr[12] != 0xb6) || (atr[13] != 0xd6))
-		return 0;
+	if (atr[10] == 0x0e && atr[11] == 0x6c && atr[12] == 0xb6 && atr[13] == 0xd6) {
+		return 1;
+	}
 
-	return 1;
+	return 0;
 }
 
-int cam_seca_load_card_info()
+int cam_seca_load_card()
 {
 	uchar buf[256];
 	static uchar ins0e[] = { 0xc1, 0x0e, 0x00, 0x00, 0x08 };	// get serial number (UA)

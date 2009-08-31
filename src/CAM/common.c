@@ -26,27 +26,27 @@ typedef enum {
 	CAM_VIDEOGUARD
 } cam_common_card_system;
 
-int cam_common_detect_card_system(uchar *atr, ushort atr_size)
+int cam_common_detect(uchar *atr, ushort atr_size)
 {
 	cam_common_card_system card_system = CAM_UNKNOWN;
 
 	/* Test each CAM to detect the card_system */
-	if (cam_conax_card_init(atr, atr_size)) {
+	if (cam_conax_detect(atr, atr_size)) {
 		card_system = CAM_CONAX;
 		cs_log("CAM: Conax selected");
-	} else if (cam_cryptoworks_card_init(atr, atr_size)) {
+	} else if (cam_cryptoworks_detect(atr, atr_size)) {
 		card_system = CAM_CRYPTOWORKS;
 		cs_log("CAM: Cryptoworks selected");
-	} else if (cam_irdeto_card_init(atr, atr_size)) {
+	} else if (cam_irdeto_detect(atr, atr_size)) {
 		card_system = CAM_IRDETO;
 		cs_log("CAM: Irdeto selected");
-	} else if (cam_seca_card_init(atr, atr_size)) {
+	} else if (cam_seca_detect(atr, atr_size)) {
 		card_system = CAM_SECA;
 		cs_log("CAM: Seca selected");
-	} else if (cam_viaccess_card_init(atr, atr_size)) {
+	} else if (cam_viaccess_detect(atr, atr_size)) {
 		card_system = CAM_VIACCESS;
 		cs_log("CAM: Viaccess selected");
-	} else if (cam_videoguard_card_init(atr, atr_size)) {
+	} else if (cam_videoguard_detect(atr, atr_size)) {
 		card_system = CAM_VIDEOGUARD;
 		cs_log("CAM: Videoguard selected");
 	} else {
@@ -59,7 +59,7 @@ int cam_common_detect_card_system(uchar *atr, ushort atr_size)
 	return card_system;
 }
 
-int cam_common_load_card_info()
+int cam_common_load_card()
 {
 	int rc = 0;
 
@@ -67,22 +67,22 @@ int cam_common_load_card_info()
 
 	switch (reader[ridx].card_system) {
 		case CAM_CONAX:
-			rc = cam_conax_load_card_info();
+			rc = cam_conax_load_card();
 			break;
 		case CAM_CRYPTOWORKS:
-			rc = cam_cryptoworks_load_card_info();
+			rc = cam_cryptoworks_load_card();
 			break;
 		case CAM_IRDETO:
-			rc = cam_irdeto_load_card_info();
+			rc = cam_irdeto_load_card();
 			break;
 		case CAM_SECA:
-			rc = cam_seca_load_card_info();
+			rc = cam_seca_load_card();
 			break;
 		case CAM_VIACCESS:
-			rc = cam_viaccess_load_card_info();
+			rc = cam_viaccess_load_card();
 			break;
 		case CAM_VIDEOGUARD:
-			rc = cam_videoguard_load_card_info();
+			rc = cam_videoguard_load_card();
 			break;
 	}
 

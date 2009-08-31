@@ -141,23 +141,33 @@ static int card_send_ins(const uchar *cmd, const uchar *data, uchar *result, ush
 	return cam_common_cmd2card(buf, 5 + cmd[4], result, result_max_size, result_size);
 }
 
-int cam_viaccess_card_init(uchar *atr, ushort atr_size)
+int cam_viaccess_detect(uchar *atr, ushort atr_size)
 {
-	int i;
-	uchar buf[256];
+	if (atr[0] == 0x3f && atr[1] == 0x77 && atr[2] == 0x18 && atr[9] == 0x68) {
+		return 1;
+	}
+
+	return 0;
+}
+
+int cam_viaccess_load_card()
+{
+	int i, l, scls, show_cls;
 	static uchar insac[] = { 0xca, 0xac, 0x00, 0x00, 0x00 };	// select data
 	static uchar insb8[] = { 0xca, 0xb8, 0x00, 0x00, 0x00 };	// read selected data
 	static uchar insa4[] = { 0xca, 0xa4, 0x00, 0x00, 0x00 };	// select issuer
 	static uchar insc0[] = { 0xca, 0xc0, 0x00, 0x00, 0x00 };	// read data item
+	static uchar ins24[] = { 0xca, 0x24, 0x00, 0x00, 0x09 };	// set pin
+
+	static uchar cls[] = { 0x00, 0x21, 0xff, 0x9f };
+	static uchar pin[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04 };
 
 	static uchar insFAC[] = { 0x87, 0x02, 0x00, 0x00, 0x03 };	// init FAC
 	static uchar FacDat[] = { 0x00, 0x00, 0x28 };
 
+	uchar buf[256];
 	uchar result[260];
 	ushort result_size;
-
-	if ((atr[0] != 0x3f) || (atr[1] != 0x77) || (atr[2] != 0x18) || (atr[9] != 0x68))
-		return (0);
 
 	card_send_ins(insFAC, FacDat, result, sizeof(result), &result_size);
 	if (!(result[result_size - 2] == 0x90 && result[result_size - 1] == 0))
@@ -179,7 +189,7 @@ int cam_viaccess_card_init(uchar *atr, ushort atr_size)
 	cam_common_cmd2card(insb8, sizeof(insb8), result, sizeof(result), &result_size);	// read unique id
 	memcpy(reader[ridx].hexserial, result + 2, 5);
 //  cs_log("type: viaccess, ver: %s serial: %llu", ver, b2ll(5, result+2));
-	cs_log("type: viaccess(%sstandard atr), caid: %04X, serial: %llu", atr[9] == 0x68 ? "" : "non-", reader[ridx].caid[0], b2ll(5, result + 2));
+	cs_log("type: viaccess(%sstandard atr), caid: %04X, serial: %llu", reader[ridx].card_atr[9] == 0x68 ? "" : "non-", reader[ridx].caid[0], b2ll(5, result + 2));
 
 	i = 0;
 	insa4[2] = 0x00;
@@ -230,26 +240,6 @@ cs_log("name: %s", result);
 		else
 			cs_log("Parental lock disabled");
 	}
-
-	memset(&last_geo, 0, sizeof (last_geo));
-
-	return 1;
-}
-
-int cam_viaccess_load_card_info()
-{
-	int i, l, scls, show_cls;
-	static uchar insac[] = { 0xca, 0xac, 0x00, 0x00, 0x00 };	// select data
-	static uchar insb8[] = { 0xca, 0xb8, 0x00, 0x00, 0x00 };	// read selected data
-	static uchar insa4[] = { 0xca, 0xa4, 0x00, 0x00, 0x00 };	// select issuer
-	static uchar insc0[] = { 0xca, 0xc0, 0x00, 0x00, 0x00 };	// read data item
-	static uchar ins24[] = { 0xca, 0x24, 0x00, 0x00, 0x09 };	// set pin
-
-	static uchar cls[] = { 0x00, 0x21, 0xff, 0x9f };
-	static uchar pin[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04 };
-
-	uchar result[260];
-	ushort result_size;
 
 	show_cls = reader[ridx].show_cls;
 	memset(&last_geo, 0, sizeof (last_geo));

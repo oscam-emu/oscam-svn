@@ -587,7 +587,7 @@ static const unsigned char *payload_addr(const unsigned char *data, const unsign
 	return ptr;
 }
 
-int cam_videoguard_card_init(uchar *atr, ushort atr_size)
+int cam_videoguard_detect(uchar *atr, ushort atr_size)
 {
 	/* known atrs */
 	unsigned char atr_bskyb[] = { 0x3F, 0x7F, 0x13, 0x25, 0x03, 0x33, 0xB0, 0x06, 0x69, 0xFF, 0x4A, 0x50, 0xD0, 0x00, 0x00, 0x53, 0x59, 0x00, 0x00, 0x00 };
@@ -616,6 +616,11 @@ int cam_videoguard_card_init(uchar *atr, ushort atr_size)
 		return 0;
 	}
 
+	return 1;
+}
+
+int cam_videoguard_load_card()
+{
 	unsigned char ins7401[5] = { 0xD0, 0x74, 0x01, 0x00, 0x00 };
 	int l;
 
@@ -750,11 +755,6 @@ int cam_videoguard_card_init(uchar *atr, ushort atr_size)
 
 	cs_log("caid: %04X, serial: %02X%02X%02X%02X, BoxID: %02X%02X%02X%02X", reader[ridx].caid[0], reader[ridx].hexserial[4], reader[ridx].hexserial[5], reader[ridx].hexserial[6], reader[ridx].hexserial[7], boxID[0], boxID[1], boxID[2], boxID[3]);
 
-	return 1;
-}
-
-int cam_videoguard_load_card_info()
-{
 	read_tiers();
 
 	return 1;

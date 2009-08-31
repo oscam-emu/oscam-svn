@@ -185,99 +185,6 @@ static int cryptoworks_disbale_pin()
 	return (0);
 }
 
-int cam_cryptoworks_card_init(uchar *atr, ushort atr_size)
-{
-	int i;
-	unsigned int mfid = 0x3F20;
-	uchar insA4C[] = { 0xA4, 0xC0, 0x00, 0x00, 0x11 };
-	uchar insB8[] = { 0xA4, 0xB8, 0x00, 0x00, 0x0c };
-	uchar result[260];
-	ushort result_size;
-
-	uchar issuerid = 0;
-	char issuer[20] = { 0 };
-	char *unknown = "unknown", *pin = unknown, ptxt[CS_MAXPROV << 2] = { 0 };
-
-	if ((atr[6] != 0xC4) || (atr[9] != 0x8F) || (atr[10] != 0xF1))
-		return (0);
-
-	reader[ridx].caid[0] = 0xD00;
-	reader[ridx].nprov = 0;
-	memset(reader[ridx].prid, 0, sizeof (reader[ridx].prid));
-
-	cam_common_cmd2card(insA4C, sizeof(insA4C), result, sizeof(result), &result_size);	// read masterfile-ID
-	if ((result[0] == 0xDF) && (result[1] >= 6))
-		mfid = (result[6] << 8) | result[7];
-
-	select_file(0x3f, 0x20);
-	insB8[2] = insB8[3] = 0;	// first
-	for (result[0] = 0xdf; result[0] == 0xdf;) {
-		cam_common_cmd2card(insB8, sizeof(insB8), result, sizeof(result), &result_size);	// read provider id's
-		if (result[0] != 0xdf)
-			break;
-		if (((result[4] & 0x1f) == 0x1f) && (reader[ridx].nprov < CS_MAXPROV)) {
-			sprintf(ptxt + strlen(ptxt), ",%02X", result[5]);
-			reader[ridx].prid[reader[ridx].nprov++][3] = result[5];
-		}
-		insB8[2] = insB8[3] = 0xff;	// next
-	}
-	for (i = reader[ridx].nprov; i < CS_MAXPROV; i++)
-		memset(&reader[ridx].prid[i][0], 0xff, 4);
-
-	select_file(0x2f, 0x01);	// read caid
-	if (read_record(0xD1) >= 4)
-		reader[ridx].caid[0] = (result[2] << 8) | result[3];
-
-	if (read_record(0x80) >= 7)	// read serial
-		memcpy(reader[ridx].hexserial, result + 2, 5);
-	cs_log("type: cryptoworks, caid: %04X, ascii serial: %llu, hex serial: %s", reader[ridx].caid[0], b2ll(5, reader[ridx].hexserial), cs_hexdump(0, reader[ridx].hexserial, 5));
-
-	if (read_record(0x9E) >= 66)	// read ISK
-	{
-		uchar keybuf[256];
-		BIGNUM *ipk;
-
-		if (search_boxkey(reader[ridx].caid[0], 0, (char *) keybuf)) {
-			ipk = BN_new();
-			BN_bin2bn(cwexp, sizeof (cwexp), &exp);
-			BN_bin2bn(keybuf, 64, ipk);
-			RSA(result + 2, result + 2, 0x40, &exp, ipk, 0);
-			BN_free(ipk);
-			if ((ucpk_valid = (result[2] == ((mfid & 0xFF) >> 1)))) {
-				result[2] |= 0x80;
-				BN_bin2bn(result + 2, 0x40, &ucpk);
-				cs_ddump(result + 2, 0x40, "IPK available -> session-key:");
-			} else {
-				if ((ucpk_valid = (keybuf[0] == (((mfid & 0xFF) >> 1) | 0x80)))) {
-					BN_bin2bn(keybuf, 0x40, &ucpk);
-					cs_ddump(keybuf, 0x40, "session-key found:");
-				} else
-					cs_log("invalid IPK or session-key for CAID %04X !", reader[ridx].caid[0]);
-			}
-		}
-	}
-	if (read_record(0x9F) >= 3)
-		issuerid = result[2];
-	if (read_record(0xC0) >= 16) {
-		strncpy(issuer, (const char *) result + 2, sizeof (issuer) - 1);
-		trim(issuer);
-	} else
-		strcpy(issuer, unknown);
-
-	select_file(0x3f, 0x20);
-	select_file(0x2f, 0x11);	// read pin
-	if (read_record(atr[8]) >= 7) {
-		result[6] = 0;
-		pin = (char *) result + 2;
-	}
-	cs_log("issuer: %s, id: %02X, bios: v%d, pin: %s, mfid: %04X", issuer, issuerid, atr[7], pin, mfid);
-	cs_log("providers: %d (%s)", reader[ridx].nprov, ptxt + 1);
-
-	cryptoworks_disbale_pin();	//by KrazyIvan
-
-	return 1;
-}
-
 /*
 static int cSmartCardCryptoworks_Decode(const cEcmInfo * ecm, const unsigned char *data, unsigned char *cw)
 {
@@ -355,14 +262,103 @@ static int cSmartCardCryptoworks_Decode(const cEcmInfo * ecm, const unsigned cha
 }
 */
 
-int cam_cryptoworks_load_card_info()
+int cam_cryptoworks_detect(uchar *atr, ushort atr_size)
+{
+	if (atr[6] == 0xC4 && atr[9] == 0x8F && atr[10] == 0xF1) {
+		return 1;
+	}
+
+	return 0;
+}
+
+int cam_cryptoworks_load_card()
 {
 	int i;
+	unsigned int mfid = 0x3F20;
+	uchar insA4C[] = { 0xA4, 0xC0, 0x00, 0x00, 0x11 };
+	uchar insB8[] = { 0xA4, 0xB8, 0x00, 0x00, 0x0c };
 	uchar insA21[] = { 0xA4, 0xA2, 0x01, 0x00, 0x05, 0x8C, 0x00, 0x00, 0x00, 0x00 };
 	uchar insB2[] = { 0xA4, 0xB2, 0x00, 0x00, 0x00 };
 	uchar result[260];
 	ushort result_size;
+	uchar issuerid = 0;
+	char issuer[20] = { 0 };
+	char *unknown = "unknown", *pin = unknown, ptxt[CS_MAXPROV << 2] = { 0 };
 	char l_name[20 + 8] = ", name: ";
+
+	reader[ridx].caid[0] = 0xD00;
+	reader[ridx].nprov = 0;
+	memset(reader[ridx].prid, 0, sizeof (reader[ridx].prid));
+
+	cam_common_cmd2card(insA4C, sizeof(insA4C), result, sizeof(result), &result_size);	// read masterfile-ID
+	if ((result[0] == 0xDF) && (result[1] >= 6))
+		mfid = (result[6] << 8) | result[7];
+
+	select_file(0x3f, 0x20);
+	insB8[2] = insB8[3] = 0;	// first
+	for (result[0] = 0xdf; result[0] == 0xdf;) {
+		cam_common_cmd2card(insB8, sizeof(insB8), result, sizeof(result), &result_size);	// read provider id's
+		if (result[0] != 0xdf)
+			break;
+		if (((result[4] & 0x1f) == 0x1f) && (reader[ridx].nprov < CS_MAXPROV)) {
+			sprintf(ptxt + strlen(ptxt), ",%02X", result[5]);
+			reader[ridx].prid[reader[ridx].nprov++][3] = result[5];
+		}
+		insB8[2] = insB8[3] = 0xff;	// next
+	}
+	for (i = reader[ridx].nprov; i < CS_MAXPROV; i++)
+		memset(&reader[ridx].prid[i][0], 0xff, 4);
+
+	select_file(0x2f, 0x01);	// read caid
+	if (read_record(0xD1) >= 4)
+		reader[ridx].caid[0] = (result[2] << 8) | result[3];
+
+	if (read_record(0x80) >= 7)	// read serial
+		memcpy(reader[ridx].hexserial, result + 2, 5);
+	cs_log("type: cryptoworks, caid: %04X, ascii serial: %llu, hex serial: %s", reader[ridx].caid[0], b2ll(5, reader[ridx].hexserial), cs_hexdump(0, reader[ridx].hexserial, 5));
+
+	if (read_record(0x9E) >= 66)	// read ISK
+	{
+		uchar keybuf[256];
+		BIGNUM *ipk;
+
+		if (search_boxkey(reader[ridx].caid[0], 0, (char *) keybuf)) {
+			ipk = BN_new();
+			BN_bin2bn(cwexp, sizeof (cwexp), &exp);
+			BN_bin2bn(keybuf, 64, ipk);
+			RSA(result + 2, result + 2, 0x40, &exp, ipk, 0);
+			BN_free(ipk);
+			if ((ucpk_valid = (result[2] == ((mfid & 0xFF) >> 1)))) {
+				result[2] |= 0x80;
+				BN_bin2bn(result + 2, 0x40, &ucpk);
+				cs_ddump(result + 2, 0x40, "IPK available -> session-key:");
+			} else {
+				if ((ucpk_valid = (keybuf[0] == (((mfid & 0xFF) >> 1) | 0x80)))) {
+					BN_bin2bn(keybuf, 0x40, &ucpk);
+					cs_ddump(keybuf, 0x40, "session-key found:");
+				} else
+					cs_log("invalid IPK or session-key for CAID %04X !", reader[ridx].caid[0]);
+			}
+		}
+	}
+	if (read_record(0x9F) >= 3)
+		issuerid = result[2];
+	if (read_record(0xC0) >= 16) {
+		strncpy(issuer, (const char *) result + 2, sizeof (issuer) - 1);
+		trim(issuer);
+	} else
+		strcpy(issuer, unknown);
+
+	select_file(0x3f, 0x20);
+	select_file(0x2f, 0x11);	// read pin
+	if (read_record(reader[ridx].card_atr[8]) >= 7) {
+		result[6] = 0;
+		pin = (char *) result + 2;
+	}
+	cs_log("issuer: %s, id: %02X, bios: v%d, pin: %s, mfid: %04X", issuer, issuerid, reader[ridx].card_atr[7], pin, mfid);
+	cs_log("providers: %d (%s)", reader[ridx].nprov, ptxt + 1);
+
+	cryptoworks_disbale_pin();	//by KrazyIvan
 
 	for (i = 0; i < reader[ridx].nprov; i++) {
 		l_name[8] = 0;

@@ -101,12 +101,12 @@ static int reader_common_init_card(struct s_reader *reader)
 	}
 
 	/* Detect the card system */
-	if (!cam_common_detect_card_system(reader->card_atr, reader->card_atr_size)) {
+	if (!cam_common_detect(reader->card_atr, reader->card_atr_size)) {
 		return 0;
 	}
 
 	/* Load information from card */
-	reader_common_load_card_info(reader);
+	reader_common_load_card(reader);
 
 	return 1;
 }
@@ -122,7 +122,7 @@ int reader_common_init(struct s_reader *reader)
 	return rc;
 }
 
-void reader_common_load_card_info(struct s_reader *reader)
+void reader_common_load_card(struct s_reader *reader)
 {
 	reader_common_check_health(reader);
 
@@ -133,7 +133,7 @@ void reader_common_load_card_info(struct s_reader *reader)
 		client[cs_idx].last = time((time_t) 0);
 
 		/* Ask the CAM to load the card information */
-		if (cam_common_load_card_info()) {
+		if (cam_common_load_card()) {
 			/* Mark the reader as online */
 			reader->online = 1;
 

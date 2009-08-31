@@ -68,19 +68,31 @@ static int conax_send_pin()
 	return 1;
 }
 
-int cam_conax_card_init(uchar *atr, ushort atr_size)
+int cam_conax_detect(uchar *atr, ushort atr_size)
 {
-	int i, j, n;
 	uchar atr_0b00[] = { '0', 'B', '0', '0' };
+
+	if ((memcmp(atr + 3, atr_0b00, sizeof (atr_0b00)) == 0) || (memcmp(atr + 4, atr_0b00, sizeof (atr_0b00))) == 0) {
+		return 1;
+	}
+
+	return 0;
+}
+
+int cam_conax_load_card()
+{
+	int type, i, j, k, n = 0;
+	ushort provid;
+	char provname[32], pdate[32];
+	char *txt[] = { "Package", "PPV-Event" };
+	uchar insC6[] = { 0xDD, 0xC6, 0x00, 0x00, 0x03, 0x1C, 0x01, 0x00 };
 	uchar ins26[] = { 0xDD, 0x26, 0x00, 0x00, 0x03, 0x10, 0x01, 0x40 };
-	uchar ins82[] = { 0xDD, 0x82, 0x00, 0x00, 0x11, 0x11, 0x0f, 0x01, 0xb0, 0x0f, 0xff,
-		0xff, 0xfb, 0x00, 0x00, 0x09, 0x04, 0x0b, 0x00, 0xe0, 0x30, 0x2b
-	};
+	uchar ins26b[] = { 0xDD, 0x26, 0x00, 0x00, 0x03, 0x1C, 0x01, 0x01 };
+	uchar insCA[] = { 0xDD, 0xCA, 0x00, 0x00, 0x00 };
+	uchar ins82[] = { 0xDD, 0x82, 0x00, 0x00, 0x11, 0x11, 0x0f, 0x01, 0xb0, 0x0f, 0xff, 0xff, 0xfb, 0x00, 0x00, 0x09, 0x04, 0x0b, 0x00, 0xe0, 0x30, 0x2b };
+	uchar *cmd[] = { insC6, ins26b };
 
 	uchar cardver = 0;
-
-	if ((memcmp(atr + 3, atr_0b00, sizeof (atr_0b00))) && (memcmp(atr + 4, atr_0b00, sizeof (atr_0b00))))
-		return (0);
 
 	reader[ridx].caid[0] = 0xB00;
 
@@ -132,20 +144,6 @@ int cam_conax_card_init(uchar *atr, ushort atr_size)
 		cs_log("Provider:%d  Provider-Id:%06X", j + 1, b2ll(4, reader[ridx].prid[j]));
 		cs_log("Provider:%d  SharedAddress:%08X", j + 1, b2ll(4, reader[ridx].sa[j]));
 	}
-
-	return 1;
-}
-
-int cam_conax_load_card_info()
-{
-	int type, i, j, k, n = 0;
-	ushort provid;
-	char provname[32], pdate[32];
-	uchar insC6[] = { 0xDD, 0xC6, 0x00, 0x00, 0x03, 0x1C, 0x01, 0x00 };
-	uchar ins26[] = { 0xDD, 0x26, 0x00, 0x00, 0x03, 0x1C, 0x01, 0x01 };
-	uchar insCA[] = { 0xDD, 0xCA, 0x00, 0x00, 0x00 };
-	char *txt[] = { "Package", "PPV-Event" };
-	uchar *cmd[] = { insC6, ins26 };
 
 	for (type = 0; type < 2; type++) {
 		n = 0;

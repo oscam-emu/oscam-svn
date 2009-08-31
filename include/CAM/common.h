@@ -3,8 +3,8 @@
 
 #  define SCT_LEN(sct) (3+((sct[1]&0x0f)<<8)+sct[2])
 
-int cam_common_detect_card_system(uchar *, ushort);
-int cam_common_load_card_info();
+int cam_common_detect(uchar *, ushort);
+int cam_common_load_card();
 
 int cam_common_process_ecm(ECM_REQUEST *);
 int cam_common_process_emm(EMM_PACKET *);

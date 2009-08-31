@@ -430,7 +430,7 @@ static void card_do_pipe()
 			card_do_emm((EMM_PACKET *) ptr);
 			break;
 		case PIP_ID_CIN:
-			reader_common_load_card_info(&reader[ridx]);
+			reader_common_load_card(&reader[ridx]);
 			break;
 	}
 }

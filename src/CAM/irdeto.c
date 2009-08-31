@@ -178,16 +178,24 @@ static int irdeto_do_cmd(uchar * buf, ushort good, uchar *result, ushort result_
 	return (good != b2i(2, result + *result_size - 2));
 }
 
-int cam_irdeto_card_init(uchar *atr, ushort atr_size)
+int cam_irdeto_detect(uchar *atr, ushort atr_size)
 {
-	int i, camkey = 0, cs_ptyp_orig = cs_ptyp;
+	if (memcmp(atr + 4, "IRDETO", 6) == 0) {
+		return 1;
+	}
+
+	return 0;
+}
+
+int cam_irdeto_load_card()
+{
+	int i, camkey = 0, cs_ptyp_orig = cs_ptyp, p;
 	uchar buf[256] = { 0 };
+	uchar sc_GetChid[] = { 0xA0, 0xCA, 0x00, 0x00, 4, 0x22, 1, 5, 0x20 };
 //	uchar sc_GetROM[] = { 0xA0, 0xCA, 0x00, 0x00, 3, 0x10, 0, 0x11 };
 	uchar result[260];
 	ushort result_size;
 
-	if (memcmp(atr + 4, "IRDETO", 6))
-		return (0);
 	nagra = 0;
 
 	/*
@@ -237,7 +245,7 @@ int cam_irdeto_card_init(uchar *atr, ushort atr_size)
 	/*
 	 * CamKey
 	 */
-	if ((atr[14] == 0x03) && (atr[15] == 0x84) && (atr[16] == 0x55)) {
+	if (reader[ridx].card_atr[14] == 0x03 && reader[ridx].card_atr[15] == 0x84 && reader[ridx].card_atr[16] == 0x55) {
 		switch (reader[ridx].caid[0]) {
 			case 0x1702:
 				camkey = 1;
@@ -291,17 +299,6 @@ int cam_irdeto_card_init(uchar *atr, ushort atr_size)
 			cam_irdeto_chk_cmd(sc_GetCamKey383C, 0, result, &result_size);
 			break;
 	}
-
-	return 1;
-}
-
-int cam_irdeto_load_card_info()
-{
-	int i, p;
-	uchar buf[256] = { 0 };
-	uchar sc_GetChid[] = { 0xA0, 0xCA, 0x00, 0x00, 4, 0x22, 1, 5, 0x20 };
-	uchar result[260];
-	ushort result_size;
 
 	if (nagra) {
 		for (sc_GetChid[7] = 5;; sc_GetChid[7] |= 0x80) {
