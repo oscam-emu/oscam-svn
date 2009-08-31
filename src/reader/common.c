@@ -117,7 +117,7 @@ int reader_common_init(struct s_reader *reader)
 
 	if ((reader->type & R_IS_SERIAL) != 0) {
 		rc = reader_serial_init(reader);
-		cs_log("Reader: Initialized serial reader %s (%s @ %2.2f Mhz)", reader->label, reader->device, (float) reader->frequency / 1000000);
+		cs_log("Reader: Initialized serial reader %s (%s @ %2.2f Mhz %s%s)", reader->label, reader->device, (float) reader->frequency / 1000000, reader->detect & 0x80 ? "!" : "", RDR_CD_TXT[reader->detect & 0x7f]);
 	}
 
 	return rc;
@@ -150,7 +150,7 @@ void reader_common_check_health(struct s_reader *reader)
 		/* Check if card was just inserted */
 		if ((reader->card_status & CARD_INSERTED) == 0) {
 			reader->card_status = CARD_INSERTED;
-			cs_log("Reader: Card detected in %s (%s%s)", reader->label, reader->detect & 0x80 ? "!" : "", RDR_CD_TXT[reader->detect & 0x7f]);
+			cs_log("Reader: Card detected in %s", reader->label);
 
 			/* Try to initialize the card */
 			if (!reader_common_init_card(reader)) {
@@ -179,7 +179,7 @@ void reader_common_check_health(struct s_reader *reader)
 	}
 }
 
-int reader_common_process_ecm(struct s_reader *reader, ECM_REQUEST * er)
+int reader_common_process_ecm(struct s_reader *reader, ECM_REQUEST *er)
 {
 	int rc = 0;
 
@@ -196,7 +196,7 @@ int reader_common_process_ecm(struct s_reader *reader, ECM_REQUEST * er)
 	return rc;
 }
 
-int reader_common_process_emm(struct s_reader *reader, EMM_PACKET * ep)
+int reader_common_process_emm(struct s_reader *reader, EMM_PACKET *ep)
 {
 	int rc = 0;
 
