@@ -154,7 +154,6 @@ static void casc_get_dcw(int n)
 	struct timeb tps, tpe;
 
 	tpe = ecmtask[n].tps;
-	//tpe.millitm+=1500;          // TODO: timeout of 1500 should be config
 	tpe.millitm += cfg->srtimeout;
 	tpe.time += (tpe.millitm / 1000);
 	tpe.millitm %= 1000;
