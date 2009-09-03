@@ -81,7 +81,7 @@ static int reader_common_get_bitrates(struct s_reader *reader)
 			cs_log("Reader: Using optimal bitrate of %lu bit/s", reader_bitrate_optimal);
 		} else {
 			cs_log("Reader: Using approximate bitrate of %lu bit/s", reader_bitrate_effective);
-			cs_log("Reader: Optimal bitrate is %lu bit/s (%+.2f%% off)", reader_bitrate_optimal, (((double) reader_bitrate_effective) - reader_bitrate_optimal) / reader_bitrate_optimal);
+			cs_log("Reader: Optimal bitrate is %lu bit/s (%+.2f%% off)", reader_bitrate_optimal, (((double) reader_bitrate_effective) - reader_bitrate_optimal) / reader_bitrate_optimal * 100);
 		}
 	}
 
