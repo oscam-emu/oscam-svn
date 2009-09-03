@@ -244,6 +244,7 @@ bool IO_Serial_GetProperties(IO_Serial * io, IO_Serial_Properties * props)
 #ifdef OS_LINUX
 	if (props->input_bitrate == 38400 && props->output_bitrate == 38400) {
 		struct serial_struct s;
+		bzero (&s, sizeof (s));
 		if (ioctl(io->fd, TIOCGSERIAL, &s) >= 0) {
 			if ((s.flags & ASYNC_SPD_CUST) != 0 && s.baud_base > 0 && s.custom_divisor > 0) {
 				unsigned long effective_bitrate = (unsigned long) s.baud_base / s.custom_divisor;
@@ -338,6 +339,7 @@ bool IO_Serial_SetProperties(IO_Serial * io, IO_Serial_Properties * props)
 		unsigned long effective_bitrate = IO_Serial_Bitrate_from_Speed(IO_Serial_Bitrate_to_Speed(standard_bitrate));
 
 		struct serial_struct s;
+		bzero (&s, sizeof (s));
 		if (ioctl(io->fd, TIOCGSERIAL, &s) >= 0) {
 			unsigned long wanted_bitrate = props->output_bitrate;
 			unsigned long custom_divisor = ((unsigned long) s.baud_base + (wanted_bitrate / 2)) / wanted_bitrate;
