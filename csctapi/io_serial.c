@@ -245,7 +245,7 @@ bool IO_Serial_GetProperties(IO_Serial * io, IO_Serial_Properties * props)
 	if (props->input_bitrate == 38400 && props->output_bitrate == 38400) {
 		struct serial_struct s;
 		if (ioctl(io->fd, TIOCGSERIAL, &s) >= 0) {
-			if ((s.flags & ASYNC_SPD_CUST) != 0 && s.custom_divisor > 0) {
+			if ((s.flags & ASYNC_SPD_CUST) != 0 && s.baud_base > 0 && s.custom_divisor > 0) {
 				unsigned long effective_bitrate = (unsigned long) s.baud_base / s.custom_divisor;
 				props->input_bitrate = effective_bitrate;
 				props->output_bitrate = effective_bitrate;
