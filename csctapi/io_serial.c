@@ -54,7 +54,9 @@
  * Internal functions declaration
  */
 
-static int IO_Serial_Bitrate(int bitrate);
+static int IO_Serial_Bitrate_to_Speed(int bitrate);
+
+static int IO_Serial_Bitrate_from_Speed(int speed);
 
 static bool IO_Serial_WaitToRead(int hnd, unsigned delay_ms, unsigned timeout_ms);
 
@@ -233,210 +235,10 @@ bool IO_Serial_GetProperties(IO_Serial * io, IO_Serial_Properties * props)
 		return FALSE;
 
 	o_speed = cfgetospeed(&currtio);
-
-	switch (o_speed) {
-#ifdef B0
-		case B0:
-			props->output_bitrate = 0;
-			break;
-#endif
-#ifdef B50
-		case B50:
-			props->output_bitrate = 50;
-			break;
-#endif
-#ifdef B75
-		case B75:
-			props->output_bitrate = 75;
-			break;
-#endif
-#ifdef B110
-		case B110:
-			props->output_bitrate = 110;
-			break;
-#endif
-#ifdef B134
-		case B134:
-			props->output_bitrate = 134;
-			break;
-#endif
-#ifdef B150
-		case B150:
-			props->output_bitrate = 150;
-			break;
-#endif
-#ifdef B200
-		case B200:
-			props->output_bitrate = 200;
-			break;
-#endif
-#ifdef B300
-		case B300:
-			props->output_bitrate = 300;
-			break;
-#endif
-#ifdef B600
-		case B600:
-			props->output_bitrate = 600;
-			break;
-#endif
-#ifdef B1200
-		case B1200:
-			props->output_bitrate = 1200;
-			break;
-#endif
-#ifdef B1800
-		case B1800:
-			props->output_bitrate = 1800;
-			break;
-#endif
-#ifdef B2400
-		case B2400:
-			props->output_bitrate = 2400;
-			break;
-#endif
-#ifdef B4800
-		case B4800:
-			props->output_bitrate = 4800;
-			break;
-#endif
-#ifdef B9600
-		case B9600:
-			props->output_bitrate = 9600;
-			break;
-#endif
-#ifdef B19200
-		case B19200:
-			props->output_bitrate = 19200;
-			break;
-#endif
-#ifdef B38400
-		case B38400:
-			props->output_bitrate = 38400;
-			break;
-#endif
-#ifdef B57600
-		case B57600:
-			props->output_bitrate = 57600;
-			break;
-#endif
-#ifdef B115200
-		case B115200:
-			props->output_bitrate = 115200;
-			break;
-#endif
-#ifdef B230400
-		case B230400:
-			props->output_bitrate = 230400;
-			break;
-#endif
-		default:
-			props->output_bitrate = 1200;
-			break;
-	}
+	props->output_bitrate = IO_Serial_Bitrate_from_Speed(o_speed);
 
 	i_speed = cfgetispeed(&currtio);
-
-	switch (i_speed) {
-#ifdef B0
-		case B0:
-			props->input_bitrate = 0;
-			break;
-#endif
-#ifdef B50
-		case B50:
-			props->input_bitrate = 50;
-			break;
-#endif
-#ifdef B75
-		case B75:
-			props->input_bitrate = 75;
-			break;
-#endif
-#ifdef B110
-		case B110:
-			props->input_bitrate = 110;
-			break;
-#endif
-#ifdef B134
-		case B134:
-			props->input_bitrate = 134;
-			break;
-#endif
-#ifdef B150
-		case B150:
-			props->input_bitrate = 150;
-			break;
-#endif
-#ifdef B200
-		case B200:
-			props->input_bitrate = 200;
-			break;
-#endif
-#ifdef B300
-		case B300:
-			props->input_bitrate = 300;
-			break;
-#endif
-#ifdef B600
-		case B600:
-			props->input_bitrate = 600;
-			break;
-#endif
-#ifdef B1200
-		case B1200:
-			props->input_bitrate = 1200;
-			break;
-#endif
-#ifdef B1800
-		case B1800:
-			props->input_bitrate = 1800;
-			break;
-#endif
-#ifdef B2400
-		case B2400:
-			props->input_bitrate = 2400;
-			break;
-#endif
-#ifdef B4800
-		case B4800:
-			props->input_bitrate = 4800;
-			break;
-#endif
-#ifdef B9600
-		case B9600:
-			props->input_bitrate = 9600;
-			break;
-#endif
-#ifdef B19200
-		case B19200:
-			props->input_bitrate = 19200;
-			break;
-#endif
-#ifdef B38400
-		case B38400:
-			props->input_bitrate = 38400;
-			break;
-#endif
-#ifdef B57600
-		case B57600:
-			props->input_bitrate = 57600;
-			break;
-#endif
-#ifdef B115200
-		case B115200:
-			props->input_bitrate = 115200;
-			break;
-#endif
-#ifdef B230400
-		case B230400:
-			props->input_bitrate = 230400;
-			break;
-#endif
-		default:
-			props->input_bitrate = 1200;
-			break;
-	}
+	props->input_bitrate = IO_Serial_Bitrate_from_Speed(i_speed);
 
 	/* Check for custom bitrate */
 #ifdef OS_LINUX
@@ -522,21 +324,24 @@ bool IO_Serial_SetProperties(IO_Serial * io, IO_Serial_Properties * props)
 #  endif
 #endif
 		/* Standard bitrate */
-		cfsetospeed(&newtio, IO_Serial_Bitrate(props->output_bitrate));
-		cfsetispeed(&newtio, IO_Serial_Bitrate(props->input_bitrate));
+		int output_speed = IO_Serial_Bitrate_to_Speed(props->output_bitrate);
+		int input_speed = IO_Serial_Bitrate_to_Speed(props->input_bitrate);
+		cfsetospeed(&newtio, output_speed);
+		cfsetispeed(&newtio, input_speed);
 
 		/* Save the effective bitrate value for OScam */
-		reader_serial_bitrate_effective = props->output_bitrate;
+		reader_serial_bitrate_effective = IO_Serial_Bitrate_from_Speed(output_speed);
 #ifdef OS_LINUX
 	} else {
 		/* Special bitrate : these structures are only available on linux as fas as we know so limit this code to OS_LINUX */
 		unsigned long standard_bitrate = props->output_bitrate;
+		unsigned long effective_bitrate;
 
 		struct serial_struct s;
 		if (ioctl(io->fd, TIOCGSERIAL, &s) >= 0) {
 			unsigned long wanted_bitrate = props->output_bitrate;
 			unsigned long custom_divisor = ((unsigned long) s.baud_base + (wanted_bitrate / 2)) / wanted_bitrate;
-			unsigned long effective_bitrate = (unsigned long) s.baud_base / custom_divisor;
+			effective_bitrate = (unsigned long) s.baud_base / custom_divisor;
 
 			/* Check if a custom_divisor is needed */
 			if (effective_bitrate == 230400 || effective_bitrate == 115200 || effective_bitrate == 57600 || effective_bitrate == 38400 || effective_bitrate == 19200 || effective_bitrate == 9600 || effective_bitrate == 4800 || effective_bitrate == 2400 || effective_bitrate == 1800 || effective_bitrate == 1200 || effective_bitrate == 600 || effective_bitrate == 300 || effective_bitrate == 200 || effective_bitrate == 150 || effective_bitrate == 134 || effective_bitrate == 110 || effective_bitrate == 75 || effective_bitrate == 50 || effective_bitrate == 0) {
@@ -562,14 +367,16 @@ bool IO_Serial_SetProperties(IO_Serial * io, IO_Serial_Properties * props)
 				printf("IO: Using special bitrate of = %lu (%+.2f%% off)\n", effective_bitrate, ((double) (effective_bitrate - wanted_bitrate)) / wanted_bitrate);
 #endif
 			}
-
-			/* Save the effective bitrate value for OScam */
-			reader_serial_bitrate_effective = effective_bitrate;
+		} else {
+			effective_bitrate = IO_Serial_Bitrate_from_Speed(IO_Serial_Bitrate_to_Speed(standard_bitrate));
 		}
 
+		/* Save the effective bitrate value for OScam */
+		reader_serial_bitrate_effective = effective_bitrate;
+
 		/* Set the standard bitrate value */
-		cfsetospeed(&newtio, IO_Serial_Bitrate(standard_bitrate));
-		cfsetispeed(&newtio, IO_Serial_Bitrate(standard_bitrate));
+		cfsetospeed(&newtio, IO_Serial_Bitrate_to_Speed(standard_bitrate));
+		cfsetispeed(&newtio, IO_Serial_Bitrate_to_Speed(standard_bitrate));
 	}
 #endif
 
@@ -831,7 +638,7 @@ void IO_Serial_Delete(IO_Serial * io)
  * Internal functions definition
  */
 
-static int IO_Serial_Bitrate(int bitrate)
+static int IO_Serial_Bitrate_to_Speed(int bitrate)
 {
 #ifdef B230400
 	if ((bitrate) >= 230400)
@@ -909,6 +716,93 @@ static int IO_Serial_Bitrate(int bitrate)
 	if ((bitrate) >= 0)
 		return B0;
 #endif
+
+	return 0;	/* Should never get here */
+}
+
+static int IO_Serial_Bitrate_from_Speed(int speed)
+{
+	switch (speed) {
+#ifdef B0
+		case B0:
+			return 0;
+#endif
+#ifdef B50
+		case B50:
+			return 50;
+#endif
+#ifdef B75
+		case B75:
+			return 75;
+#endif
+#ifdef B110
+		case B110:
+			return 110;
+#endif
+#ifdef B134
+		case B134:
+			return 134;
+#endif
+#ifdef B150
+		case B150:
+			return 150;
+#endif
+#ifdef B200
+		case B200:
+			return 200;
+#endif
+#ifdef B300
+		case B300:
+			return 300;
+#endif
+#ifdef B600
+		case B600:
+			return 600;
+#endif
+#ifdef B1200
+		case B1200:
+			return 1200;
+#endif
+#ifdef B1800
+		case B1800:
+			return 1800;
+#endif
+#ifdef B2400
+		case B2400:
+			return 2400;
+#endif
+#ifdef B4800
+		case B4800:
+			return 4800;
+#endif
+#ifdef B9600
+		case B9600:
+			return 9600;
+#endif
+#ifdef B19200
+		case B19200:
+			return 19200;
+#endif
+#ifdef B38400
+		case B38400:
+			return 38400;
+#endif
+#ifdef B57600
+		case B57600:
+			return 57600;
+#endif
+#ifdef B115200
+		case B115200:
+			return 115200;
+#endif
+#ifdef B230400
+		case B230400:
+			return 230400;
+#endif
+		default:
+			return 1200;
+	}
+
 	return 0;	/* Should never get here */
 }
 
