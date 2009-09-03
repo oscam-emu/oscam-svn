@@ -120,6 +120,11 @@ int PPS_Perform(PPS * pps, BYTE * params, unsigned *length)
 		ATR_GetParameter(atr, ATR_PARAMETER_N, &(pps->parameters.n));
 		ATR_GetParameter(atr, ATR_PARAMETER_D, &(pps->parameters.d));
 		ATR_GetParameter(atr, ATR_PARAMETER_F, &(pps->parameters.f));
+
+		ret = PPS_InitICC(pps);
+
+		if (ret != PPS_OK)
+			return ret;
 #endif
 	}
 

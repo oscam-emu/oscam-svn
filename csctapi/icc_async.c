@@ -175,6 +175,10 @@ int ICC_Async_GetBaudrate(ICC_Async * icc, unsigned long *baudrate)
 
 int ICC_Async_BeginTransmission(ICC_Async * icc)
 {
+	/* Setup baudrate for this ICC */
+	if (IFD_Towitoko_SetBaudrate(icc->ifd, icc->baudrate) != IFD_TOWITOKO_OK)
+		return ICC_ASYNC_IFD_ERROR;
+
 	/* Setup parity for this ICC */
 #ifndef NO_PAR_SWITCH
 	if (icc->convention == ATR_CONVENTION_INVERSE) {
@@ -188,10 +192,6 @@ int ICC_Async_BeginTransmission(ICC_Async * icc)
 			return ICC_ASYNC_IFD_ERROR;
 	}
 #endif
-
-	/* Setup baudrate for this ICC */
-	if (IFD_Towitoko_SetBaudrate(icc->ifd, icc->baudrate) != IFD_TOWITOKO_OK)
-		return ICC_ASYNC_IFD_ERROR;
 
 	return ICC_ASYNC_OK;
 }
