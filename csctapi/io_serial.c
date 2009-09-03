@@ -364,7 +364,7 @@ bool IO_Serial_SetProperties(IO_Serial * io, IO_Serial_Properties * props)
 					standard_bitrate = 38400;
 				}
 #ifdef DEBUG_IO
-				printf("IO: Using special bitrate of = %lu (%+.2f%% off)\n", effective_bitrate, ((double) (effective_bitrate - wanted_bitrate)) / wanted_bitrate);
+				printf("IO: Using special bitrate of = %lu (%+.2f%% off)\n", effective_bitrate, ((double) (effective_bitrate - wanted_bitrate)) / wanted_bitrate * 100);
 #endif
 			}
 		} else {
