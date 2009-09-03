@@ -245,7 +245,7 @@ bool IO_Serial_GetProperties(IO_Serial * io, IO_Serial_Properties * props)
 	if (props->input_bitrate == 38400 && props->output_bitrate == 38400) {
 		struct serial_struct s;
 		if (ioctl(io->fd, TIOCGSERIAL, &s) >= 0) {
-			if ((s.flags & ASYNC_SPD_CUST) != 0) {
+			if ((s.flags & ASYNC_SPD_CUST) != 0 && s.custom_divisor > 0) {
 				unsigned long effective_bitrate = (unsigned long) s.baud_base / s.custom_divisor;
 				props->input_bitrate = effective_bitrate;
 				props->output_bitrate = effective_bitrate;
@@ -335,40 +335,41 @@ bool IO_Serial_SetProperties(IO_Serial * io, IO_Serial_Properties * props)
 	} else {
 		/* Special bitrate : these structures are only available on linux as fas as we know so limit this code to OS_LINUX */
 		unsigned long standard_bitrate = props->output_bitrate;
-		unsigned long effective_bitrate;
+		unsigned long effective_bitrate = IO_Serial_Bitrate_from_Speed(IO_Serial_Bitrate_to_Speed(standard_bitrate));
 
 		struct serial_struct s;
 		if (ioctl(io->fd, TIOCGSERIAL, &s) >= 0) {
 			unsigned long wanted_bitrate = props->output_bitrate;
 			unsigned long custom_divisor = ((unsigned long) s.baud_base + (wanted_bitrate / 2)) / wanted_bitrate;
-			effective_bitrate = (unsigned long) s.baud_base / custom_divisor;
+			/* Check if custom_divisor is greater than zero */
+			if (custom_divisor > 0) {
+				effective_bitrate = (unsigned long) s.baud_base / custom_divisor;
 
-			/* Check if a custom_divisor is needed */
-			if (effective_bitrate == 230400 || effective_bitrate == 115200 || effective_bitrate == 57600 || effective_bitrate == 38400 || effective_bitrate == 19200 || effective_bitrate == 9600 || effective_bitrate == 4800 || effective_bitrate == 2400 || effective_bitrate == 1800 || effective_bitrate == 1200 || effective_bitrate == 600 || effective_bitrate == 300 || effective_bitrate == 200 || effective_bitrate == 150 || effective_bitrate == 134 || effective_bitrate == 110 || effective_bitrate == 75 || effective_bitrate == 50 || effective_bitrate == 0) {
-				/* Use standard bitrate value */
-				if ((s.flags & ASYNC_SPD_CUST) != 0) {
-					s.flags |= ASYNC_SPD_MASK;
-					s.flags &= ~ASYNC_SPD_CUST;
-					ioctl(io->fd, TIOCSSERIAL, &s);
-				}
-				standard_bitrate = effective_bitrate;
+				/* Check if a custom_divisor is needed */
+				if (effective_bitrate == 230400 || effective_bitrate == 115200 || effective_bitrate == 57600 || effective_bitrate == 38400 || effective_bitrate == 19200 || effective_bitrate == 9600 || effective_bitrate == 4800 || effective_bitrate == 2400 || effective_bitrate == 1800 || effective_bitrate == 1200 || effective_bitrate == 600 || effective_bitrate == 300 || effective_bitrate == 200 || effective_bitrate == 150 || effective_bitrate == 134 || effective_bitrate == 110 || effective_bitrate == 75 || effective_bitrate == 50 || effective_bitrate == 0) {
+					/* Use standard bitrate value */
+					if ((s.flags & ASYNC_SPD_CUST) != 0) {
+						s.flags |= ASYNC_SPD_MASK;
+						s.flags &= ~ASYNC_SPD_CUST;
+						ioctl(io->fd, TIOCSSERIAL, &s);
+					}
+					standard_bitrate = effective_bitrate;
 #ifdef DEBUG_IO
-				printf("IO: Using standard bitrate of %lu (baud_base too small)\n", standard_bitrate);
+					printf("IO: Using standard bitrate of %lu (baud_base too small)\n", standard_bitrate);
 #endif
-			} else {
-				/* Use custom divisor */
-				s.custom_divisor = custom_divisor;
-				s.flags &= ~ASYNC_SPD_MASK;
-				s.flags |= ASYNC_SPD_CUST;
-				if (ioctl(io->fd, TIOCSSERIAL, &s) >= 0) {
-					standard_bitrate = 38400;
-				}
+				} else {
+					/* Use custom divisor */
+					s.custom_divisor = custom_divisor;
+					s.flags &= ~ASYNC_SPD_MASK;
+					s.flags |= ASYNC_SPD_CUST;
+					if (ioctl(io->fd, TIOCSSERIAL, &s) >= 0) {
+						standard_bitrate = 38400;
+					}
 #ifdef DEBUG_IO
-				printf("IO: Using special bitrate of = %lu (%+.2f%% off)\n", effective_bitrate, ((double) (effective_bitrate - wanted_bitrate)) / wanted_bitrate * 100);
+					printf("IO: Using special bitrate of = %lu (%+.2f%% off)\n", effective_bitrate, ((double) (effective_bitrate - wanted_bitrate)) / wanted_bitrate * 100);
 #endif
+				}
 			}
-		} else {
-			effective_bitrate = IO_Serial_Bitrate_from_Speed(IO_Serial_Bitrate_to_Speed(standard_bitrate));
 		}
 
 		/* Save the effective bitrate value for OScam */
