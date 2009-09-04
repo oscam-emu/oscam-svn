@@ -3,7 +3,6 @@
 
 char *oscam_platform(char *);
 
-void oscam_set_signal_handler(int, int, void (*)(int));
 void oscam_set_priority(int);
 
 int oscam_fork(in_addr_t, in_port_t);

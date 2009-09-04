@@ -304,10 +304,10 @@ int oscam_chk_bcaid(ECM_REQUEST * er, CAIDTAB * ctab)
 }
 
 /*
- * void oscam_set_signal_handler(int sig, int flags, void (*sighandler)(int))
+ * static void oscam_set_signal_handler(int sig, int flags, void (*sighandler)(int))
  * flags: 1 = restart, 2 = don't modify if SIG_IGN, may be combined
  */
-void oscam_set_signal_handler(int sig, int flags, void (*sighandler) (int))
+static void oscam_set_signal_handler(int sig, int flags, void (*sighandler) (int))
 {
 #ifdef CS_SIGBSD
 	if ((signal(sig, sighandler) == SIG_IGN) && (flags & 2)) {
