@@ -11,7 +11,7 @@ static unsigned short pmap = 0;	// provider-maptable
 unsigned long long serial;
 char *card;
 
-static int set_provider_info(int i)
+static int cam_seca_set_provider_info(int i)
 {
 	static uchar ins12[] = { 0xc1, 0x12, 0x00, 0x00, 0x19 };	// get provider info
 	uchar result[260];
@@ -72,20 +72,20 @@ static int set_provider_info(int i)
 	return 1;
 }
 
-// static int get_prov_index (uchar providhigh, uchar providlow)//returns provider id or -1 if not found
-static int get_prov_index(char *provid)	//returns provider id or -1 if not found
+//static int cam_seca_get_prov_index (uchar providhigh, uchar providlow)	//returns provider id or -1 if not found
+static int cam_seca_get_prov_index(char *provid)	//returns provider id or -1 if not found
 {
 	int prov;
 
 	for (prov = 0; prov < reader[ridx].nprov; prov++)	//search for provider index
 		if (!memcmp(provid, &reader[ridx].prid[prov][2], 2))
 			return (prov);
-//  for (prov=0; prov<reader[ridx].nprov; prov++) //search for provider index
-//    if ( (providhigh == reader[ridx].prid[prov][2]) &&
-//         (providlow == reader[ridx].prid[prov][3]) )
-//    { 
-//      return(prov);
-//    }
+//	for (prov=0; prov<reader[ridx].nprov; prov++) { //search for provider index
+//		if ((providhigh == reader[ridx].prid[prov][2]) &&
+//		    (providlow == reader[ridx].prid[prov][3])) {
+//			return(prov);
+//		}
+//	}
 	return (-1);
 }
 
@@ -154,7 +154,7 @@ int cam_seca_load_card()
 
 	for (i = 0; i < 16; i++) {
 		if (pmap & (1 << i)) {
-			if (!set_provider_info(i))
+			if (!cam_seca_set_provider_info(i))
 				return 0;
 			else
 				sprintf((char *) buf + strlen((char *) buf), ",%04lX", b2i(2, &reader[ridx].prid[i][2]));
@@ -183,8 +183,8 @@ int cam_seca_process_ecm(ECM_REQUEST * er)
 	uchar ins3cdata[256];
 	int i;
 
-//  i=get_prov_index(er->ecm[3],er->ecm[4]);
-	i = get_prov_index((char *) er->ecm + 3);
+//	i = cam_seca_get_prov_index(er->ecm[3],er->ecm[4]);
+	i = cam_seca_get_prov_index((char *) er->ecm + 3);
 	if ((i == -1) || (reader[ridx].availkeys[i][0] == 0))	//if provider not found or expired
 		return 0;
 	ins3c[2] = i;
@@ -234,8 +234,8 @@ int cam_seca_process_emm(EMM_PACKET * ep)
 	if (ep->emm[0] == 0x84) {	//shared EMM
 		//to test if SA matches
 		//first find out prov id
-//      i=get_prov_index(ep->emm[3],ep->emm[4]);
-		i = get_prov_index((char *) ep->emm + 3);
+//		i = cam_seca_get_prov_index(ep->emm[3],ep->emm[4]);
+		i = cam_seca_get_prov_index((char *) ep->emm + 3);
 		if (i == -1)
 			return 0;
 		else	//prov id found, now test for SA (only first 3 bytes, custom byte does not count)
@@ -259,8 +259,8 @@ int cam_seca_process_emm(EMM_PACKET * ep)
 		} else {
 			cs_log("EMM: Unique update matched EMM Serial:%02X%02X%02X%02X%02X.", ep->emm[3], ep->emm[4], ep->emm[5], ep->emm[6], ep->emm[7], ep->emm[8]);
 			//first find out prov id
-//                      i=get_prov_index(ep->emm[9],ep->emm[10]);
-			i = get_prov_index((char *) ep->emm + 9);
+//			i = cam_seca_get_prov_index(ep->emm[9],ep->emm[10]);
+			i = cam_seca_get_prov_index((char *) ep->emm + 9);
 			if (i == -1)
 				return 0;
 			ins40[3] = ep->emm[12];
@@ -272,23 +272,23 @@ int cam_seca_process_emm(EMM_PACKET * ep)
 		return 0;	//geen 0x84 en geen 0x82
 
 	ins40[2] = i;
-//  length = ((er->ecm[1]<<8 || er->ecm[2])&0x0fff);
+//	length = ((er->ecm[1]<<8 || er->ecm[2])&0x0fff);
 	cs_debug("do_emm:ins40=%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x.", ins40[0], ins40[1], ins40[2], ins40[3], ins40[4], ins40data[0], ins40data[1], ins40data[2], ins40data[3], ins40data[4], ins40data[5], ins40data[6], ins40data[7], ins40data[8], ins40data[9]);
 	memcpy(ins40_cmd, ins40, 5);
 	memcpy(ins40_cmd + 5, ins40data, ins40[4]);
 	cam_common_cmd2card(ins40_cmd, ins40[4], result, sizeof(result), &result_size);	//emm request
 	cs_debug("emmdump:%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x.", result[0], result[1], result[2], result[3], result[4], result[5], result[6], result[7], result[8], result[9], result[10], result[11], result[12], result[13], result[14], result[15], result[16],
 		 result[17]);
-//TODO  if ((result[16] != 0x90) || (result[17] != 0x00)) return 0;
-//  if ((result[16] != 0x90) || (result[17] != 0x19))
-//        seca_card_init(); //if return code = 90 19 then PPUA changed. //untested!!
-//  else
+//TODO	if ((result[16] != 0x90) || (result[17] != 0x00)) return 0;
+//	if ((result[16] != 0x90) || (result[17] != 0x19))
+//		seca_card_init(); //if return code = 90 19 then PPUA changed. //untested!!
+//	else
 	if (result[0] == 0x97) {
 		cs_log("EMM: Update not necessary.");
 		return 1;	//Update not necessary
 	}
 	if ((result[0] == 0x90) && ((result[1] == 0x00) || (result[1] == 0x19))) {
-		if (set_provider_info(i) != 0) {	//after successfull EMM, print new provider info
+		if (cam_seca_set_provider_info(i) != 0) {	//after successfull EMM, print new provider info
 			return 1;
 		}
 	}
