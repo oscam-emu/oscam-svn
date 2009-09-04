@@ -1011,7 +1011,7 @@ static void init_cardreader()
 					break;
 				default:
 					wait4master();
-					start_cardreader();
+					card_start_reader();
 			}
 }
 

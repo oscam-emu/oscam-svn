@@ -24,7 +24,7 @@ static struct s_emm *emmcache;
 static int last_idx = 1;
 static ushort idx = 1;
 
-static void casc_check_dcw(int idx, int rc, uchar * cw)
+static void card_casc_check_dcw(int idx, int rc, uchar * cw)
 {
 	int i;
 
@@ -43,7 +43,7 @@ static void casc_check_dcw(int idx, int rc, uchar * cw)
 	}
 }
 
-static int casc_recv_timer(uchar * buf, int l, int msec)
+static int card_casc_recv_timer(uchar * buf, int l, int msec)
 {
 	struct timeval tv;
 	fd_set fds;
@@ -64,7 +64,7 @@ static int casc_recv_timer(uchar * buf, int l, int msec)
 	return rc;
 }
 
-void network_tcp_connection_close(int fd)
+void card_network_tcp_connection_close(int fd)
 {
 	cs_debug("tcp_conn_close(): fd=%d, is_server=%d", fd, is_server);
 	close(fd);
@@ -82,18 +82,18 @@ void network_tcp_connection_close(int fd)
 		}
 
 		if (reader[ridx].ph.c_init()) {
-			cs_debug("network_tcp_connection_close() exit(1);");
+			cs_debug("card_network_tcp_connection_close() exit(1);");
 			cs_exit(1);
 		}
 
 		cs_resolve();
 		reader[ridx].ncd_msgid = 0;
 		reader[ridx].last_s = reader[ridx].last_g = 0;
-//  cs_log("last_s=%d, last_g=%d", reader[ridx].last_s, reader[ridx].last_g);
+//		cs_log("last_s=%d, last_g=%d", reader[ridx].last_s, reader[ridx].last_g);
 	}
 }
 
-static void casc_do_sock_log()
+static void card_casc_do_sock_log()
 {
 	int i, idx;
 	ushort caid, srvid;
@@ -110,22 +110,22 @@ static void casc_do_sock_log()
 		    && (ecmtask[i].caid == caid)
 		    && (ecmtask[i].prid == provid)
 		    && (ecmtask[i].srvid == srvid)) {
-			casc_check_dcw(i, 0, ecmtask[i].cw);	// send "not found"
+			card_casc_check_dcw(i, 0, ecmtask[i].cw);	// send "not found"
 			break;
 		}
 	}
 }
 
-static void casc_do_sock(int w)
+static void card_casc_do_sock(int w)
 {
 	int i, n, idx, rc, j;
 	uchar buf[1024];
 	uchar dcw[16];
 
-	if ((n = casc_recv_timer(buf, sizeof (buf), w)) <= 0) {
+	if ((n = card_casc_recv_timer(buf, sizeof (buf), w)) <= 0) {
 		if (reader[ridx].ph.type == MOD_CONN_TCP) {
-			cs_debug("casc_do_sock: close connection");
-			network_tcp_connection_close(client[cs_idx].udp_fd);
+			cs_debug("card_casc_do_sock: close connection");
+			card_network_tcp_connection_close(client[cs_idx].udp_fd);
 		}
 		return;
 	}
@@ -134,21 +134,21 @@ static void casc_do_sock(int w)
 	if (idx < 0)
 		return;	// no dcw received
 	reader[ridx].last_g = time((time_t *) 0);	// for reconnect timeout
-//cs_log("casc_do_sock: last_s=%d, last_g=%d", reader[ridx].last_s, reader[ridx].last_g);
+//cs_log("card_casc_do_sock: last_s=%d, last_g=%d", reader[ridx].last_s, reader[ridx].last_g);
 	if (!idx)
 		idx = last_idx;
 	j = 0;
 	for (i = 1; i < CS_MAXPENDING; i++) {
 
 		if (ecmtask[i].idx == idx) {
-			casc_check_dcw(i, rc, dcw);
+			card_casc_check_dcw(i, rc, dcw);
 			j = 1;
 			break;
 		}
 	}
 }
 
-static void casc_get_dcw(int n)
+static void card_casc_get_dcw(int n)
 {
 	int w;
 	struct timeb tps, tpe;
@@ -161,14 +161,14 @@ static void casc_get_dcw(int n)
 	cs_ftime(&tps);
 	while (((w = 1000 * (tpe.time - tps.time) + tpe.millitm - tps.millitm) > 0)
 	       && (ecmtask[n].rc >= 10)) {
-		casc_do_sock(w);
+		card_casc_do_sock(w);
 		cs_ftime(&tps);
 	}
 	if (ecmtask[n].rc >= 10)
-		casc_check_dcw(n, 0, ecmtask[n].cw);	// simulate "not found"
+		card_casc_check_dcw(n, 0, ecmtask[n].cw);	// simulate "not found"
 }
 
-static int casc_process_ecm(ECM_REQUEST * er)
+static int card_casc_process_ecm(ECM_REQUEST * er)
 {
 	int rc, n, i, sflag;
 	time_t t;		//, tls;
@@ -204,7 +204,7 @@ static int casc_process_ecm(ECM_REQUEST * er)
 
 		if (rto >= reader[ridx].tcp_rto) {
 			cs_debug("rto=%d", rto);
-			network_tcp_connection_close(client[cs_idx].udp_fd);
+			card_network_tcp_connection_close(client[cs_idx].udp_fd);
 		}
 	}
 
@@ -216,15 +216,15 @@ static int casc_process_ecm(ECM_REQUEST * er)
 			cs_resolve();
 
 		if ((rc = reader[ridx].ph.c_send_ecm(&ecmtask[n], buf)))
-			casc_check_dcw(n, 0, ecmtask[n].cw);	// simulate "not found"
+			card_casc_check_dcw(n, 0, ecmtask[n].cw);	// simulate "not found"
 		else
 			last_idx = ecmtask[n].idx;
 		reader[ridx].last_s = t;	// used for inactive_timeout and reconnect_timeout in TCP reader
 
 		if (!reader[ridx].ph.c_multi)
-			casc_get_dcw(n);
+			card_casc_get_dcw(n);
 	}
-//cs_log("casc_process_ecm 1: last_s=%d, last_g=%d", reader[ridx].last_s, reader[ridx].last_g);
+//	cs_log("card_casc_process_ecm 1: last_s=%d, last_g=%d", reader[ridx].last_s, reader[ridx].last_g);
 
 	if (idx > 0x1ffe)
 		idx = 1;
@@ -249,7 +249,7 @@ static int card_store_emm(uchar * emm, uchar type)
 
 static void card_get_ecm(ECM_REQUEST * er)
 {
-	//cs_log("hallo idx:%d rc:%d caid:%04X",er->idx,er->rc,er->caid);
+//	cs_log("hallo idx:%d rc:%d caid:%04X",er->idx,er->rc,er->caid);
 	if ((er->rc < 10)) {
 		send_dcw(er);
 		return;
@@ -270,12 +270,12 @@ static void card_get_ecm(ECM_REQUEST * er)
 	if (proxy) {
 		client[cs_idx].last_srvid = er->srvid;
 		client[cs_idx].last_caid = er->caid;
-		casc_process_ecm(er);
+		card_casc_process_ecm(er);
 		return;
 	}
 	er->rc = reader_common_process_ecm(&reader[ridx], er);
 	write_ecm_answer(fd_c2m, er);
-	//if(reader[ridx].type == 'r') reader[ridx].qlen--;
+//	if (reader[ridx].type == 'r') reader[ridx].qlen--;
 }
 
 static void card_send_dcw(ECM_REQUEST * er)
@@ -319,9 +319,7 @@ static int card_do_emm(EMM_PACKET * ep)
 
 	if (reader[ridx].logemm >= rc) {
 		cs_ftime(&tpe);
-//    cs_log("%s type=%02x, len=%d, idx=%d, cnt=%d: %s (%d ms)",
-//           cs_inet_ntoa(client[ep->cidx].ip), emmcache[i].type, ep->emm[2],
-//           i, no, rtxt[rc], 1000*(tpe.time-tps.time)+tpe.millitm-tps.millitm);
+//		cs_log("%s type=%02x, len=%d, idx=%d, cnt=%d: %s (%d ms)", cs_inet_ntoa(client[ep->cidx].ip), emmcache[i].type, ep->emm[2], i, no, rtxt[rc], 1000*(tpe.time-tps.time)+tpe.millitm-tps.millitm);
 		cs_log("%s type=%02x, len=%d, idx=%d, cnt=%d: %s (%d ms)", username(ep->cidx), emmcache[i].type, ep->emm[2], i, no, rtxt[rc], 1000 * (tpe.time - tps.time) + tpe.millitm - tps.millitm);
 	}
 
@@ -344,7 +342,7 @@ static int card_listen(int fd1, int fd2)
 		for (x = 0; x < CS_MAXPENDING; x++) {
 			ms = 1000 * (tpe.time - ecmtask[x].tps.time) + tpe.millitm - ecmtask[x].tps.millitm;
 			if (ecmtask[x].rc == 10 && ms > cfg->ctimeout && ridx == ecmtask[x].gbxRidx) {
-				//cs_log("hello rc=%d idx:%d x:%d ridx%d ridx:%d",ecmtask[x].rc,ecmtask[x].idx,x,ridx,ecmtask[x].gbxRidx);
+//				cs_log("hello rc=%d idx:%d x:%d ridx%d ridx:%d",ecmtask[x].rc,ecmtask[x].idx,x,ridx,ecmtask[x].gbxRidx);
 				ecmtask[x].rc = 5;
 				send_dcw(&ecmtask[x]);
 
@@ -395,7 +393,7 @@ static int card_listen(int fd1, int fd2)
 			time_diff = abs(now - reader[ridx].last_s);
 			if (time_diff > (reader[ridx].tcp_ito * 60)) {
 				cs_debug("%s inactive_timeout (%d), close connection (fd=%d)", reader[ridx].ph.desc, time_diff, fd2);
-				network_tcp_connection_close(fd2);
+				card_network_tcp_connection_close(fd2);
 			}
 		}
 		cs_debug("select: pipe is set");
@@ -404,7 +402,7 @@ static int card_listen(int fd1, int fd2)
 
 	if (tcp_toflag) {
 		cs_debug("%s inactive_timeout (%d), close connection (fd=%d)", reader[ridx].ph.desc, tv.tv_sec, fd2);
-		network_tcp_connection_close(fd2);
+		card_network_tcp_connection_close(fd2);
 		return (0);
 	}
 
@@ -442,16 +440,16 @@ static void card_main()
 				card_do_pipe();
 				break;
 			case 2:
-				casc_do_sock(0);
+				card_casc_do_sock(0);
 				break;
 			case 3:
-				casc_do_sock_log();
+				card_casc_do_sock_log();
 				break;
 		}
 	}
 }
 
-void start_cardreader()
+void card_start_reader()
 {
 	cs_ptyp = D_READER;
 

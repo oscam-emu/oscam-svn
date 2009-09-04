@@ -102,12 +102,12 @@ static int sharing_newcamd_message_receive(int handle, ushort * netMsgId, uchar 
 	cs_debug("nmr(): len=%d, errno=%d", len, (len == -1) ? errno : 0);
 	if (!len) {
 		cs_debug("nmr: 1 return 0");
-		network_tcp_connection_close(handle);
+		card_network_tcp_connection_close(handle);
 		return 0;
 	}
 	if (len != 2) {
 		cs_debug("nmr: len!=2");
-		network_tcp_connection_close(handle);
+		card_network_tcp_connection_close(handle);
 		return -1;
 	}
 	if (((netbuf[0] << 8) | netbuf[1]) > CWS_NETMSGSIZE - 2) {
@@ -334,7 +334,7 @@ static int sharing_newcamd_connect_server()
 	reader[ridx].ncd_msgid = 0;
 	if (read(handle, keymod, sizeof (keymod)) != sizeof (keymod)) {
 		cs_log("server does not return 14 bytes");
-		network_tcp_connection_close(handle);
+		card_network_tcp_connection_close(handle);
 		return -2;
 	}
 	cs_ddump(keymod, 14, "server init sequence:");
@@ -360,12 +360,12 @@ static int sharing_newcamd_connect_server()
 	login_answer = sharing_newcamd_cmd_no_data_receive(handle, &reader[ridx].ncd_msgid, key, COMMTYPE_CLIENT);
 	if (login_answer == MSG_CLIENT_2_SERVER_LOGIN_NAK) {
 		cs_log("login failed for user '%s'", reader[ridx].r_usr);
-		network_tcp_connection_close(handle);
+		card_network_tcp_connection_close(handle);
 		return -3;
 	}
 	if (login_answer != MSG_CLIENT_2_SERVER_LOGIN_ACK) {
 		cs_log("expected MSG_CLIENT_2_SERVER_LOGIN_ACK (%02X), received %02X", MSG_CLIENT_2_SERVER_LOGIN_ACK, login_answer);
-		network_tcp_connection_close(handle);
+		card_network_tcp_connection_close(handle);
 		return -3;
 	}
 	// 4. Send MSG_CARD_DATE_REQ
@@ -376,7 +376,7 @@ static int sharing_newcamd_connect_server()
 	bytes_received = sharing_newcamd_message_receive(handle, &reader[ridx].ncd_msgid, buf, key, COMMTYPE_CLIENT);
 	if (bytes_received < 16 || buf[2] != MSG_CARD_DATA) {
 		cs_log("expected MSG_CARD_DATA (%02X), received %02X", MSG_CARD_DATA, buf[2]);
-		network_tcp_connection_close(handle);
+		card_network_tcp_connection_close(handle);
 		return -4;
 	}
 	// 5. Parse CAID and PROVID(s)
