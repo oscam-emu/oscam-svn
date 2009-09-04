@@ -36,7 +36,7 @@ void ac_init_stat(int i)
 		cs_exit(0);
 }
 
-static int idx_from_ac_idx(int ac_idx)
+static int ac_idx_from_ac_idx(int ac_idx)
 {
 	int i;
 
@@ -56,7 +56,7 @@ void ac_do_stat()
 		idx = ac_stat[i].idx;
 		ac_stat[i].stat[idx] = acasc[i].count;
 		acasc[i].count = 0;
-		cl_idx = idx_from_ac_idx(i);
+		cl_idx = ac_idx_from_ac_idx(i);
 
 		if (ac_stat[i].stat[idx]) {
 			if (cl_idx == -1) {
