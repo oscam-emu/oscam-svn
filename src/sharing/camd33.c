@@ -5,6 +5,9 @@
 #include "simples.h"
 #include "log.h"
 
+/* CSCRYPT */
+#include "cscrypt.h"
+
 #include <time.h>
 #include <stdlib.h>
 

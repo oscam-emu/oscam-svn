@@ -9,6 +9,7 @@
 #include "log.h"
 
 #include <signal.h>
+#include <stdio.h>
 #include <time.h>
 
 static void reader_common_clear_memory(struct s_reader *reader)

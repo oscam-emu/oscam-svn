@@ -5,6 +5,9 @@
 #include "simples.h"
 #include "log.h"
 
+/* CSCRYPT */
+#include "cscrypt.h"
+
 #include <time.h>
 
 #  define ADDRLEN      4        // Address length in EMM commands

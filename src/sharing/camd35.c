@@ -7,6 +7,9 @@
 
 #include "sharing/newcamd.h"	// UGLY : to be removed !
 
+/* CSCRYPT */
+#include "cscrypt.h"
+
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>

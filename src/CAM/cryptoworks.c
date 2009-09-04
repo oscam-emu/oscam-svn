@@ -6,6 +6,9 @@
 #include "log.h"
 #include "config.h"		// UGLY : to be removed !
 
+/* CSCRYPT */
+#include "cscrypt.h"
+
 #include <stdlib.h>
 
 #define MAX_LEN 256

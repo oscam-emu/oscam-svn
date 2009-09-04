@@ -6,6 +6,7 @@
 #include "log.h"
 
 #include <fcntl.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <sys/poll.h>
 #include <termios.h>

@@ -4,6 +4,9 @@
 
 #include "log.h"
 
+/* CSCRYPT */
+#include "cscrypt.h"
+
 #include <stdlib.h>
 
 #define MAX_ATR_LEN 33	// max. ATR length

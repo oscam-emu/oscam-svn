@@ -9,9 +9,10 @@
 #  include <netdb.h>
 #  include <arpa/inet.h>
 
-#  include "cscrypt.h"
-
 #  include "os-types.h"
+
+/* CSCRYPT */
+#  include "cscrypt.h"		// needed for s_client.AES_key
 
 #  define CS_VERSION_NUMBER	"0.99.4svn"
 

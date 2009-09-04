@@ -5,6 +5,9 @@
 #include "simples.h"
 #include "log.h"
 
+/* CSCRYPT */
+#include "cscrypt.h"
+
 #define MAX_LEN 256
 
 /*

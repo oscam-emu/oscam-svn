@@ -7,6 +7,9 @@
 #include "simples.h"
 #include "log.h"
 
+/* CSCRYPT */
+#include "cscrypt.h"
+
 #include <fcntl.h>
 #include <stdlib.h>
 #include <time.h>

@@ -2,6 +2,9 @@
 #  define __AC_H__
 
 #  ifdef CS_ANTICASC
+
+#  include <stdio.h>
+
 struct s_acasc_shm {
 	ushort count:15;
 	ushort deny:1;

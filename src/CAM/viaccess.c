@@ -5,6 +5,11 @@
 #include "simples.h"
 #include "log.h"
 
+/* CSCRYPT */
+#include "cscrypt.h"
+
+#include <stdio.h>
+
 struct geo_cache {
 	ulong provid;
 	uchar geo[256];

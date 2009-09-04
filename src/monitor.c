@@ -5,6 +5,9 @@
 #include "oscam.h"
 #include "log.h"
 
+/* CSCRYPT */
+#include "cscrypt.h"
+
 #include <signal.h>
 #include <stdlib.h>
 #include <time.h>

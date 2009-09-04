@@ -29,6 +29,9 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+/* CSCRYPT */
+#include "cscrypt.h"
+
 #ifdef TUXBOX
 #  include <sys/stat.h>
 #endif
