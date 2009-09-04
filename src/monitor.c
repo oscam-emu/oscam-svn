@@ -51,7 +51,7 @@ static void monitor_auth_client(char *usr, char *pwd)
 		cs_exit(0);
 }
 
-static int secmon_auth_client(uchar * ucrc)
+static int monitor_secure_auth_client(uchar * ucrc)
 {
 	ulong crc;
 	struct s_auth *account;
@@ -131,13 +131,13 @@ static int monitor_recv(uchar * buf, int l)
 			cs_log("packet to short !");
 			return (buf[0] = 0);
 		}
-		if (!secmon_auth_client(buf + 1))
+		if (!monitor_secure_auth_client(buf + 1))
 			return (buf[0] = 0);
 		aes_decrypt(buf + 5, 16);
 		bsize = boundary(4, buf[9] + 5) + 5;
-// cs_log("n=%d bsize=%d", n, bsize);
+//		cs_log("n=%d bsize=%d", n, bsize);
 		if (n > bsize) {
-// cs_log("DO >>>> copy-back");
+//			cs_log("DO >>>> copy-back");
 			memcpy(bbuf, buf + bsize, bpos = n - bsize);
 			n = bsize;
 			if (!write(client[cs_idx].ufd, nbuf, sizeof (nbuf)))
@@ -213,7 +213,7 @@ static void monitor_send_info(char *txt, int last)
 	btxt[0] = 0;
 }
 
-static int cs_idx2ridx(int idx)
+static int monitor_idx2ridx(int idx)
 {
 	int i;
 
@@ -255,7 +255,7 @@ static char *monitor_get_proto(int idx)
 			break;
 		case 'p':
 		case 'r':
-			if ((i = cs_idx2ridx(idx)) < 0)	// should never happen
+			if ((i = monitor_idx2ridx(idx)) < 0)	// should never happen
 				ctyp = (client[idx].typ == 'p') ? "proxy" : "reader";
 			else {
 				switch (reader[i].type)	// TODO like ph
@@ -321,7 +321,7 @@ static char *monitor_client_info(char id, int i)
 			lsec = now - client[i].login;
 			isec = now - client[i].last;
 			usr = client[i].usr;
-			if (((client[i].typ == 'r') || (client[i].typ == 'p')) && (con = cs_idx2ridx(i)) >= 0)
+			if (((client[i].typ == 'r') || (client[i].typ == 'p')) && (con = monitor_idx2ridx(i)) >= 0)
 				usr = reader[con].label;
 			if (client[i].dup)
 				con = 2;
