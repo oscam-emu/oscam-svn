@@ -136,10 +136,13 @@ static char *credit[] = {
 
 static void oscam_set_mloc(int ato, char *txt)
 {
-	if (ato >= 0)
+	if (ato >= 0) {
 		alarm(ato);
-	if (txt)
+	}
+
+	if (txt) {
 		strcpy(mloc, txt);
+	}
 }
 
 char *oscam_platform(char *buf)
@@ -151,8 +154,9 @@ char *oscam_platform(char *buf)
 		struct stat st;
 
 		cs_hw = CS_HW_DBOX2;	// dbox2, default for now
-		if (!stat("/dev/sci0", &st))
+		if (!stat("/dev/sci0", &st)) {
 			cs_hw = CS_HW_DREAM;	// dreambox
+		}
 		switch (cs_hw) {
 #  ifdef PPC
 			case CS_HW_DBOX2:
@@ -164,10 +168,12 @@ char *oscam_platform(char *buf)
 				break;
 		}
 #endif
-		if (!hw)
+		if (!hw) {
 			hw = CS_OS_HW;
+		}
 	}
 	sprintf(buf, "%s-%s-%s", CS_OS_CPU, hw, CS_OS_SYS);
+
 	return buf;
 }
 
@@ -190,9 +196,11 @@ static void oscam_usage()
 	fprintf(stderr, "\t           default=%s\n", CS_MMAPFILE);
 #endif
 	fprintf(stderr, "\nthanks to ...\n");
-	for (i = 0; credit[i]; i++)
+	for (i = 0; credit[i]; i++) {
 		fprintf(stderr, "\t%s\n", credit[i]);
+	}
 	fprintf(stderr, "\n");
+
 	exit(1);
 }
 
@@ -220,9 +228,11 @@ static int oscam_daemon(int nochdir, int noclose)
 		(void) dup2(fd, STDIN_FILENO);
 		(void) dup2(fd, STDOUT_FILENO);
 		(void) dup2(fd, STDERR_FILENO);
-		if (fd > 2)
+		if (fd > 2) {
 			(void) close(fd);
+		}
 	}
+
 	return 0;
 }
 #else
@@ -238,33 +248,39 @@ int oscam_recv_from_udpipe(uchar * buf, int l)
 {
 	unsigned short n;
 
-	if (!pfd)
+	if (!pfd) {
 		return -9;
-	if (!read(pfd, buf, 3))
+	}
+	if (!read(pfd, buf, 3)) {
 		oscam_exit(1);
+	}
 	if (buf[0] != 'U') {
 		log_normal("INTERNAL PIPE-ERROR");
 		oscam_exit(1);
 	}
 	memcpy(&n, buf + 1, 2);
+
 	return read(pfd, buf, n);
 }
 
 char *oscam_username(int idx)
 {
-	if (client[idx].usr[0])
+	if (client[idx].usr[0]) {
 		return client[idx].usr;
-	else
+	} else {
 		return "anonymous";
+	}
 }
 
 static int oscam_idx_from_ip(in_addr_t ip, in_port_t port)
 {
 	int i, idx;
 
-	for (i = idx = 0; (i < CS_MAXPID) && (!idx); i++)
-		if ((client[i].ip == ip) && (client[i].port == port) && ((client[i].typ == 'c') || (client[i].typ == 'm')))
+	for (i = idx = 0; (i < CS_MAXPID) && (!idx); i++) {
+		if ((client[i].ip == ip) && (client[i].port == port) && ((client[i].typ == 'c') || (client[i].typ == 'm'))) {
 			idx = i;
+		}
+	}
 
 	return idx;
 }
@@ -273,9 +289,11 @@ int oscam_idx_from_pid(pid_t pid)
 {
 	int i, idx;
 
-	for (i = 0, idx = (-1); (i < CS_MAXPID) && (idx < 0); i++)
-		if (client[i].pid == pid)
+	for (i = 0, idx = (-1); (i < CS_MAXPID) && (idx < 0); i++) {
+		if (client[i].pid == pid) {
 			idx = i;
+		}
+	}
 
 	return idx;
 }
@@ -285,9 +303,11 @@ static long oscam_chk_caid(ushort caid, CAIDTAB * ctab)
 	int n;
 	long rc;
 
-	for (rc = (-1), n = 0; (n < CS_MAXCAIDTAB) && (rc < 0); n++)
-		if ((caid & ctab->mask[n]) == ctab->caid[n])
+	for (rc = (-1), n = 0; (n < CS_MAXCAIDTAB) && (rc < 0); n++) {
+		if ((caid & ctab->mask[n]) == ctab->caid[n]) {
 			rc = ctab->cmap[n] ? ctab->cmap[n] : caid;
+		}
+	}
 
 	return rc;
 }
@@ -314,8 +334,9 @@ static void oscam_set_signal_handler(int sig, int flags, void (*sighandler) (int
 	if ((signal(sig, sighandler) == SIG_IGN) && (flags & 2)) {
 		signal(sig, SIG_IGN);
 		siginterrupt(sig, 0);
-	} else
+	} else {
 		siginterrupt(sig, (flags & 1) ? 0 : 1);
+	}
 #else
 	struct sigaction sa;
 
@@ -350,6 +371,7 @@ void oscam_set_priority(int prio)
 			wprio = IDLE_PRIORITY_CLASS;
 			break;
 	}
+
 	WinId = GetCurrentProcess();
 	SetPriorityClass(WinId, wprio);
 }
@@ -379,8 +401,10 @@ static void oscam_master_alarm(int sig)
 
 static void oscam_sigpipe(int sig)
 {
-	if ((cs_idx) && (master_pid != getppid()))
+	if ((cs_idx) && (master_pid != getppid())) {
 		oscam_exit(0);
+	}
+
 	log_normal("Got sigpipe signal -> captured");
 }
 
@@ -390,8 +414,9 @@ void oscam_exit(int sig)
 
 	oscam_set_signal_handler(SIGCHLD, 1, SIG_IGN);
 	oscam_set_signal_handler(SIGHUP, 1, SIG_IGN);
-	if (sig && (sig != SIGQUIT))
+	if (sig && (sig != SIGQUIT)) {
 		log_normal("exit with signal %d", sig);
+	}
 	switch (client[cs_idx].typ) {
 		case 'c':
 			log_statistics(cs_idx);
@@ -412,12 +437,14 @@ void oscam_exit(int sig)
 #endif
 			break;
 	}
-	if (pfd)
+	if (pfd) {
 		close(pfd);
+	}
 #ifdef CS_NOSHM
 	munmap((void *) ecmcache, (size_t) shmsize);
-	if (shmid)
+	if (shmid) {
 		close(shmid);
+	}
 	unlink(CS_MMAPFILE);	// ignore errors, last process must succeed
 #endif
 	exit(sig);
@@ -428,11 +455,13 @@ static void oscam_reinit_clients()
 	int i;
 	struct s_auth *account;
 
-	for (i = 1; i < CS_MAXPID; i++)
+	for (i = 1; i < CS_MAXPID; i++) {
 		if (client[i].pid && client[i].typ == 'c' && client[i].usr[0]) {
-			for (account = cfg->account; (account); account = account->next)
-				if (!strcmp(client[i].usr, account->usr))
+			for (account = cfg->account; (account); account = account->next) {
+				if (!strcmp(client[i].usr, account->usr)) {
 					break;
+				}
+			}
 
 			if (account && client[i].pcrc == crc32(0L, MD5((uchar *) account->pwd, strlen(account->pwd), NULL), 16)) {
 				client[i].grp = account->grp;
@@ -458,6 +487,7 @@ static void oscam_reinit_clients()
 				}
 			}
 		}
+	}
 }
 
 static void oscam_sighup()
@@ -473,11 +503,12 @@ static void oscam_accounts_chk()
 	config_init_userdb();
 	oscam_reinit_clients();
 #ifdef CS_ANTICASC
-	for (i = 0; i < CS_MAXPID; i++)
+	for (i = 0; i < CS_MAXPID; i++) {
 		if (client[i].typ == 'a') {
 			kill(client[i].pid, SIGHUP);
 			break;
 		}
+	}
 #endif
 }
 
@@ -486,29 +517,33 @@ static void oscam_debug_level()
 	int i;
 
 	cs_dblevel ^= D_ALL_DUMP;
-	if (master_pid == getpid())
-		for (i = 0; i < CS_MAXPID && client[i].pid; i++)
+	if (master_pid == getpid()) {
+		for (i = 0; i < CS_MAXPID && client[i].pid; i++) {
 			client[i].dbglvl = cs_dblevel;
-	else
+		}
+	} else {
 		client[cs_idx].dbglvl = cs_dblevel;
+	}
+
 	log_normal("%sdebug_level=%d", (master_pid == getpid())? "all " : "", cs_dblevel);
 }
 
 static void oscam_card_info(int i)
 {
 	uchar dummy[1] = { 0x00 };
-	for (i = 1; i < CS_MAXPID; i++)
+	for (i = 1; i < CS_MAXPID; i++) {
 		if (client[i].pid && client[i].typ == 'r' && client[i].fd_m2c) {
 			oscam_write_to_pipe(client[i].fd_m2c, PIP_ID_CIN, dummy, 1);
 		}
+	}
 	//kill(client[i].pid, SIGUSR2);
 }
 
 static void oscam_child_chk(int i)
 {
 	while (waitpid(0, NULL, WNOHANG) > 0);
-	for (i = 1; i < CS_MAXPID; i++)
-		if (client[i].pid)
+	for (i = 1; i < CS_MAXPID; i++) {
+		if (client[i].pid) {
 			if (kill(client[i].pid, 0)) {
 				if ((client[i].typ != 'c') && (client[i].typ != 'm')) {
 					char *txt = "";
@@ -565,6 +600,8 @@ static void oscam_child_chk(int i)
 					client[i].au = (-1);
 				}
 			}
+		}
+	}
 }
 
 int oscam_fork(in_addr_t ip, in_port_t port)
@@ -596,8 +633,9 @@ int oscam_fork(in_addr_t ip, in_port_t port)
 				fd_m2c = fdp[0];
 				close(fdp[1]);
 				close(mfdr);
-				if (port != 97)
+				if (port != 97) {
 					log_close();
+				}
 				mfdr = 0;
 				cs_ptyp = D_CLIENT;
 				cs_idx = i;
@@ -673,7 +711,7 @@ int oscam_fork(in_addr_t ip, in_port_t port)
 		}
 	} else {
 		log_normal("max connections reached -> reject client %s", network_inet_ntoa(ip));
-		i = (-1);
+		i = -1;
 	}
 
 	return i;
@@ -686,6 +724,7 @@ static void oscam_init_signal()
 	for (i = 1; i < NSIG; i++) {
 		oscam_set_signal_handler(i, 3, oscam_exit);
 	}
+
 	oscam_set_signal_handler(SIGWINCH, 1, SIG_IGN);
 //	oscam_set_signal_handler(SIGPIPE, 0, SIG_IGN);
 	oscam_set_signal_handler(SIGPIPE, 0, oscam_sigpipe);
@@ -786,7 +825,7 @@ static void oscam_init_shm()
 	client[0].login = time((time_t *) 0);
 	client[0].ip = network_inet_addr("127.0.0.1");
 	client[0].typ = 's';
-	client[0].au = (-1);
+	client[0].au = -1;
 	client[0].dbglvl = cs_dblevel;
 	strcpy(client[0].usr, "root");
 #ifdef CS_LOGHISTORY
@@ -813,19 +852,21 @@ static int oscam_start_listener(struct s_module *ph, int port_idx)
 
 	memset((char *) &sad, 0, sizeof (sad));	/* clear sockaddr structure   */
 	sad.sin_family = AF_INET;	/* set family to Internet     */
-	if (!ph->s_ip)
+	if (!ph->s_ip) {
 		ph->s_ip = cfg->srvip;
+	}
 	if (ph->s_ip) {
 		sad.sin_addr.s_addr = ph->s_ip;
 		sprintf(ptxt[0], ", ip=%s", inet_ntoa(sad.sin_addr));
-	} else
+	} else {
 		sad.sin_addr.s_addr = INADDR_ANY;
+	}
 	timeout = cfg->bindwait;
 	ph->ptab->ports[port_idx].fd = 0;
 
-	if (ph->ptab->ports[port_idx].s_port > 0)	/* test for illegal value    */
+	if (ph->ptab->ports[port_idx].s_port > 0) {	/* test for illegal value    */
 		sad.sin_port = htons((u_short) ph->ptab->ports[port_idx].s_port);
-	else {
+	} else {
 		log_normal("%s: Bad port %d", ph->desc, ph->ptab->ports[port_idx].s_port);
 		return 0;
 	}
@@ -997,23 +1038,26 @@ static void oscam_start_resolver()
 #ifdef USE_PTHREAD
 	pthread_t tid;
 
-	if ((i = pthread_create(&tid, (pthread_attr_t *) 0, oscam_logger, (void *) 0)))
+	if ((i = pthread_create(&tid, (pthread_attr_t *) 0, oscam_logger, (void *) 0))) {
 		log_normal("ERROR: can't create logging-thread (err=%d)", i);
-	else {
+	} else {
 		log_normal("logging thread started");
 		pthread_detach(tid);
 	}
 #endif
 	sleep(1);	// wait for reader
 	while (1) {
-		if (master_pid != getppid())
+		if (master_pid != getppid()) {
 			oscam_exit(0);
+		}
 		oscam_resolve();
-		for (i = 0; i < cfg->resolvedelay; i++)
-			if (master_pid != getppid())
+		for (i = 0; i < cfg->resolvedelay; i++) {
+			if (master_pid != getppid()) {
 				oscam_exit(0);
-			else
+			} else {
 				sleep(1);
+			}
+		}
 //        sleep(cfg->resolvedelay);
 	}
 }
@@ -1028,14 +1072,17 @@ static void oscam_start_anticascader()
 
 	ac_init_stat(0);
 	while (1) {
-		for (i = 0; i < cfg->ac_stime * 60; i++)
-			if (master_pid != getppid())
+		for (i = 0; i < cfg->ac_stime * 60; i++) {
+			if (master_pid != getppid()) {
 				oscam_exit(0);
-			else
+			} else {
 				sleep(1);
+			}
+		}
 
-		if (master_pid != getppid())
+		if (master_pid != getppid()) {
 			oscam_exit(0);
+		}
 
 		ac_do_stat();
 	}
@@ -1044,8 +1091,8 @@ static void oscam_start_anticascader()
 
 static void oscam_init_cardreader()
 {
-	for (ridx = 0; ridx < CS_MAXREADER; ridx++)
-		if (reader[ridx].device[0])
+	for (ridx = 0; ridx < CS_MAXREADER; ridx++) {
+		if (reader[ridx].device[0]) {
 			switch (oscam_fork(0, 99)) {
 				case -1:
 					oscam_exit(1);
@@ -1055,6 +1102,8 @@ static void oscam_init_cardreader()
 					oscam_wait4master();
 					card_start_reader();
 			}
+		}
+	}
 }
 
 static void oscam_init_service(int srv)
@@ -1098,6 +1147,7 @@ void oscam_wait4master()
 		log_normal("PANIC: client not found in shared memory");
 		oscam_exit(1);
 	}
+
 	log_debug("starting client %d with ip %s", cs_idx - cdiff, network_inet_ntoa(client[cs_idx].ip));
 }
 
@@ -1205,10 +1255,11 @@ int oscam_auth_client(struct s_auth *account, char *e_txt)
 
 void oscam_disconnect_client()
 {
-	if (client[cs_idx].ip)
+	if (client[cs_idx].ip) {
 		log_normal("%s disconnected%s from %s", oscam_username(cs_idx), network_inet_ntoa(client[cs_idx].ip));
-	else
+	} else {
 		log_normal("%s disconnected", oscam_username(cs_idx));
+	}
 
 	oscam_exit(0);
 }
@@ -1231,8 +1282,9 @@ int oscam_write_to_pipe(int fd, int id, uchar * data, int n)
 //	n = write(fd, buf, n);
 //	printf("WRITE_END pid=%d", getpid()); fflush(stdout);
 //	return n;
-	if (!fd)
+	if (!fd) {
 		log_normal("oscam_write_to_pipe: fd==0");
+	}
 
 	return write(fd, buf, n);
 }
@@ -1244,10 +1296,11 @@ static int oscam_bytes_available(int fd)
 	pfds.fd = fd;
 	pfds.events = POLLIN;
 	pfds.revents = 0;
-	if (poll(&pfds, 1, 0) != 1)
+	if (poll(&pfds, 1, 0) != 1) {
 		return 0;
-	else
+	} else {
 		return (((pfds.revents) & POLLIN) == POLLIN);
+	}
 }
 
 /*
@@ -1473,6 +1526,7 @@ int oscam_send_dcw(ECM_REQUEST * er)
 	if (er->rc == 7)
 		er->rc = 0;
 	ph[client[cs_idx].ctyp].send_dcw(er);
+
 	return 0;
 }
 
@@ -1496,19 +1550,23 @@ static void oscam_chk_dcw(int fd)
 		ert->reader[0] = er->reader[0];
 		memcpy(ert->cw, er->cw, sizeof (er->cw));
 		ert->gbxCWFrom = er->gbxCWFrom;
-	} else	// not found (from ONE of the readers !)
-	{
+	} else {	// not found (from ONE of the readers !)
 		int i;
 
 		ert->reader[er->reader[0]] = 0;
-		for (i = 0; (ert) && (i < CS_MAXREADER); i++)
-			if (ert->reader[i])	// we have still another chance
+		for (i = 0; (ert) && (i < CS_MAXREADER); i++) {
+			if (ert->reader[i]) {	// we have still another chance
 				ert = (ECM_REQUEST *) 0;
-		if (ert)
+			}
+		}
+		if (ert) {
 			ert->rc = 4;
+		}
 	}
-	if (ert)
+
+	if (ert) {
 		oscam_send_dcw(ert);
+	}
 }
 
 static void oscam_request_cw(ECM_REQUEST * er, int flag, int reader_types)
@@ -1696,20 +1754,19 @@ void oscam_process_ecm(ECM_REQUEST * er)
 
 void oscam_process_emm(EMM_PACKET * ep)
 {
-	int au;
-
-	au = client[cs_idx].au;
+	int au = client[cs_idx].au;
 
 	if ((au < 0) || (au >= CS_MAXREADER))
 		return;
+
 	client[cs_idx].lastemm = time((time_t) 0);
 	log_ddump(reader[au].hexserial, 8, "reader serial:");
 	log_ddump(ep->hexserial, 8, "emm SA:");
-//  if ((!reader[au].fd) || (reader[au].b_nano[ep->emm[3]])) // blocknano is obsolete
 	if ((!reader[au].fd) ||	// reader has no fd
 	    (reader[au].caid[0] != b2i(2, ep->caid)) ||	// wrong caid
-	    (memcmp(reader[au].hexserial, ep->hexserial, 8)))	// wrong serial
+	    (memcmp(reader[au].hexserial, ep->hexserial, 8))) {	// wrong serial
 		return;
+	}
 
 	ep->cidx = cs_idx;
 	oscam_write_to_pipe(reader[au].fd, PIP_ID_EMM, (uchar *) ep, sizeof (EMM_PACKET));
