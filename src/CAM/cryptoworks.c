@@ -322,7 +322,7 @@ int cam_cryptoworks_load_card()
 		uchar keybuf[256];
 		BIGNUM *ipk;
 
-		if (search_boxkey(reader[ridx].caid[0], 0, (char *) keybuf)) {
+		if (config_search_boxkey(reader[ridx].caid[0], 0, (char *) keybuf)) {
 			ipk = BN_new();
 			BN_bin2bn(cwexp, sizeof (cwexp), &exp);
 			BN_bin2bn(keybuf, 64, ipk);

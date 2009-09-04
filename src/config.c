@@ -61,7 +61,7 @@ static char *cctag[] = { "global", "camd33", "camd35",
 };
 
 #ifdef DEBUG_SIDTAB
-static void show_sidtab(struct s_sidtab *sidtab)
+static void config_show_sidtab(struct s_sidtab *sidtab)
 {
 	for (; sidtab; sidtab = sidtab->next) {
 		int i;
@@ -84,9 +84,8 @@ static void show_sidtab(struct s_sidtab *sidtab)
 }
 #endif
 
-static void chk_iprange(char *value, struct s_ip **base)
+static void config_check_iprange(char *value, struct s_ip **base)
 {
-	//int i;
 	char *ptr1, *ptr2;
 	struct s_ip *lip, *cip;
 
@@ -112,7 +111,7 @@ static void chk_iprange(char *value, struct s_ip **base)
 	}
 }
 
-static void chk_caidtab(char *caidasc, CAIDTAB * ctab)
+static void config_check_caidtab(char *caidasc, CAIDTAB * ctab)
 {
 	int i;
 	char *ptr1, *ptr2, *ptr3;
@@ -133,12 +132,12 @@ static void chk_caidtab(char *caidasc, CAIDTAB * ctab)
 			ctab->mask[i] = mask;
 			ctab->cmap[i++] = cmap;
 		}
-//    else
-//      cs_log("WARNING: wrong CAID in %s -> ignored", cs_user);
+//		else
+//			cs_log("WARNING: wrong CAID in %s -> ignored", cs_user);
 	}
 }
 
-static void chk_tuntab(char *tunasc, TUNTAB * ttab)
+static void config_check_tuntab(char *tunasc, TUNTAB * ttab)
 {
 	int i;
 	char *ptr1, *ptr2, *ptr3;
@@ -159,12 +158,12 @@ static void chk_tuntab(char *tunasc, TUNTAB * ttab)
 			ttab->bt_caidto[i] = bt_caidto;
 			ttab->bt_srvid[i++] = bt_srvid;
 		}
-//    else
-//      cs_log("WARNING: wrong Betatunnel in %s -> ignored", cs_user);
+//		else
+//			cs_log("WARNING: wrong Betatunnel in %s -> ignored", cs_user);
 	}
 }
 
-static void chk_services(char *labels, ulong * sidok, ulong * sidno)
+static void config_check_services(char *labels, ulong * sidok, ulong * sidno)
 {
 	int i;
 	char *ptr;
@@ -180,8 +179,7 @@ static void chk_services(char *labels, ulong * sidok, ulong * sidno)
 		}
 }
 
-static
-void chk_ftab(char *zFilterAsc, FTAB * ftab, const char *zType, const char *zName, const char *zFiltName)
+static void config_check_ftab(char *zFilterAsc, FTAB * ftab, const char *zType, const char *zName, const char *zFiltName)
 {
 	int i, j;
 	char *ptr1, *ptr2, *ptr3;
@@ -189,14 +187,10 @@ void chk_ftab(char *zFilterAsc, FTAB * ftab, const char *zType, const char *zNam
 
 	memset(ftab, 0, sizeof (FTAB));
 	for (i = 0, ptr1 = strtok(zFilterAsc, ";"); (i < CS_MAXFILTERS) && (ptr1); ptr1 = strtok(NULL, ";"), i++) {
-		//cs_log("ptr1=%s", ptr1);
 		ptr[i] = ptr1;
 		if ((ptr2 = strchr(trim(ptr1), ':'))) {
-			//cs_log("ptr2=%s", ptr2);
 			*ptr2++ = '\0';
-			//cs_log("ptr2=%s", ptr2);
 			ftab->filts[i].caid = (ushort) a2i(ptr1, 4);
-			//cs_log("caid=%04X", ftab->filts[i].caid);
 			ptr[i] = ptr2;
 		} else if (zFiltName && zFiltName[0] == 'c') {
 			cs_log("PANIC: CAID field not found in CHID parameter!");
@@ -215,10 +209,9 @@ void chk_ftab(char *zFilterAsc, FTAB * ftab, const char *zType, const char *zNam
 			cs_debug("%s #%d: %06X", zFiltName, j, ftab->filts[i].prids[j]);
 		}
 	}
-	//cs_log("exit chk_ftab");
 }
 
-static void chk_cltab(char *classasc, CLASSTAB * clstab)
+static void config_check_cltab(char *classasc, CLASSTAB * clstab)
 {
 	int i;
 	char *ptr1;
@@ -232,7 +225,7 @@ static void chk_cltab(char *classasc, CLASSTAB * clstab)
 	}
 }
 
-static void chk_port_tab(char *portasc, PTAB * ptab)
+static void config_check_port_tab(char *portasc, PTAB * ptab)
 {
 	int i, j, nfilts, ifilt, iport;
 	char *ptr1, *ptr2, *ptr3;
@@ -276,19 +269,7 @@ static void chk_port_tab(char *portasc, PTAB * ptab)
 	}
 }
 
-#ifdef NOTUSED
-static void chk_srvip(char *value, in_addr_t * ip)
-{
-	int i;
-	char *ptr;
-
-	for (i = 0, ptr = strtok(value, ","); ptr; ptr = strtok(NULL, ","))
-		if (i < 8)
-			ip[i++] = inet_addr(ptr);
-}
-#endif
-
-static void chk_t_global(char *token, char *value)
+static void config_check_t_global(char *token, char *value)
 {
 	if (!strcmp(token, "serverip"))
 		cfg->srvip = inet_addr(value);
@@ -355,7 +336,7 @@ static void chk_t_global(char *token, char *value)
 }
 
 #ifdef CS_ANTICASC
-static void chk_t_ac(char *token, char *value)
+static void config_check_t_ac(char *token, char *value)
 {
 	if (!strcmp(token, "enabled")) {
 		cfg->ac_enabled = atoi(value);
@@ -401,14 +382,14 @@ static void chk_t_ac(char *token, char *value)
 #endif
 }
 
-static void chk_t_monitor(char *token, char *value)
+static void config_check_t_monitor(char *token, char *value)
 {
 	if (!strcmp(token, "port"))
 		cfg->mon_port = atoi(value);
 	if (!strcmp(token, "serverip"))
 		cfg->mon_srvip = inet_addr(value);
 	if (!strcmp(token, "nocrypt"))
-		chk_iprange(value, &cfg->mon_allowed);
+		config_check_iprange(value, &cfg->mon_allowed);
 	if (!strcmp(token, "aulow"))
 		cfg->mon_aulow = atoi(value);
 	if (!strcmp(token, "monlevel"))
@@ -417,14 +398,14 @@ static void chk_t_monitor(char *token, char *value)
 		cfg->mon_hideclient_to = atoi(value);
 }
 
-static void chk_t_camd33(char *token, char *value)
+static void config_check_t_camd33(char *token, char *value)
 {
 	if (!strcmp(token, "port"))
 		cfg->c33_port = atoi(value);
 	if (!strcmp(token, "serverip"))
 		cfg->c33_srvip = inet_addr(value);
 	if (!strcmp(token, "nocrypt"))
-		chk_iprange(value, &cfg->c33_plain);
+		config_check_iprange(value, &cfg->c33_plain);
 	if (!strcmp(token, "passive"))
 		cfg->c33_passive = (value[0] != '0');
 	if (!strcmp(token, "key")) {
@@ -436,7 +417,7 @@ static void chk_t_camd33(char *token, char *value)
 	}
 }
 
-static void chk_t_camd35(char *token, char *value)
+static void config_check_t_camd35(char *token, char *value)
 {
 	if (!strcmp(token, "port"))
 		cfg->c35_port = atoi(value);
@@ -444,18 +425,18 @@ static void chk_t_camd35(char *token, char *value)
 		cfg->c35_tcp_srvip = inet_addr(value);
 }
 
-static void chk_t_camd35_tcp(char *token, char *value)
+static void config_check_t_camd35_tcp(char *token, char *value)
 {
 	if (!strcmp(token, "port"))
-		chk_port_tab(value, &cfg->c35_tcp_ptab);
+		config_check_port_tab(value, &cfg->c35_tcp_ptab);
 	if (!strcmp(token, "serverip"))
 		cfg->c35_tcp_srvip = inet_addr(value);
 }
 
-static void chk_t_newcamd(char *token, char *value)
+static void config_check_t_newcamd(char *token, char *value)
 {
 	if (!strcmp(token, "port"))
-		chk_port_tab(value, &cfg->ncd_ptab);
+		config_check_port_tab(value, &cfg->ncd_ptab);
 	if (!strcmp(token, "serverip"))
 		cfg->ncd_srvip = inet_addr(value);
 	if (!strcmp(token, "key")) {
@@ -467,19 +448,19 @@ static void chk_t_newcamd(char *token, char *value)
 
 }
 
-static void chk_t_radegast(char *token, char *value)
+static void config_check_t_radegast(char *token, char *value)
 {
 	if (!strcmp(token, "port"))
 		cfg->rad_port = atoi(value);
 	if (!strcmp(token, "serverip"))
 		cfg->rad_srvip = inet_addr(value);
 	if (!strcmp(token, "allowed"))
-		chk_iprange(value, &cfg->rad_allowed);
+		config_check_iprange(value, &cfg->rad_allowed);
 	if (!strcmp(token, "user"))
 		strncpy(cfg->rad_usr, value, sizeof (cfg->rad_usr) - 1);
 }
 
-static void chk_t_serial(char *token, char *value)
+static void config_check_t_serial(char *token, char *value)
 {
 	if (!strcmp(token, "device")) {
 		int l;
@@ -492,9 +473,8 @@ static void chk_t_serial(char *token, char *value)
 }
 
 #ifdef CS_WITH_GBOX
-static void chk_t_gbox(char *token, char *value)
+static void config_check_t_gbox(char *token, char *value)
 {
-//  if (!strcmp(token, "password")) strncpy(cfg->gbox_pwd, i2b(4, a2i(value, 4)), 4);
 	if (!strcmp(token, "password"))
 		cs_atob(cfg->gbox_pwd, value, 4);
 	if (!strcmp(token, "maxdist"))
@@ -511,55 +491,54 @@ static void chk_t_gbox(char *token, char *value)
 
 		for (i = 0, ptr1 = strtok(value, ","); (i < CS_MAXLOCALS) && (ptr1); ptr1 = strtok(NULL, ",")) {
 			cfg->locals[n++] = a2i(ptr1, 8);
-			//printf("%i %08X",n,cfg->locals[n-1]);
 		}
 		cfg->num_locals = n;
 	}
 }
 #endif
 
-static void chk_token(char *token, char *value, int tag)
+static void config_check_token(char *token, char *value, int tag)
 {
 	switch (tag) {
 		case TAG_GLOBAL:
-			chk_t_global(token, value);
+			config_check_t_global(token, value);
 			break;
 		case TAG_MONITOR:
-			chk_t_monitor(token, value);
+			config_check_t_monitor(token, value);
 			break;
 		case TAG_CAMD33:
-			chk_t_camd33(token, value);
+			config_check_t_camd33(token, value);
 			break;
 		case TAG_CAMD35:
 		case TAG_CS357X:
-			chk_t_camd35(token, value);
+			config_check_t_camd35(token, value);
 			break;
 		case TAG_NEWCAMD:
-			chk_t_newcamd(token, value);
+			config_check_t_newcamd(token, value);
 			break;
 		case TAG_RADEGAST:
-			chk_t_radegast(token, value);
+			config_check_t_radegast(token, value);
 			break;
 		case TAG_SERIAL:
-			chk_t_serial(token, value);
+			config_check_t_serial(token, value);
 			break;
 		case TAG_CS378X:
-			chk_t_camd35_tcp(token, value);
+			config_check_t_camd35_tcp(token, value);
 			break;
 #ifdef CS_WITH_GBOX
 		case TAG_GBOX:
-			chk_t_gbox(token, value);
+			config_check_t_gbox(token, value);
 			break;
 #endif
 #ifdef CS_ANTICASC
 		case TAG_ANTICASC:
-			chk_t_ac(token, value);
+			config_check_t_ac(token, value);
 			break;
 #endif
 	}
 }
 
-void init_cam_common_len4caid()
+void config_init_cam_common_len4caid()
 {
 	int nr;
 	FILE *fp;
@@ -586,7 +565,6 @@ void init_cam_common_len4caid()
 			continue;
 		if ((c = word_atob(value)) < 0)
 			continue;
-//printf("idx %02X = %04X\n", i, c); fflush(stdout);
 		cam_common_len4caid[i] = c;
 		nr++;
 	}
@@ -595,7 +573,7 @@ void init_cam_common_len4caid()
 	return;
 }
 
-int search_boxkey(ushort caid, ulong provid, char *key)
+int config_search_boxkey(ushort caid, ulong provid, char *key)
 {
 	int i, rc = 0;
 	FILE *fp;
@@ -634,7 +612,7 @@ int search_boxkey(ushort caid, ulong provid, char *key)
 	return (rc);
 }
 
-int init_config()
+int config_init()
 {
 	int tag = TAG_GLOBAL;
 	FILE *fp;
@@ -675,7 +653,6 @@ int init_config()
 	while (fgets(token, sizeof (token), fp)) {
 		int i, l;
 
-		//void *ptr;
 		if ((l = strlen(trim(token))) < 3)
 			continue;
 		if ((token[0] == '[') && (token[l - 1] == ']')) {
@@ -687,7 +664,7 @@ int init_config()
 		if (!(value = strchr(token, '=')))
 			continue;
 		*value++ = '\0';
-		chk_token(trim(strtolower(token)), trim(value), tag);
+		config_check_token(trim(strtolower(token)), trim(value), tag);
 	}
 	fclose(fp);
 	cs_init_log(logfile);
@@ -712,10 +689,10 @@ int init_config()
 	return 0;
 }
 
-static void chk_account(char *token, char *value, struct s_auth *account)
+static void config_check_account(char *token, char *value, struct s_auth *account)
 {
 	int i;
-	char *ptr1;		//, *ptr2;
+	char *ptr1;
 
 	if (!strcmp(token, "user"))
 		strncpy(account->usr, value, sizeof (account->usr) - 1);
@@ -724,7 +701,7 @@ static void chk_account(char *token, char *value, struct s_auth *account)
 	if (!strcmp(token, "hostname"))
 		strncpy((char *) account->dyndns, value, sizeof (account->dyndns) - 1);
 	if (!strcmp(token, "betatunnel"))
-		chk_tuntab(value, &account->ttab);
+		config_check_tuntab(value, &account->ttab);
 	if (!strcmp(token, "uniq"))
 		account->uniq = atoi(value);
 	if (!strcmp(token, "sleep"))
@@ -732,7 +709,7 @@ static void chk_account(char *token, char *value, struct s_auth *account)
 	if (!strcmp(token, "monlevel"))
 		account->monlvl = atoi(value);
 	if (!strcmp(token, "caid"))
-		chk_caidtab(value, &account->ctab);
+		config_check_caidtab(value, &account->ctab);
 	/*
 	 *    case insensitive
 	 */
@@ -750,13 +727,13 @@ static void chk_account(char *token, char *value, struct s_auth *account)
 				account->grp |= (1 << (g - 1));
 		}
 	if (!strcmp(token, "services"))
-		chk_services(value, &account->sidtabok, &account->sidtabno);
+		config_check_services(value, &account->sidtabok, &account->sidtabno);
 	if (!strcmp(token, "ident"))
-		chk_ftab(value, &account->ftab, "user", account->usr, "provid");
+		config_check_ftab(value, &account->ftab, "user", account->usr, "provid");
 	if (!strcmp(token, "class"))
-		chk_cltab(value, &account->cltab);
+		config_check_cltab(value, &account->cltab);
 	if (!strcmp(token, "chid"))
-		chk_ftab(value, &account->fchid, "user", account->usr, "chid");
+		config_check_ftab(value, &account->fchid, "user", account->usr, "chid");
 
 #ifdef CS_ANTICASC
 	if (!strcmp(token, "numusers"))
@@ -764,36 +741,16 @@ static void chk_account(char *token, char *value, struct s_auth *account)
 	if (!strcmp(token, "penalty"))
 		account->ac_penalty = atoi(value);
 #endif
-
-//  if (!strcmp(token, "caid"))
-//  {
-//    for (i=0, ptr1=strtok(value, ","); (i<CS_MAXCAIDTAB) && (ptr1); ptr1=strtok(NULL, ","))
-//    {
-//      ulong caid, mask;
-//      if (ptr2=strchr(trim(ptr1), '&'))
-//        *ptr2++='\0';
-//      else
-//        ptr2="";
-//      if (((caid=a2i(ptr1, 2))|(mask=a2i(ptr2,-2))) < 0x10000)
-//      {
-//        account->caidtab[i][0]=caid;
-//        account->caidtab[i++][1]=mask;
-//      }
-//      else
-//        cs_log("WARNING: wrong CAID in %s -> ignored", cs_user);
-//    }
-//  }
 }
 
-int init_userdb()
+int config_init_userdb()
 {
 	int tag = 0, nr, nro;
 
-	//int first=1;
 	FILE *fp;
 	char *value;
 	struct s_auth *ptr;
-	/*static */ struct s_auth *account = (struct s_auth *) 0;
+	struct s_auth *account = (struct s_auth *) 0;
 
 	sprintf(token, "%s%s", cs_confdir, cs_user);
 	if (!(fp = fopen(token, "r"))) {
@@ -845,14 +802,14 @@ int init_userdb()
 		if (!(value = strchr(token, '=')))
 			continue;
 		*value++ = '\0';
-		chk_account(trim(strtolower(token)), trim(value), account);
+		config_check_account(trim(strtolower(token)), trim(value), account);
 	}
 	fclose(fp);
 	cs_log("userdb reloaded: %d accounts freed, %d accounts loaded", nro, nr);
 	return (0);
 }
 
-static void chk_entry4sidtab(char *value, struct s_sidtab *sidtab, int what)
+static void config_check_entry4sidtab(char *value, struct s_sidtab *sidtab, int what)
 {
 	int i, b;
 	char *ptr;
@@ -900,19 +857,19 @@ static void chk_entry4sidtab(char *value, struct s_sidtab *sidtab, int what)
 	}
 }
 
-static void chk_sidtab(char *token, char *value, struct s_sidtab *sidtab)
+static void config_check_sidtab(char *token, char *value, struct s_sidtab *sidtab)
 {
 	if (!strcmp(token, "caid"))
-		chk_entry4sidtab(value, sidtab, 0);
+		config_check_entry4sidtab(value, sidtab, 0);
 	if (!strcmp(token, "provid"))
-		chk_entry4sidtab(value, sidtab, 1);
+		config_check_entry4sidtab(value, sidtab, 1);
 	if (!strcmp(token, "ident"))
-		chk_entry4sidtab(value, sidtab, 1);
+		config_check_entry4sidtab(value, sidtab, 1);
 	if (!strcmp(token, "srvid"))
-		chk_entry4sidtab(value, sidtab, 2);
+		config_check_entry4sidtab(value, sidtab, 2);
 }
 
-int init_sidtab()
+int config_init_sidtab()
 {
 	int nr, nro;
 	FILE *fp;
@@ -966,18 +923,18 @@ int init_sidtab()
 		if (!(value = strchr(token, '=')))
 			continue;
 		*value++ = '\0';
-		chk_sidtab(trim(strtolower(token)), trim(strtolower(value)), sidtab);
+		config_check_sidtab(trim(strtolower(token)), trim(strtolower(value)), sidtab);
 	}
 	fclose(fp);
 
 #ifdef DEBUG_SIDTAB
-	show_sidtab(cfg->sidtab);
+	config_show_sidtab(cfg->sidtab);
 #endif
 	cs_log("services reloaded: %d services freed, %d services loaded", nro, nr);
 	return (0);
 }
 
-int init_srvid()
+int config_init_srvid()
 {
 	int nr;
 	FILE *fp;
@@ -1020,7 +977,7 @@ int init_srvid()
 	return (0);
 }
 
-static void chk_reader(char *token, char *value, struct s_reader *rdr)
+static void config_check_reader(char *token, char *value, struct s_reader *rdr)
 {
 	int i;
 	char *ptr;
@@ -1075,7 +1032,7 @@ static void chk_reader(char *token, char *value, struct s_reader *rdr)
 	strtolower(value);
 
 	if (!strcmp(token, "services"))
-		chk_services(value, &rdr->sidtabok, &rdr->sidtabno);
+		config_check_services(value, &rdr->sidtabok, &rdr->sidtabno);
 	if (!strcmp(token, "inactivitytimeout"))
 		rdr->tcp_ito = atoi(value);
 	if (!strcmp(token, "reconnecttimeout"))
@@ -1090,7 +1047,7 @@ static void chk_reader(char *token, char *value, struct s_reader *rdr)
 	if (!strcmp(token, "logport"))
 		rdr->log_port = atoi(value);
 	if (!strcmp(token, "caid"))
-		chk_caidtab(value, &rdr->ctab);
+		config_check_caidtab(value, &rdr->ctab);
 	if (!strcmp(token, "boxid"))
 		rdr->boxid = a2i(value, 4);
 	if (!strcmp(token, "aeskey")) {
@@ -1151,11 +1108,11 @@ static void chk_reader(char *token, char *value, struct s_reader *rdr)
 		}
 	}
 	if (!strcmp(token, "ident"))
-		chk_ftab(value, &rdr->ftab, "reader", rdr->label, "provid");
+		config_check_ftab(value, &rdr->ftab, "reader", rdr->label, "provid");
 	if (!strcmp(token, "class"))
-		chk_cltab(value, &rdr->cltab);
+		config_check_cltab(value, &rdr->cltab);
 	if (!strcmp(token, "chid"))
-		chk_ftab(value, &rdr->fchid, "reader", rdr->label, "chid");
+		config_check_ftab(value, &rdr->fchid, "reader", rdr->label, "chid");
 	if (!strcmp(token, "showcls"))
 		rdr->show_cls = atoi(value);
 	if (!strcmp(token, "maxqlen"))
@@ -1190,7 +1147,7 @@ static void chk_reader(char *token, char *value, struct s_reader *rdr)
 				rdr->b_nano[i] = 1;
 }
 
-int init_readerdb()
+int config_init_readerdb()
 {
 	int tag = 0, nr;
 	FILE *fp;
@@ -1226,19 +1183,17 @@ int init_readerdb()
 		if (!(value = strchr(token, '=')))
 			continue;
 		*value++ = '\0';
-		chk_reader(trim(strtolower(token)), trim(value), &reader[nr]);
+		config_check_reader(trim(strtolower(token)), trim(value), &reader[nr]);
 	}
 	fclose(fp);
 	return (0);
 }
 
 #ifdef CS_ANTICASC
-void init_ac()
+void config_init_ac()
 {
 	int nr;
 	FILE *fp;
-
-	//char *value;
 
 	sprintf(token, "%s%s", cs_confdir, cs_ac);
 	if (!(fp = fopen(token, "r"))) {
@@ -1329,7 +1284,7 @@ void init_ac()
 		}
 	}
 	fclose(fp);
-	//cs_log("%d lengths for caid guessing loaded", nr);
+
 	return;
 }
 #endif

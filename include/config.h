@@ -1,17 +1,17 @@
 #ifndef __CONFIG_H__
 #  define __CONFIG_H__
 
-int init_config();
-int init_userdb();
-int init_readerdb();
-int init_sidtab();
-int init_srvid();
-void init_cam_common_len4caid();
-
-int search_boxkey(ushort, ulong, char *);
+int config_init();
+int config_init_userdb();
+int config_init_readerdb();
+int config_init_sidtab();
+int config_init_srvid();
 
 #  ifdef CS_ANTICASC
-void init_ac();
+void config_init_ac();
 #  endif
+
+void config_init_cam_common_len4caid();
+int config_search_boxkey(ushort, ulong, char *);
 
 #endif // __CONFIG_H__

@@ -425,7 +425,7 @@ static void cs_accounts_chk()
 {
 	int i;
 
-	init_userdb();
+	config_init_userdb();
 	cs_reinit_clients();
 #ifdef CS_ANTICASC
 	for (i = 0; i < CS_MAXPID; i++)
@@ -2027,7 +2027,7 @@ int main(int argc, char *argv[])
 	if (cs_confdir[strlen(cs_confdir)] != '/')
 		strcat(cs_confdir, "/");
 	init_shm();
-	init_config();
+	config_init();
 	for (i = 0; mod_def[i]; i++)	// must be later BEFORE init_config()
 	{
 		memset(&ph[i], 0, sizeof (struct s_module));
@@ -2035,15 +2035,14 @@ int main(int argc, char *argv[])
 	}
 
 	cs_log("auth size=%d", sizeof (struct s_auth));
-	//cs_log_config();
 	cfg->delay *= 1000;
-	init_sidtab();
-	init_readerdb();
-	init_userdb();
+	config_init_sidtab();
+	config_init_readerdb();
+	config_init_userdb();
 	init_signal();
 	cs_set_mloc(30, "init");
-	init_srvid();
-	init_cam_common_len4caid();
+	config_init_srvid();
+	config_init_cam_common_len4caid();
 	cs_init_statistics(cfg->usrfile);
 
 	if (pipe(fdp)) {
@@ -2121,7 +2120,7 @@ int main(int argc, char *argv[])
 	if (!cfg->ac_enabled)
 		cs_log("anti cascading disabled");
 	else {
-		init_ac();
+		config_init_ac();
 		init_service(96);
 	}
 #endif
