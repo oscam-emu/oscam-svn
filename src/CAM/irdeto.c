@@ -222,7 +222,7 @@ int cam_irdeto_load_card()
 	cam_irdeto_chk_cmd(sc_GetCountryCode, 18, result, &result_size);
 	reader[ridx].acs = (result[0] << 8) | result[1];
 	reader[ridx].caid[0] = (result[5] << 8) | result[6];
-	cs_log("type: %s, caid: %04X, acs: %x.%02x%s", (nagra) ? "aladin" : "irdeto", reader[ridx].caid[0], result[0], result[1], buf);
+	log_normal("type: %s, caid: %04X, acs: %x.%02x%s", (nagra) ? "aladin" : "irdeto", reader[ridx].caid[0], result[0], result[1], buf);
 
 	/*
 	 * Ascii/Hex-Serial
@@ -233,7 +233,7 @@ int cam_irdeto_load_card()
 	cam_irdeto_chk_cmd(sc_GetHEXSerial, 18, result, &result_size);
 	memcpy(reader[ridx].hexserial, result + 12, 8);
 	reader[ridx].nprov = result[10];
-	cs_log("ascii serial: %s, hex serial: %02X%02X%02X, hex base: %02X", buf, result[12], result[13], result[14], result[15]);
+	log_normal("ascii serial: %s, hex serial: %02X%02X%02X, hex base: %02X", buf, result[12], result[13], result[14], result[15]);
 
 	/*
 	 * CardFile
@@ -281,7 +281,7 @@ int cam_irdeto_load_card()
 	}
 
 	cs_ptyp = D_DEVICE;
-	cs_debug("set camkey for type=%d", camkey);
+	log_debug("set camkey for type=%d", camkey);
 	cs_ptyp = cs_ptyp_orig;
 
 	switch (camkey) {
@@ -308,7 +308,7 @@ int cam_irdeto_load_card()
 			if ((result_size > 33) && (chid = b2i(2, result + 11))) {
 				cam_irdeto_chid_date(b2i(2, result + 20) - 0x7f7, ds, 15);
 				cam_irdeto_chid_date(b2i(2, result + 13) - 0x7f7, de, 15);
-				cs_log("chid: %04X, date: %s - %s", chid, ds, de);
+				log_normal("chid: %04X, date: %s - %s", chid, ds, de);
 			} else {
 				break;
 			}
@@ -329,14 +329,14 @@ int cam_irdeto_load_card()
 				reader[ridx].prid[i][0] = 0xf;
 		}
 		if (p)
-			cs_log("providers: %d (%s)", p, buf + 1);
+			log_normal("providers: %d (%s)", p, buf + 1);
 
 		/*
 		 * ContryCode2
 		 */
 		cam_irdeto_chk_cmd(sc_GetCountryCode2, 0, result, &result_size);
 		if ((result_size > 9) && !(result[result_size - 2] | result[result_size - 1])) {
-			cs_debug("max chids: %d, %d, %d, %d", result[6], result[7], result[8], result[9]);
+			log_debug("max chids: %d, %d, %d, %d", result[6], result[7], result[8], result[9]);
 
 			/*
 			 * Provider 2
@@ -361,10 +361,10 @@ int cam_irdeto_load_card()
 								cam_irdeto_chid_date(date = b2i(2, result + k + 2), t, 16);
 								cam_irdeto_chid_date(date + result[k + 4], t + 16, 16);
 								if (first) {
-									cs_log("provider: %d, id: %06X", p, b2i(3, &reader[ridx].prid[i][1]));
+									log_normal("provider: %d, id: %06X", p, b2i(3, &reader[ridx].prid[i][1]));
 									first = 0;
 								}
-								cs_log("chid: %04X, date: %s - %s", chid, t, t + 16);
+								log_normal("chid: %04X, date: %s - %s", chid, t, t + 16);
 							}
 						}
 					}
@@ -432,7 +432,7 @@ int cam_irdeto_process_emm(EMM_PACKET * ep)
 			memcpy(ptr, &emm[2], dataLen);	// copy emm bytes
 			return (cam_irdeto_do_cmd(cmd, 0, result, sizeof(result), &result_size) ? 0 : 1);
 		} else
-			cs_log("addrlen %d > %d", l, ADDRLEN);
+			log_normal("addrlen %d > %d", l, ADDRLEN);
 	}
 
 	return 0;

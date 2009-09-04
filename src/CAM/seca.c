@@ -25,7 +25,7 @@ static int cam_seca_set_provider_info(int i)
 
 	ins12[2] = i;	//select provider
 	cam_common_cmd2card(ins12, sizeof(ins12), result, sizeof(result), &result_size);	// show provider properties
-	cs_debug("hexdump:%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x.", result[0], result[1], result[2], result[3], result[4], result[5], result[6], result[7], result[8], result[9], result[10], result[11], result[12], result[13], result[14],
+	log_debug("hexdump:%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x.", result[0], result[1], result[2], result[3], result[4], result[5], result[6], result[7], result[8], result[9], result[10], result[11], result[12], result[13], result[14],
 		 result[15], result[16], result[17], result[18], result[19], result[20], result[21], result[22], result[23], result[24], result[25], result[26]);
 
 	if ((result[25] != 0x90) || (result[26] != 0x00))
@@ -64,10 +64,10 @@ static int cam_seca_set_provider_info(int i)
 	trim(l_name + 8);
 	l_name[0] = (l_name[8]) ? ',' : 0;
 	reader[ridx].availkeys[i][0] = valid;	//misusing availkeys to register validity of provider
-	cs_log("provider: %d, valid: %i%s, expiry date: %4d/%02d/%02d", i + 1, valid, l_name, year, month, day);
+	log_normal("provider: %d, valid: %i%s, expiry date: %4d/%02d/%02d", i + 1, valid, l_name, year, month, day);
 	memcpy(&reader[ridx].sa[i][0], result + 18, 4);
 	if (valid == 1)	//if not expired
-		cs_log("SA: %s", cs_hexdump(0, result + 18, 4));
+		log_normal("SA: %s", cs_hexdump(0, result + 18, 4));
 
 	return 1;
 }
@@ -143,7 +143,7 @@ int cam_seca_load_card()
 	reader[ridx].hexserial[1] = 0;
 	memcpy(reader[ridx].hexserial + 2, result + 2, 6);
 	serial = b2ll(5, result + 3);
-	cs_log("caid: %04X, serial: %llu, card: %s v%d.%d", reader[ridx].caid[0], serial, card, reader[ridx].card_atr[9] & 0x0F, reader[ridx].card_atr[9] >> 4);
+	log_normal("caid: %04X, serial: %llu, card: %s v%d.%d", reader[ridx].caid[0], serial, card, reader[ridx].card_atr[9] & 0x0F, reader[ridx].card_atr[9] >> 4);
 	cam_common_cmd2card(ins16, sizeof(ins0e), result, sizeof(result), &result_size);	// read nr of providers
 	pmap = result[2] << 8 | result[3];
 	for (reader[ridx].nprov = 0, i = pmap; i; i >>= 1)
@@ -161,14 +161,14 @@ int cam_seca_load_card()
 		}
 	}
 
-	cs_log("providers: %d (%s)", reader[ridx].nprov, buf + 1);
+	log_normal("providers: %d (%s)", reader[ridx].nprov, buf + 1);
 
 	// Unlock parental control
 	if (cfg->ulparent != 0) {
 		cam_common_cmd2card(ins30, sizeof(ins30), result, sizeof(result), &result_size);
-		cs_log("ins30_answer: %02x%02x", result[0], result[1]);
+		log_normal("ins30_answer: %02x%02x", result[0], result[1]);
 	} else {
-		cs_log("parental locked");
+		log_normal("parental locked");
 	}
 
 	return 1;
@@ -192,26 +192,26 @@ int cam_seca_process_ecm(ECM_REQUEST * er)
 	ins3c[4] = (((er->ecm[1] & 0x0f) * 256) + er->ecm[2]) - 0x05;
 
 	memcpy(ins3cdata, er->ecm + 8, 256 - 8);
-	cs_debug("do_ecm:ins3c=%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x.", ins3c[0], ins3c[1], ins3c[2], ins3c[3], ins3c[4], ins3cdata[0], ins3cdata[1], ins3cdata[2], ins3cdata[3], ins3cdata[4], ins3cdata[5], ins3cdata[6], ins3cdata[7], ins3cdata[8], ins3cdata[9]);
+	log_debug("do_ecm:ins3c=%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x.", ins3c[0], ins3c[1], ins3c[2], ins3c[3], ins3c[4], ins3cdata[0], ins3cdata[1], ins3cdata[2], ins3cdata[3], ins3cdata[4], ins3cdata[5], ins3cdata[6], ins3cdata[7], ins3cdata[8], ins3cdata[9]);
 	uchar ins3c_cmd[272];
 	memcpy(ins3c_cmd, ins3c, 5);
 	memcpy(ins3c_cmd + 5, ins3cdata, ins3c[4]);
 	cam_common_cmd2card(ins3c_cmd, 5 + ins3c[4], result, sizeof(result), &result_size);	//ecm request
-	cs_debug("do_ecm_answer:%02x%02x", result[0], result[1]);
+	log_debug("do_ecm_answer:%02x%02x", result[0], result[1]);
 
 	static unsigned char ins30[] = { 0xC1, 0x30, 0x00, 0x02, 0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF };
 	/* We need to use a token */
 	if (result[0] == 0x90 && result[1] == 0x1a) {
 		cam_common_cmd2card(ins30, sizeof(ins30), result, sizeof(result), &result_size);
-		cs_debug("do_ins30_answer:%02x%02x", result[0], result[1]);
+		log_debug("do_ins30_answer:%02x%02x", result[0], result[1]);
 		cam_common_cmd2card(ins3c_cmd, 5 + ins3c[4], result, sizeof(result), &result_size);	//ecm request
-		cs_debug("do_ecm_answer2:%02x%02x", result[0], result[1]);
+		log_debug("do_ecm_answer2:%02x%02x", result[0], result[1]);
 	}
 
 	if ((result[0] != 0x90) || (result[1] != 0x00))
 		return 0;
 	cam_common_cmd2card(ins3a, sizeof(ins3a), result, sizeof(result), &result_size);	//get cw's
-	cs_debug("cwdump:%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x.", result[0], result[1], result[2], result[3], result[4], result[5], result[6], result[7], result[8], result[9], result[10], result[11], result[12], result[13], result[14], result[15], result[16],
+	log_debug("cwdump:%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x.", result[0], result[1], result[2], result[3], result[4], result[5], result[6], result[7], result[8], result[9], result[10], result[11], result[12], result[13], result[14], result[15], result[16],
 		 result[17]);
 	if ((result[16] != 0x90) || (result[17] != 0x00))
 		return 0;	//exit if response is not 90 00 //TODO: if response is 9027 ppv mode is possible!
@@ -229,7 +229,7 @@ int cam_seca_process_emm(EMM_PACKET * ep)
 	uchar ins40_cmd[272];
 	int i;
 
-	cs_debug("EMM:%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x.", ep->emm[0], ep->emm[1], ep->emm[2], ep->emm[3], ep->emm[4], ep->emm[5], ep->emm[6], ep->emm[7], ep->emm[8], ep->emm[9], ep->emm[10], ep->emm[11], ep->emm[12], ep->emm[13], ep->emm[14],
+	log_debug("EMM:%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x.", ep->emm[0], ep->emm[1], ep->emm[2], ep->emm[3], ep->emm[4], ep->emm[5], ep->emm[6], ep->emm[7], ep->emm[8], ep->emm[9], ep->emm[10], ep->emm[11], ep->emm[12], ep->emm[13], ep->emm[14],
 		 ep->emm[15], ep->emm[16], ep->emm[17], ep->emm[18], ep->emm[19], ep->emm[20], ep->emm[21], ep->emm[22], ep->emm[23], ep->emm[24], ep->emm[25], ep->emm[26]);
 	if (ep->emm[0] == 0x84) {	//shared EMM
 		//to test if SA matches
@@ -240,10 +240,10 @@ int cam_seca_process_emm(EMM_PACKET * ep)
 			return 0;
 		else	//prov id found, now test for SA (only first 3 bytes, custom byte does not count)
 		if ((ep->emm[5] != reader[ridx].sa[i][0]) || (ep->emm[6] != reader[ridx].sa[i][1]) || (ep->emm[7] != reader[ridx].sa[i][2])) {
-			cs_log("EMM: Shared update did not match; EMM SA:%02X%02X%02X, Reader SA:%02X,%02X,%02X.", ep->emm[5], ep->emm[6], ep->emm[7], reader[ridx].sa[i][0], reader[ridx].sa[i][1], reader[ridx].sa[i][2]);
+			log_normal("EMM: Shared update did not match; EMM SA:%02X%02X%02X, Reader SA:%02X,%02X,%02X.", ep->emm[5], ep->emm[6], ep->emm[7], reader[ridx].sa[i][0], reader[ridx].sa[i][1], reader[ridx].sa[i][2]);
 			return 0;
 		} else {
-			cs_log("EMM: Shared update matched for EMM SA %02X%02X%02X.", ep->emm[5], ep->emm[6], ep->emm[7]);
+			log_normal("EMM: Shared update matched for EMM SA %02X%02X%02X.", ep->emm[5], ep->emm[6], ep->emm[7]);
 			ins40[3] = ep->emm[9];
 			ins40[4] = (ep->emm[1] & 0x0f) * 256 + ep->emm[2] - 0x07;
 			memcpy(ins40data, ep->emm + 10, 256 - 10);
@@ -253,11 +253,11 @@ int cam_seca_process_emm(EMM_PACKET * ep)
 	else if (ep->emm[0] == 0x82) {	//unique EMM
 		//first test if UA matches
 		if ((reader[ridx].hexserial[2] != ep->emm[3]) || (reader[ridx].hexserial[3] != ep->emm[4]) || (reader[ridx].hexserial[4] != ep->emm[5]) || (reader[ridx].hexserial[5] != ep->emm[6]) || (reader[ridx].hexserial[6] != ep->emm[7]) || (reader[ridx].hexserial[7] != ep->emm[8])) {
-			cs_log("EMM: Unique update did not match; EMM Serial:%02X%02X%02X%02X%02X%02X, Reader Serial:%02X%02X%02X%02X%02X%02X.", ep->emm[3], ep->emm[4], ep->emm[5], ep->emm[6], ep->emm[7], ep->emm[8], reader[ridx].hexserial[2], reader[ridx].hexserial[3], reader[ridx].hexserial[4],
+			log_normal("EMM: Unique update did not match; EMM Serial:%02X%02X%02X%02X%02X%02X, Reader Serial:%02X%02X%02X%02X%02X%02X.", ep->emm[3], ep->emm[4], ep->emm[5], ep->emm[6], ep->emm[7], ep->emm[8], reader[ridx].hexserial[2], reader[ridx].hexserial[3], reader[ridx].hexserial[4],
 			       reader[ridx].hexserial[5], reader[ridx].hexserial[6], reader[ridx].hexserial[7]);
 			return 0;
 		} else {
-			cs_log("EMM: Unique update matched EMM Serial:%02X%02X%02X%02X%02X.", ep->emm[3], ep->emm[4], ep->emm[5], ep->emm[6], ep->emm[7], ep->emm[8]);
+			log_normal("EMM: Unique update matched EMM Serial:%02X%02X%02X%02X%02X.", ep->emm[3], ep->emm[4], ep->emm[5], ep->emm[6], ep->emm[7], ep->emm[8]);
 			//first find out prov id
 //			i = cam_seca_get_prov_index(ep->emm[9],ep->emm[10]);
 			i = cam_seca_get_prov_index((char *) ep->emm + 9);
@@ -273,18 +273,18 @@ int cam_seca_process_emm(EMM_PACKET * ep)
 
 	ins40[2] = i;
 //	length = ((er->ecm[1]<<8 || er->ecm[2])&0x0fff);
-	cs_debug("do_emm:ins40=%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x.", ins40[0], ins40[1], ins40[2], ins40[3], ins40[4], ins40data[0], ins40data[1], ins40data[2], ins40data[3], ins40data[4], ins40data[5], ins40data[6], ins40data[7], ins40data[8], ins40data[9]);
+	log_debug("do_emm:ins40=%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x.", ins40[0], ins40[1], ins40[2], ins40[3], ins40[4], ins40data[0], ins40data[1], ins40data[2], ins40data[3], ins40data[4], ins40data[5], ins40data[6], ins40data[7], ins40data[8], ins40data[9]);
 	memcpy(ins40_cmd, ins40, 5);
 	memcpy(ins40_cmd + 5, ins40data, ins40[4]);
 	cam_common_cmd2card(ins40_cmd, ins40[4], result, sizeof(result), &result_size);	//emm request
-	cs_debug("emmdump:%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x.", result[0], result[1], result[2], result[3], result[4], result[5], result[6], result[7], result[8], result[9], result[10], result[11], result[12], result[13], result[14], result[15], result[16],
+	log_debug("emmdump:%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x.", result[0], result[1], result[2], result[3], result[4], result[5], result[6], result[7], result[8], result[9], result[10], result[11], result[12], result[13], result[14], result[15], result[16],
 		 result[17]);
 //TODO	if ((result[16] != 0x90) || (result[17] != 0x00)) return 0;
 //	if ((result[16] != 0x90) || (result[17] != 0x19))
 //		seca_card_init(); //if return code = 90 19 then PPUA changed. //untested!!
 //	else
 	if (result[0] == 0x97) {
-		cs_log("EMM: Update not necessary.");
+		log_normal("EMM: Update not necessary.");
 		return 1;	//Update not necessary
 	}
 	if ((result[0] == 0x90) && ((result[1] == 0x00) || (result[1] == 0x19))) {

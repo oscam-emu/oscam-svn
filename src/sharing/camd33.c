@@ -21,7 +21,7 @@ static int sharing_camd33_send(uchar * buf, int ml)
 	}
 	l = boundary(4, ml);
 	memset(buf + ml, 0, l - ml);
-	cs_ddump(buf, l, "send %d bytes to client", l);
+	log_ddump(buf, l, "send %d bytes to client", l);
 	if (client[cs_idx].crypted) {
 		aes_encrypt(buf, l);
 	}
@@ -41,7 +41,7 @@ static int sharing_camd33_recv(uchar * buf, int l)
 		if (client[cs_idx].crypted)
 			aes_decrypt(buf, n);
 	}
-	cs_ddump(buf, n, "received %d bytes from client", n);
+	log_ddump(buf, n, "received %d bytes from client", n);
 
 	return n;
 }
@@ -134,7 +134,7 @@ static int sharing_camd33_get_request(uchar * buf, int n)
 				break;
 			default:
 				if (!memcmp(buf + 1, client[cs_idx].usr, strlen(client[cs_idx].usr))) {
-					cs_log("%s still alive", cs_inet_ntoa(client[cs_idx].ip));
+					log_normal("%s still alive", cs_inet_ntoa(client[cs_idx].ip));
 					rc = w = 0;
 				} else {
 					switch (buf[0]) {
@@ -199,7 +199,7 @@ static void sharing_camd33_server()
 
 	req = (uchar *) malloc(CS_MAXPENDING * REQ_SIZE);
 	if (!req) {
-		cs_log("Cannot allocate memory (errno=%d)", errno);
+		log_normal("Cannot allocate memory (errno=%d)", errno);
 		oscam_exit(1);
 	}
 	memset(req, 0, CS_MAXPENDING * REQ_SIZE);
@@ -215,7 +215,7 @@ static void sharing_camd33_server()
 				sharing_camd33_process_emm(mbuf, n);
 				break;
 			default:
-				cs_debug("unknown command !");
+				log_debug("unknown command !");
 		}
 	}
 	oscam_disconnect_client();

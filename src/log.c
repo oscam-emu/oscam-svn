@@ -24,7 +24,7 @@ FILE *fpa = (FILE *) 0;
 int use_ac_log = 0;
 #endif
 
-static void switch_log(char *file, FILE ** f, int (*pfinit) (char *))
+static void log_switch(char *file, FILE ** f, int (*pfinit) (char *))
 {
 	if (cfg->max_log_size && mcl) {
 		struct stat stlog;
@@ -53,33 +53,36 @@ static void switch_log(char *file, FILE ** f, int (*pfinit) (char *))
 	}
 }
 
-void cs_write_log(char *txt)
+void log_write(char *txt)
 {
 #ifdef CS_ANTICASC
 	if (use_ac_log && fpa) {
-		switch_log(cfg->ac_logfile, &fpa, ac_init_log);
+		log_switch(cfg->ac_logfile, &fpa, ac_init_log);
 		fprintf(fpa, "%s", txt);
 		fflush(fpa);
 	} else
 #endif
 	if (fp || use_stdout) {
-		if (!use_stdout && !use_syslog)
-			switch_log(logfile, &fp, cs_init_log);
+		if (!use_stdout && !use_syslog) {
+			log_switch(logfile, &fp, log_init);
+		}
 		fprintf(fp, "%s", txt);
 		fflush(fp);
 	}
 }
 
-int cs_init_log(char *file)
+int log_init(char *file)
 {
 	static char *head = ">> OSCam <<  cardserver started";
 
 	if (!strcmp(file, "stdout")) {
 		use_stdout = 1;
 		fp = stdout;
-		cs_log(head);
-		return (0);
+		log_normal(head);
+
+		return 0;
 	}
+
 	if (strcmp(file, "syslog")) {
 		if (!fp) {
 			if ((fp = fopen(file, "a+")) <= (FILE *) 0) {
@@ -96,20 +99,22 @@ int cs_init_log(char *file)
 				oscam_log_config();
 			}
 		}
+
 		return (fp <= (FILE *) 0);
 	} else {
 		openlog("oscam", LOG_NDELAY, LOG_DAEMON);
 		use_syslog = 1;
-		cs_log(head);
+		log_normal(head);
+
 		return (0);
 	}
 }
 
-static char *get_log_header(int m, char *txt)
+static char *log_get_header(int m, char *txt)
 {
 	if (m) {
 		sprintf(txt, "%6d ", getpid());
-		if (cs_idx)
+		if (cs_idx) {
 			switch (client[cs_idx].typ) {
 				case 'r':
 				case 'p':
@@ -126,46 +131,47 @@ static char *get_log_header(int m, char *txt)
 				case 'n':
 					sprintf(txt + 7, "%c   ", client[cs_idx].typ);
 					break;
-		} else
+			}
+		} else {
 			strcpy(txt + 7, "s   ");
+		}
 	} else {
 		sprintf(txt, "%-11.11s", "");
 	}
-	return (txt);
+
+	return txt;
 }
 
-static void write_to_log(int flag, char *txt)
+static void log_write_to_log(int flag, char *txt)
 {
-	//static int logcounter=0;
 	int i;
 	time_t t;
 	struct tm *lt;
 	char buf[512], sbuf[16];
 
-	get_log_header(flag, sbuf);
+	log_get_header(flag, sbuf);
 	memcpy(txt, sbuf, 11);
 
-	if (use_syslog && !use_ac_log)	// system-logfile
+	if (use_syslog && !use_ac_log) {	// system-logfile
 		syslog(LOG_INFO, "%s", txt);
-	else {
+	} else {
 		time(&t);
 		lt = localtime(&t);
 		sprintf(buf, "[LOG000]%4d/%02d/%02d %2d:%02d:%02d %s\n", lt->tm_year + 1900, lt->tm_mon + 1, lt->tm_mday, lt->tm_hour, lt->tm_min, lt->tm_sec, txt);
 
 /*
-  #ifdef CS_ANTICASC
-    if (fp || fpa || use_stdout)			// logfile
-  #else
-    if (fp || use_stdout)			// logfile
-  #endif
-    {
+#ifdef CS_ANTICASC
+		if (fp || fpa || use_stdout) {		// logfile
+#else
+		if (fp || use_stdout) {			// logfile
+#endif
 */
 		if ((*log_fd) && (client[cs_idx].typ != 'l') && (client[cs_idx].typ != 'a')) {
 			oscam_write_to_pipe(*log_fd, PIP_ID_LOG, (uchar *) buf + 8, strlen(buf + 8));
 		} else {
-			cs_write_log(buf + 8);
+			log_write(buf + 8);
 		}
-//    }
+//		}
 	}
 	oscam_store_logentry(buf);
 
@@ -186,7 +192,7 @@ static void write_to_log(int flag, char *txt)
 	}
 }
 
-void cs_log(char *fmt, ...)
+void log_normal(char *fmt, ...)
 {
 	char txt[256 + 11];
 
@@ -195,10 +201,10 @@ void cs_log(char *fmt, ...)
 	va_start(params, fmt);
 	vsprintf(txt + 11, fmt, params);
 	va_end(params);
-	write_to_log(1, txt);
+	log_write_to_log(1, txt);
 }
 
-void cs_close_log()
+void log_close()
 {
 	if (use_stdout || use_syslog || !fp)
 		return;
@@ -206,73 +212,70 @@ void cs_close_log()
 	fp = (FILE *) 0;
 }
 
-void cs_debug(char *fmt, ...)
+void log_debug(char *fmt, ...)
 {
 	char txt[256];
 
-//  cs_log("cs_debug called, cs_ptyp=%d, cs_dblevel=%d, %d", cs_ptyp, client[cs_idx].dbglvl ,cs_ptyp & client[cs_idx].dbglvl);
+//	log_normal("log_debug called, cs_ptyp=%d, cs_dblevel=%d, %d", cs_ptyp, client[cs_idx].dbglvl ,cs_ptyp & client[cs_idx].dbglvl);
 
-//  if ((cs_ptyp & cs_dblevel)==cs_ptyp)
 	if ((cs_ptyp & client[cs_idx].dbglvl) == cs_ptyp) {
 		va_list params;
 
 		va_start(params, fmt);
 		vsprintf(txt + 11, fmt, params);
 		va_end(params);
-		write_to_log(1, txt);
+		log_write_to_log(1, txt);
 	}
 }
 
-void cs_dump(uchar * buf, int n, char *fmt, ...)
+void log_dump(uchar * buf, int n, char *fmt, ...)
 {
 	int i;
 	char txt[512];
 
 	if (fmt)
-		cs_log(fmt);
+		log_normal(fmt);
 
 	for (i = 0; i < n; i += 16) {
 		sprintf(txt + 11, "%s", cs_hexdump(1, buf + i, (n - i > 16) ? 16 : n - i));
-		write_to_log(i == 0, txt);
+		log_write_to_log(i == 0, txt);
 	}
 }
 
-void cs_ddump(uchar * buf, int n, char *fmt, ...)
+void log_ddump(uchar * buf, int n, char *fmt, ...)
 {
 	int i;
 	char txt[512];
 
-//  if (((cs_ptyp & cs_dblevel)==cs_ptyp) && (fmt))
 	if (((cs_ptyp & client[cs_idx].dbglvl) == cs_ptyp) && (fmt)) {
 		va_list params;
 
 		va_start(params, fmt);
 		vsprintf(txt + 11, fmt, params);
 		va_end(params);
-		write_to_log(1, txt);
-//printf("LOG: %s\n", txt); fflush(stdout);
+		log_write_to_log(1, txt);
 	}
-//  if (((cs_ptyp | D_DUMP) & cs_dblevel)==(cs_ptyp | D_DUMP))
 	if (((cs_ptyp | D_DUMP) & client[cs_idx].dbglvl) == (cs_ptyp | D_DUMP)) {
 		for (i = 0; i < n; i += 16) {
 			sprintf(txt + 11, "%s", cs_hexdump(1, buf + i, (n - i > 16) ? 16 : n - i));
-			write_to_log(i == 0, txt);
+			log_write_to_log(i == 0, txt);
 		}
 	}
 }
 
-int cs_init_statistics(char *file)
+int log_init_statistics(char *file)
 {
 	if ((!fps) && (file[0])) {
 		if ((fps = fopen(file, "a")) <= (FILE *) 0) {
 			fps = (FILE *) 0;
-			cs_log("couldn't open statistics file: %s", file);
+			log_normal("couldn't open statistics file: %s", file);
 		}
 	}
+
 	return (fps <= (FILE *) 0);
 }
 
-void cs_statistics(int idx)
+void log_statistics(int idx)
 {
 	time_t t;
 	struct tm *lt;
@@ -280,7 +283,7 @@ void cs_statistics(int idx)
 	if (fps) {
 		float cwps;
 
-		switch_log(cfg->usrfile, &fps, cs_init_statistics);
+		log_switch(cfg->usrfile, &fps, log_init_statistics);
 		time(&t);
 		lt = localtime(&t);
 		if (client[idx].cwfound + client[idx].cwnot > 0) {

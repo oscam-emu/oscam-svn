@@ -40,10 +40,10 @@ int nano_chk_class(ECM_REQUEST * er, CLASSTAB * clstab, const char *type, const 
 	while ((j = nano_find(er->ecm, er->l, CS_NANO_CLASS, j)) > 0) {
 		l = er->ecm[j];
 		ecm_class = er->ecm[j + l];
-		cs_debug("ecm class=%02X", ecm_class);
+		log_debug("ecm class=%02X", ecm_class);
 		for (i = 0; i < clstab->bn; i++)	// search in blocked
 			if (ecm_class == clstab->bclass[i]) {
-				cs_debug("class %02X rejected by %s '%s' !%02X filter", ecm_class, type, name, ecm_class);
+				log_debug("class %02X rejected by %s '%s' !%02X filter", ecm_class, type, name, ecm_class);
 				return 0;
 			}
 
@@ -58,9 +58,9 @@ int nano_chk_class(ECM_REQUEST * er, CLASSTAB * clstab, const char *type, const 
 
 	if (cl_n && clstab->an) {
 		if (an)
-			cs_debug("ECM classes allowed by %s '%s' filter", type, name);
+			log_debug("ECM classes allowed by %s '%s' filter", type, name);
 		else {
-			cs_debug("ECM classes don't match %s '%s' filter, rejecting", type, name);
+			log_debug("ECM classes don't match %s '%s' filter, rejecting", type, name);
 			return 0;
 		}
 	}

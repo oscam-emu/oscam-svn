@@ -66,7 +66,7 @@ static int card_casc_recv_timer(uchar * buf, int l, int msec)
 
 void card_network_tcp_connection_close(int fd)
 {
-	cs_debug("tcp_conn_close(): fd=%d, is_server=%d", fd, is_server);
+	log_debug("tcp_conn_close(): fd=%d, is_server=%d", fd, is_server);
 	close(fd);
 	client[cs_idx].udp_fd = 0;
 
@@ -82,14 +82,14 @@ void card_network_tcp_connection_close(int fd)
 		}
 
 		if (reader[ridx].ph.c_init()) {
-			cs_debug("card_network_tcp_connection_close() exit(1);");
+			log_debug("card_network_tcp_connection_close() exit(1);");
 			oscam_exit(1);
 		}
 
 		oscam_resolve();
 		reader[ridx].ncd_msgid = 0;
 		reader[ridx].last_s = reader[ridx].last_g = 0;
-//		cs_log("last_s=%d, last_g=%d", reader[ridx].last_s, reader[ridx].last_g);
+//		log_normal("last_s=%d, last_g=%d", reader[ridx].last_s, reader[ridx].last_g);
 	}
 }
 
@@ -124,7 +124,7 @@ static void card_casc_do_sock(int w)
 
 	if ((n = card_casc_recv_timer(buf, sizeof (buf), w)) <= 0) {
 		if (reader[ridx].ph.type == MOD_CONN_TCP) {
-			cs_debug("card_casc_do_sock: close connection");
+			log_debug("card_casc_do_sock: close connection");
 			card_network_tcp_connection_close(client[cs_idx].udp_fd);
 		}
 		return;
@@ -134,7 +134,7 @@ static void card_casc_do_sock(int w)
 	if (idx < 0)
 		return;	// no dcw received
 	reader[ridx].last_g = time((time_t *) 0);	// for reconnect timeout
-//cs_log("card_casc_do_sock: last_s=%d, last_g=%d", reader[ridx].last_s, reader[ridx].last_g);
+//log_normal("card_casc_do_sock: last_s=%d, last_g=%d", reader[ridx].last_s, reader[ridx].last_g);
 	if (!idx)
 		idx = last_idx;
 	j = 0;
@@ -188,7 +188,7 @@ static int card_casc_process_ecm(ECM_REQUEST * er)
 			sflag = 0;
 	}
 	if (!n) {
-		cs_log("WARNING: ecm pending table overflow !!");
+		log_normal("WARNING: ecm pending table overflow !!");
 		return (-2);
 	}
 	memcpy(&ecmtask[n], er, sizeof (ECM_REQUEST));
@@ -197,19 +197,19 @@ static int card_casc_process_ecm(ECM_REQUEST * er)
 	else
 		ecmtask[n].idx = idx++;
 	ecmtask[n].rc = 10;
-	cs_debug("---- ecm_task %d, idx %d, sflag=%d, level=%d", n, ecmtask[n].idx, sflag, er->level);
+	log_debug("---- ecm_task %d, idx %d, sflag=%d, level=%d", n, ecmtask[n].idx, sflag, er->level);
 
 	if (reader[ridx].ph.type == MOD_CONN_TCP && reader[ridx].tcp_rto) {
 		int rto = abs(reader[ridx].last_s - reader[ridx].last_g);
 
 		if (rto >= reader[ridx].tcp_rto) {
-			cs_debug("rto=%d", rto);
+			log_debug("rto=%d", rto);
 			card_network_tcp_connection_close(client[cs_idx].udp_fd);
 		}
 	}
 
 	if (cfg->show_ecm_dw && !client[cs_idx].dbglvl)
-		cs_dump(er->ecm, er->l, 0);
+		log_dump(er->ecm, er->l, 0);
 	rc = 0;
 	if (sflag) {
 		if (!client[cs_idx].udp_sa.sin_addr.s_addr)	// once resolved at least
@@ -224,7 +224,7 @@ static int card_casc_process_ecm(ECM_REQUEST * er)
 		if (!reader[ridx].ph.c_multi)
 			card_casc_get_dcw(n);
 	}
-//	cs_log("card_casc_process_ecm 1: last_s=%d, last_g=%d", reader[ridx].last_s, reader[ridx].last_g);
+//	log_normal("card_casc_process_ecm 1: last_s=%d, last_g=%d", reader[ridx].last_s, reader[ridx].last_g);
 
 	if (idx > 0x1ffe)
 		idx = 1;
@@ -240,7 +240,7 @@ static int card_store_emm(uchar * emm, uchar type)
 	memcpy(emmcache[rotate].emm, emm, emm[2]);
 	emmcache[rotate].type = type;
 	emmcache[rotate].count = 1;
-//	cs_debug("EMM stored (index %d)", rotate);
+//	log_debug("EMM stored (index %d)", rotate);
 	rc = rotate;
 	rotate = (rotate + 1) % CS_EMMCACHESIZE;
 
@@ -255,7 +255,7 @@ static void card_get_ecm(ECM_REQUEST * er)
 	}
 	er->ocaid = er->caid;
 	if (!oscam_chk_bcaid(er, &reader[ridx].ctab)) {
-		cs_debug("caid %04X filtered", er->caid);
+		log_debug("caid %04X filtered", er->caid);
 		er->rcEx = E2_CAID;
 		er->rc = 0;
 		oscam_write_ecm_answer(fd_c2m, er);
@@ -318,8 +318,8 @@ static int card_do_emm(EMM_PACKET * ep)
 
 	if (reader[ridx].logemm >= rc) {
 		cs_ftime(&tpe);
-//		cs_log("%s type=%02x, len=%d, idx=%d, cnt=%d: %s (%d ms)", cs_inet_ntoa(client[ep->cidx].ip), emmcache[i].type, ep->emm[2], i, no, rtxt[rc], 1000*(tpe.time-tps.time)+tpe.millitm-tps.millitm);
-		cs_log("%s type=%02x, len=%d, idx=%d, cnt=%d: %s (%d ms)", oscam_username(ep->cidx), emmcache[i].type, ep->emm[2], i, no, rtxt[rc], 1000 * (tpe.time - tps.time) + tpe.millitm - tps.millitm);
+//		log_normal("%s type=%02x, len=%d, idx=%d, cnt=%d: %s (%d ms)", cs_inet_ntoa(client[ep->cidx].ip), emmcache[i].type, ep->emm[2], i, no, rtxt[rc], 1000*(tpe.time-tps.time)+tpe.millitm-tps.millitm);
+		log_normal("%s type=%02x, len=%d, idx=%d, cnt=%d: %s (%d ms)", oscam_username(ep->cidx), emmcache[i].type, ep->emm[2], i, no, rtxt[rc], 1000 * (tpe.time - tps.time) + tpe.millitm - tps.millitm);
 	}
 
 	return rc;
@@ -341,7 +341,7 @@ static int card_listen(int fd1, int fd2)
 		for (x = 0; x < CS_MAXPENDING; x++) {
 			ms = 1000 * (tpe.time - ecmtask[x].tps.time) + tpe.millitm - ecmtask[x].tps.millitm;
 			if (ecmtask[x].rc == 10 && ms > cfg->ctimeout && ridx == ecmtask[x].gbxRidx) {
-//				cs_log("hello rc=%d idx:%d x:%d ridx%d ridx:%d",ecmtask[x].rc,ecmtask[x].idx,x,ridx,ecmtask[x].gbxRidx);
+//				log_normal("hello rc=%d idx:%d x:%d ridx%d ridx:%d",ecmtask[x].rc,ecmtask[x].idx,x,ridx,ecmtask[x].gbxRidx);
 				ecmtask[x].rc = 5;
 				send_dcw(&ecmtask[x]);
 
@@ -374,12 +374,12 @@ static int card_listen(int fd1, int fd2)
 		oscam_exit(0);
 
 	if ((logfd) && (FD_ISSET(logfd, &fds))) {
-		cs_debug("select: log-socket ist set");
+		log_debug("select: log-socket ist set");
 		return 3;
 	}
 
 	if ((fd2) && (FD_ISSET(fd2, &fds))) {
-		cs_debug("select: socket is set");
+		log_debug("select: socket is set");
 		return 2;
 	}
 
@@ -391,16 +391,16 @@ static int card_listen(int fd1, int fd2)
 			time(&now);
 			time_diff = abs(now - reader[ridx].last_s);
 			if (time_diff > (reader[ridx].tcp_ito * 60)) {
-				cs_debug("%s inactive_timeout (%d), close connection (fd=%d)", reader[ridx].ph.desc, time_diff, fd2);
+				log_debug("%s inactive_timeout (%d), close connection (fd=%d)", reader[ridx].ph.desc, time_diff, fd2);
 				card_network_tcp_connection_close(fd2);
 			}
 		}
-		cs_debug("select: pipe is set");
+		log_debug("select: pipe is set");
 		return (1);
 	}
 
 	if (tcp_toflag) {
-		cs_debug("%s inactive_timeout (%d), close connection (fd=%d)", reader[ridx].ph.desc, tv.tv_sec, fd2);
+		log_debug("%s inactive_timeout (%d), close connection (fd=%d)", reader[ridx].ph.desc, tv.tv_sec, fd2);
 		card_network_tcp_connection_close(fd2);
 		return (0);
 	}
@@ -483,7 +483,7 @@ void card_start_reader()
 #endif
 		}
 		if (!(reader[ridx].ph.c_init)) {
-			cs_log("FATAL: %s-protocol not supporting cascading", reader[ridx].ph.desc);
+			log_normal("FATAL: %s-protocol not supporting cascading", reader[ridx].ph.desc);
 			sleep(1);
 			oscam_exit(1);
 		}
@@ -499,14 +499,14 @@ void card_start_reader()
 
 	emmcache = (struct s_emm *) malloc(CS_EMMCACHESIZE * (sizeof (struct s_emm)));
 	if (!emmcache) {
-		cs_log("Cannot allocate memory (errno=%d)", errno);
+		log_normal("Cannot allocate memory (errno=%d)", errno);
 		oscam_exit(1);
 	}
 	memset(emmcache, 0, CS_EMMCACHESIZE * (sizeof (struct s_emm)));
 
 	ecmtask = (ECM_REQUEST *) malloc(CS_MAXPENDING * (sizeof (ECM_REQUEST)));
 	if (!ecmtask) {
-		cs_log("Cannot allocate memory (errno=%d)", errno);
+		log_normal("Cannot allocate memory (errno=%d)", errno);
 		oscam_exit(1);
 	}
 	memset(ecmtask, 0, CS_MAXPENDING * (sizeof (ECM_REQUEST)));

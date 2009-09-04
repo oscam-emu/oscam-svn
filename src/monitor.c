@@ -60,7 +60,7 @@ static int monitor_secure_auth_client(uchar * ucrc)
 		int s = memcmp(client[cs_idx].ucrc, ucrc, 4);
 
 		if (s)
-			cs_log("wrong user-crc or garbage !?");
+			log_normal("wrong user-crc or garbage !?");
 		return (!s);
 	}
 	client[cs_idx].crypted = 1;
@@ -112,7 +112,7 @@ static int monitor_recv(uchar * buf, int l)
 	if (!bbuf) {
 		bbuf = (uchar *) malloc(l);
 		if (!bbuf) {
-			cs_log("Cannot allocate memory (errno=%d)", errno);
+			log_normal("Cannot allocate memory (errno=%d)", errno);
 			oscam_exit(1);
 		}
 	}
@@ -128,27 +128,27 @@ static int monitor_recv(uchar * buf, int l)
 
 		if (n < 21)	// 5+16 is minimum
 		{
-			cs_log("packet to short !");
+			log_normal("packet to short !");
 			return (buf[0] = 0);
 		}
 		if (!monitor_secure_auth_client(buf + 1))
 			return (buf[0] = 0);
 		aes_decrypt(buf + 5, 16);
 		bsize = boundary(4, buf[9] + 5) + 5;
-//		cs_log("n=%d bsize=%d", n, bsize);
+//		log_normal("n=%d bsize=%d", n, bsize);
 		if (n > bsize) {
-//			cs_log("DO >>>> copy-back");
+//			log_normal("DO >>>> copy-back");
 			memcpy(bbuf, buf + bsize, bpos = n - bsize);
 			n = bsize;
 			if (!write(client[cs_idx].ufd, nbuf, sizeof (nbuf)))
 				oscam_exit(1);	// trigger new event
 		} else if (n < bsize) {
-			cs_log("packet-size mismatch !");
+			log_normal("packet-size mismatch !");
 			return (buf[0] = 0);
 		}
 		aes_decrypt(buf + 21, n - 21);
 		if (memcmp(buf + 5, i2b(4, crc32(0L, buf + 10, n - 10)), 4)) {
-			cs_log("CRC error ! wrong password ?");
+			log_normal("CRC error ! wrong password ?");
 			return (buf[0] = 0);
 		}
 		n = buf[9];
@@ -453,7 +453,7 @@ static void monitor_login(char *usr)
 
 static void monitor_logsend(char *flag)
 {
-#ifdef CS_LOGHISTORY
+#ifdef log_normalHISTORY
 	int i;
 #endif
 	if (strcmp(flag, "on")) {
@@ -462,11 +462,11 @@ static void monitor_logsend(char *flag)
 	}
 	if (client[cs_idx].log)	// already on
 		return;
-#ifdef CS_LOGHISTORY
+#ifdef log_normalHISTORY
 	for (i = (*loghistidx + 3) % CS_MAXLOGHIST; i != *loghistidx; i = (i + 1) % CS_MAXLOGHIST) {
 		char *p_usr, *p_txt;
 
-		p_usr = (char *) (loghist + (i * CS_LOGHISTSIZE));
+		p_usr = (char *) (loghist + (i * log_normalHISTSIZE));
 		p_txt = p_usr + 32;
 		if ((p_txt[0]) && ((client[cs_idx].monlvl > 1) || (!strcmp(p_usr, client[cs_idx].usr)))) {
 			char sbuf[8];

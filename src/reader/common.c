@@ -60,7 +60,7 @@ static int reader_common_get_atr(struct s_reader *reader)
 	}
 
 	if (rc) {
-		cs_log("Reader: ATR = %s", cs_hexdump(1, reader->card_atr, reader->card_atr_size));
+		log_normal("Reader: ATR = %s", cs_hexdump(1, reader->card_atr, reader->card_atr_size));
 	}
 
 	return rc;
@@ -78,10 +78,10 @@ static int reader_common_get_bitrates(struct s_reader *reader)
 
 	if (rc) {
 		if (reader_bitrate_effective == reader_bitrate_optimal) {
-			cs_log("Reader: Using optimal bitrate of %lu bit/s", reader_bitrate_optimal);
+			log_normal("Reader: Using optimal bitrate of %lu bit/s", reader_bitrate_optimal);
 		} else {
-			cs_log("Reader: Using approximate bitrate of %lu bit/s", reader_bitrate_effective);
-			cs_log("Reader: Optimal bitrate is %lu bit/s (%+.2f%% off)", reader_bitrate_optimal, (((double) reader_bitrate_effective) - reader_bitrate_optimal) / reader_bitrate_optimal * 100);
+			log_normal("Reader: Using approximate bitrate of %lu bit/s", reader_bitrate_effective);
+			log_normal("Reader: Optimal bitrate is %lu bit/s (%+.2f%% off)", reader_bitrate_optimal, (((double) reader_bitrate_effective) - reader_bitrate_optimal) / reader_bitrate_optimal * 100);
 		}
 	}
 
@@ -117,7 +117,7 @@ int reader_common_init(struct s_reader *reader)
 
 	if ((reader->type & R_IS_SERIAL) != 0) {
 		rc = reader_serial_init(reader);
-		cs_log("Reader: Initialized serial reader %s (%s @ %2.2f Mhz %s%s)", reader->label, reader->device, (float) reader->frequency / 1000000, reader->detect & 0x80 ? "!" : "", RDR_CD_TXT[reader->detect & 0x7f]);
+		log_normal("Reader: Initialized serial reader %s (%s @ %2.2f Mhz %s%s)", reader->label, reader->device, (float) reader->frequency / 1000000, reader->detect & 0x80 ? "!" : "", RDR_CD_TXT[reader->detect & 0x7f]);
 	}
 
 	return rc;
@@ -138,7 +138,7 @@ void reader_common_load_card(struct s_reader *reader)
 			/* Mark the reader as online */
 			reader->online = 1;
 
-			cs_log("Reader: Ready for requests (%s)", reader->label);
+			log_normal("Reader: Ready for requests (%s)", reader->label);
 		}
 	}
 }
@@ -150,12 +150,12 @@ void reader_common_check_health(struct s_reader *reader)
 		/* Check if card was just inserted */
 		if ((reader->card_status & CARD_INSERTED) == 0) {
 			reader->card_status = CARD_INSERTED;
-			cs_log("Reader: Card detected in %s", reader->label);
+			log_normal("Reader: Card detected in %s", reader->label);
 
 			/* Try to initialize the card */
 			if (!reader_common_init_card(reader)) {
 				reader->card_status |= CARD_FAILURE;
-				cs_log("Reader: Cannot initialize card in %s !", reader->label);
+				log_normal("Reader: Cannot initialize card in %s !", reader->label);
 			} else {
 				client[cs_idx].au = ridx;
 			}
@@ -171,7 +171,7 @@ void reader_common_check_health(struct s_reader *reader)
 	} else {
 		/* Check if card was just ejected */
 		if ((reader->card_status & CARD_INSERTED) != 0) {
-			cs_log("Reader: Card ejected from %s", reader->label);
+			log_normal("Reader: Card ejected from %s", reader->label);
 
 			/* Clear all infos from card */
 			reader_common_clear_memory(reader);

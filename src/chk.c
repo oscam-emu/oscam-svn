@@ -72,16 +72,16 @@ int chk_sfilter(ECM_REQUEST * er, PTAB * ptab)
 			if (caid == 0 || (caid != 0 && caid == scaid)) {
 				for (i = 0; (!rc) && i < ptab->ports[pi].ftab.filts[j].nprids; i++) {
 					sprid = ptab->ports[pi].ftab.filts[j].prids[i];
-					cs_debug("trying server filter %04X:%06X", scaid, sprid);
+					log_debug("trying server filter %04X:%06X", scaid, sprid);
 					if (prid == sprid) {
 						rc = 1;
-						cs_debug("%04X:%06X allowed by server filter %04X:%06X", caid, prid, scaid, sprid);
+						log_debug("%04X:%06X allowed by server filter %04X:%06X", caid, prid, scaid, sprid);
 					}
 				}
 			}
 		}
 		if (!rc) {
-			cs_debug("no match, %04X:%06X rejected by server filters", caid, prid);
+			log_debug("no match, %04X:%06X rejected by server filters", caid, prid);
 			if (!er->rcEx)
 				er->rcEx = (E1_LSERVER << 4) | E2_IDENT;
 			return (rc);
@@ -104,15 +104,15 @@ static int chk_chid(ECM_REQUEST * er, FTAB * fchid, char *type, char *name)
 	for (i = rc = 0; (!rc) && i < fchid->nfilts; i++)
 		if (er->caid == fchid->filts[i].caid)
 			for (j = 0; (!rc) && j < fchid->filts[i].nprids; j++) {
-				cs_debug("trying %s '%s' CHID filter %04X:%04X", type, name, fchid->filts[i].caid, fchid->filts[i].prids[j]);
+				log_debug("trying %s '%s' CHID filter %04X:%04X", type, name, fchid->filts[i].caid, fchid->filts[i].prids[j]);
 				if (er->chid == fchid->filts[i].prids[j]) {
-					cs_debug("%04X:%04X allowed by %s '%s' CHID filter %04X:%04X", er->caid, er->chid, type, name, fchid->filts[i].caid, fchid->filts[i].prids[j]);
+					log_debug("%04X:%04X allowed by %s '%s' CHID filter %04X:%04X", er->caid, er->chid, type, name, fchid->filts[i].caid, fchid->filts[i].prids[j]);
 					rc = 1;
 				}
 			}
 
 	if (!rc)
-		cs_debug("no match, %04X:%04X rejected by %s '%s' CHID filter(s)", er->caid, er->chid, type, name);
+		log_debug("no match, %04X:%04X rejected by %s '%s' CHID filter(s)", er->caid, er->chid, type, name);
 
 	return (rc);
 }
@@ -132,16 +132,16 @@ int chk_ufilters(ECM_REQUEST * er)
 			if (er->caid == 0 || ucaid == 0 || (er->caid != 0 && er->caid == ucaid)) {
 				for (j = rc = 0; (!rc) && (j < f->filts[i].nprids); j++) {
 					uprid = f->filts[i].prids[j];
-					cs_debug("trying user '%s' filter %04X:%06X", client[cs_idx].usr, ucaid, uprid);
+					log_debug("trying user '%s' filter %04X:%06X", client[cs_idx].usr, ucaid, uprid);
 					if (er->prid == uprid) {
 						rc = 1;
-						cs_debug("%04X:%06X allowed by user '%s' filter %04X:%06X", er->caid, er->prid, client[cs_idx].usr, ucaid, uprid);
+						log_debug("%04X:%06X allowed by user '%s' filter %04X:%06X", er->caid, er->prid, client[cs_idx].usr, ucaid, uprid);
 					}
 				}
 			}
 		}
 		if (!rc) {
-			cs_debug("no match, %04X:%06X rejected by user '%s' filters", er->caid, er->prid, client[cs_idx].usr);
+			log_debug("no match, %04X:%06X rejected by user '%s' filters", er->caid, er->prid, client[cs_idx].usr);
 			if (!er->rcEx)
 				er->rcEx = (E1_USER << 4) | E2_IDENT;
 			return (rc);
@@ -172,7 +172,7 @@ int chk_rsfilter(ECM_REQUEST * er, int disable_server_filt)
 	ulong prid;
 
 	if (disable_server_filt) {
-		cs_debug("%04X:%06X allowed - server filters disabled", er->caid, er->prid);
+		log_debug("%04X:%06X allowed - server filters disabled", er->caid, er->prid);
 		return 1;
 	}
 
@@ -181,15 +181,15 @@ int chk_rsfilter(ECM_REQUEST * er, int disable_server_filt)
 	if (caid == er->caid) {
 		for (i = 0; (!rc) && (i < reader[ridx].nprov); i++) {
 			prid = (ulong) ((reader[ridx].prid[i][0] << 16) | (reader[ridx].prid[i][1] << 8) | (reader[ridx].prid[i][2]));
-			cs_debug("trying server '%s' filter %04X:%06X", reader[ridx].device, caid, prid);
+			log_debug("trying server '%s' filter %04X:%06X", reader[ridx].device, caid, prid);
 			if (prid == er->prid) {
 				rc = 1;
-				cs_debug("%04X:%06X allowed by server '%s' filter %04X:%06X", er->caid, er->prid, reader[ridx].device, caid, prid);
+				log_debug("%04X:%06X allowed by server '%s' filter %04X:%06X", er->caid, er->prid, reader[ridx].device, caid, prid);
 			}
 		}
 	}
 	if (!rc) {
-		cs_debug("no match, %04X:%06X rejected by server '%s' filters", er->caid, er->prid, reader[ridx].device);
+		log_debug("no match, %04X:%06X rejected by server '%s' filters", er->caid, er->prid, reader[ridx].device);
 		if (!er->rcEx)
 			er->rcEx = (E1_SERVER << 4) | E2_IDENT;
 		return 0;
@@ -210,16 +210,16 @@ int chk_rfilter(ECM_REQUEST * er, struct s_reader *rdr)
 			if ((caid != 0 && caid == er->caid) || caid == 0) {
 				for (j = 0; (!rc) && (j < rdr->ftab.filts[i].nprids); j++) {
 					prid = rdr->ftab.filts[i].prids[j];
-					cs_debug("trying reader '%s' filter %04X:%06X", rdr->label, caid, prid);
+					log_debug("trying reader '%s' filter %04X:%06X", rdr->label, caid, prid);
 					if (prid == er->prid) {
 						rc = 1;
-						cs_debug("%04X:%06X allowed by reader '%s' filter %04X:%06X", er->caid, er->prid, rdr->label, caid, prid);
+						log_debug("%04X:%06X allowed by reader '%s' filter %04X:%06X", er->caid, er->prid, rdr->label, caid, prid);
 					}
 				}
 			}
 		}
 		if (!rc) {
-			cs_debug("no match, %04X:%06X rejected by reader '%s' filters", er->caid, er->prid, rdr->label);
+			log_debug("no match, %04X:%06X rejected by reader '%s' filters", er->caid, er->prid, rdr->label);
 			return 0;
 		}
 	}
@@ -250,13 +250,13 @@ int chk_avail_reader(ECM_REQUEST * er, struct s_reader *rdr)
   {
     if( rdr->qlen>=rdr->maxqlen )
     {
-      cs_log("reader '%s' max. queue length(%d) reached, rejected", rdr->label,
+      log_normal("reader '%s' max. queue length(%d) reached, rejected", rdr->label,
                rdr->qlen);
       if( !er->rcEx ) er->rcEx=(E1_READER<<4)|E2_QUEUE;
       return 0;
     }
     else {
-      cs_log("reader '%s' qlen=%d", rdr->label, rdr->qlen);
+      log_normal("reader '%s' qlen=%d", rdr->label, rdr->qlen);
       rdr->qlen++;
     }
   }

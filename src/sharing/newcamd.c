@@ -82,7 +82,7 @@ static int sharing_newcamd_message_send(int handle, ushort * netMsgId, uchar * b
 	}
 	netbuf[0] = (len - 2) >> 8;
 	netbuf[1] = (len - 2) & 0xff;
-	cs_ddump(netbuf, len, "send %d bytes to %s", len, remote_txt());
+	log_ddump(netbuf, len, "send %d bytes to %s", len, remote_txt());
 	if ((len = des_encrypt(netbuf, len, deskey)) < 0)
 		return -1;
 	netbuf[0] = (len - 2) >> 8;
@@ -99,38 +99,38 @@ static int sharing_newcamd_message_receive(int handle, ushort * netMsgId, uchar 
 	if (!buffer || handle < 0)
 		return -1;
 	len = recv(handle, netbuf, 2, 0);
-	cs_debug("nmr(): len=%d, errno=%d", len, (len == -1) ? errno : 0);
+	log_debug("nmr(): len=%d, errno=%d", len, (len == -1) ? errno : 0);
 	if (!len) {
-		cs_debug("nmr: 1 return 0");
+		log_debug("nmr: 1 return 0");
 		card_network_tcp_connection_close(handle);
 		return 0;
 	}
 	if (len != 2) {
-		cs_debug("nmr: len!=2");
+		log_debug("nmr: len!=2");
 		card_network_tcp_connection_close(handle);
 		return -1;
 	}
 	if (((netbuf[0] << 8) | netbuf[1]) > CWS_NETMSGSIZE - 2) {
-		cs_debug("nmr: 1 return -1");
+		log_debug("nmr: 1 return -1");
 		return -1;
 	}
 
 	len = recv(handle, netbuf + 2, (netbuf[0] << 8) | netbuf[1], 0);
 	if (!len) {
-		cs_debug("nmr: 2 return 0");
+		log_debug("nmr: 2 return 0");
 		return 0;
 	}
 	if (len != ((netbuf[0] << 8) | netbuf[1])) {
-		cs_debug("nmr: 2 return -1");
+		log_debug("nmr: 2 return -1");
 		return -1;
 	}
 	len += 2;
 	if ((len = des_decrypt(netbuf, len, deskey)) < 11) {	// 15(newcamd525) or 11 ???
-		cs_debug("nmr: can't decrypt, invalid des key?");
+		log_debug("nmr: can't decrypt, invalid des key?");
 		sleep(2);
 		return -1;
 	}
-	//cs_ddump(netbuf, len, "nmr: decrypted data, len=%d", len);
+	//log_ddump(netbuf, len, "nmr: decrypted data, len=%d", len);
 	msgid = (netbuf[2] << 8) | netbuf[3];
 
 	if (ncd_proto == NCD_AUTO) {
@@ -143,21 +143,21 @@ static int sharing_newcamd_message_receive(int handle, ushort * netMsgId, uchar 
 		else if ((l4 <= len - 8) && ((netbuf[8] & 0xF0) == 0xE0 || (netbuf[9] & 0xF0) == 0x80))
 			ncd_proto = NCD_524;
 		else {
-			cs_debug("nmr: 4 return -1");
+			log_debug("nmr: 4 return -1");
 			return -1;
 		}
 
-		cs_debug("nmr: autodetect: newcamd52%d used", (ncd_proto == NCD_525) ? 5 : 4);
+		log_debug("nmr: autodetect: newcamd52%d used", (ncd_proto == NCD_525) ? 5 : 4);
 	}
 
 	ncd_off = (ncd_proto == NCD_525) ? 4 : 0;
 
 	returnLen = (((netbuf[9 + ncd_off] & 0x0f) << 8) | netbuf[10 + ncd_off]) + 3;
 	if (returnLen > (len - (8 + ncd_off))) {
-		cs_debug("nmr: 4 return -1");
+		log_debug("nmr: 4 return -1");
 		return -1;
 	}
-//	cs_ddump(netbuf, len, "nmr: decrypted data");
+//	log_ddump(netbuf, len, "nmr: decrypted data");
 	if (netMsgId) {
 		switch (commType) {
 			case COMMTYPE_SERVER:
@@ -166,13 +166,13 @@ static int sharing_newcamd_message_receive(int handle, ushort * netMsgId, uchar 
 
 			case COMMTYPE_CLIENT:
 				//if (*netMsgId != ((netbuf[2] << 8) | netbuf[3])) {
-				cs_debug("nmr: netMsgId=%d, from server=%d, ", *netMsgId, msgid);
+				log_debug("nmr: netMsgId=%d, from server=%d, ", *netMsgId, msgid);
 				//return -2;
 				//}
 				break;
 
 			default:
-				cs_debug("nmr: 5 return -1");
+				log_debug("nmr: 5 return -1");
 				return -1;
 				break;
 		}
@@ -221,19 +221,19 @@ static int sharing_newcamd_connect_nonb(int sockfd, const struct sockaddr *saptr
 	fcntl(sockfd, F_SETFL, flags | O_NONBLOCK);
 
 	error = 0;
-	cs_debug("conn_nb 1 (fd=%d)", sockfd);
+	log_debug("conn_nb 1 (fd=%d)", sockfd);
 
 	if ((n = connect(sockfd, saptr, salen)) < 0) {
 		if (errno == EALREADY) {
-			cs_debug("conn_nb in progress, errno=%d", errno);
+			log_debug("conn_nb in progress, errno=%d", errno);
 			return (-1);
 		} else if (errno == EISCONN) {
-			cs_debug("conn_nb already connected, errno=%d", errno);
+			log_debug("conn_nb already connected, errno=%d", errno);
 			goto done;
 		}
-		cs_debug("conn_nb 2 (fd=%d)", sockfd);
+		log_debug("conn_nb 2 (fd=%d)", sockfd);
 		if (errno != EINPROGRESS) {
-			cs_debug("conn_nb 3 (fd=%d)", sockfd);
+			log_debug("conn_nb 3 (fd=%d)", sockfd);
 			return (-1);
 		}
 	}
@@ -250,31 +250,31 @@ static int sharing_newcamd_connect_nonb(int sockfd, const struct sockaddr *saptr
 
 	if ((n = select(sockfd + 1, &rset, &wset, 0, nsec ? &tval : 0)) == 0) {
 		//close(sockfd);          // timeout 
-		cs_debug("conn_nb 4 (fd=%d)", sockfd);
+		log_debug("conn_nb 4 (fd=%d)", sockfd);
 		errno = ETIMEDOUT;
 		return (-1);
 	}
 
-	cs_debug("conn_nb 5 (fd=%d)", sockfd);
+	log_debug("conn_nb 5 (fd=%d)", sockfd);
 
 	if (FD_ISSET(sockfd, &rset) || FD_ISSET(sockfd, &wset)) {
-		cs_debug("conn_nb 6 (fd=%d)", sockfd);
+		log_debug("conn_nb 6 (fd=%d)", sockfd);
 		len = sizeof (error);
 		if (getsockopt(sockfd, SOL_SOCKET, SO_ERROR, &error, &len) < 0) {
-			cs_debug("conn_nb 7 (fd=%d)", sockfd);
+			log_debug("conn_nb 7 (fd=%d)", sockfd);
 			return (-1);	// Solaris pending error
 		}
 	} else {
-		cs_debug("conn_nb 8 (fd=%d)", sockfd);
+		log_debug("conn_nb 8 (fd=%d)", sockfd);
 		return -2;
 	}
 
       done:
-	cs_debug("conn_nb 9 (fd=%d)", sockfd);
+	log_debug("conn_nb 9 (fd=%d)", sockfd);
 	fcntl(sockfd, F_SETFL, flags);	/* restore file status flags */
 
 	if (error) {
-		cs_debug("conn_nb 10 (fd=%d)", sockfd);
+		log_debug("conn_nb 10 (fd=%d)", sockfd);
 		//close(sockfd);            /* just in case */
 		errno = error;
 		return (-1);
@@ -287,7 +287,7 @@ int sharing_newcamd_tcp_connection_open(char *hostname, ushort port)
 	int flags;
 
 	if (sharing_newcamd_connect_nonb(client[cs_idx].udp_fd, (struct sockaddr *) &client[cs_idx].udp_sa, sizeof (client[cs_idx].udp_sa), 5) < 0) {
-		cs_log("connect(fd=%d) failed: (errno=%d)", client[cs_idx].udp_fd, errno);
+		log_normal("connect(fd=%d) failed: (errno=%d)", client[cs_idx].udp_fd, errno);
 		return -1;
 	}
 	flags = fcntl(client[cs_idx].udp_fd, F_GETFL, 0);
@@ -300,10 +300,10 @@ int sharing_newcamd_tcp_connection_open(char *hostname, ushort port)
 static void sharing_newcamd_reply_ka()
 {
 	if (!client[cs_idx].udp_fd) {
-		cs_debug("invalid client fd=%d", client[cs_idx].udp_fd);
+		log_debug("invalid client fd=%d", client[cs_idx].udp_fd);
 		return;
 	}
-	cs_debug("send keep_alive");
+	log_debug("send keep_alive");
 	sharing_newcamd_cmd_no_data_send(client[cs_idx].udp_fd, &client[cs_idx].ncd_msgid, MSG_KEEPALIVE, client[cs_idx].ncd_skey, COMMTYPE_SERVER);
 }
 
@@ -333,11 +333,11 @@ static int sharing_newcamd_connect_server()
 	//
 	reader[ridx].ncd_msgid = 0;
 	if (read(handle, keymod, sizeof (keymod)) != sizeof (keymod)) {
-		cs_log("server does not return 14 bytes");
+		log_normal("server does not return 14 bytes");
 		card_network_tcp_connection_close(handle);
 		return -2;
 	}
-	cs_ddump(keymod, 14, "server init sequence:");
+	log_ddump(keymod, 14, "server init sequence:");
 	key = des_login_key_get(keymod, reader[ridx].ncd_key, 14);
 
 	// 3. Send login info
@@ -350,7 +350,7 @@ static int sharing_newcamd_connect_server()
 	index += strlen(reader[ridx].r_usr) + 1;
 	strcpy((char *) buf + index, (const char *) passwdcrypt);
 
-	//cs_debug("login to server %s:%d user=%s, pwd=%s, len=%d", reader[ridx].device,
+	//log_debug("login to server %s:%d user=%s, pwd=%s, len=%d", reader[ridx].device,
 	//          reader[ridx].r_port, reader[ridx].r_usr, reader[ridx].r_pwd,
 	//          index+strlen(passwdcrypt)+1);
 	sharing_newcamd_message_send(handle, 0, buf, index + strlen((char *) passwdcrypt) + 1, key, COMMTYPE_CLIENT, 0x8888);
@@ -359,12 +359,12 @@ static int sharing_newcamd_connect_server()
 	//
 	login_answer = sharing_newcamd_cmd_no_data_receive(handle, &reader[ridx].ncd_msgid, key, COMMTYPE_CLIENT);
 	if (login_answer == MSG_CLIENT_2_SERVER_LOGIN_NAK) {
-		cs_log("login failed for user '%s'", reader[ridx].r_usr);
+		log_normal("login failed for user '%s'", reader[ridx].r_usr);
 		card_network_tcp_connection_close(handle);
 		return -3;
 	}
 	if (login_answer != MSG_CLIENT_2_SERVER_LOGIN_ACK) {
-		cs_log("expected MSG_CLIENT_2_SERVER_LOGIN_ACK (%02X), received %02X", MSG_CLIENT_2_SERVER_LOGIN_ACK, login_answer);
+		log_normal("expected MSG_CLIENT_2_SERVER_LOGIN_ACK (%02X), received %02X", MSG_CLIENT_2_SERVER_LOGIN_ACK, login_answer);
 		card_network_tcp_connection_close(handle);
 		return -3;
 	}
@@ -375,7 +375,7 @@ static int sharing_newcamd_connect_server()
 	sharing_newcamd_cmd_no_data_send(handle, &reader[ridx].ncd_msgid, MSG_CARD_DATA_REQ, key, COMMTYPE_CLIENT);
 	bytes_received = sharing_newcamd_message_receive(handle, &reader[ridx].ncd_msgid, buf, key, COMMTYPE_CLIENT);
 	if (bytes_received < 16 || buf[2] != MSG_CARD_DATA) {
-		cs_log("expected MSG_CARD_DATA (%02X), received %02X", MSG_CARD_DATA, buf[2]);
+		log_normal("expected MSG_CARD_DATA (%02X), received %02X", MSG_CARD_DATA, buf[2]);
 		card_network_tcp_connection_close(handle);
 		return -4;
 	}
@@ -383,8 +383,8 @@ static int sharing_newcamd_connect_server()
 	//
 	reader[ridx].caid[0] = (ushort) ((buf[4 + 2] << 8) | buf[5 + 2]);
 	memcpy(&reader[ridx].hexserial, buf + 6 + 2, 8);
-	cs_log("Newcamd Server: %s:%d - UserID: %i", reader[ridx].device, reader[ridx].r_port, buf[3 + 2]);
-	cs_log("CAID: %04X - UA: %02X%02X%02X%02X%02X%02X%02X%02X - Provider # %i", reader[ridx].caid[0], reader[ridx].hexserial[0], reader[ridx].hexserial[1], reader[ridx].hexserial[2], reader[ridx].hexserial[3], reader[ridx].hexserial[4], reader[ridx].hexserial[5], reader[ridx].hexserial[6],
+	log_normal("Newcamd Server: %s:%d - UserID: %i", reader[ridx].device, reader[ridx].r_port, buf[3 + 2]);
+	log_normal("CAID: %04X - UA: %02X%02X%02X%02X%02X%02X%02X%02X - Provider # %i", reader[ridx].caid[0], reader[ridx].hexserial[0], reader[ridx].hexserial[1], reader[ridx].hexserial[2], reader[ridx].hexserial[3], reader[ridx].hexserial[4], reader[ridx].hexserial[5], reader[ridx].hexserial[6],
 	       reader[ridx].hexserial[7], buf[14 + 2]);
 	reader[ridx].nprov = buf[14 + 2];
 	memset(reader[ridx].prid, 0xff, sizeof (reader[ridx].prid));
@@ -394,7 +394,7 @@ static int sharing_newcamd_connect_server()
 		reader[ridx].prid[i][1] = buf[16 + 2 + 11 * i];
 		reader[ridx].prid[i][2] = buf[17 + 2 + 11 * i];
 		memcpy(&reader[ridx].sa[i], buf + 22 + 2 + 11 * i, 4);	// the 4 first bytes are not read
-		cs_log("Provider ID: %02X%02X%02X - SA: %02X%02X%02X%02X", reader[ridx].prid[i][1], reader[ridx].prid[i][2], reader[ridx].prid[i][3], reader[ridx].sa[i][0], reader[ridx].sa[i][1], reader[ridx].sa[i][2], reader[ridx].sa[i][3]);
+		log_normal("Provider ID: %02X%02X%02X - SA: %02X%02X%02X%02X", reader[ridx].prid[i][1], reader[ridx].prid[i][2], reader[ridx].prid[i][3], reader[ridx].sa[i][0], reader[ridx].sa[i][1], reader[ridx].sa[i][2], reader[ridx].sa[i][3]);
 	}
 	memcpy(reader[ridx].ncd_skey, key, 16);
 
@@ -403,7 +403,7 @@ static int sharing_newcamd_connect_server()
 	reader[ridx].tcp_connected = 1;
 	reader[ridx].last_g = reader[ridx].last_s = time((time_t *) 0);
 
-//	cs_log("last_s=%d, last_g=%d", reader[ridx].last_s, reader[ridx].last_g);
+//	log_normal("last_s=%d, last_g=%d", reader[ridx].last_s, reader[ridx].last_g);
 
 	// !!! Only after connect() on client[cs_idx].udp_fd (Linux)
 	pfd = client[cs_idx].udp_fd;
@@ -427,7 +427,7 @@ static int sharing_newcamd_send(uchar * buf, int ml, ushort sid)
 	if (!sharing_newcamd_connect())
 		return (-1);
 
-	//cs_ddump(buf, ml, "send %d bytes to %s", ml, remote_txt());
+	//log_ddump(buf, ml, "send %d bytes to %s", ml, remote_txt());
 	return (sharing_newcamd_message_send(client[cs_idx].udp_fd, &reader[ridx].ncd_msgid, buf, ml, reader[ridx].ncd_skey, COMMTYPE_CLIENT, sid));
 }
 
@@ -447,13 +447,13 @@ static int sharing_newcamd_recv(uchar * buf, int l)
 	} else {
 		rc = rs;
 	}
-	cs_ddump(buf, rs, "received %d bytes from %s", rs, remote_txt());
+	log_ddump(buf, rs, "received %d bytes from %s", rs, remote_txt());
 	client[cs_idx].last = time((time_t *) 0);
 	if (rc == -1) {
 		if (rs > 0) {
-			cs_log("packet to small (%d bytes)", rs);
+			log_normal("packet to small (%d bytes)", rs);
 		} else {
-			cs_log("Connection closed to %s", remote_txt());
+			log_normal("Connection closed to %s", remote_txt());
 		}
 	}
 
@@ -524,11 +524,11 @@ static FILTER sharing_newcamd_mk_user_ftab()
 		}
 	}
 	if (c && !filt.caid) {
-		cs_log("no valid CAID found in CAID for user '%s'", client[cs_idx].usr);
+		log_normal("no valid CAID found in CAID for user '%s'", client[cs_idx].usr);
 		return filt;
 	}
 	// search CAID in client IDENT
-	cs_debug("client[%d].%s nfilts=%d, filt.caid=%04X", cs_idx, client[cs_idx].usr, client[cs_idx].ftab.nfilts, filt.caid);
+	log_debug("client[%d].%s nfilts=%d, filt.caid=%04X", cs_idx, client[cs_idx].usr, client[cs_idx].ftab.nfilts, filt.caid);
 
 	if (!filt.caid && client[cs_idx].ftab.nfilts) {
 		int fcaids;
@@ -544,7 +544,7 @@ static FILTER sharing_newcamd_mk_user_ftab()
 			}
 		}
 		if (fcaids == client[cs_idx].ftab.nfilts && !filt.caid) {
-			cs_log("no valid CAID found in IDENT for user '%s'", client[cs_idx].usr);
+			log_normal("no valid CAID found in IDENT for user '%s'", client[cs_idx].usr);
 			//cs_disconnect_client();
 			return filt;
 		}
@@ -590,10 +590,10 @@ static FILTER sharing_newcamd_mk_user_ftab()
 	for (j = 0; j < client[cs_idx].ftab.nfilts; j++) {
 		ulong ucaid = client[cs_idx].ftab.filts[j].caid;
 
-		cs_debug("client caid #%d: %04X", j, ucaid);
+		log_debug("client caid #%d: %04X", j, ucaid);
 		if (!ucaid || ucaid == filt.caid) {
 			for (i = 0; i < psfilt->nprids; i++) {
-				cs_debug("search server provid #%d: %06X", i, psfilt->prids[i]);
+				log_debug("search server provid #%d: %06X", i, psfilt->prids[i]);
 				if (client[cs_idx].ftab.filts[j].nprids) {
 					for (k = 0; k < client[cs_idx].ftab.filts[j].nprids; k++)
 						if (client[cs_idx].ftab.filts[j].prids[k] == psfilt->prids[i])
@@ -607,7 +607,7 @@ static FILTER sharing_newcamd_mk_user_ftab()
 	}
 
 	if (!filt.nprids) {
-		cs_log("no valid PROVID(s) found in CAID for user '%s'", client[cs_idx].usr);
+		log_normal("no valid PROVID(s) found in CAID for user '%s'", client[cs_idx].usr);
 		//cs_disconnect_client();
 	}
 
@@ -638,7 +638,7 @@ static void sharing_newcamd_auth_client(in_addr_t ip)
 	i = oscam_process_input(mbuf, sizeof (mbuf), cfg->cmaxidle);
 	if (i > 0) {
 		if (mbuf[2] != MSG_CLIENT_2_SERVER_LOGIN) {
-			cs_debug("expected MSG_CLIENT_2_SERVER_LOGIN (%02X), received %02X", MSG_CLIENT_2_SERVER_LOGIN, mbuf[2]);
+			log_debug("expected MSG_CLIENT_2_SERVER_LOGIN (%02X), received %02X", MSG_CLIENT_2_SERVER_LOGIN, mbuf[2]);
 			if (req) {
 				free(req);
 				req = 0;
@@ -647,9 +647,9 @@ static void sharing_newcamd_auth_client(in_addr_t ip)
 		}
 		usr = mbuf + 5;
 		pwd = usr + strlen((char *) usr) + 1;
-		//cs_debug("usr=%s,pwd=%s", usr, pwd);
+		//log_debug("usr=%s,pwd=%s", usr, pwd);
 	} else {
-		cs_debug("bad client login request");
+		log_debug("bad client login request");
 		if (req) {
 			free(req);
 			req = 0;
@@ -658,24 +658,24 @@ static void sharing_newcamd_auth_client(in_addr_t ip)
 	}
 
 	for (ok = 0, account = cfg->account; (usr) && (account) && (!ok); account = account->next) {
-		cs_debug("account->usr=%s", account->usr);
+		log_debug("account->usr=%s", account->usr);
 		if (strcmp((char *) usr, account->usr) == 0) {
 			passwdcrypt = (uchar *) __md5_crypt(account->pwd, "$1$abcdefgh$");
-			cs_debug("account->pwd=%s", passwdcrypt);
+			log_debug("account->pwd=%s", passwdcrypt);
 			if (strcmp((char *) pwd, (const char *) passwdcrypt) == 0) {
 				client[cs_idx].crypted = 1;
 				oscam_auth_client(account, NULL);
-				cs_log("user %s authenticated successfully (using client %02X%02X)", usr, mbuf[0], mbuf[1]);
+				log_normal("user %s authenticated successfully (using client %02X%02X)", usr, mbuf[0], mbuf[1]);
 				ok = 1;
 				break;
 			} else {
-				cs_log("user %s is providing a wrong password (using client %02X%02X)", usr, mbuf[0], mbuf[1]);
+				log_normal("user %s is providing a wrong password (using client %02X%02X)", usr, mbuf[0], mbuf[1]);
 			}
 		}
 	}
 
 	if (!ok && !account) {
-		cs_log("user %s is trying to connect but doesnt exist ! (using client %02X%02X)", usr, mbuf[0], mbuf[1]);
+		log_normal("user %s is trying to connect but doesnt exist ! (using client %02X%02X)", usr, mbuf[0], mbuf[1]);
 		usr = 0;
 	}
 
@@ -684,17 +684,17 @@ static void sharing_newcamd_auth_client(in_addr_t ip)
 		if (au != -1) {
 			if (cfg->ncd_ptab.ports[client[cs_idx].port_idx].ftab.filts[0].caid != reader[au].caid[0]
 			    && cfg->ncd_ptab.ports[client[cs_idx].port_idx].ftab.filts[0].caid != reader[au].ftab.filts[0].caid) {
-				cs_log("AU wont be used on this port -> disable AU");
+				log_normal("AU wont be used on this port -> disable AU");
 				au = -1;
 			} else if (reader[au].card_system <= 0 && !(reader[au].type & R_IS_CASCADING)) {
 				// Init for AU enabled card not finished, reject Client
 				ok = 0;
 				au = -2;	// Flag zur Logausgabe
 			} else {
-				cs_log("AU flag %d for user %s", au, usr);
+				log_normal("AU flag %d for user %s", au, usr);
 			}
 		} else {
-			cs_log("AU disabled for user %s", usr);
+			log_normal("AU disabled for user %s", usr);
 		}
 	}
 
@@ -718,7 +718,7 @@ static void sharing_newcamd_auth_client(in_addr_t ip)
 			int j, len = 15;
 
 			if (mbuf[2] != MSG_CARD_DATA_REQ) {
-				cs_debug("expected MSG_CARD_DATA_REQ (%02X), received %02X", MSG_CARD_DATA_REQ, mbuf[2]);
+				log_debug("expected MSG_CARD_DATA_REQ (%02X), received %02X", MSG_CARD_DATA_REQ, mbuf[2]);
 				if (req) {
 					free(req);
 					req = 0;
@@ -741,13 +741,13 @@ static void sharing_newcamd_auth_client(in_addr_t ip)
 				// check if user filter CAID and PROVID is the same as CAID and PROVID of the AU reader
 
 				if ((pufilt->caid != pufilt_noau.caid)) {
-					// cs_log("CAID server: %04X, CAID card: %04X, not equal, AU disabled",pufilt_noau.caid,pufilt->caid);
+					// log_normal("CAID server: %04X, CAID card: %04X, not equal, AU disabled",pufilt_noau.caid,pufilt->caid);
 					// equal = 0;
 				}
 
 				for (j = 0; equal && j < pufilt_noau.nprids && j < pufilt->nprids; j++) {
 					if (pufilt->prids[j] != pufilt_noau.prids[j]) {
-						// cs_log("PROVID%d server: %04X, PROVID%d card: %04X, not equal, AU disabled",j,pufilt_noau.prids[j],j,pufilt->prids[j]);
+						// log_normal("PROVID%d server: %04X, PROVID%d card: %04X, not equal, AU disabled",j,pufilt_noau.prids[j],j,pufilt->prids[j]);
 						//weird// equal = 0;
 					}
 				}
@@ -935,7 +935,7 @@ static void sharing_newcamd_send_dcw(ECM_REQUEST * er)
 	ushort cl_msgid;
 
 	if (!client[cs_idx].udp_fd) {
-		cs_debug("ncd_send_dcw: error: client[cs_idx].udp_fd=%d", client[cs_idx].udp_fd);
+		log_debug("ncd_send_dcw: error: client[cs_idx].udp_fd=%d", client[cs_idx].udp_fd);
 		return;
 	}
 	memcpy(&cl_msgid, req + (er->cpti * REQ_SIZE), 2);	// get client ncd_msgid + 0x8x
@@ -949,7 +949,7 @@ static void sharing_newcamd_send_dcw(ECM_REQUEST * er)
 		memcpy(mbuf + 3, er->cw, 16);
 	}
 
-	cs_debug("ncd_send_dcw: er->cpti=%d, cl_msgid=%d, %02X", er->cpti, cl_msgid, mbuf[0]);
+	log_debug("ncd_send_dcw: er->cpti=%d, cl_msgid=%d, %02X", er->cpti, cl_msgid, mbuf[0]);
 
 	sharing_newcamd_message_send(client[cs_idx].udp_fd, &cl_msgid, mbuf, len, client[cs_idx].ncd_skey, COMMTYPE_SERVER, 0);
 }
@@ -964,7 +964,7 @@ static void sharing_newcamd_process_ecm(uchar * buf, int l)
 	}
 	// save client ncd_msgid
 	memcpy(req + (er->cpti * REQ_SIZE), &client[cs_idx].ncd_msgid, 2);
-	cs_debug("ncd_process_ecm: er->cpti=%d, cl_msgid=%d, %02X", er->cpti, client[cs_idx].ncd_msgid, buf[2]);
+	log_debug("ncd_process_ecm: er->cpti=%d, cl_msgid=%d, %02X", er->cpti, client[cs_idx].ncd_msgid, buf[2]);
 	er->l = buf[4] + 3;
 	er->srvid = (buf[0] << 8) | buf[1];
 	er->caid = 0;
@@ -1005,10 +1005,10 @@ static void sharing_newcamd_process_emm(uchar * buf, int l)
       case 0x8870:  // EMM-U
       case 0x8c70:  // confidential ?
       default:
-        cs_log("unsupported emm type: %04X", emm_head);
+        log_normal("unsupported emm type: %04X", emm_head);
         ok=0;
     }
-    if( !ok ) cs_log("only EMM-S supported");
+    if( !ok ) log_normal("only EMM-S supported");
   }
   else*/
 		memcpy(epg.hexserial, reader[au].hexserial, 8);	// dummy
@@ -1031,13 +1031,13 @@ static void sharing_newcamd_server()
 
 	req = (uchar *) malloc(CS_MAXPENDING * REQ_SIZE);
 	if (!req) {
-		cs_log("Cannot allocate memory (errno=%d)", errno);
+		log_normal("Cannot allocate memory (errno=%d)", errno);
 		oscam_exit(1);
 	}
 	memset(req, 0, CS_MAXPENDING * REQ_SIZE);
 
 	client[cs_idx].ncd_server = 1;
-	cs_debug("client connected to %d port", cfg->ncd_ptab.ports[client[cs_idx].port_idx].s_port);
+	log_debug("client connected to %d port", cfg->ncd_ptab.ports[client[cs_idx].port_idx].s_port);
 	sharing_newcamd_auth_client(client[cs_idx].ip);
 
 	n = -9;
@@ -1055,7 +1055,7 @@ static void sharing_newcamd_server()
 					if (mbuf[2] > 0x81 && mbuf[2] < 0x90)
 						sharing_newcamd_process_emm(mbuf + 2, n - 2);
 					else
-						cs_debug("unknown command !");
+						log_debug("unknown command !");
 			}
 		}
 		if (n == -9) {
@@ -1084,7 +1084,7 @@ static int sharing_newcamd_client_init()
 
 	pfd = 0;
 	if (reader[ridx].r_port <= 0) {
-		cs_log("invalid port %d for server %s", reader[ridx].r_port, reader[ridx].device);
+		log_normal("invalid port %d for server %s", reader[ridx].r_port, reader[ridx].device);
 		return (1);
 	}
 	if ((ptrp = getprotobyname("tcp")))
@@ -1102,7 +1102,7 @@ static int sharing_newcamd_client_init()
 	loc_sa.sin_port = htons(reader[ridx].l_port);
 
 	if ((client[cs_idx].udp_fd = socket(PF_INET, SOCK_STREAM, p_proto)) < 0) {
-		cs_log("Socket creation failed (errno=%d)", errno);
+		log_normal("Socket creation failed (errno=%d)", errno);
 		oscam_exit(1);
 	}
 #ifdef SO_PRIORITY
@@ -1117,7 +1117,7 @@ static int sharing_newcamd_client_init()
 
 	if (reader[ridx].l_port > 0) {
 		if (bind(client[cs_idx].udp_fd, (struct sockaddr *) &loc_sa, sizeof (loc_sa)) < 0) {
-			cs_log("bind failed (errno=%d)", errno);
+			log_normal("bind failed (errno=%d)", errno);
 			close(client[cs_idx].udp_fd);
 			return (1);
 		}
@@ -1131,7 +1131,7 @@ static int sharing_newcamd_client_init()
 
 	ncd_proto = reader[ridx].ncd_proto;
 
-	cs_log("proxy %s:%d newcamd52%d (fd=%d%s)", reader[ridx].device, reader[ridx].r_port, (ncd_proto == NCD_525) ? 5 : 4, client[cs_idx].udp_fd, ptxt);
+	log_normal("proxy %s:%d newcamd52%d (fd=%d%s)", reader[ridx].device, reader[ridx].r_port, (ncd_proto == NCD_525) ? 5 : 4, client[cs_idx].udp_fd, ptxt);
 	//pfd=client[cs_idx].udp_fd; // !!! we set it after connect() (linux)
 	return (0);
 }

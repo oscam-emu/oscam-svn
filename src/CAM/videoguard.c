@@ -408,7 +408,7 @@ static int cam_videoguard_read_cmd_len(const unsigned char *cmd)
 	uchar result[260];
 	ushort result_size;
 	if (!cam_common_cmd2card(cmd2, sizeof(cmd2), result, sizeof(result), &result_size) || result[1] != 0x90 || result[2] != 0x00) {
-		cs_log("failed to read %02x%02x cmd length (%02x %02x)", cmd[1], cmd[2], result[1], result[2]);
+		log_normal("failed to read %02x%02x cmd length (%02x %02x)", cmd[1], cmd[2], result[1], result[2]);
 		return -1;
 	}
 	return result[0];
@@ -499,7 +499,7 @@ static void cam_videoguard_read_tiers()
 		int y, m, d, H, M, S;
 
 		cam_videoguard_rev_date_calc(&result[4], &y, &m, &d, &H, &M, &S);
-		cs_log("Tier: %02x%02x, expiry date: %04d/%02d/%02d-%02d:%02d:%02d", result[2], result[3], y, m, d, H, M, S);
+		log_normal("Tier: %02x%02x, expiry date: %04d/%02d/%02d-%02d:%02d:%02d", result[2], result[3], y, m, d, H, M, S);
 	}
 }
 
@@ -597,19 +597,19 @@ int cam_videoguard_detect(uchar *atr, ushort atr_size)
 	unsigned char atr_yes[] = { 0x3F, 0xFF, 0x13, 0x25, 0x03, 0x10, 0x80, 0x33, 0xB0, 0x11, 0x69, 0xFF, 0x4A, 0x50, 0x50, 0x00, 0x00, 0x47, 0x54, 0x01, 0x00, 0x00 };
 
 	if ((atr_size == sizeof (atr_bskyb)) && (memcmp(atr, atr_bskyb, atr_size) == 0)) {
-		cs_log("Type: Videoguard BSkyB");
+		log_normal("Type: Videoguard BSkyB");
 		/* BSkyB seems to need one additionnal byte in the serial communication... */
 		reader_serial_need_dummy_char = 1;
 	} else if ((atr_size == sizeof (atr_bskyb_new)) && (memcmp(atr, atr_bskyb_new, atr_size) == 0)) {
-		cs_log("Type: Videoguard BSkyB - New");
+		log_normal("Type: Videoguard BSkyB - New");
 	} else if ((atr_size == sizeof (atr_skyitalia)) && (memcmp(atr, atr_skyitalia, atr_size) == 0)) {
-		cs_log("Type: Videoguard Sky Italia");
+		log_normal("Type: Videoguard Sky Italia");
 	} else if ((atr_size == sizeof (atr_premiere)) && (memcmp(atr, atr_premiere, atr_size) == 0)) {
-		cs_log("Type: Videoguard Premiere NDS");
+		log_normal("Type: Videoguard Premiere NDS");
 	} else if ((atr_size == sizeof (atr_directv)) && (memcmp(atr, atr_directv, atr_size) == 0)) {
-		cs_log("Type: Videoguard DirecTV");
+		log_normal("Type: Videoguard DirecTV");
 	} else if ((atr_size == sizeof (atr_yes)) && (memcmp (atr, atr_yes, atr_size) == 0)) {
-		cs_log("Type: Videoguard YES DBS Israel");
+		log_normal("Type: Videoguard YES DBS Israel");
 	} else {
 		/* not a known videoguard */
 		return 0;
@@ -629,7 +629,7 @@ int cam_videoguard_load_card()
 	uchar result[260];
 	ushort result_size;
 	if (!cam_common_cmd2card(ins7401, sizeof(ins7401), result, sizeof(result), &result_size) || !cam_videoguard_status_ok(result + l)) {
-		cs_log("failed to read cmd list");
+		log_normal("failed to read cmd list");
 		return 0;
 	}
 	cam_videoguard_memorize_cmd_table(result, l);
@@ -638,7 +638,7 @@ int cam_videoguard_load_card()
 
 	unsigned char ins7416[5] = { 0xD0, 0x74, 0x16, 0x00, 0x00 };
 	if (cam_videoguard_do_cmd(ins7416, NULL, NULL, result, sizeof(result), &result_size) < 0) {
-		cs_log("cmd 7416 failed");
+		log_normal("cmd 7416 failed");
 		return 0;
 	}
 
@@ -670,7 +670,7 @@ int cam_videoguard_load_card()
 		}
 
 		if (!boxidOK) {
-			cs_log("no boxID available");
+			log_normal("no boxID available");
 			return 0;
 		}
 	}
@@ -682,14 +682,14 @@ int cam_videoguard_load_card()
 	memcpy(cmd, ins4C, 5);
 	memcpy(cmd + 5, payload4C, ins4C[4]);
 	if (!cam_common_cmd2card(cmd, 5 + ins4C[4], result, sizeof(result), &result_size) || !cam_videoguard_status_ok(result + l)) {
-		cs_log("sending boxid failed");
+		log_normal("sending boxid failed");
 		return 0;
 	}
 
 	unsigned char ins58[5] = { 0xD0, 0x58, 0x00, 0x00, 0x00 };
 	l = cam_videoguard_do_cmd(ins58, NULL, buff, result, sizeof(result), &result_size);
 	if (l < 0) {
-		cs_log("cmd ins58 failed");
+		log_normal("cmd ins58 failed");
 		return 0;
 	}
 	memset(reader[ridx].hexserial, 0, 4);
@@ -720,39 +720,39 @@ int cam_videoguard_load_card()
 	cam_videoguard_GetCamKey(tbuff);
 	l = cam_videoguard_do_cmd(insB4, tbuff, NULL, result, sizeof(result), &result_size);
 	if (l < 0 || !cam_videoguard_status_ok(result)) {
-		cs_log("cmd D0B4 failed (%02X%02X)", result[0], result[1]);
+		log_normal("cmd D0B4 failed (%02X%02X)", result[0], result[1]);
 		return 0;
 	}
 
 	unsigned char insBC[5] = { 0xD0, 0xBC, 0x00, 0x00, 0x00 };
 	l = cam_videoguard_do_cmd(insBC, NULL, NULL, result, sizeof(result), &result_size);
 	if (l < 0) {
-		cs_log("cmd D0BC failed");
+		log_normal("cmd D0BC failed");
 		return 0;
 	}
 
 	unsigned char insBE[5] = { 0xD3, 0xBE, 0x00, 0x00, 0x00 };
 	l = cam_videoguard_do_cmd(insBE, NULL, NULL, result, sizeof(result), &result_size);
 	if (l < 0) {
-		cs_log("cmd D3BE failed");
+		log_normal("cmd D3BE failed");
 		return 0;
 	}
 
 	unsigned char ins58a[5] = { 0xD1, 0x58, 0x00, 0x00, 0x00 };
 	l = cam_videoguard_do_cmd(ins58a, NULL, NULL, result, sizeof(result), &result_size);
 	if (l < 0) {
-		cs_log("cmd D158 failed");
+		log_normal("cmd D158 failed");
 		return 0;
 	}
 
 	unsigned char ins4Ca[5] = { 0xD1, 0x4C, 0x00, 0x00, 0x00 };
 	l = cam_videoguard_do_cmd(ins4Ca, payload4C, NULL, result, sizeof(result), &result_size);
 	if (l < 0 || !cam_videoguard_status_ok(result)) {
-		cs_log("cmd D14Ca failed");
+		log_normal("cmd D14Ca failed");
 		return 0;
 	}
 
-	cs_log("caid: %04X, serial: %02X%02X%02X%02X, BoxID: %02X%02X%02X%02X", reader[ridx].caid[0], reader[ridx].hexserial[4], reader[ridx].hexserial[5], reader[ridx].hexserial[6], reader[ridx].hexserial[7], boxID[0], boxID[1], boxID[2], boxID[3]);
+	log_normal("caid: %04X, serial: %02X%02X%02X%02X, BoxID: %02X%02X%02X%02X", reader[ridx].caid[0], reader[ridx].hexserial[4], reader[ridx].hexserial[5], reader[ridx].hexserial[6], reader[ridx].hexserial[7], boxID[0], boxID[1], boxID[2], boxID[3]);
 
 	cam_videoguard_read_tiers();
 
@@ -808,7 +808,7 @@ int cam_videoguard_process_emm(EMM_PACKET * ep)
 			rc = 1;
 		}
 
-		cs_log("EMM request return code : %02X%02X", result[0], result[1]);
+		log_normal("EMM request return code : %02X%02X", result[0], result[1]);
 		if (cam_videoguard_status_ok(result)) {
 			cam_videoguard_read_tiers();
 		}

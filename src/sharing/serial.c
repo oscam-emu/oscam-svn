@@ -281,9 +281,9 @@ static int sharing_serial_send(uchar * buf, int l)
 	tpe.millitm %= 1000;
 	n = sharing_serial_write(buf, l);
 	cs_ftime(&tpe);
-	cs_ddump(buf, l, "send %d of %d bytes to %s in %d msec", n, l, remote_txt(), 1000 * (tpe.time - tps.time) + tpe.millitm - tps.millitm);
+	log_ddump(buf, l, "send %d of %d bytes to %s in %d msec", n, l, remote_txt(), 1000 * (tpe.time - tps.time) + tpe.millitm - tps.millitm);
 	if (n != l)
-		cs_log("transmit error. send %d of %d bytes only !", n, l);
+		log_normal("transmit error. send %d of %d bytes only !", n, l);
 
 	return n;
 }
@@ -486,7 +486,7 @@ static int sharing_serial_recv(uchar * xbuf, int l)
 					int all = n + r;
 
 					if (!sharing_serial_selrec(buf, r, l, &n)) {
-						cs_debug("not all data received, waiting another 50 ms");
+						log_debug("not all data received, waiting another 50 ms");
 						tpe.millitm += 50;
 						if (!sharing_serial_selrec(buf, all - n, l, &n))
 							p = (-1);
@@ -521,7 +521,7 @@ static int sharing_serial_recv(uchar * xbuf, int l)
 						} else
 							dsr9500type = P_DSR_GNUSMAS;
 						if (p)
-							cs_log("detected dsr9500-%s type receiver", dsrproto_txt[dsr9500type]);
+							log_normal("detected dsr9500-%s type receiver", dsrproto_txt[dsr9500type]);
 					}
 					// gbox
 					if (is_server && p == P_GBOX) {
@@ -560,18 +560,18 @@ static int sharing_serial_recv(uchar * xbuf, int l)
 		serial_errors++;
 	}
 	cs_ftime(&tpe);
-	cs_ddump(buf, n, "received %d bytes from %s in %d msec", n, remote_txt(), 1000 * (tpe.time - tps.time) + tpe.millitm - tps.millitm);
+	log_ddump(buf, n, "received %d bytes from %s in %d msec", n, remote_txt(), 1000 * (tpe.time - tps.time) + tpe.millitm - tps.millitm);
 	client[cs_idx].last = tpe.time;
 	switch (p) {
 		case (-1):
 			if (is_server && (n > 2) && (buf[0] == 2) && (buf[1] == 2) && (buf[2] == 2)) {
 				sharing_serial_disconnect();
-				cs_log("humax powered on");	// this is nice ;)
+				log_normal("humax powered on");	// this is nice ;)
 			} else
-				cs_log(incomplete, n);
+				log_normal(incomplete, n);
 			break;
 		case (-2):
-			cs_debug("unknown request or garbage");
+			log_debug("unknown request or garbage");
 			break;
 	}
 	xbuf[0] = (uchar) ((job << 4) | p);
@@ -617,7 +617,7 @@ static void sharing_serial_disconnect()
 {
 	sharing_serial_disconnect_client();
 	if (connected) {
-		cs_log("%s disconnected (%s)", oscam_username(cs_idx), proto_txt[connected]);
+		log_normal("%s disconnected (%s)", oscam_username(cs_idx), proto_txt[connected]);
 	}
 	connected = 0;
 }
@@ -769,7 +769,7 @@ static int sharing_serial_check_ecm(ECM_REQUEST * er, uchar * buf, int l)
 	int i;
 
 	if (l < 16) {
-		cs_log(incomplete, l);
+		log_normal(incomplete, l);
 		return (1);
 	}
 
@@ -786,7 +786,7 @@ static int sharing_serial_check_ecm(ECM_REQUEST * er, uchar * buf, int l)
 			er->pid = b2i(2, buf + 3);
 			for (i = 0; (i < 8) && (sssp_tab[i].pid != er->pid); i++);
 			if (i >= sssp_num) {
-				cs_debug("illegal request, unknown pid=%04X", er->pid);
+				log_debug("illegal request, unknown pid=%04X", er->pid);
 				return (2);
 			}
 			er->l = l - 5;
@@ -806,7 +806,7 @@ static int sharing_serial_check_ecm(ECM_REQUEST * er, uchar * buf, int l)
 			er->prid = cs_atoi((char *) buf + 3, 3, 0);	// ignore errors
 			er->caid = cs_atoi((char *) buf + 9, 2, 0);	// ignore errors
 			if (cs_atob(er->ecm, (char *) buf + 13, er->l) < 0) {
-				cs_log("illegal characters in ecm-request");
+				log_normal("illegal characters in ecm-request");
 				return (1);
 			}
 			if (dsr9500type == P_DSR_WITHSID) {
@@ -828,7 +828,7 @@ static int sharing_serial_check_ecm(ECM_REQUEST * er, uchar * buf, int l)
 			er->l = b2i(2, buf + 1) - 2;
 			er->caid = b2i(2, buf + 3);
 			if ((er->l != l - 5) || (er->l > 257)) {
-				cs_log(incomplete, l);
+				log_normal(incomplete, l);
 				return (1);
 			}
 			memcpy(er->ecm, buf + 5, er->l);
@@ -870,7 +870,7 @@ static void sharing_serial_server()
 
 	while ((n = oscam_process_input(mbuf, sizeof (mbuf), cfg->cmaxidle)) >= 0) {
 		if (serial_errors > 3) {
-			cs_log("too many errors, reiniting...");
+			log_normal("too many errors, reiniting...");
 			break;
 		}
 		if (n > 0) {
@@ -900,12 +900,12 @@ static int sharing_serial_init_device(char *device)
 	if (fd > 0) {
 		fcntl(fd, F_SETFL, 0);
 		if (sharing_serial_set_serial_device(fd) < 0)
-			cs_log("ERROR ioctl");
+			log_normal("ERROR ioctl");
 		if (tcflush(fd, TCIOFLUSH) < 0)
-			cs_log("ERROR flush");
+			log_normal("ERROR flush");
 	} else {
 		fd = 0;
-		cs_log("ERROR opening %s", device);
+		log_normal("ERROR opening %s", device);
 	}
 
 	return fd;

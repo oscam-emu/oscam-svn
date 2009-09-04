@@ -29,7 +29,7 @@ static int sharing_camd35_send(uchar * buf)
 	memset(sbuf + l, 0xff, 15);	// set unused space to 0xff for newer camd3's
 	memcpy(sbuf + 4, i2b(4, crc32(0L, sbuf + 20, sbuf[1])), 4);
 	l = boundary(4, l);
-	cs_ddump(sbuf, l, "send %d bytes to %s", l, remote_txt());
+	log_ddump(sbuf, l, "send %d bytes to %s", l, remote_txt());
 	aes_encrypt(sbuf, l);
 
 	if (is_udp)
@@ -97,13 +97,13 @@ static int sharing_camd35_recv(uchar * buf, int l)
 				break;
 			case 2:
 				aes_decrypt(buf, rs);
-				cs_ddump(buf, rs, "received %d bytes from %s", rs, remote_txt());
+				log_ddump(buf, rs, "received %d bytes from %s", rs, remote_txt());
 				if (rs != boundary(4, rs))
-					cs_debug("WARNING: packet size has wrong decryption boundary");
+					log_debug("WARNING: packet size has wrong decryption boundary");
 				n = (buf[0] == 3) ? 0x34 : 0;
 				n = boundary(4, n + 20 + buf[1]);
 				if (n < rs)
-					cs_debug("ignoring %d bytes of garbage", rs - n);
+					log_debug("ignoring %d bytes of garbage", rs - n);
 				else if (n > rs)
 					rc = -3;
 				break;
@@ -115,20 +115,20 @@ static int sharing_camd35_recv(uchar * buf, int l)
 				break;
 		}
 	if ((rs > 0) && ((rc == -1) || (rc == -2)))
-		cs_ddump(buf, rs, "received %d bytes from %s (native)", rs, remote_txt);
+		log_ddump(buf, rs, "received %d bytes from %s (native)", rs, remote_txt);
 	client[cs_idx].last = time((time_t *) 0);
 	switch (rc) {
 		case -1:
-			cs_log("packet to small (%d bytes)", rs);
+			log_normal("packet to small (%d bytes)", rs);
 			break;
 		case -2:
 			oscam_auth_client(0, "unknown user");
 			break;
 		case -3:
-			cs_log("incomplete request !");
+			log_normal("incomplete request !");
 			break;
 		case -4:
-			cs_log("checksum error (wrong password ?)");
+			log_normal("checksum error (wrong password ?)");
 			break;
 	}
 	return (rc);
@@ -266,7 +266,7 @@ static void sharing_camd35_server()
 
 	req = (uchar *) malloc(CS_MAXPENDING * REQ_SIZE);
 	if (!req) {
-		cs_log("Cannot allocate memory (errno=%d)", errno);
+		log_normal("Cannot allocate memory (errno=%d)", errno);
 		oscam_exit(1);
 	}
 	memset(req, 0, CS_MAXPENDING * REQ_SIZE);
@@ -283,7 +283,7 @@ static void sharing_camd35_server()
 				sharing_camd35_process_emm(mbuf);
 				break;
 			default:
-				cs_log("unknown command !");
+				log_normal("unknown command !");
 		}
 	}
 
@@ -316,7 +316,7 @@ static int sharing_camd35_client_init()
 
 	pfd = 0;
 	if (reader[ridx].r_port <= 0) {
-		cs_log("invalid port %d for server %s", reader[ridx].r_port, reader[ridx].device);
+		log_normal("invalid port %d for server %s", reader[ridx].r_port, reader[ridx].device);
 		return (1);
 	}
 	is_udp = (reader[ridx].type == R_CAMD35);
@@ -335,7 +335,7 @@ static int sharing_camd35_client_init()
 	loc_sa.sin_port = htons(reader[ridx].l_port);
 
 	if ((client[cs_idx].udp_fd = socket(PF_INET, is_udp ? SOCK_DGRAM : SOCK_STREAM, p_proto)) < 0) {
-		cs_log("Socket creation failed (errno=%d)", errno);
+		log_normal("Socket creation failed (errno=%d)", errno);
 		oscam_exit(1);
 	}
 #ifdef SO_PRIORITY
@@ -345,7 +345,7 @@ static int sharing_camd35_client_init()
 
 	if (reader[ridx].l_port > 0) {
 		if (bind(client[cs_idx].udp_fd, (struct sockaddr *) &loc_sa, sizeof (loc_sa)) < 0) {
-			cs_log("bind failed (errno=%d)", errno);
+			log_normal("bind failed (errno=%d)", errno);
 			close(client[cs_idx].udp_fd);
 			return (1);
 		}
@@ -358,7 +358,7 @@ static int sharing_camd35_client_init()
 	client[cs_idx].udp_sa.sin_family = AF_INET;
 	client[cs_idx].udp_sa.sin_port = htons((u_short) reader[ridx].r_port);
 
-	cs_log("proxy %s:%d (fd=%d%s)", reader[ridx].device, reader[ridx].r_port, client[cs_idx].udp_fd, ptxt);
+	log_normal("proxy %s:%d (fd=%d%s)", reader[ridx].device, reader[ridx].r_port, client[cs_idx].udp_fd, ptxt);
 
 	if (is_udp)
 		pfd = client[cs_idx].udp_fd;
@@ -373,7 +373,7 @@ static int sharing_camd35_client_init_log()
 	int p_proto;
 
 	if (reader[ridx].log_port <= 0) {
-		cs_log("invalid port %d for camd3-loghost", reader[ridx].log_port);
+		log_normal("invalid port %d for camd3-loghost", reader[ridx].log_port);
 		return (1);
 	}
 
@@ -389,17 +389,17 @@ static int sharing_camd35_client_init_log()
 	loc_sa.sin_port = htons(reader[ridx].log_port);
 
 	if ((logfd = socket(PF_INET, SOCK_DGRAM, p_proto)) < 0) {
-		cs_log("Socket creation failed (errno=%d)", errno);
+		log_normal("Socket creation failed (errno=%d)", errno);
 		return (1);
 	}
 
 	if (bind(logfd, (struct sockaddr *) &loc_sa, sizeof (loc_sa)) < 0) {
-		cs_log("bind failed (errno=%d)", errno);
+		log_normal("bind failed (errno=%d)", errno);
 		close(logfd);
 		return (1);
 	}
 
-	cs_log("camd3 loghost initialized (fd=%d, port=%d)", logfd, reader[ridx].log_port);
+	log_normal("camd3 loghost initialized (fd=%d, port=%d)", logfd, reader[ridx].log_port);
 
 	return (0);
 }

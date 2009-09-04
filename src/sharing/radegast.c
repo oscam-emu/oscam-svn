@@ -60,10 +60,10 @@ static int sharing_radegast_get_request(uchar * buf)
 		if (n - 2 == buf[1])
 			rc = n;
 		else
-			cs_log("WARNING: protocol error (garbage)");
+			log_normal("WARNING: protocol error (garbage)");
 	}
 	if (n > 0)
-		cs_ddump(buf, n, "received %d bytes from client", n);
+		log_ddump(buf, n, "received %d bytes from client", n);
 	return (rc);
 }
 
@@ -115,7 +115,7 @@ static void sharing_radegast_process_ecm(uchar * buf, int l)
 	}
 
 	if (l != i) {
-		cs_log("WARNING: ECM-request corrupt");
+		log_normal("WARNING: ECM-request corrupt");
 	} else {
 		oscam_get_cw(er);
 	}
@@ -125,7 +125,7 @@ static void sharing_radegast_process_unknown(uchar * buf)
 {
 	uchar answer[2] = { 0x81, 0x00 };
 	sharing_radegast_send(answer);
-	cs_log("unknown request %02X, len=%d", buf[0], buf[1]);
+	log_normal("unknown request %02X, len=%d", buf[0], buf[1]);
 }
 
 static void sharing_radegast_server()

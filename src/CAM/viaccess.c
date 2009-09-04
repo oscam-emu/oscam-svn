@@ -58,9 +58,9 @@ static void cam_viaccess_show_class(const char *p, const uchar * b, int l)
 				cam_viaccess_parse_via_date(b - 4, &vd, 1);
 				cls = (l - (j + 1)) * 8 + i;
 				if (p)
-					cs_log("%sclass: %02X, expiry date: %04d/%02d/%02d - %04d/%02d/%02d", p, cls, vd.year_s + 1980, vd.month_s, vd.day_s, vd.year_e + 1980, vd.month_e, vd.day_e);
+					log_normal("%sclass: %02X, expiry date: %04d/%02d/%02d - %04d/%02d/%02d", p, cls, vd.year_s + 1980, vd.month_s, vd.day_s, vd.year_e + 1980, vd.month_e, vd.day_e);
 				else
-					cs_log("class: %02X, expiry date: %04d/%02d/%02d - %04d/%02d/%02d", cls, vd.year_s + 1980, vd.month_s, vd.day_s, vd.year_e + 1980, vd.month_e, vd.day_e);
+					log_normal("class: %02X, expiry date: %04d/%02d/%02d - %04d/%02d/%02d", cls, vd.year_s + 1980, vd.month_s, vd.day_s, vd.year_e + 1980, vd.month_e, vd.day_e);
 			}
 
 /*
@@ -79,7 +79,7 @@ static void cam_viaccess_show_class(const char *p, const uchar * b, int l)
 				struct via_date vd;
 				cam_viaccess_parse_via_date(emm-4, &vd, 1);
 				cls = (byts-(j+1))*8+i;
-				cs_log("%sclass %02X: expiry date: %02d/%02d/%04d - %02d/%02d/%04d", fnano?"nano A9: ":"", cls, vd.day_s, vd.month_s, vd.year_s+1980, vd.day_e, vd.month_e, vd.year_e+1980);
+				log_normal("%sclass %02X: expiry date: %02d/%02d/%04d - %02d/%02d/%04d", fnano?"nano A9: ":"", cls, vd.day_s, vd.month_s, vd.year_s+1980, vd.day_e, vd.month_e, vd.year_e+1980);
 			}
 		}
 	}
@@ -100,7 +100,7 @@ static void cam_viaccess_show_subs(const uchar * emm)
 
 			memset(szGeo, 0, 256);
 			strncpy(szGeo, (char *) emm + 2, emm[1]);
-			cs_log("nano A6: geo %s", szGeo);
+			log_normal("nano A6: geo %s", szGeo);
 			break;
 		}
 		case 0xB6:
@@ -110,7 +110,7 @@ static void cam_viaccess_show_subs(const uchar * emm)
 
 			m = emm[emm[1] + 1];
 			cam_viaccess_parse_via_date(emm + 2, &vd, 0);
-			cs_log("nano B6: modexp %d%d%d%d%d%d: %02d/%02d/%04d", (m & 0x20) ? 1 : 0, (m & 0x10) ? 1 : 0, (m & 0x08) ? 1 : 0, (m & 0x04) ? 1 : 0, (m & 0x02) ? 1 : 0, (m & 0x01) ? 1 : 0, vd.day_s, vd.month_s, vd.year_s + 1980);
+			log_normal("nano B6: modexp %d%d%d%d%d%d: %02d/%02d/%04d", (m & 0x20) ? 1 : 0, (m & 0x10) ? 1 : 0, (m & 0x08) ? 1 : 0, (m & 0x04) ? 1 : 0, (m & 0x02) ? 1 : 0, (m & 0x01) ? 1 : 0, vd.day_s, vd.month_s, vd.year_s + 1980);
 			break;
 		}
 	}
@@ -182,7 +182,7 @@ int cam_viaccess_load_card()
 	insb8[4] = 0x07;
 	cam_common_cmd2card(insb8, sizeof(insb8), result, sizeof(result), &result_size);	// read unique id
 	memcpy(reader[ridx].hexserial, result + 2, 5);
-	cs_log("type: viaccess(%sstandard atr), caid: %04X, serial: %llu", reader[ridx].card_atr[9] == 0x68 ? "" : "non-", reader[ridx].caid[0], b2ll(5, result + 2));
+	log_normal("type: viaccess(%sstandard atr), caid: %04X, serial: %llu", reader[ridx].card_atr[9] == 0x68 ? "" : "non-", reader[ridx].caid[0], b2ll(5, result + 2));
 
 	i = 0;
 	insa4[2] = 0x00;
@@ -209,7 +209,7 @@ int cam_viaccess_load_card()
 		l = result[1];
 		insb8[4] = l; cam_common_cmd2card(insb8, sizeof(insb8), result, sizeof(result), &result_size); // read name
 		result[l] = 0;
-		cs_log("name: %s", result);
+		log_normal("name: %s", result);
 */
 
 		insa4[2] = 0x02;
@@ -217,7 +217,7 @@ int cam_viaccess_load_card()
 		i++;
 	}
 	reader[ridx].nprov = i;
-	cs_log("providers: %d (%s)", reader[ridx].nprov, buf + 1);
+	log_normal("providers: %d (%s)", reader[ridx].nprov, buf + 1);
 
 	/* init the maybe existing aes key */
 	aes_set_key((char *) reader[ridx].aes_key);
@@ -228,9 +228,9 @@ int cam_viaccess_load_card()
 		static uchar cmDPL[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F };
 		cam_viaccess_card_send_ins(inDPL, cmDPL, result, sizeof(result), &result_size);
 		if (!(result[result_size - 2] == 0x90 && result[result_size - 1] == 0))
-			cs_log("Can't disable parental lock. Wrong PIN? I assumed 0000!");
+			log_normal("Can't disable parental lock. Wrong PIN? I assumed 0000!");
 		else
-			cs_log("Parental lock disabled");
+			log_normal("Parental lock disabled");
 	}
 
 	show_cls = reader[ridx].show_cls;
@@ -243,7 +243,7 @@ int cam_viaccess_load_card()
 	cam_common_cmd2card(insac, sizeof(insac), result, sizeof(result), &result_size);	// request unique id
 	insb8[4] = 0x07;
 	cam_common_cmd2card(insb8, sizeof(insb8), result, sizeof(result), &result_size);	// read unique id
-	cs_log("serial: %llu", b2ll(5, result + 2));
+	log_normal("serial: %llu", b2ll(5, result + 2));
 
 	scls = 0;
 	insa4[2] = 0x00;
@@ -285,7 +285,7 @@ int cam_viaccess_load_card()
 		l = result[1];
 		insb8[4] = l;
 		cam_common_cmd2card(insb8, sizeof(insb8), result, sizeof(result), &result_size);	// read geo
-		cs_log("provider: %d, id: %06X%s, sa: %08X, geo: %s", i, l_provid, l_name, l_sa, (l < 4) ? "empty" : cs_hexdump(1, result, l));
+		log_normal("provider: %d, id: %06X%s, sa: %08X, geo: %s", i, l_provid, l_name, l_sa, (l < 4) ? "empty" : cs_hexdump(1, result, l));
 
 		// read classes subscription
 		insac[2] = 0xa9;
@@ -354,7 +354,7 @@ int cam_viaccess_process_ecm(ECM_REQUEST * er)
 		ident[2] &= 0xF0;
 		keynr = ecm88Data[4] & 0x0F;
 		if (!cam_viaccess_chk_prov(ident, keynr)) {
-			cs_debug("smartcardviaccess ecm: provider or key not found on card");
+			log_debug("smartcardviaccess ecm: provider or key not found on card");
 			return 0;
 		}
 		ecm88Data += 5;
@@ -464,7 +464,7 @@ int cam_viaccess_process_emm(EMM_PACKET * ep)
 	uchar *nanoF0Data = 0;
 
 	for (emmUpToEnd = emmLen; (emmParsed[1] != 0) && (emmUpToEnd > 0); emmUpToEnd -= (2 + emmParsed[1]), emmParsed += (2 + emmParsed[1])) {
-		///cs_dump (emmParsed, emmParsed[1] + 2, "NANO");
+		///log_dump (emmParsed, emmParsed[1] + 2, "NANO");
 
 		if (emmParsed[0] == 0x90 && emmParsed[1] == 0x03) {
 			/* identification of the service operator */
@@ -479,16 +479,16 @@ int cam_viaccess_process_emm(EMM_PACKET * ep)
 			if (cam_viaccess_chk_prov(ident, keynr)) {
 				provider_ok = 1;
 			} else {
-				cs_debug("smartcardviaccess emm: provider or key not found on card (%x, %x)", ident, keynr);
+				log_debug("smartcardviaccess emm: provider or key not found on card (%x, %x)", ident, keynr);
 				return 0;
 			}
 
 			// set provider
 			cam_viaccess_card_send_ins(insa4, soid, result, sizeof(result), &result_size);
 			if (result[result_size - 2] != 0x90 || result[result_size - 1] != 0x00) {
-				cs_dump(insa4, 5, "set provider cmd:");
-				cs_dump(soid, 3, "set provider data:");
-				cs_log("update error: %02X %02X", result[result_size - 2], result[result_size - 1]);
+				log_dump(insa4, 5, "set provider cmd:");
+				log_dump(soid, 3, "set provider data:");
+				log_normal("update error: %02X %02X", result[result_size - 2], result[result_size - 1]);
 				return 0;
 			}
 		} else if (emmParsed[0] == 0x9e && emmParsed[1] == 0x20) {
@@ -504,7 +504,7 @@ int cam_viaccess_process_emm(EMM_PACKET * ep)
 				afd = (uchar *) emmParsed + 2;
 
 				if (afd[31 - custwp / 8] & (1 << (custwp & 7)))
-					cs_debug("emm for our card %08X", b2i(4, &reader[ridx].sa[0][0]));
+					log_debug("emm for our card %08X", b2i(4, &reader[ridx].sa[0][0]));
 				else
 					return 2;	// skipped
 			}
@@ -531,13 +531,13 @@ int cam_viaccess_process_emm(EMM_PACKET * ep)
 	}
 
 	if (!provider_ok) {
-		cs_debug("viaccess: provider not found in emm... continue anyway...");
+		log_debug("viaccess: provider not found in emm... continue anyway...");
 		// force key to 1...
 		keynr = 1;
 	}
 
 	if (!nanoF0Data) {
-		cs_dump(ep->emm, ep->l, "can't find 0xf0 in emm...");
+		log_dump(ep->emm, ep->l, "can't find 0xf0 in emm...");
 		return 0;	// error
 	}
 
@@ -547,9 +547,9 @@ int cam_viaccess_process_emm(EMM_PACKET * ep)
 			insf0[3] = keynr;	// key
 			cam_viaccess_card_send_ins(insf0, nano9EData, result, sizeof(result), &result_size);
 			if (result[result_size - 2] != 0x90 || result[result_size - 1] != 0x00) {
-				cs_dump(insf0, 5, "set adf cmd:");
-				cs_dump(nano9EData, 0x22, "set adf data:");
-				cs_log("update error: %02X %02X", result[result_size - 2], result[result_size - 1]);
+				log_dump(insf0, 5, "set adf cmd:");
+				log_dump(nano9EData, 0x22, "set adf data:");
+				log_normal("update error: %02X %02X", result[result_size - 2], result[result_size - 1]);
 				return 0;
 			}
 		} else {
@@ -560,9 +560,9 @@ int cam_viaccess_process_emm(EMM_PACKET * ep)
 			memcpy(insData + nano91Data[1] + 2, nano9EData, nano9EData[1] + 2);
 			cam_viaccess_card_send_ins(insf4, insData, result, sizeof(result), &result_size);
 			if ((result[result_size - 2] != 0x90 && result[result_size - 2] != 0x91) || result[result_size - 1] != 0x00) {
-				cs_dump(insf4, 5, "set adf encrypted cmd:");
-				cs_dump(insData, insf4[4], "set adf encrypted data:");
-				cs_log("update error: %02X %02X", result[result_size - 2], result[result_size - 1]);
+				log_dump(insf4, 5, "set adf encrypted cmd:");
+				log_dump(insData, insf4[4], "set adf encrypted data:");
+				log_normal("update error: %02X %02X", result[result_size - 2], result[result_size - 1]);
 				return 0;
 			}
 		}
@@ -575,19 +575,19 @@ int cam_viaccess_process_emm(EMM_PACKET * ep)
 		memcpy(insData + ins18Len, nanoF0Data, nanoF0Data[1] + 2);
 		cam_viaccess_card_send_ins(ins18, insData, result, sizeof(result), &result_size);
 		if (result[result_size - 2] == 0x90 && result[result_size - 1] == 0x00) {
-			cs_debug("update successfully written");
+			log_debug("update successfully written");
 			rc = 1;	// written
 		} else {
-			cs_dump(ins18, 5, "set subscription cmd:");
-			cs_dump(insData, ins18[4], "set subscription data:");
-			cs_log("update error: %02X %02X", result[result_size - 2], result[result_size - 1]);
+			log_dump(ins18, 5, "set subscription cmd:");
+			log_dump(insData, ins18[4], "set subscription data:");
+			log_normal("update error: %02X %02X", result[result_size - 2], result[result_size - 1]);
 		}
 
 	} else {
 		// send subscription encrypted
 
 		if (!nano81Data) {
-			cs_dump(ep->emm, ep->l, "0x92 found, but can't find 0x81 in emm...");
+			log_dump(ep->emm, ep->l, "0x92 found, but can't find 0x81 in emm...");
 			return 0;	// error
 		}
 
@@ -599,20 +599,20 @@ int cam_viaccess_process_emm(EMM_PACKET * ep)
 		cam_viaccess_card_send_ins(ins1c, insData, result, sizeof(result), &result_size);
 		if (result[result_size - 2] != 0x90 || result[result_size - 1] != 0x00) {
 			/* maybe a 2nd level status, so read it */
-			//cs_dump(ins1c, 5, "set subscription encrypted cmd:");
-			//cs_dump(insData, ins1c[4], "set subscription encrypted data:");
-			//cs_log("update error: %02X %02X", result[result_size-2], result[result_size-1]);
+			//log_dump(ins1c, 5, "set subscription encrypted cmd:");
+			//log_dump(insData, ins1c[4], "set subscription encrypted data:");
+			//log_normal("update error: %02X %02X", result[result_size-2], result[result_size-1]);
 
 			cam_common_cmd2card(insc8, sizeof(insc8), result, sizeof(result), &result_size);
 			if (result[0] != 0x00 || result[1] != 00 || result[result_size - 2] != 0x90 || result[result_size - 1] != 0x00) {
-				//cs_dump(result, result_size, "extended status error:");
+				//log_dump(result, result_size, "extended status error:");
 				return 0;
 			} else {
-				cs_debug("update successfully written (with extended status OK)");
+				log_debug("update successfully written (with extended status OK)");
 				rc = 1;	// written
 			}
 		} else {
-			cs_debug("update successfully written");
+			log_debug("update successfully written");
 			rc = 1;	// written
 		}
 	}

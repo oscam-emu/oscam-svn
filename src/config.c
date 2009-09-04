@@ -67,19 +67,19 @@ static void config_show_sidtab(struct s_sidtab *sidtab)
 		int i;
 		char buf[1024];
 
-		cs_log("label=%s", sidtab->label);
+		log_normal("label=%s", sidtab->label);
 		sprintf(buf, "caid(%d)=", sidtab->num_caid);
 		for (i = 0; i < sidtab->num_caid; i++)
 			sprintf(buf + strlen(buf), "%04X ", sidtab->caid[i]);
-		cs_log("%s", buf);
+		log_normal("%s", buf);
 		sprintf(buf, "provider(%d)=", sidtab->num_provid);
 		for (i = 0; i < sidtab->num_provid; i++)
 			sprintf(buf + strlen(buf), "%08X ", sidtab->provid[i]);
-		cs_log("%s", buf);
+		log_normal("%s", buf);
 		sprintf(buf, "services(%d)=", sidtab->num_srvid);
 		for (i = 0; i < sidtab->num_srvid; i++)
 			sprintf(buf + strlen(buf), "%04X ", sidtab->srvid[i]);
-		cs_log("%s", buf);
+		log_normal("%s", buf);
 	}
 }
 #endif
@@ -133,7 +133,7 @@ static void config_check_caidtab(char *caidasc, CAIDTAB * ctab)
 			ctab->cmap[i++] = cmap;
 		}
 //		else
-//			cs_log("WARNING: wrong CAID in %s -> ignored", cs_user);
+//			log_normal("WARNING: wrong CAID in %s -> ignored", cs_user);
 	}
 }
 
@@ -159,7 +159,7 @@ static void config_check_tuntab(char *tunasc, TUNTAB * ttab)
 			ttab->bt_srvid[i++] = bt_srvid;
 		}
 //		else
-//			cs_log("WARNING: wrong Betatunnel in %s -> ignored", cs_user);
+//			log_normal("WARNING: wrong Betatunnel in %s -> ignored", cs_user);
 	}
 }
 
@@ -193,20 +193,20 @@ static void config_check_ftab(char *zFilterAsc, FTAB * ftab, const char *zType, 
 			ftab->filts[i].caid = (ushort) a2i(ptr1, 4);
 			ptr[i] = ptr2;
 		} else if (zFiltName && zFiltName[0] == 'c') {
-			cs_log("PANIC: CAID field not found in CHID parameter!");
+			log_normal("PANIC: CAID field not found in CHID parameter!");
 			oscam_exit(1);
 		}
 		ftab->nfilts++;
 	}
 
 	if (ftab->nfilts)
-		cs_debug("%s '%s' %s filter(s):", zType, zName, zFiltName);
+		log_debug("%s '%s' %s filter(s):", zType, zName, zFiltName);
 	for (i = 0; i < ftab->nfilts; i++) {
-		cs_debug("CAID #%d: %04X", i, ftab->filts[i].caid);
+		log_debug("CAID #%d: %04X", i, ftab->filts[i].caid);
 		for (j = 0, ptr3 = strtok(ptr[i], ","); (j < CS_MAXPROV) && (ptr3); ptr3 = strtok(NULL, ","), j++) {
 			ftab->filts[i].prids[j] = a2i(ptr3, 6);
 			ftab->filts[i].nprids++;
-			cs_debug("%s #%d: %06X", zFiltName, j, ftab->filts[i].prids[j]);
+			log_debug("%s #%d: %06X", zFiltName, j, ftab->filts[i].prids[j]);
 		}
 	}
 }
@@ -569,7 +569,7 @@ void config_init_cam_common_len4caid()
 		nr++;
 	}
 	fclose(fp);
-	cs_log("%d lengths for caid guessing loaded", nr);
+	log_normal("%d lengths for caid guessing loaded", nr);
 	return;
 }
 
@@ -597,7 +597,7 @@ int config_search_boxkey(ushort caid, ulong provid, char *key)
 			if ((i = (strlen(trim(c_key)) >> 1)) > 256)
 				continue;
 			if (cs_atob((uchar *) key, c_key, i) < 0) {
-				cs_log("wrong key in \"%s\"", cs_cert);
+				log_normal("wrong key in \"%s\"", cs_cert);
 				continue;
 			}
 			rc = 1;
@@ -667,23 +667,23 @@ int config_init()
 		config_check_token(trim(strtolower(token)), trim(value), tag);
 	}
 	fclose(fp);
-	cs_init_log(logfile);
+	log_init(logfile);
 	if (cfg->ftimeout >= cfg->ctimeout) {
 		cfg->ftimeout = cfg->ctimeout - 100;
-		cs_log("WARNING: fallbacktimeout adjusted to %lu ms (must be smaller than clienttimeout (%lu ms))", cfg->ftimeout, cfg->ctimeout);
+		log_normal("WARNING: fallbacktimeout adjusted to %lu ms (must be smaller than clienttimeout (%lu ms))", cfg->ftimeout, cfg->ctimeout);
 	}
 	if (cfg->ftimeout < cfg->srtimeout) {
 		cfg->ftimeout = cfg->srtimeout + 100;
-		cs_log("WARNING: fallbacktimeout adjusted to %lu ms (must be greater than serialreadertimeout (%lu ms))", cfg->ftimeout, cfg->srtimeout);
+		log_normal("WARNING: fallbacktimeout adjusted to %lu ms (must be greater than serialreadertimeout (%lu ms))", cfg->ftimeout, cfg->srtimeout);
 	}
 	if (cfg->ctimeout < cfg->srtimeout) {
 		cfg->ctimeout = cfg->srtimeout + 100;
-		cs_log("WARNING: clienttimeout adjusted to %lu ms (must be greater than serialreadertimeout (%lu ms))", cfg->ctimeout, cfg->srtimeout);
+		log_normal("WARNING: clienttimeout adjusted to %lu ms (must be greater than serialreadertimeout (%lu ms))", cfg->ctimeout, cfg->srtimeout);
 	}
 #ifdef CS_ANTICASC
 	if (cfg->ac_denysamples + 1 > cfg->ac_samples) {
 		cfg->ac_denysamples = cfg->ac_samples - 1;
-		cs_log("WARNING: DenySamples adjusted to %d", cfg->ac_denysamples);
+		log_normal("WARNING: DenySamples adjusted to %d", cfg->ac_denysamples);
 	}
 #endif
 	return 0;
@@ -754,7 +754,7 @@ int config_init_userdb()
 
 	sprintf(token, "%s%s", cs_confdir, cs_user);
 	if (!(fp = fopen(token, "r"))) {
-		cs_log("Cannot open file \"%s\" (errno=%d)", token, errno);
+		log_normal("Cannot open file \"%s\" (errno=%d)", token, errno);
 		return (1);
 	}
 	for (nro = 0, ptr = cfg->account; ptr; nro++) {
@@ -775,7 +775,7 @@ int config_init_userdb()
 			token[l - 1] = 0;
 			tag = (!strcmp("account", strtolower(token + 1)));
 			if (!(ptr = malloc(sizeof (struct s_auth)))) {
-				cs_log("Error allocating memory (errno=%d)", errno);
+				log_normal("Error allocating memory (errno=%d)", errno);
 				return (1);
 			}
 			if (account)
@@ -805,7 +805,7 @@ int config_init_userdb()
 		config_check_account(trim(strtolower(token)), trim(value), account);
 	}
 	fclose(fp);
-	cs_log("userdb reloaded: %d accounts freed, %d accounts loaded", nro, nr);
+	log_normal("userdb reloaded: %d accounts freed, %d accounts loaded", nro, nr);
 	return (0);
 }
 
@@ -879,7 +879,7 @@ int config_init_sidtab()
 
 	sprintf(token, "%s%s", cs_confdir, cs_sidt);
 	if (!(fp = fopen(token, "r"))) {
-		cs_log("Cannot open file \"%s\" (errno=%d)", token, errno);
+		log_normal("Cannot open file \"%s\" (errno=%d)", token, errno);
 		return (1);
 	}
 	for (nro = 0, ptr = cfg->sidtab; ptr; nro++) {
@@ -905,7 +905,7 @@ int config_init_sidtab()
 		if ((token[0] == '[') && (token[l - 1] == ']')) {
 			token[l - 1] = 0;
 			if (!(ptr = malloc(sizeof (struct s_sidtab)))) {
-				cs_log("Error allocating memory (errno=%d)", errno);
+				log_normal("Error allocating memory (errno=%d)", errno);
 				return (1);
 			}
 			if (sidtab)
@@ -930,7 +930,7 @@ int config_init_sidtab()
 #ifdef DEBUG_SIDTAB
 	config_show_sidtab(cfg->sidtab);
 #endif
-	cs_log("services reloaded: %d services freed, %d services loaded", nro, nr);
+	log_normal("services reloaded: %d services freed, %d services loaded", nro, nr);
 	return (0);
 }
 
@@ -943,7 +943,7 @@ int config_init_srvid()
 
 	sprintf(token, "%s%s", cs_confdir, cs_srid);
 	if (!(fp = fopen(token, "r"))) {
-		cs_log("can't open file \"%s\" (err=%d), no service-id's loaded", token, errno);
+		log_normal("can't open file \"%s\" (err=%d), no service-id's loaded", token, errno);
 		return (0);
 	}
 	nr = 0;
@@ -959,7 +959,7 @@ int config_init_srvid()
 		if (strlen(token) != 4)
 			continue;
 		if (!(ptr = malloc(sizeof (struct s_srvid)))) {
-			cs_log("Error allocating memory (errno=%d)", errno);
+			log_normal("Error allocating memory (errno=%d)", errno);
 			return (1);
 		}
 		if (srvid)
@@ -973,7 +973,7 @@ int config_init_srvid()
 		nr++;
 	}
 	fclose(fp);
-	cs_log("%d service-id's loaded", nr);
+	log_normal("%d service-id's loaded", nr);
 	return (0);
 }
 
@@ -1155,7 +1155,7 @@ int config_init_readerdb()
 
 	sprintf(token, "%s%s", cs_confdir, cs_srvr);
 	if (!(fp = fopen(token, "r"))) {
-		cs_log("can't open file \"%s\" (errno=%d)\n", token, errno);
+		log_normal("can't open file \"%s\" (errno=%d)\n", token, errno);
 		return (1);
 	}
 	nr = 0;
@@ -1197,7 +1197,7 @@ void config_init_ac()
 
 	sprintf(token, "%s%s", cs_confdir, cs_ac);
 	if (!(fp = fopen(token, "r"))) {
-		cs_log("can't open file \"%s\" (errno=%d) anti-cascading table not loaded", token, errno);
+		log_normal("can't open file \"%s\" (errno=%d) anti-cascading table not loaded", token, errno);
 		return;
 	}
 
@@ -1263,7 +1263,7 @@ void config_init_ac()
 				}
 			}
 			if (!(ptr_cpmap = (struct s_cpmap *) malloc(sizeof (struct s_cpmap)))) {
-				cs_log("Error allocating memory (errno=%d)", errno);
+				log_normal("Error allocating memory (errno=%d)", errno);
 				return;
 			}
 			if (cpmap)
@@ -1279,7 +1279,7 @@ void config_init_ac()
 			cpmap->dwtime = dwtime;
 			cpmap->next = 0;
 
-			cs_debug("nr=%d, caid=%04X, provid=%06X, sid=%04X, chid=%04X, dwtime=%d", nr, caid, provid, sid, chid, dwtime);
+			log_debug("nr=%d, caid=%04X, provid=%06X, sid=%04X, chid=%04X, dwtime=%d", nr, caid, provid, sid, chid, dwtime);
 			nr++;
 		}
 	}
