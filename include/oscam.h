@@ -21,7 +21,6 @@ int oscam_recv_from_udpipe(uchar *, int);
 int oscam_write_to_pipe(int, int, uchar *, int);
 int oscam_read_from_pipe(int, char **, int);
 
-int oscam_write_ecm_request(int, ECM_REQUEST *);
 int oscam_write_ecm_answer(int, ECM_REQUEST *);
 
 ECM_REQUEST *oscam_get_ecmtask();

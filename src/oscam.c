@@ -1315,7 +1315,7 @@ int oscam_read_from_pipe(int fd, char **data, int redir)
 /*
  * oscam_write_ecm_request():
  */
-int oscam_write_ecm_request(int fd, ECM_REQUEST * er)
+static int oscam_write_ecm_request(int fd, ECM_REQUEST * er)
 {
 	return (oscam_write_to_pipe(fd, PIP_ID_ECM, (uchar *) er, sizeof (ECM_REQUEST)));
 }
