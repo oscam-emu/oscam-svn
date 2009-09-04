@@ -264,7 +264,7 @@ int chk_avail_reader(ECM_REQUEST * er, struct s_reader *rdr)
 	return 1;
 }
 
-int matching_reader(ECM_REQUEST * er, struct s_reader *rdr)
+int chk_matching_reader(ECM_REQUEST * er, struct s_reader *rdr)
 {
 	if (!((rdr->fd) && (rdr->grp & client[cs_idx].grp)))
 		return (0);

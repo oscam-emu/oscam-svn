@@ -1716,7 +1716,7 @@ void get_cw(ECM_REQUEST * er)
 
 	if (!rejected && er->rc != 1) {
 		for (i = m = 0; i < CS_MAXREADER; i++)
-			if (matching_reader(er, &reader[i]) && (i != ridx))
+			if (chk_matching_reader(er, &reader[i]) && (i != ridx))
 				m |= er->reader[i] = (reader[i].fallback) ? 2 : 1;
 
 		switch (m) {
