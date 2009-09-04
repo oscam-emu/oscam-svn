@@ -194,7 +194,7 @@ static void config_check_ftab(char *zFilterAsc, FTAB * ftab, const char *zType, 
 			ptr[i] = ptr2;
 		} else if (zFiltName && zFiltName[0] == 'c') {
 			cs_log("PANIC: CAID field not found in CHID parameter!");
-			cs_exit(1);
+			oscam_exit(1);
 		}
 		ftab->nfilts++;
 	}

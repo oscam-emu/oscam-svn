@@ -22,8 +22,8 @@ static void monitor_check_ip()
 	for (p_ip = cfg->mon_allowed; (p_ip) && (!ok); p_ip = p_ip->next)
 		ok = ((client[cs_idx].ip >= p_ip->ip[0]) && (client[cs_idx].ip <= p_ip->ip[1]));
 	if (!ok) {
-		cs_auth_client((struct s_auth *) 0, "invalid ip");
-		cs_exit(0);
+		oscam_auth_client((struct s_auth *) 0, "invalid ip");
+		oscam_exit(0);
 	}
 }
 
@@ -34,8 +34,8 @@ static void monitor_auth_client(char *usr, char *pwd)
 	if (auth)
 		return;
 	if ((!usr) || (!pwd)) {
-		cs_auth_client((struct s_auth *) 0, NULL);
-		cs_exit(0);
+		oscam_auth_client((struct s_auth *) 0, NULL);
+		oscam_exit(0);
 	}
 	for (account = cfg->account, auth = 0; (account) && (!auth);) {
 		if (account->monlvl)
@@ -44,11 +44,11 @@ static void monitor_auth_client(char *usr, char *pwd)
 			account = account->next;
 	}
 	if (!auth) {
-		cs_auth_client((struct s_auth *) 0, "invalid account");
-		cs_exit(0);
+		oscam_auth_client((struct s_auth *) 0, "invalid account");
+		oscam_exit(0);
 	}
-	if (cs_auth_client(account, NULL))
-		cs_exit(0);
+	if (oscam_auth_client(account, NULL))
+		oscam_exit(0);
 }
 
 static int monitor_secure_auth_client(uchar * ucrc)
@@ -69,13 +69,13 @@ static int monitor_secure_auth_client(uchar * ucrc)
 		if ((account->monlvl) && (crc == crc32(0L, MD5((unsigned char *) account->usr, strlen(account->usr), NULL), 16))) {
 			memcpy(client[cs_idx].ucrc, ucrc, 4);
 			aes_set_key((char *) MD5((unsigned char *) account->pwd, strlen(account->pwd), NULL));
-			if (cs_auth_client(account, NULL))
-				cs_exit(0);
+			if (oscam_auth_client(account, NULL))
+				oscam_exit(0);
 			auth = 1;
 		}
 	if (!auth) {
-		cs_auth_client((struct s_auth *) 0, "invalid user");
-		cs_exit(0);
+		oscam_auth_client((struct s_auth *) 0, "invalid user");
+		oscam_exit(0);
 	}
 	return (auth);
 }
@@ -113,13 +113,13 @@ static int monitor_recv(uchar * buf, int l)
 		bbuf = (uchar *) malloc(l);
 		if (!bbuf) {
 			cs_log("Cannot allocate memory (errno=%d)", errno);
-			cs_exit(1);
+			oscam_exit(1);
 		}
 	}
 	if (bpos)
 		memcpy(buf, bbuf, n = bpos);
 	else
-		n = recv_from_udpipe(buf, l);
+		n = oscam_recv_from_udpipe(buf, l);
 	bpos = 0;
 	if (!n)
 		return (buf[0] = 0);
@@ -141,7 +141,7 @@ static int monitor_recv(uchar * buf, int l)
 			memcpy(bbuf, buf + bsize, bpos = n - bsize);
 			n = bsize;
 			if (!write(client[cs_idx].ufd, nbuf, sizeof (nbuf)))
-				cs_exit(1);	// trigger new event
+				oscam_exit(1);	// trigger new event
 		} else if (n < bsize) {
 			cs_log("packet-size mismatch !");
 			return (buf[0] = 0);
@@ -162,7 +162,7 @@ static int monitor_recv(uchar * buf, int l)
 			memcpy(bbuf, p + 1, bpos);
 			n = p - buf;
 			if (!write(client[cs_idx].ufd, nbuf, sizeof (nbuf)))
-				cs_exit(1);	// trigger new event
+				oscam_exit(1);	// trigger new event
 		}
 	}
 	buf[n] = '\0';
@@ -378,7 +378,7 @@ static void monitor_process_details_master(char *buf, int pid)
 		sprintf(buf + 200, ", nice=%d", cfg->nice);
 	else
 		buf[200] = '\0';
-	sprintf(buf, "version=%s, system=%s%s", CS_VERSION, cs_platform(buf + 100), buf + 200);
+	sprintf(buf, "version=%s, system=%s%s", CS_VERSION, oscam_platform(buf + 100), buf + 200);
 	monitor_send_details(buf, pid);
 
 	sprintf(buf, "max. clients=%d, client max. idle=%d sec", CS_MAXPID - 2, cfg->cmaxidle);
@@ -409,7 +409,7 @@ static void monitor_process_details(char *arg)
 
 	if (!arg)
 		return;
-	if ((idx = idx_from_pid(pid = atoi(arg))) < 0)
+	if ((idx = oscam_idx_from_pid(pid = atoi(arg))) < 0)
 		monitor_send_details("Invalid PID", pid);
 	else {
 		monitor_send_info(monitor_client_info('D', idx), 0);
@@ -534,8 +534,8 @@ static void monitor_server()
 	int n;
 
 	client[cs_idx].typ = 'm';
-	while (((n = process_input(mbuf, sizeof (mbuf), cfg->cmaxidle)) >= 0) && monitor_process_request((char *) mbuf));
-	cs_disconnect_client();
+	while (((n = oscam_process_input(mbuf, sizeof (mbuf), cfg->cmaxidle)) >= 0) && monitor_process_request((char *) mbuf));
+	oscam_disconnect_client();
 }
 
 void monitor_module(struct s_module *ph)

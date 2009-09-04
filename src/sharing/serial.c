@@ -616,8 +616,9 @@ static void sharing_serial_init_client()
 static void sharing_serial_disconnect()
 {
 	sharing_serial_disconnect_client();
-	if (connected)
-		cs_log("%s disconnected (%s)", username(cs_idx), proto_txt[connected]);
+	if (connected) {
+		cs_log("%s disconnected (%s)", oscam_username(cs_idx), proto_txt[connected]);
+	}
 	connected = 0;
 }
 
@@ -641,7 +642,7 @@ static void sharing_serial_auth_client(int proto)
 			if ((ok = !strcmp(sharing_serial_usr, account->usr)))
 				break;
 	}
-	cs_auth_client(ok ? account : (struct s_auth *) (-1), proto_txt[connected]);
+	oscam_auth_client(ok ? account : (struct s_auth *) (-1), proto_txt[connected]);
 }
 
 static void sharing_serial_send_dcw(ECM_REQUEST * er)
@@ -845,7 +846,7 @@ static void sharing_serial_process_ecm(uchar * buf, int l)
 {
 	ECM_REQUEST *er;
 
-	if (!(er = get_ecmtask()))
+	if (!(er = oscam_get_ecmtask()))
 		return;
 
 	switch (sharing_serial_check_ecm(er, buf, l)) {
@@ -855,7 +856,8 @@ static void sharing_serial_process_ecm(uchar * buf, int l)
 		case 1:
 			er->rc = 9;	// error with log
 	}
-	get_cw(er);
+
+	oscam_get_cw(er);
 }
 
 
@@ -866,7 +868,7 @@ static void sharing_serial_server()
 	connected = 0;
 	sharing_serial_init_client();
 
-	while ((n = process_input(mbuf, sizeof (mbuf), cfg->cmaxidle)) >= 0) {
+	while ((n = oscam_process_input(mbuf, sizeof (mbuf), cfg->cmaxidle)) >= 0) {
 		if (serial_errors > 3) {
 			cs_log("too many errors, reiniting...");
 			break;
@@ -886,6 +888,7 @@ static void sharing_serial_server()
 			}
 		}
 	}
+
 	sharing_serial_disconnect();
 }
 
@@ -920,12 +923,12 @@ static void sharing_serial_fork(int idx, char *url)
 	snprintf(logtxt, sizeof (logtxt) - 1, ", %s@%s", sharing_serial_proto > P_MAX ? "auto" : proto_txt[sharing_serial_proto], sharing_serial_device);
 	ph[idx].logtxt = logtxt;
 
-	switch (cs_fork(0, idx)) {
+	switch (oscam_fork(0, idx)) {
 		case 0:	// master
 		case -1:
 			return;
 		default:
-			wait4master();
+			oscam_wait4master();
 	}
 
 	while (1) {
@@ -960,13 +963,15 @@ static void sharing_serial_init(int idx)
 
 static int sharing_serial_client_init()
 {
-	if ((!reader[ridx].device[0]))
-		cs_exit(1);
-	if (!sharing_serial_parse_url(reader[ridx].device))
-		cs_exit(1);
+	if ((!reader[ridx].device[0])) {
+		oscam_exit(1);
+	}
+	if (!sharing_serial_parse_url(reader[ridx].device)) {
+		oscam_exit(1);
+	}
 	pfd = sharing_serial_init_device(sharing_serial_device);
 
-	return ((pfd > 0) ? 0 : 1);
+	return (pfd > 0) ? 0 : 1;
 }
 
 static int sharing_serial_send_ecm(ECM_REQUEST * er, uchar * buf)

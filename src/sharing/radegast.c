@@ -35,18 +35,18 @@ static void sharing_radegast_auth_client(in_addr_t ip)
 		ok = ((ip >= p_ip->ip[0]) && (ip <= p_ip->ip[1]));
 	}
 	if (!ok) {
-		cs_auth_client((struct s_auth *) 0, NULL);
-		cs_exit(0);
+		oscam_auth_client((struct s_auth *) 0, NULL);
+		oscam_exit(0);
 	}
 	for (ok = 0, account = cfg->account; (cfg->rad_usr[0]) && (account) && (!ok); account = account->next) {
 		if ((ok = (!strcmp(cfg->rad_usr, account->usr)))) {
-			if (cs_auth_client(account, NULL)) {
-				cs_exit(0);
+			if (oscam_auth_client(account, NULL)) {
+				oscam_exit(0);
 			}
 		}
 	}
 	if (!ok) {
-		cs_auth_client((struct s_auth *) (-1), NULL);
+		oscam_auth_client((struct s_auth *) (-1), NULL);
 	}
 }
 
@@ -54,8 +54,8 @@ static int sharing_radegast_get_request(uchar * buf)
 {
 	int n, rc = 0;
 
-	if ((n = process_input(buf, 2, cfg->cmaxidle)) == 2) {
-		if ((n = process_input(buf + 2, buf[1], 0)) >= 0)
+	if ((n = oscam_process_input(buf, 2, cfg->cmaxidle)) == 2) {
+		if ((n = oscam_process_input(buf + 2, buf[1], 0)) >= 0)
 			n += 2;
 		if (n - 2 == buf[1])
 			rc = n;
@@ -88,7 +88,7 @@ static void sharing_radegast_process_ecm(uchar * buf, int l)
 	int i, n, sl;
 	ECM_REQUEST *er;
 
-	if (!(er = get_ecmtask()))
+	if (!(er = oscam_get_ecmtask()))
 		return;
 	for (i = 0; i < l; i += (sl + 2)) {
 		sl = buf[i + 1];
@@ -113,10 +113,12 @@ static void sharing_radegast_process_ecm(uchar * buf, int l)
 				break;
 		}
 	}
-	if (l != i)
+
+	if (l != i) {
 		cs_log("WARNING: ECM-request corrupt");
-	else
-		get_cw(er);
+	} else {
+		oscam_get_cw(er);
+	}
 }
 
 static void sharing_radegast_process_unknown(uchar * buf)
@@ -140,7 +142,8 @@ static void sharing_radegast_server()
 				sharing_radegast_process_unknown(mbuf);
 		}
 	}
-	cs_disconnect_client();
+
+	oscam_disconnect_client();
 }
 
 void sharing_radegast_module(struct s_module *ph)

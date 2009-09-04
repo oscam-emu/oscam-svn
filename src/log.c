@@ -46,10 +46,9 @@ static void switch_log(char *file, FILE ** f, int (*pfinit) (char *))
 			rc = rename(file, prev_log);
 			if (rc != 0) {
 				fprintf(stderr, "rename(%s, %s) failed (errno=%d)\n", file, prev_log, errno);
-			} else if (pfinit(file))
-				cs_exit(0);
-
-
+			} else if (pfinit(file)) {
+				oscam_exit(0);
+			}
 		}
 	}
 }
@@ -94,7 +93,7 @@ int cs_init_log(char *file)
 				line[(sizeof (line) / sizeof (char)) - 1] = '\0';
 				time(&t);
 				fprintf(fp, "\n%s\n>> OSCam <<  cardserver started at %s%s\n", line, ctime(&t), line);
-				cs_log_config();
+				oscam_log_config();
 			}
 		}
 		return (fp <= (FILE *) 0);
@@ -161,13 +160,14 @@ static void write_to_log(int flag, char *txt)
   #endif
     {
 */
-		if ((*log_fd) && (client[cs_idx].typ != 'l') && (client[cs_idx].typ != 'a'))
-			write_to_pipe(*log_fd, PIP_ID_LOG, (uchar *) buf + 8, strlen(buf + 8));
-		else
+		if ((*log_fd) && (client[cs_idx].typ != 'l') && (client[cs_idx].typ != 'a')) {
+			oscam_write_to_pipe(*log_fd, PIP_ID_LOG, (uchar *) buf + 8, strlen(buf + 8));
+		} else {
 			cs_write_log(buf + 8);
+		}
 //    }
 	}
-	store_logentry(buf);
+	oscam_store_logentry(buf);
 
 	for (i = 0; i < CS_MAXPID; i++)	// monitor-clients
 	{

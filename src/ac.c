@@ -33,7 +33,7 @@ void ac_init_stat(int i)
 		fclose(fpa);
 	fpa = (FILE *) 0;
 	if (ac_init_log(cfg->ac_logfile))
-		cs_exit(0);
+		oscam_exit(0);
 }
 
 static int ac_idx_from_ac_idx(int ac_idx)

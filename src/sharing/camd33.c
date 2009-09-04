@@ -16,29 +16,34 @@ static int sharing_camd33_send(uchar * buf, int ml)
 {
 	int l;
 
-	if (!pfd)
-		return (-1);
+	if (!pfd) {
+		return -1;
+	}
 	l = boundary(4, ml);
 	memset(buf + ml, 0, l - ml);
 	cs_ddump(buf, l, "send %d bytes to client", l);
-	if (client[cs_idx].crypted)
+	if (client[cs_idx].crypted) {
 		aes_encrypt(buf, l);
-	return (send(pfd, buf, l, 0));
+	}
+
+	return send(pfd, buf, l, 0);
 }
 
 static int sharing_camd33_recv(uchar * buf, int l)
 {
 	int n;
 
-	if (!pfd)
-		return (-1);
+	if (!pfd) {
+		return -1;
+	}
 	if ((n = recv(pfd, buf, l, 0)) > 0) {
 		client[cs_idx].last = time((time_t *) 0);
 		if (client[cs_idx].crypted)
 			aes_decrypt(buf, n);
 	}
 	cs_ddump(buf, n, "received %d bytes from client", n);
-	return (n);
+
+	return n;
 }
 
 static void sharing_camd33_request_emm()
@@ -46,10 +51,11 @@ static void sharing_camd33_request_emm()
 	int au;
 
 	au = client[cs_idx].au;
-	if ((au < 0) || (au > CS_MAXREADER))
+	if ((au < 0) || (au > CS_MAXREADER)) {
 		return;	// TODO
+	}
 	if (reader[au].hexserial[0]) {
-		log_emm_request(au);
+		oscam_log_emm_request(au);
 		mbuf[0] = 0;
 		mbuf[1] = reader[au].caid[0] >> 8;
 		mbuf[2] = reader[au].caid[0] & 0xff;
@@ -80,22 +86,26 @@ static void sharing_camd33_auth_client(in_addr_t ip)
 	sharing_camd33_send(mbuf, 1);	// send login-request
 
 	for (rc = 0, camdbug[0] = 0, mbuf[0] = 1; (rc < 2) && (mbuf[0]); rc++) {
-		i = process_input(mbuf, sizeof (mbuf), 1);
+		i = oscam_process_input(mbuf, sizeof (mbuf), 1);
 		if ((i > 0) && (!mbuf[0])) {
 			usr = mbuf + 1;
 			pwd = usr + strlen((char *) usr) + 2;
-		} else
+		} else {
 			memcpy(camdbug + 1, mbuf, camdbug[0] = i);
+		}
 	}
-	for (rc = -1, account = cfg->account; (usr) && (account) && (rc < 0); account = account->next)
-		if ((!strcmp((char *) usr, account->usr)) && (!strcmp((char *) pwd, account->pwd)))
-			rc = cs_auth_client(account, NULL);
-	if (!rc)
+	for (rc = -1, account = cfg->account; (usr) && (account) && (rc < 0); account = account->next) {
+		if ((!strcmp((char *) usr, account->usr)) && (!strcmp((char *) pwd, account->pwd))) {
+			rc = oscam_auth_client(account, NULL);
+		}
+	}
+	if (!rc) {
 		sharing_camd33_request_emm();
-	else {
-		if (rc < 0)
-			cs_auth_client(0, usr ? "invalid account" : "no user given");
-		cs_exit(0);
+	} else {
+		if (rc < 0) {
+			oscam_auth_client(0, usr ? "invalid account" : "no user given");
+		}
+		oscam_exit(0);
 	}
 }
 
@@ -109,7 +119,7 @@ static int sharing_camd33_get_request(uchar * buf, int n)
 		return (rc);
 	}
 	for (rc = w = 0; !rc;) {
-		switch (rc = process_input(buf, 16, (w) ? cfg->ctimeout : cfg->cmaxidle)) {
+		switch (rc = oscam_process_input(buf, 16, (w) ? cfg->ctimeout : cfg->cmaxidle)) {
 			case -9:
 				rc = 0;
 			case 0:
@@ -135,15 +145,17 @@ static int sharing_camd33_get_request(uchar * buf, int n)
 						default:
 							w = n;	// garbage ?
 					}
-					w = process_input(buf + 16, w - 16, 0);
+					w = oscam_process_input(buf + 16, w - 16, 0);
 					if (w > 0)
 						rc += w;
 				}
 		}
 	}
-	if (rc < 0)
+	if (rc < 0) {
 		rc = 0;
-	return (rc);
+	}
+
+	return rc;
 }
 
 static void sharing_camd33_send_dcw(ECM_REQUEST * er)
@@ -152,21 +164,23 @@ static void sharing_camd33_send_dcw(ECM_REQUEST * er)
 	memcpy(mbuf + 1, req + (er->cpti * REQ_SIZE), 4);	// get pin
 	memcpy(mbuf + 5, er->cw, 16);
 	sharing_camd33_send(mbuf, 21);
-	if (!cfg->c33_passive)
+	if (!cfg->c33_passive) {
 		sharing_camd33_request_emm();
+	}
 }
 
 static void sharing_camd33_process_ecm(uchar * buf, int l)
 {
 	ECM_REQUEST *er;
 
-	if (!(er = get_ecmtask()))
+	if (!(er = oscam_get_ecmtask())) {
 		return;
+	}
 	memcpy(req + (er->cpti * REQ_SIZE), buf + 3, 4);	// save pin
 	er->l = l - 7;
 	er->caid = b2i(2, buf + 1);
 	memcpy(er->ecm, buf + 7, er->l);
-	get_cw(er);
+	oscam_get_cw(er);
 }
 
 static void sharing_camd33_process_emm(uchar * buf, int l)
@@ -176,7 +190,7 @@ static void sharing_camd33_process_emm(uchar * buf, int l)
 	memcpy(epg.caid, buf + 1, 2);
 	memcpy(epg.hexserial, buf + 3, 4);
 	memcpy(epg.emm, buf + 7, epg.l);
-	do_emm(&epg);
+	oscam_do_emm(&epg);
 }
 
 static void sharing_camd33_server()
@@ -186,7 +200,7 @@ static void sharing_camd33_server()
 	req = (uchar *) malloc(CS_MAXPENDING * REQ_SIZE);
 	if (!req) {
 		cs_log("Cannot allocate memory (errno=%d)", errno);
-		cs_exit(1);
+		oscam_exit(1);
 	}
 	memset(req, 0, CS_MAXPENDING * REQ_SIZE);
 
@@ -204,7 +218,7 @@ static void sharing_camd33_server()
 				cs_debug("unknown command !");
 		}
 	}
-	cs_disconnect_client();
+	oscam_disconnect_client();
 }
 
 void sharing_camd33_module(struct s_module *ph)

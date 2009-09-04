@@ -53,7 +53,7 @@ static int sharing_camd35_auth_client(uchar * ucrc)
 			memcpy(client[cs_idx].ucrc, ucrc, 4);
 			strcpy((char *) upwd, account->pwd);
 			aes_set_key((char *) MD5(upwd, strlen((char *) upwd), NULL));
-			rc = cs_auth_client(account, NULL);
+			rc = oscam_auth_client(account, NULL);
 		}
 	return (rc);
 }
@@ -70,7 +70,7 @@ static int sharing_camd35_recv(uchar * buf, int l)
 					if (!client[cs_idx].udp_fd)
 						return (-9);
 					if (is_udp)
-						rs = recv_from_udpipe(buf, l);
+						rs = oscam_recv_from_udpipe(buf, l);
 					else
 						rs = recv(client[cs_idx].udp_fd, buf, l, 0);
 				} else {
@@ -122,7 +122,7 @@ static int sharing_camd35_recv(uchar * buf, int l)
 			cs_log("packet to small (%d bytes)", rs);
 			break;
 		case -2:
-			cs_auth_client(0, "unknown user");
+			oscam_auth_client(0, "unknown user");
 			break;
 		case -3:
 			cs_log("incomplete request !");
@@ -159,7 +159,7 @@ static void sharing_camd35_request_emm(ECM_REQUEST * er)
 
 	if (reader[au].caid[0]) {
 		disable_counter = 0;
-		log_emm_request(au);
+		oscam_log_emm_request(au);
 	} else if (disable_counter > 2)
 		return;
 	else
@@ -232,7 +232,7 @@ static void sharing_camd35_process_ecm(uchar * buf)
 {
 	ECM_REQUEST *er;
 
-	if (!(er = get_ecmtask()))
+	if (!(er = oscam_get_ecmtask()))
 		return;
 	er->l = buf[1];
 	memcpy(req + (er->cpti * REQ_SIZE), buf, 0x34 + 20 + er->l);	// save request
@@ -241,7 +241,7 @@ static void sharing_camd35_process_ecm(uchar * buf)
 	er->prid = b2i(4, buf + 12);
 	er->pid = b2i(2, buf + 16);
 	memcpy(er->ecm, buf + 20, er->l);
-	get_cw(er);
+	oscam_get_cw(er);
 }
 
 static void sharing_camd35_process_emm(uchar * buf)
@@ -257,7 +257,7 @@ static void sharing_camd35_process_emm(uchar * buf)
 	memcpy(epg.provid, buf + 12, 4);
 	memcpy(epg.hexserial, reader[au].hexserial, 8);	// dummy
 	memcpy(epg.emm, buf + 20, epg.l);
-	do_emm(&epg);
+	oscam_do_emm(&epg);
 }
 
 static void sharing_camd35_server()
@@ -267,13 +267,13 @@ static void sharing_camd35_server()
 	req = (uchar *) malloc(CS_MAXPENDING * REQ_SIZE);
 	if (!req) {
 		cs_log("Cannot allocate memory (errno=%d)", errno);
-		cs_exit(1);
+		oscam_exit(1);
 	}
 	memset(req, 0, CS_MAXPENDING * REQ_SIZE);
 
 	is_udp = (ph[client[cs_idx].ctyp].type == MOD_CONN_UDP);
 
-	while ((n = process_input(mbuf, sizeof (mbuf), cfg->cmaxidle)) > 0) {
+	while ((n = oscam_process_input(mbuf, sizeof (mbuf), cfg->cmaxidle)) > 0) {
 		switch (mbuf[0]) {
 			case 0:	// ECM
 			case 3:	// ECM (cascading)
@@ -292,7 +292,7 @@ static void sharing_camd35_server()
 		req = 0;
 	}
 
-	cs_disconnect_client();
+	oscam_disconnect_client();
 }
 
 /*
@@ -336,7 +336,7 @@ static int sharing_camd35_client_init()
 
 	if ((client[cs_idx].udp_fd = socket(PF_INET, is_udp ? SOCK_DGRAM : SOCK_STREAM, p_proto)) < 0) {
 		cs_log("Socket creation failed (errno=%d)", errno);
-		cs_exit(1);
+		oscam_exit(1);
 	}
 #ifdef SO_PRIORITY
 	if (cfg->netprio)

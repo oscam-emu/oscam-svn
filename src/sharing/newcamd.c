@@ -635,7 +635,7 @@ static void sharing_newcamd_auth_client(in_addr_t ip)
 	memcpy(client[cs_idx].ncd_skey, key, 16);
 	client[cs_idx].ncd_msgid = 0;
 
-	i = process_input(mbuf, sizeof (mbuf), cfg->cmaxidle);
+	i = oscam_process_input(mbuf, sizeof (mbuf), cfg->cmaxidle);
 	if (i > 0) {
 		if (mbuf[2] != MSG_CLIENT_2_SERVER_LOGIN) {
 			cs_debug("expected MSG_CLIENT_2_SERVER_LOGIN (%02X), received %02X", MSG_CLIENT_2_SERVER_LOGIN, mbuf[2]);
@@ -643,7 +643,7 @@ static void sharing_newcamd_auth_client(in_addr_t ip)
 				free(req);
 				req = 0;
 			}
-			cs_exit(0);
+			oscam_exit(0);
 		}
 		usr = mbuf + 5;
 		pwd = usr + strlen((char *) usr) + 1;
@@ -654,7 +654,7 @@ static void sharing_newcamd_auth_client(in_addr_t ip)
 			free(req);
 			req = 0;
 		}
-		cs_exit(0);
+		oscam_exit(0);
 	}
 
 	for (ok = 0, account = cfg->account; (usr) && (account) && (!ok); account = account->next) {
@@ -664,7 +664,7 @@ static void sharing_newcamd_auth_client(in_addr_t ip)
 			cs_debug("account->pwd=%s", passwdcrypt);
 			if (strcmp((char *) pwd, (const char *) passwdcrypt) == 0) {
 				client[cs_idx].crypted = 1;
-				cs_auth_client(account, NULL);
+				oscam_auth_client(account, NULL);
 				cs_log("user %s authenticated successfully (using client %02X%02X)", usr, mbuf[0], mbuf[1]);
 				ok = 1;
 				break;
@@ -713,7 +713,7 @@ static void sharing_newcamd_auth_client(in_addr_t ip)
 		key = des_login_key_get(cfg->ncd_key, passwdcrypt, strlen((char *) passwdcrypt));
 		memcpy(client[cs_idx].ncd_skey, key, 16);
 
-		i = process_input(mbuf, sizeof (mbuf), cfg->cmaxidle);
+		i = oscam_process_input(mbuf, sizeof (mbuf), cfg->cmaxidle);
 		if (i > 0) {
 			int j, len = 15;
 
@@ -723,7 +723,7 @@ static void sharing_newcamd_auth_client(in_addr_t ip)
 					free(req);
 					req = 0;
 				}
-				cs_exit(0);
+				oscam_exit(0);
 			}
 
 			client[cs_idx].ftab.filts[0] = sharing_newcamd_mk_user_ftab();
@@ -913,19 +913,19 @@ static void sharing_newcamd_auth_client(in_addr_t ip)
 					free(req);
 					req = 0;
 				}
-				cs_exit(0);
+				oscam_exit(0);
 			}
 		}
 	} else {
 		if (au == -2)
-			cs_auth_client(0, "Init for AU enabled card not finished");
+			oscam_auth_client(0, "Init for AU enabled card not finished");
 		else
-			cs_auth_client(0, usr ? "login failure" : "no such user");
+			oscam_auth_client(0, usr ? "login failure" : "no such user");
 		if (req) {
 			free(req);
 			req = 0;
 		}
-		cs_exit(0);
+		oscam_exit(0);
 	}
 }
 
@@ -959,7 +959,7 @@ static void sharing_newcamd_process_ecm(uchar * buf, int l)
 	int pi;
 	ECM_REQUEST *er;
 
-	if (!(er = get_ecmtask())) {
+	if (!(er = oscam_get_ecmtask())) {
 		return;
 	}
 	// save client ncd_msgid
@@ -972,7 +972,7 @@ static void sharing_newcamd_process_ecm(uchar * buf, int l)
 	if (cfg->ncd_ptab.nports && cfg->ncd_ptab.nports >= pi)
 		er->caid = cfg->ncd_ptab.ports[pi].ftab.filts[0].caid;
 	memcpy(er->ecm, buf + 2, er->l);
-	get_cw(er);
+	oscam_get_cw(er);
 }
 
 static void sharing_newcamd_process_emm(uchar * buf, int l)
@@ -1014,8 +1014,9 @@ static void sharing_newcamd_process_emm(uchar * buf, int l)
 		memcpy(epg.hexserial, reader[au].hexserial, 8);	// dummy
 
 		memcpy(epg.emm, buf, epg.l);
-		if (ok)
-			do_emm(&epg);
+		if (ok) {
+			oscam_do_emm(&epg);
+		}
 	}
 	// Should always send an answer to client (also if au is disabled),
 	// some clients will disconnect if they get no answer
@@ -1031,7 +1032,7 @@ static void sharing_newcamd_server()
 	req = (uchar *) malloc(CS_MAXPENDING * REQ_SIZE);
 	if (!req) {
 		cs_log("Cannot allocate memory (errno=%d)", errno);
-		cs_exit(1);
+		oscam_exit(1);
 	}
 	memset(req, 0, CS_MAXPENDING * REQ_SIZE);
 
@@ -1041,7 +1042,7 @@ static void sharing_newcamd_server()
 
 	n = -9;
 	while (n == -9) {
-		while ((n = process_input(mbuf, sizeof (mbuf), cfg->cmaxidle)) > 0) {
+		while ((n = oscam_process_input(mbuf, sizeof (mbuf), cfg->cmaxidle)) > 0) {
 			switch (mbuf[2]) {
 				case 0x80:
 				case 0x81:
@@ -1067,7 +1068,7 @@ static void sharing_newcamd_server()
 		req = 0;
 	}
 
-	cs_disconnect_client();
+	oscam_disconnect_client();
 }
 
 /*
@@ -1102,7 +1103,7 @@ static int sharing_newcamd_client_init()
 
 	if ((client[cs_idx].udp_fd = socket(PF_INET, SOCK_STREAM, p_proto)) < 0) {
 		cs_log("Socket creation failed (errno=%d)", errno);
-		cs_exit(1);
+		oscam_exit(1);
 	}
 #ifdef SO_PRIORITY
 	if (cfg->netprio)
