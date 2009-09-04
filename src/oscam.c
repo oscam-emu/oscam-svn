@@ -168,7 +168,7 @@ char *oscam_platform(char *buf)
 			hw = CS_OS_HW;
 	}
 	sprintf(buf, "%s-%s-%s", CS_OS_CPU, hw, CS_OS_SYS);
-	return (buf);
+	return buf;
 }
 
 static void oscam_usage()
@@ -203,7 +203,7 @@ static int oscam_daemon(int nochdir, int noclose)
 
 	switch (fork()) {
 		case -1:
-			return (-1);
+			return -1;
 		case 0:
 			break;
 		default:
@@ -211,7 +211,7 @@ static int oscam_daemon(int nochdir, int noclose)
 	}
 
 	if (setsid() == (-1))
-		return (-1);
+		return -1;
 
 	if (!nochdir)
 		(void) chdir("/");
@@ -223,7 +223,7 @@ static int oscam_daemon(int nochdir, int noclose)
 		if (fd > 2)
 			(void) close(fd);
 	}
-	return (0);
+	return 0;
 }
 #else
 #  ifdef OS_MACOSX
@@ -239,7 +239,7 @@ int oscam_recv_from_udpipe(uchar * buf, int l)
 	unsigned short n;
 
 	if (!pfd)
-		return (-9);
+		return -9;
 	if (!read(pfd, buf, 3))
 		oscam_exit(1);
 	if (buf[0] != 'U') {
@@ -247,15 +247,15 @@ int oscam_recv_from_udpipe(uchar * buf, int l)
 		oscam_exit(1);
 	}
 	memcpy(&n, buf + 1, 2);
-	return (read(pfd, buf, n));
+	return read(pfd, buf, n);
 }
 
 char *oscam_username(int idx)
 {
 	if (client[idx].usr[0])
-		return (client[idx].usr);
+		return client[idx].usr;
 	else
-		return ("anonymous");
+		return "anonymous";
 }
 
 static int oscam_idx_from_ip(in_addr_t ip, in_port_t port)
@@ -265,7 +265,8 @@ static int oscam_idx_from_ip(in_addr_t ip, in_port_t port)
 	for (i = idx = 0; (i < CS_MAXPID) && (!idx); i++)
 		if ((client[i].ip == ip) && (client[i].port == port) && ((client[i].typ == 'c') || (client[i].typ == 'm')))
 			idx = i;
-	return (idx);
+
+	return idx;
 }
 
 int oscam_idx_from_pid(pid_t pid)
@@ -807,7 +808,7 @@ static int oscam_start_listener(struct s_module *ph, int port_idx)
 	ptxt[0][0] = ptxt[1][0] = '\0';
 	if (!ph->ptab->ports[port_idx].s_port) {
 		log_normal("%s: disabled", ph->desc);
-		return (0);
+		return 0;
 	}
 	is_udp = (ph->type == MOD_CONN_UDP);
 
@@ -827,7 +828,7 @@ static int oscam_start_listener(struct s_module *ph, int port_idx)
 		sad.sin_port = htons((u_short) ph->ptab->ports[port_idx].s_port);
 	else {
 		log_normal("%s: Bad port %d", ph->desc, ph->ptab->ports[port_idx].s_port);
-		return (0);
+		return 0;
 	}
 
 	/* Map transport protocol name to protocol number */
@@ -839,14 +840,14 @@ static int oscam_start_listener(struct s_module *ph, int port_idx)
 
 	if ((ph->ptab->ports[port_idx].fd = socket(PF_INET, is_udp ? SOCK_DGRAM : SOCK_STREAM, ov)) < 0) {
 		log_normal("%s: Cannot create socket (errno=%d)", ph->desc, errno);
-		return (0);
+		return 0;
 	}
 
 	ov = 1;
 	if (setsockopt(ph->ptab->ports[port_idx].fd, SOL_SOCKET, SO_REUSEADDR, (void *) &ov, sizeof (ov)) < 0) {
 		log_normal("%s: setsockopt failed (errno=%d)", ph->desc, errno);
 		close(ph->ptab->ports[port_idx].fd);
-		return (ph->ptab->ports[port_idx].fd = 0);
+		return (ph->ptab->ports[port_idx].fd == 0);
 	}
 #ifdef SO_REUSEPORT
 	setsockopt(ph->ptab->ports[port_idx].fd, SOL_SOCKET, SO_REUSEPORT, (void *) &ov, sizeof (ov));
@@ -872,7 +873,7 @@ static int oscam_start_listener(struct s_module *ph, int port_idx)
 			} else {
 				log_normal("%s: Bind request failed, giving up", ph->desc);
 				close(ph->ptab->ports[port_idx].fd);
-				return (ph->ptab->ports[port_idx].fd = 0);
+				return (ph->ptab->ports[port_idx].fd == 0);
 			}
 		} else
 			timeout = 0;
@@ -882,7 +883,7 @@ static int oscam_start_listener(struct s_module *ph, int port_idx)
 		if (listen(ph->ptab->ports[port_idx].fd, CS_QLEN) < 0) {
 			log_normal("%s: Cannot start listen mode (errno=%d)", ph->desc, errno);
 			close(ph->ptab->ports[port_idx].fd);
-			return (ph->ptab->ports[port_idx].fd = 0);
+			return (ph->ptab->ports[port_idx].fd == 0);
 		}
 
 	log_normal("%s: initialized (fd=%d, port=%d%s%s%s)", ph->desc, ph->ptab->ports[port_idx].fd, ph->ptab->ports[port_idx].s_port, ptxt[0], ptxt[1], ph->logtxt ? ph->logtxt : "");
@@ -894,7 +895,8 @@ static int oscam_start_listener(struct s_module *ph, int port_idx)
 		for (j = 0; j < ph->ptab->ports[port_idx].ftab.filts[i].nprids; j++)
 			log_normal("provid #%d: %06X", j, ph->ptab->ports[port_idx].ftab.filts[i].prids[j]);
 	}
-	return (ph->ptab->ports[port_idx].fd);
+
+	return ph->ptab->ports[port_idx].fd;
 }
 
 static void *oscam_client_resolve(void *dummy)
@@ -1222,7 +1224,7 @@ int oscam_write_to_pipe(int fd, int id, uchar * data, int n)
 
 //	printf("WRITE_START pid=%d", getpid()); fflush(stdout);
 	if ((id < 0) || (id > PIP_ID_MAX))
-		return (PIP_ID_ERR);
+		return PIP_ID_ERR;
 	memcpy(buf, PIP_ID_TXT[id], 3);
 	memcpy(buf + 3, &n, sizeof (int));
 	memcpy(buf + 3 + sizeof (int), data, n);
@@ -1232,7 +1234,8 @@ int oscam_write_to_pipe(int fd, int id, uchar * data, int n)
 //	return n;
 	if (!fd)
 		log_normal("oscam_write_to_pipe: fd==0");
-	return (write(fd, buf, n));
+
+	return write(fd, buf, n);
 }
 
 static int oscam_bytes_available(int fd)
@@ -1289,13 +1292,13 @@ int oscam_read_from_pipe(int fd, char **data, int redir)
 				l = sizeof (buf) + 3 - 1 + sizeof (int);
 			}
 			if (!oscam_bytes_available(fd))
-				return (PIP_ID_NUL);
+				return PIP_ID_NUL;
 			hdr = 0;
 			if (read(fd, buf + 3 + sizeof (int), l) == l)
 				*data = buf + 3 + sizeof (int);
 			else {
 				log_normal("WARNING: pipe data to small !");
-				return (PIP_ID_ERR);
+				return PIP_ID_ERR;
 			}
 			buf[l + 3 + sizeof (int)] = 0;
 			if ((redir) && (rc == PIP_ID_ECM)) {
@@ -1318,13 +1321,13 @@ int oscam_read_from_pipe(int fd, char **data, int redir)
  */
 static int oscam_write_ecm_request(int fd, ECM_REQUEST * er)
 {
-	return (oscam_write_to_pipe(fd, PIP_ID_ECM, (uchar *) er, sizeof (ECM_REQUEST)));
+	return oscam_write_to_pipe(fd, PIP_ID_ECM, (uchar *) er, sizeof (ECM_REQUEST));
 }
 
 /*
 static int oscam_write_ecm_dcw(int fd, ECM_REQUEST * er)
 {
-	return (oscam_write_to_pipe(fd, PIP_ID_DCW, (uchar *) er, sizeof (ECM_REQUEST)));
+	return oscam_write_to_pipe(fd, PIP_ID_DCW, (uchar *) er, sizeof (ECM_REQUEST));
 }
 */
 
@@ -1425,7 +1428,7 @@ int oscam_write_ecm_answer(int fd, ECM_REQUEST * er)
 		oscam_log_cw_to_file(er);
 	}
 
-	return (oscam_write_ecm_request(fd, er));
+	return oscam_write_ecm_request(fd, er);
 }
 
 /*
@@ -1436,7 +1439,7 @@ static int oscam_read_timer(int fd, uchar * buf, int l, int msec)
 	int rc;
 
 	if (!fd)
-		return (-1);
+		return -1;
 	tv.tv_sec = msec / 1000;
 	tv.tv_usec = (msec % 1000) * 1000;
 	FD_ZERO(&fds);
@@ -1449,7 +1452,7 @@ static int oscam_read_timer(int fd, uchar * buf, int l, int msec)
 		if (!(rc = read(fd, buf, l)))
 			rc = -1;
 
-	return (rc);
+	return rc;
 }
 */
 
@@ -1484,7 +1487,8 @@ ECM_REQUEST *oscam_get_ecmtask()
 		er->cidx = cs_idx;
 		cs_ftime(&er->tps);
 	}
-	return (er);
+
+	return er;
 }
 
 int oscam_send_dcw(ECM_REQUEST * er)
@@ -1618,7 +1622,7 @@ void oscam_process_ecm(ECM_REQUEST * er)
 {
 	int i, j, m, rejected;
 
-	//uchar orig_caid[sizeof(er->caid)];
+//	uchar orig_caid[sizeof(er->caid)];
 	time_t now;
 
 	//test the guessing ...
@@ -1768,7 +1772,7 @@ void oscam_process_ecm(ECM_REQUEST * er)
 
 void oscam_process_emm(EMM_PACKET * ep)
 {
-	int au;			//, ephs;
+	int au;
 
 	au = client[cs_idx].au;
 
@@ -1790,14 +1794,14 @@ void oscam_process_emm(EMM_PACKET * ep)
 static int oscam_compare_timeb(struct timeb *tpa, struct timeb *tpb)
 {
 	if (tpa->time > tpb->time)
-		return (1);
+		return 1;
 	if (tpa->time < tpb->time)
-		return (-1);
+		return -1;
 	if (tpa->millitm > tpb->millitm)
-		return (1);
+		return 1;
 	if (tpa->millitm < tpb->millitm)
-		return (-1);
-	return (0);
+		return -1;
+	return 0;
 }
 
 static void oscam_build_delay(struct timeb *tpe, struct timeb *tpc)
@@ -1900,7 +1904,8 @@ static struct timeval *oscam_chk_pending(struct timeb tp_ctimeout)
 	tv.tv_sec = td / 1000;
 	tv.tv_usec = (td % 1000) * 1000;
 //	log_normal("delay %d.%06d", tv.tv_sec, tv.tv_usec);
-	return (&tv);
+
+	return &tv;
 }
 
 int oscam_process_input(uchar * buf, int l, int timeout)
@@ -1912,7 +1917,7 @@ int oscam_process_input(uchar * buf, int l, int timeout)
 	if (master_pid != getppid())
 		oscam_exit(0);
 	if (!pfd)
-		return (-1);
+		return -1;
 	cs_ftime(&tp);
 	tp.time += timeout;
 	if (ph[client[cs_idx].ctyp].watchdog)
@@ -1929,7 +1934,7 @@ int oscam_process_input(uchar * buf, int l, int timeout)
 			if (errno == EINTR)
 				continue;
 			else
-				return (0);
+				return 0;
 		}
 
 		if (FD_ISSET(fd_m2c, &fds))	// read from pipe
@@ -1948,7 +1953,8 @@ int oscam_process_input(uchar * buf, int l, int timeout)
 	}
 	if (ph[client[cs_idx].ctyp].watchdog)
 		alarm(cfg->cmaxidle + (cfg->ctimeout + 500) / 1000 + 1);
-	return (rc);
+
+	return rc;
 }
 
 static void oscam_process_master_pipe()
@@ -1971,7 +1977,7 @@ int main(int argc, char *argv[])
 	struct sockaddr_in cad;	/* structure to hold client's address */
 	int scad;		/* length of address */
 
-	//int      fd;                  /* socket descriptors */
+//	int fd;                  /* socket descriptors */
 	int i, j, n;
 	int bg = 0;
 	int gfd;		//nph, 
