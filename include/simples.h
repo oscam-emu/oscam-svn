@@ -27,7 +27,6 @@ int boundary(int, int);
 void cs_ftime(struct timeb *);
 void cs_sleepms(int);
 int bytes_available(int);
-void cs_setpriority(int);
 int file_exists (const char *);
 
 #endif // __SIMPLES_H__

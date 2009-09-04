@@ -311,7 +311,7 @@ static void config_check_t_global(char *token, char *value)
 		if ((cfg->nice < -20) || (cfg->nice > 20))
 			cfg->nice = 99;
 		if (cfg->nice != 99)
-			cs_setpriority(cfg->nice);	// ignore errors
+			oscam_set_priority(cfg->nice);	// ignore errors
 	}
 	if (!strcmp(token, "serialreadertimeout")) {
 		if (cfg->srtimeout < 100)

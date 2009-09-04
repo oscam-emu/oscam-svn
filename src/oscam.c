@@ -323,6 +323,39 @@ void oscam_set_signal_handler(int sig, int flags, void (*sighandler) (int))
 #endif
 }
 
+#ifdef OS_CYGWIN32
+#  include <windows.h>
+void oscam_set_priority(int prio)
+{
+	HANDLE WinId;
+	ulong wprio;
+
+	switch ((prio + 20) / 10) {
+		case 0:
+			wprio = REALTIME_PRIORITY_CLASS;
+			break;
+		case 1:
+			wprio = HIGH_PRIORITY_CLASS;
+			break;
+		case 2:
+			wprio = NORMAL_PRIORITY_CLASS;
+			break;
+		default:
+			wprio = IDLE_PRIORITY_CLASS;
+			break;
+	}
+	WinId = GetCurrentProcess();
+	SetPriorityClass(WinId, wprio);
+}
+#else
+void oscam_set_priority(int prio)
+{
+#  ifdef PRIO_PROCESS
+	setpriority(PRIO_PROCESS, 0, prio);	// ignore errors
+#  endif
+}
+#endif
+
 static void oscam_alarm(int sig)
 {
 	log_debug("Got alarm signal");

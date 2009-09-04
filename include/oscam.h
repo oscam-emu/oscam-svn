@@ -24,6 +24,7 @@ void oscam_request_cw(ECM_REQUEST *, int, int);
 int oscam_send_dcw(ECM_REQUEST *);
 int oscam_process_input(uchar *, int, int);
 void oscam_set_signal_handler(int, int, void (*)(int));
+void oscam_set_priority(int);
 void oscam_log_config();
 struct timeval *oscam_chk_pending(struct timeb tp_ctimeout);
 void oscam_store_logentry(char *);

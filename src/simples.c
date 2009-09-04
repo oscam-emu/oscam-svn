@@ -330,39 +330,6 @@ int bytes_available(int fd)
 		return (((pfds.revents) & POLLIN) == POLLIN);
 }
 
-#ifdef OS_CYGWIN32
-#  include <windows.h>
-void cs_setpriority(int prio)
-{
-	HANDLE WinId;
-	ulong wprio;
-
-	switch ((prio + 20) / 10) {
-		case 0:
-			wprio = REALTIME_PRIORITY_CLASS;
-			break;
-		case 1:
-			wprio = HIGH_PRIORITY_CLASS;
-			break;
-		case 2:
-			wprio = NORMAL_PRIORITY_CLASS;
-			break;
-		default:
-			wprio = IDLE_PRIORITY_CLASS;
-			break;
-	}
-	WinId = GetCurrentProcess();
-	SetPriorityClass(WinId, wprio);
-}
-#else
-void cs_setpriority(int prio)
-{
-#  ifdef PRIO_PROCESS
-	setpriority(PRIO_PROCESS, 0, prio);	// ignore errors
-#  endif
-}
-#endif
-
 int file_exists (const char *filepath) {
 	FILE *file = fopen(filepath, "r");
 	if (file != NULL) {
