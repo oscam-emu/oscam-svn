@@ -11,6 +11,18 @@
 #  include <sys/time.h>
 #endif
 
+static int get_hex_value(char c)
+{
+	if ((c >= '0') && (c <= '9'))
+		return (c - '0');
+	if ((c >= 'A') && (c <= 'F'))
+		return (c - 'A' + 10);
+	if ((c >= 'a') && (c <= 'f'))
+		return (c - 'a' + 10);
+
+	return -1;
+}
+
 char *trim(char *txt)
 {
 	register int l;
@@ -48,24 +60,12 @@ char *strtoupper(char *txt)
 	return txt;
 }
 
-int gethexval(char c)
-{
-	if ((c >= '0') && (c <= '9'))
-		return (c - '0');
-	if ((c >= 'A') && (c <= 'F'))
-		return (c - 'A' + 10);
-	if ((c >= 'a') && (c <= 'f'))
-		return (c - 'a' + 10);
-
-	return -1;
-}
-
 int cs_atob(uchar * buf, char *asc, int n)
 {
 	int i, rc;
 
 	for (i = 0; i < n; i++) {
-		if ((rc = (gethexval(asc[i << 1]) << 4) | gethexval(asc[(i << 1) + 1])) & 0x100)
+		if ((rc = (get_hex_value(asc[i << 1]) << 4) | get_hex_value(asc[(i << 1) + 1])) & 0x100)
 			return (-1);
 		buf[i] = rc;
 	}
@@ -81,7 +81,7 @@ ulong cs_atoi(char *asc, int l, int val_on_err)
 	for (i = ((l - 1) << 1), errno = 0; (i >= 0) && (n < 4); i -= 2) {
 		int b;
 
-		b = (gethexval(asc[i]) << 4) | gethexval(asc[i + 1]);
+		b = (get_hex_value(asc[i]) << 4) | get_hex_value(asc[i + 1]);
 		if (b < 0) {
 			errno = EINVAL;
 			rc = (val_on_err) ? 0xFFFFFFFF : 0;
@@ -100,7 +100,7 @@ int byte_atob(char *asc)
 
 	if (strlen(trim(asc)) != 2) {
 		rc = -1;
-	} else if ((rc = (gethexval(asc[0]) << 4) | gethexval(asc[1])) & 0x100) {
+	} else if ((rc = (get_hex_value(asc[0]) << 4) | get_hex_value(asc[1])) & 0x100) {
 		rc = -1;
 	}
 
@@ -114,7 +114,7 @@ long word_atob(char *asc)
 	if (strlen(trim(asc)) != 4) {
 		rc = -1;
 	} else {
-		rc = gethexval(asc[0]) << 12 | gethexval(asc[1]) << 8 | gethexval(asc[2]) << 4 | gethexval(asc[3]);
+		rc = get_hex_value(asc[0]) << 12 | get_hex_value(asc[1]) << 8 | get_hex_value(asc[2]) << 4 | get_hex_value(asc[3]);
 		if (rc & 0x10000) {
 			rc = -1;
 		}
@@ -128,9 +128,9 @@ int key_atob(char *asc, uchar * bin)
 	int i, n1, n2, rc;
 
 	for (i = rc = 0; i < 32; i += 2) {
-		if ((n1 = gethexval(asc[i])) < 0)
+		if ((n1 = get_hex_value(asc[i])) < 0)
 			rc = -1;
-		if ((n2 = gethexval(asc[i + 1])) < 0)
+		if ((n2 = get_hex_value(asc[i + 1])) < 0)
 			rc = -1;
 		bin[i >> 1] = (n1 << 4) + (n2 & 0xff);
 	}
@@ -143,9 +143,9 @@ int key_atob14(char *asc, uchar * bin)
 	int i, n1, n2, rc;
 
 	for (i = rc = 0; i < 28; i += 2) {
-		if ((n1 = gethexval(asc[i])) < 0)
+		if ((n1 = get_hex_value(asc[i])) < 0)
 			rc = -1;
-		if ((n2 = gethexval(asc[i + 1])) < 0)
+		if ((n2 = get_hex_value(asc[i + 1])) < 0)
 			rc = -1;
 		bin[i >> 1] = (n1 << 4) + (n2 & 0xff);
 	}
@@ -242,7 +242,7 @@ ulong a2i(char *asc, int bytes)
 		if (n >= 0) {
 			int rcl;
 
-			if ((rcl = gethexval(asc[n])) < 0) {
+			if ((rcl = get_hex_value(asc[n])) < 0) {
 				errno = EINVAL;
 				return (0x1F1F1F);
 			}

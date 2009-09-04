@@ -6,7 +6,6 @@
 char *trim(char *);
 char *strtolower(char *);
 char *strtoupper(char *);
-int gethexval(char);
 int cs_atob(uchar *, char *, int);
 ulong cs_atoi(char *, int, int);
 int byte_atob(char *);
