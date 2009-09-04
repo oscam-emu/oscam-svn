@@ -8,7 +8,7 @@
 #define MAX_LEN 256
 
 /*
-static unsigned int Conax_ToDate(char data0, char data1)
+static unsigned int cam_conax_to_date(char data0, char data1)
 {	// decimal: yyyymmdd
 	int y, m, d;
 	unsigned int l;
@@ -21,7 +21,7 @@ static unsigned int Conax_ToDate(char data0, char data1)
 }
 */
 
-static char *chid_date(uchar *ptr, char *buf, int l)
+static char *cam_conax_chid_date(uchar *ptr, char *buf, int l)
 {
 	if (buf) {
 		snprintf(buf, l, "%04d/%02d/%02d", 1990 + (ptr[1] >> 4) + (((ptr[0] >> 5) & 7) * 10), ptr[1] & 0xf, ptr[0] & 0x1f);
@@ -29,7 +29,7 @@ static char *chid_date(uchar *ptr, char *buf, int l)
 	return (buf);
 }
 
-static int read_record(uchar *cmd, ushort cmd_size, uchar *result, ushort result_max_size, ushort *result_size)
+static int cam_conax_read_record(uchar *cmd, ushort cmd_size, uchar *result, ushort result_max_size, ushort *result_size)
 {
 	uchar insCA[] = { 0xDD, 0xCA, 0x00, 0x00, 0x00 };
 
@@ -43,7 +43,7 @@ static int read_record(uchar *cmd, ushort cmd_size, uchar *result, ushort result
 	return (*result_size - 2);
 }
 
-static int CheckSctLen(const uchar * data, int off)
+static int cam_conax_check_sct_length(const uchar * data, int off)
 {
 	int l = SCT_LEN(data);
 
@@ -55,7 +55,7 @@ static int CheckSctLen(const uchar * data, int off)
 	return l;
 }
 
-static int conax_send_pin()
+static int cam_conax_send_pin()
 {
 	unsigned char insPIN[] = { 0xDD, 0xC8, 0x00, 0x00, 0x07, 0x1D, 0x05, 0x01, 0x00, 0x00, 0x00, 0x00 };	//letzte vier ist der Pin-Code
 	memcpy(insPIN + 8, reader[ridx].pincode, 4);
@@ -98,7 +98,7 @@ int cam_conax_load_card()
 
 	uchar result[260];
 	ushort result_size;
-	if ((n = read_record(ins26, sizeof(ins26), result, sizeof(result), &result_size)) < 0)
+	if ((n = cam_conax_read_record(ins26, sizeof(ins26), result, sizeof(result), &result_size)) < 0)
 		return (0);	// read caid, card-version
 	for (i = 0; i < n; i += result[i + 1] + 2)
 		switch (result[i]) {
@@ -109,7 +109,7 @@ int cam_conax_load_card()
 				reader[ridx].caid[0] = (result[i + 2] << 8) | result[i + 3];
 		}
 
-	if ((n = read_record(ins82, sizeof(ins82), result, sizeof(result), &result_size)) < 0)
+	if ((n = cam_conax_read_record(ins82, sizeof(ins82), result, sizeof(result), &result_size)) < 0)
 		return (0);	// read serial
 
 	for (j = 0, i = 2; i < n; i += result[i + 1] + 2)
@@ -166,7 +166,7 @@ int cam_conax_load_card()
 								provname[l] = '\0';
 								break;
 							case 0x30:
-								chid_date(result + i + 2, pdate + (k++ << 4), 15);
+								cam_conax_chid_date(result + i + 2, pdate + (k++ << 4), 15);
 								break;
 						}
 					}
@@ -187,7 +187,7 @@ int cam_conax_process_ecm(ECM_REQUEST * er)
 
 	unsigned char buf[256];
 
-	if ((n = CheckSctLen(er->ecm, 3)) < 0)
+	if ((n = cam_conax_check_sct_length(er->ecm, 3)) < 0)
 		return 0;
 
 	buf[0] = 0x14;
@@ -222,7 +222,7 @@ int cam_conax_process_ecm(ECM_REQUEST * er)
 						if ((result[i + 1] == 0x02 && result[i + 2] == 0x00 && result[i + 3] == 0x00) || (result[i + 1] == 0x02 && result[i + 2] == 0x40 && result[i + 3] == 0x00)) {
 							break;
 						} else if (strcmp(reader[ridx].pincode, "none")) {
-							conax_send_pin();
+							cam_conax_send_pin();
 							memcpy(insA2_cmd + 5, buf, insA2[4]);
 							cam_common_cmd2card(insA2_cmd, 5 + insA2[4], result, sizeof(result), &result_size);	// write Header + ECM
 							while ((result[result_size - 2] == 0x98) &&	// Antwort
