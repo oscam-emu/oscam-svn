@@ -113,6 +113,7 @@ char cs_memfile[128] = CS_MMAPFILE;
 static char mloc[128] = { 0 };
 static int shmid = 0;		// Shared Memory ID
 static int cs_last_idx = 0;	// client index of last fork (master only)
+static char *logo = "  ___  ____                      \n / _ \\/ ___|  ___ __ _ _ __ ___  \n| | | \\___ \\ / __/ _` | '_ ` _ \\ \n| |_| |___) | (_| (_| | | | | | |\n \\___/|____/ \\___\\__,_|_| |_| |_|\n";
 static char *credit[] = {
 	"dukat for the great MpCS piece of code",
 	"all members of streamboard.de.vu for testing",
@@ -169,7 +170,8 @@ static void usage()
 {
 	int i;
 
-	fprintf(stderr, "\nOSCam cardserver v%s (%s) - (w) 2009 by smurzch\n", CS_VERSION, CS_OSTYPE);
+	fprintf(stderr, "%s\n\n", logo);
+	fprintf(stderr, "OSCam cardserver v%s (%s) - (w) 2009 by smurzch\n", CS_VERSION, CS_OSTYPE);
 	fprintf(stderr, "\tbased on streamboard mp-cardserver v0.9d - (w) 2004-2007 by dukat\n\n");
 	fprintf(stderr, "oscam [-b] [-c config-dir]");
 #ifdef CS_NOSHM
