@@ -889,7 +889,7 @@ static void sharing_serial_server()
 	sharing_serial_disconnect();
 }
 
-static int init_sharing_serial_device(char *device)
+static int sharing_serial_init_device(char *device)
 {
 	int fd;
 
@@ -932,7 +932,7 @@ static void sharing_serial_fork(int idx, char *url)
 		client[cs_idx].au = (-1);
 		client[cs_idx].usr[0] = '\0';
 		client[cs_idx].login = time((time_t *) 0);
-		if ((pfd = init_sharing_serial_device(sharing_serial_device))) {
+		if ((pfd = sharing_serial_init_device(sharing_serial_device))) {
 			sharing_serial_server();
 		} else {
 			sleep(60);	// retry in 1 min. (USB-Device ?)
@@ -943,7 +943,7 @@ static void sharing_serial_fork(int idx, char *url)
 	}
 }
 
-static void init_sharing_serial(int idx)
+static void sharing_serial_init(int idx)
 {
 	char *p;
 
@@ -964,7 +964,7 @@ static int sharing_serial_client_init()
 		cs_exit(1);
 	if (!sharing_serial_parse_url(reader[ridx].device))
 		cs_exit(1);
-	pfd = init_sharing_serial_device(sharing_serial_device);
+	pfd = sharing_serial_init_device(sharing_serial_device);
 
 	return ((pfd > 0) ? 0 : 1);
 }
@@ -1065,7 +1065,7 @@ void sharing_serial_module(struct s_module *ph)
 	ph->type = MOD_CONN_SERIAL;
 	ph->multi = 1;
 	ph->watchdog = 0;
-	ph->s_handler = init_sharing_serial;
+	ph->s_handler = sharing_serial_init;
 	ph->recv = sharing_serial_recv;
 	ph->send_dcw = sharing_serial_send_dcw;
 	ph->c_multi = 0;
