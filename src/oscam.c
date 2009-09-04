@@ -1652,7 +1652,7 @@ void oscam_request_cw(ECM_REQUEST * er, int flag, int reader_types)
 	}
 }
 
-void oscam_get_cw(ECM_REQUEST * er)
+void oscam_process_ecm(ECM_REQUEST * er)
 {
 	int i, j, m, rejected;
 
@@ -1810,7 +1810,7 @@ void oscam_log_emm_request(int auidx)
 	log_normal("%s emm-request sent (reader=%s, caid=%04X)", oscam_username(cs_idx), reader[auidx].label, reader[auidx].caid[0]);
 }
 
-void oscam_do_emm(EMM_PACKET * ep)
+void oscam_process_emm(EMM_PACKET * ep)
 {
 	int au;			//, ephs;
 

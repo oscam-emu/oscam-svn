@@ -128,7 +128,7 @@ static int sharing_serial_parse_url(char *url)
 				sharing_serial_proto = i;
 	}
 	if ((!is_server) && (sharing_serial_proto == P_AUTO))
-		return (0);
+		return 0;
 
 	switch (sharing_serial_proto)	// set the defaults
 	{
@@ -160,10 +160,10 @@ static int sharing_serial_parse_url(char *url)
 		if ((dummy = strchr(usr, ':')))	// fake pwd
 			*dummy++ = '\0';
 		if ((is_server) && (!usr[0]))
-			return (0);
+			return 0;
 	} else {
 		if (is_server)
-			return (0);	// user needed in server-mode
+			return 0;	// user needed in server-mode
 		dev = usr;
 	}
 
@@ -245,12 +245,12 @@ static int sharing_serial_poll(int event)
 	cs_ftime(&tpc);
 	msec = 1000 * (tpe.time - tpc.time) + tpe.millitm - tpc.millitm;
 	if (msec < 0)
-		return (0);
+		return 0;
 	pfds.fd = pfd;
 	pfds.events = event;
 	pfds.revents = 0;
 	if (poll(&pfds, 1, msec) != 1)
-		return (0);
+		return 0;
 	else
 		return (((pfds.revents) & event) == event);
 }
@@ -274,7 +274,7 @@ static int sharing_serial_send(uchar * buf, int l)
 	int n;
 
 	if (!pfd)
-		return (0);
+		return 0;
 	cs_ftime(&tps);
 	tpe = tps;
 	tpe.millitm += sharing_serial_timeout + (l * (sharing_serial_delay + 1));
@@ -296,10 +296,10 @@ static int sharing_serial_selrec(uchar * buf, int n, int l, int *c)
 	if (*c + n > l)
 		n = l - *c;
 	if (n <= 0)
-		return (0);
+		return 0;
 	for (i = 0; (i < n) && (sharing_serial_poll(POLLIN)); i++)
 		if (read(pfd, buf + *c, 1) < 1)
-			return (0);
+			return 0;
 		else
 			(*c)++;
 
@@ -771,7 +771,7 @@ static int sharing_serial_check_ecm(ECM_REQUEST * er, uchar * buf, int l)
 
 	if (l < 16) {
 		log_normal(incomplete, l);
-		return (1);
+		return 1;
 	}
 
 	switch (connected) {
@@ -808,7 +808,7 @@ static int sharing_serial_check_ecm(ECM_REQUEST * er, uchar * buf, int l)
 			er->caid = cs_atoi((char *) buf + 9, 2, 0);	// ignore errors
 			if (cs_atob(er->ecm, (char *) buf + 13, er->l) < 0) {
 				log_normal("illegal characters in ecm-request");
-				return (1);
+				return 1;
 			}
 			if (dsr9500type == P_DSR_WITHSID) {
 				er->l -= 2;
@@ -830,7 +830,7 @@ static int sharing_serial_check_ecm(ECM_REQUEST * er, uchar * buf, int l)
 			er->caid = b2i(2, buf + 3);
 			if ((er->l != l - 5) || (er->l > 257)) {
 				log_normal(incomplete, l);
-				return (1);
+				return 1;
 			}
 			memcpy(er->ecm, buf + 5, er->l);
 			break;
@@ -840,7 +840,8 @@ static int sharing_serial_check_ecm(ECM_REQUEST * er, uchar * buf, int l)
 			memcpy(er->ecm, buf + gbox_lens.cat_len + 3 + gbox_lens.pmt_len + 3, er->l);
 			break;
 	}
-	return (0);
+
+	return 0;
 }
 
 static void sharing_serial_process_ecm(uchar * buf, int l)
@@ -858,7 +859,7 @@ static void sharing_serial_process_ecm(uchar * buf, int l)
 			er->rc = 9;	// error with log
 	}
 
-	oscam_get_cw(er);
+	oscam_process_ecm(er);
 }
 
 

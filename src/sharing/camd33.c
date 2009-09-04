@@ -197,7 +197,7 @@ static void sharing_camd33_process_ecm(uchar * buf, int l)
 	er->l = l - 7;
 	er->caid = b2i(2, buf + 1);
 	memcpy(er->ecm, buf + 7, er->l);
-	oscam_get_cw(er);
+	oscam_process_ecm(er);
 }
 
 static void sharing_camd33_process_emm(uchar * buf, int l)
@@ -207,7 +207,7 @@ static void sharing_camd33_process_emm(uchar * buf, int l)
 	memcpy(epg.caid, buf + 1, 2);
 	memcpy(epg.hexserial, buf + 3, 4);
 	memcpy(epg.emm, buf + 7, epg.l);
-	oscam_do_emm(&epg);
+	oscam_process_emm(&epg);
 }
 
 static void sharing_camd33_server()

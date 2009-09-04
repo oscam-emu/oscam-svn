@@ -117,7 +117,7 @@ static void sharing_radegast_process_ecm(uchar * buf, int l)
 	if (l != i) {
 		log_normal("WARNING: ECM-request corrupt");
 	} else {
-		oscam_get_cw(er);
+		oscam_process_ecm(er);
 	}
 }
 

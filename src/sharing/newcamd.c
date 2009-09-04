@@ -888,7 +888,7 @@ static void sharing_newcamd_process_ecm(uchar * buf, int l)
 	if (cfg->ncd_ptab.nports && cfg->ncd_ptab.nports >= pi)
 		er->caid = cfg->ncd_ptab.ports[pi].ftab.filts[0].caid;
 	memcpy(er->ecm, buf + 2, er->l);
-	oscam_get_cw(er);
+	oscam_process_ecm(er);
 }
 
 static void sharing_newcamd_process_emm(uchar * buf, int l)
@@ -931,7 +931,7 @@ static void sharing_newcamd_process_emm(uchar * buf, int l)
 
 		memcpy(epg.emm, buf, epg.l);
 		if (ok) {
-			oscam_do_emm(&epg);
+			oscam_process_emm(&epg);
 		}
 	}
 	// Should always send an answer to client (also if au is disabled),

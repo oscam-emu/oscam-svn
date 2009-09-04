@@ -16,18 +16,20 @@ int oscam_write_to_pipe(int, int, uchar *, int);
 int oscam_read_from_pipe(int, char **, int);
 int oscam_write_ecm_request(int, ECM_REQUEST *);
 int oscam_write_ecm_answer(int, ECM_REQUEST *);
-void oscam_log_emm_request(int);
-void oscam_get_cw(ECM_REQUEST *);
-void oscam_do_emm(EMM_PACKET *);
 ECM_REQUEST *oscam_get_ecmtask();
 void oscam_request_cw(ECM_REQUEST *, int, int);
 int oscam_send_dcw(ECM_REQUEST *);
 int oscam_process_input(uchar *, int, int);
 void oscam_set_signal_handler(int, int, void (*)(int));
 void oscam_set_priority(int);
-void oscam_log_config();
 struct timeval *oscam_chk_pending(struct timeb tp_ctimeout);
-void oscam_store_logentry(char *);
 void oscam_resolve();
+
+void oscam_process_ecm(ECM_REQUEST *);
+void oscam_process_emm(EMM_PACKET *);
+
+void oscam_log_emm_request(int);
+void oscam_log_config();
+void oscam_store_logentry(char *);
 
 #endif // __OSCAM_H__

@@ -258,7 +258,7 @@ static void sharing_camd35_process_ecm(uchar * buf)
 	er->prid = b2i(4, buf + 12);
 	er->pid = b2i(2, buf + 16);
 	memcpy(er->ecm, buf + 20, er->l);
-	oscam_get_cw(er);
+	oscam_process_ecm(er);
 }
 
 static void sharing_camd35_process_emm(uchar * buf)
@@ -274,7 +274,7 @@ static void sharing_camd35_process_emm(uchar * buf)
 	memcpy(epg.provid, buf + 12, 4);
 	memcpy(epg.hexserial, reader[au].hexserial, 8);	// dummy
 	memcpy(epg.emm, buf + 20, epg.l);
-	oscam_do_emm(&epg);
+	oscam_process_emm(&epg);
 }
 
 static void sharing_camd35_server()
