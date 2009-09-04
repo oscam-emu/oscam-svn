@@ -115,7 +115,7 @@ sc_GetCamKey383C[] = {
 	0xFF, 0xFF, 0xFF, 0xFF, 0xFF
 };
 
-static void XRotateLeft8Byte(uchar * buf)
+static void cam_irdeto_XRotateLeft8Byte(uchar * buf)
 {
 	int k;
 	uchar t1 = buf[7];
@@ -128,7 +128,7 @@ static void XRotateLeft8Byte(uchar * buf)
 	}
 }
 
-static void ReverseSessionKeyCrypt(const uchar * camkey, uchar * key)
+static void cam_irdeto_ReverseSessionKeyCrypt(const uchar * camkey, uchar * key)
 {
 	uchar localkey[8], tmp1, tmp2;
 	int idx1, idx2;
@@ -147,11 +147,11 @@ static void ReverseSessionKeyCrypt(const uchar * camkey, uchar * key)
 			key[6] = key[7];
 			key[7] = tmp1 ^ tmp2;
 		}
-		XRotateLeft8Byte(localkey);
+		cam_irdeto_XRotateLeft8Byte(localkey);
 	}
 }
 
-static time_t chid_date(ulong date, char *buf, int l)
+static time_t cam_irdeto_chid_date(ulong date, char *buf, int l)
 {
 	// Irdeto date starts 01.08.1997 which is
 	// 870393600 seconds in unix calendar time
@@ -167,7 +167,7 @@ static time_t chid_date(ulong date, char *buf, int l)
 	return ut;
 }
 
-static int irdeto_do_cmd(uchar * buf, ushort good, uchar *result, ushort result_max_size, ushort *result_size)
+static int cam_irdeto_do_cmd(uchar * buf, ushort good, uchar *result, ushort result_max_size, ushort *result_size)
 {
 	int rc;
 
@@ -201,21 +201,20 @@ int cam_irdeto_load_card()
 	/*
 	 * Check Nagra
 	 */
-	/*if ((!cam_common_cmd2card(sc_GetROM, sizeof(sc_GetROM), result, sizeof(result), &result_size)) && (result[result_size-2]==0x90))
-	   {
-	   nagra=1;
-	   if (result[0]==0x90)
-	   {
-	   char *ptr;
-	   result[result[1]+4]='\0';
-	   if( (ptr=strstr(result+2, "ASP")) )
-	   {
-	   sprintf(buf, ", rom=%c.%c%c", ptr[3], ptr[4], ptr[5]);
-	   if( (ptr=strstr(result+2, "Rev")) )
-	   sprintf(buf+10, "(%c%c%c)", ptr[3], ptr[4], ptr[5]);
-	   }
-	   }
-	   } */
+	/*
+	if ((!cam_common_cmd2card(sc_GetROM, sizeof(sc_GetROM), result, sizeof(result), &result_size)) && (result[result_size-2]==0x90)) {
+		nagra=1;
+		if (result[0]==0x90) {
+			char *ptr;
+			result[result[1]+4]='\0';
+			if ((ptr=strstr(result+2, "ASP"))) {
+				sprintf(buf, ", rom=%c.%c%c", ptr[3], ptr[4], ptr[5]);
+				if ((ptr=strstr(result+2, "Rev")))
+					sprintf(buf+10, "(%c%c%c)", ptr[3], ptr[4], ptr[5]);
+			}
+		}
+	}
+	*/
 
 	/*
 	 * ContryCode
@@ -307,8 +306,8 @@ int cam_irdeto_load_card()
 
 			cam_irdeto_chk_cmd(sc_GetChid, 0, result, &result_size);
 			if ((result_size > 33) && (chid = b2i(2, result + 11))) {
-				chid_date(b2i(2, result + 20) - 0x7f7, ds, 15);
-				chid_date(b2i(2, result + 13) - 0x7f7, de, 15);
+				cam_irdeto_chid_date(b2i(2, result + 20) - 0x7f7, ds, 15);
+				cam_irdeto_chid_date(b2i(2, result + 13) - 0x7f7, de, 15);
 				cs_log("chid: %04X, date: %s - %s", chid, ds, de);
 			} else {
 				break;
@@ -322,7 +321,6 @@ int cam_irdeto_load_card()
 		for (buf[0] = i = p = 0; i < reader[ridx].nprov; i++) {
 			sc_GetProvider[3] = i;
 			cam_irdeto_chk_cmd(sc_GetProvider, 0, result, &result_size);
-//      if ((result_size==26) && (result[0]!=0xf))
 			if ((result_size == 26) && ((!(i & 1)) || (result[0] != 0xf))) {
 				reader[ridx].prid[i][4] = p++;
 				memcpy(&reader[ridx].prid[i][0], result, 4);
@@ -360,8 +358,8 @@ int cam_irdeto_load_card()
 							if (chid && chid != 0xFFFF) {
 								time_t date;
 
-								chid_date(date = b2i(2, result + k + 2), t, 16);
-								chid_date(date + result[k + 4], t + 16, 16);
+								cam_irdeto_chid_date(date = b2i(2, result + k + 2), t, 16);
+								cam_irdeto_chid_date(date + result[k + 4], t + 16, 16);
 								if (first) {
 									cs_log("provider: %d, id: %06X", p, b2i(3, &reader[ridx].prid[i][1]));
 									first = 0;
@@ -388,12 +386,12 @@ int cam_irdeto_process_ecm(ECM_REQUEST * er)
 	memcpy(cmd, sc_EcmCmd, sizeof (sc_EcmCmd));
 	cmd[4] = (er->ecm[2]) - 3;
 	memcpy(cmd + sizeof (sc_EcmCmd), &er->ecm[6], cmd[4]);
-	if (irdeto_do_cmd(cmd, 0x9D00, result, sizeof(result), &result_size))
+	if (cam_irdeto_do_cmd(cmd, 0x9D00, result, sizeof(result), &result_size))
 		return 0;
 	if (result_size < 24)
 		return 0;
-	ReverseSessionKeyCrypt(sc_CamKey, result + 6);
-	ReverseSessionKeyCrypt(sc_CamKey, result + 14);
+	cam_irdeto_ReverseSessionKeyCrypt(sc_CamKey, result + 6);
+	cam_irdeto_ReverseSessionKeyCrypt(sc_CamKey, result + 14);
 	memcpy(er->cw, result + 6, 16);
 
 	return 1;
@@ -432,7 +430,7 @@ int cam_irdeto_process_emm(EMM_PACKET * ep)
 			ptr += ADDRLEN;
 			emm += l;
 			memcpy(ptr, &emm[2], dataLen);	// copy emm bytes
-			return (irdeto_do_cmd(cmd, 0, result, sizeof(result), &result_size) ? 0 : 1);
+			return (cam_irdeto_do_cmd(cmd, 0, result, sizeof(result), &result_size) ? 0 : 1);
 		} else
 			cs_log("addrlen %d > %d", l, ADDRLEN);
 	}
