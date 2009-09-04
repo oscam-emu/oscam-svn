@@ -6,7 +6,7 @@
 //#define CS_NANO_GEO   0x9F
 #define CS_NANO_CLASS 0xE2
 
-static int find_nano(uchar * ecm, int l, uchar nano, int s)
+static int nano_find(uchar * ecm, int l, uchar nano, int s)
 {
 	uchar *snano;
 
@@ -26,7 +26,7 @@ static int find_nano(uchar * ecm, int l, uchar nano, int s)
 	return (s < l) ? ++s : 0;
 }
 
-int chk_class(ECM_REQUEST * er, CLASSTAB * clstab, const char *type, const char *name)
+int nano_chk_class(ECM_REQUEST * er, CLASSTAB * clstab, const char *type, const char *name)
 {
 	int i, j, an, cl_n, l;
 	uchar ecm_class;
@@ -37,7 +37,7 @@ int chk_class(ECM_REQUEST * er, CLASSTAB * clstab, const char *type, const char 
 		return 1;
 
 	j = an = cl_n = l = 0;
-	while ((j = find_nano(er->ecm, er->l, CS_NANO_CLASS, j)) > 0) {
+	while ((j = nano_find(er->ecm, er->l, CS_NANO_CLASS, j)) > 0) {
 		l = er->ecm[j];
 		ecm_class = er->ecm[j + l];
 		cs_debug("ecm class=%02X", ecm_class);
@@ -67,11 +67,3 @@ int chk_class(ECM_REQUEST * er, CLASSTAB * clstab, const char *type, const char 
 
 	return 1;
 }
-
-/*
-int chk_geo(ECM_REQUEST *er, int el, unsigned char *rclass, int cl)
-{
-
-  return 1;
-}
-*/

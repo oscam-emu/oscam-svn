@@ -148,7 +148,7 @@ int chk_ufilters(ECM_REQUEST * er)
 		}
 	}
 
-	if (!(rc = chk_class(er, &client[cs_idx].cltab, "user", client[cs_idx].usr))) {
+	if (!(rc = nano_chk_class(er, &client[cs_idx].cltab, "user", client[cs_idx].usr))) {
 		if (!er->rcEx) {
 			er->rcEx = (E1_USER << 4) | E2_CLASS;
 		} else if (!(rc = chk_chid(er, &client[cs_idx].fchid, "user", client[cs_idx].usr))) {
@@ -234,7 +234,7 @@ int chk_avail_reader(ECM_REQUEST * er, struct s_reader *rdr)
 			er->rcEx = (E1_READER << 4) | E2_IDENT;
 		return 0;
 	}
-	if (!chk_class(er, &rdr->cltab, "reader", rdr->label)) {
+	if (!nano_chk_class(er, &rdr->cltab, "reader", rdr->label)) {
 		if (!er->rcEx)
 			er->rcEx = (E1_READER << 4) | E2_CLASS;
 		return 0;
@@ -274,7 +274,7 @@ int matching_reader(ECM_REQUEST * er, struct s_reader *rdr)
 //    if (!er->rcEx) er->rcEx=(E1_READER<<4)|E2_IDENT;
 		return (0);
 	}
-	if (!chk_class(er, &rdr->cltab, "reader", rdr->label)) {
+	if (!nano_chk_class(er, &rdr->cltab, "reader", rdr->label)) {
 //    if (!er->rcEx) er->rcEx=(E1_READER<<4)|E2_CLASS;
 		return (0);
 	}
