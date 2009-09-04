@@ -27,6 +27,7 @@
 #include <stdlib.h>
 #include <sys/shm.h>
 #include <sys/wait.h>
+#include <sys/poll.h>
 #include <unistd.h>
 
 /* CSCRYPT */
@@ -1272,6 +1273,19 @@ int oscam_write_to_pipe(int fd, int id, uchar * data, int n)
 	return (write(fd, buf, n));
 }
 
+static int oscam_bytes_available(int fd)
+{
+	struct pollfd pfds;
+
+	pfds.fd = fd;
+	pfds.events = POLLIN;
+	pfds.revents = 0;
+	if (poll(&pfds, 1, 0) != 1)
+		return 0;
+	else
+		return (((pfds.revents) & POLLIN) == POLLIN);
+}
+
 /*
  * oscam_read_from_pipe():
  * read all kind of data from pipe specified by fd
@@ -1287,7 +1301,7 @@ int oscam_read_from_pipe(int fd, char **data, int redir)
 	rc = PIP_ID_NUL;
 
 	if (!hdr) {
-		if (bytes_available(fd)) {
+		if (oscam_bytes_available(fd)) {
 			if (read(fd, buf, 3 + sizeof (int)) == 3 + sizeof (int))
 				memcpy(&hdr, buf + 3, sizeof (int));
 			else
@@ -1312,7 +1326,7 @@ int oscam_read_from_pipe(int fd, char **data, int redir)
 				log_normal("WARNING: packet size (%d) to large", l);
 				l = sizeof (buf) + 3 - 1 + sizeof (int);
 			}
-			if (!bytes_available(fd))
+			if (!oscam_bytes_available(fd))
 				return (PIP_ID_NUL);
 			hdr = 0;
 			if (read(fd, buf + 3 + sizeof (int), l) == l)

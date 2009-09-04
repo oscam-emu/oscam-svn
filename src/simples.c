@@ -4,7 +4,6 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/poll.h>
 #include <sys/select.h>
 
 #ifdef NO_FTIME
@@ -281,19 +280,6 @@ void cs_sleepms(int msec)
 	tv.tv_sec = msec / 1000;
 	tv.tv_usec = (msec % 1000) * 1000;
 	select(0, 0, 0, 0, &tv);
-}
-
-int bytes_available(int fd)
-{
-	struct pollfd pfds;
-
-	pfds.fd = fd;
-	pfds.events = POLLIN;
-	pfds.revents = 0;
-	if (poll(&pfds, 1, 0) != 1)
-		return 0;
-	else
-		return (((pfds.revents) & POLLIN) == POLLIN);
 }
 
 int file_exists (const char *filepath) {
