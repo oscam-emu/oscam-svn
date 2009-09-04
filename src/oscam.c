@@ -1204,10 +1204,11 @@ int oscam_auth_client(struct s_auth *account, char *e_txt)
 
 void oscam_disconnect_client()
 {
-	char buf[32] = { 0 };
 	if (client[cs_idx].ip)
-		sprintf(buf, " from %s", network_inet_ntoa(client[cs_idx].ip));
-	log_normal("%s disconnected%s", oscam_username(cs_idx), buf);
+		log_normal("%s disconnected%s from %s", oscam_username(cs_idx), network_inet_ntoa(client[cs_idx].ip));
+	else
+		log_normal("%s disconnected", oscam_username(cs_idx));
+
 	oscam_exit(0);
 }
 
@@ -1219,16 +1220,16 @@ int oscam_write_to_pipe(int fd, int id, uchar * data, int n)
 {
 	uchar buf[1024 + 3 + sizeof (int)];
 
-//printf("WRITE_START pid=%d", getpid()); fflush(stdout);
+//	printf("WRITE_START pid=%d", getpid()); fflush(stdout);
 	if ((id < 0) || (id > PIP_ID_MAX))
 		return (PIP_ID_ERR);
 	memcpy(buf, PIP_ID_TXT[id], 3);
 	memcpy(buf + 3, &n, sizeof (int));
 	memcpy(buf + 3 + sizeof (int), data, n);
 	n += 3 + sizeof (int);
-//n=write(fd, buf, n);
-//printf("WRITE_END pid=%d", getpid()); fflush(stdout);
-//return(n);
+//	n = write(fd, buf, n);
+//	printf("WRITE_END pid=%d", getpid()); fflush(stdout);
+//	return n;
 	if (!fd)
 		log_normal("oscam_write_to_pipe: fd==0");
 	return (write(fd, buf, n));
