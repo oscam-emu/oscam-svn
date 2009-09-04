@@ -23,7 +23,7 @@ struct via_date {
 	ushort year_e:7;
 };
 
-static void parse_via_date(const uchar * buf, struct via_date *vd, int fend)
+static void cam_viaccess_parse_via_date(const uchar * buf, struct via_date *vd, int fend)
 {
 	ushort date;
 
@@ -40,7 +40,7 @@ static void parse_via_date(const uchar * buf, struct via_date *vd, int fend)
 	}
 }
 
-static void show_class(const char *p, const uchar * b, int l)
+static void cam_viaccess_show_class(const char *p, const uchar * b, int l)
 {
 	int i, j;
 
@@ -55,50 +55,45 @@ static void show_class(const char *p, const uchar * b, int l)
 				uchar cls;
 				struct via_date vd;
 
-				parse_via_date(b - 4, &vd, 1);
+				cam_viaccess_parse_via_date(b - 4, &vd, 1);
 				cls = (l - (j + 1)) * 8 + i;
 				if (p)
 					cs_log("%sclass: %02X, expiry date: %04d/%02d/%02d - %04d/%02d/%02d", p, cls, vd.year_s + 1980, vd.month_s, vd.day_s, vd.year_e + 1980, vd.month_e, vd.day_e);
 				else
 					cs_log("class: %02X, expiry date: %04d/%02d/%02d - %04d/%02d/%02d", cls, vd.year_s + 1980, vd.month_s, vd.day_s, vd.year_e + 1980, vd.month_e, vd.day_e);
 			}
+
+/*
+	int i, j, byts;
+	const uchar *oemm;
+
+	oemm = emm;
+	byts = emm[1]-4;
+	emm+=6;
+
+	j=byts-1;
+	for (; j>=0; j--) {
+		for (i = 0; i < 8; i++) {
+			if (emm[j] & (1 << (i&7))) {
+				uchar cls;
+				struct via_date vd;
+				cam_viaccess_parse_via_date(emm-4, &vd, 1);
+				cls = (byts-(j+1))*8+i;
+				cs_log("%sclass %02X: expiry date: %02d/%02d/%04d - %02d/%02d/%04d", fnano?"nano A9: ":"", cls, vd.day_s, vd.month_s, vd.year_s+1980, vd.day_e, vd.month_e, vd.year_e+1980);
+			}
+		}
+	}
+*/
 }
 
-static void show_subs(const uchar * emm)
+static void cam_viaccess_show_subs(const uchar * emm)
 {
 	// emm -> A9, A6, B6
 
 	switch (emm[0]) {
 		case 0xA9:
-			show_class("nano A9: ", emm + 2, emm[1]);
+			cam_viaccess_show_class("nano A9: ", emm + 2, emm[1]);
 			break;
-
-/*
-    {
-      int i, j, byts;
-      const uchar *oemm;
-
-      oemm = emm;
-      byts = emm[1]-4;
-      emm+=6;
-
-      j=byts-1;
-      for( ; j>=0; j-- )
-        for( i=0; i<8; i++ )
-          if( emm[j] & (1 << (i&7)) )
-          {
-            uchar cls;
-            struct via_date vd;
-            parse_via_date(emm-4, &vd, 1);
-            cls=(byts-(j+1))*8+i;
-            cs_log("%sclass %02X: expiry date: %02d/%02d/%04d - %02d/%02d/%04d",
-                    fnano?"nano A9: ":"", cls, 
-                    vd.day_s, vd.month_s, vd.year_s+1980, 
-                    vd.day_e, vd.month_e, vd.year_e+1980);
-          }
-      break;
-    }
-*/
 		case 0xA6:
 		{
 			char szGeo[256];
@@ -114,14 +109,14 @@ static void show_subs(const uchar * emm)
 			struct via_date vd;
 
 			m = emm[emm[1] + 1];
-			parse_via_date(emm + 2, &vd, 0);
+			cam_viaccess_parse_via_date(emm + 2, &vd, 0);
 			cs_log("nano B6: modexp %d%d%d%d%d%d: %02d/%02d/%04d", (m & 0x20) ? 1 : 0, (m & 0x10) ? 1 : 0, (m & 0x08) ? 1 : 0, (m & 0x04) ? 1 : 0, (m & 0x02) ? 1 : 0, (m & 0x01) ? 1 : 0, vd.day_s, vd.month_s, vd.year_s + 1980);
 			break;
 		}
 	}
 }
 
-static int chk_prov(uchar * id, uchar keynr)
+static int cam_viaccess_chk_prov(uchar * id, uchar keynr)
 {
 	int i, j, rc;
 
@@ -133,7 +128,7 @@ static int chk_prov(uchar * id, uchar keynr)
 	return (rc);
 }
 
-static int card_send_ins(const uchar *cmd, const uchar *data, uchar *result, ushort result_max_size, ushort *result_size)
+static int cam_viaccess_card_send_ins(const uchar *cmd, const uchar *data, uchar *result, ushort result_max_size, ushort *result_size)
 {
 	uchar buf[256];
 	memcpy(buf, cmd, 5);
@@ -169,17 +164,16 @@ int cam_viaccess_load_card()
 	uchar result[260];
 	ushort result_size;
 
-	card_send_ins(insFAC, FacDat, result, sizeof(result), &result_size);
+	cam_viaccess_card_send_ins(insFAC, FacDat, result, sizeof(result), &result_size);
 	if (!(result[result_size - 2] == 0x90 && result[result_size - 1] == 0))
 		return (0);
 
-//  switch((atr[atr_size-4]<<8)|atr[atr_size-3])
-//  {
-//    case 0x6268: ver="2.3"; break;
-//    case 0x6668: ver="2.4(?)"; break;
-//    case 0xa268:
-//    default: ver="unknown"; break;
-//  }
+//	switch((atr[atr_size-4]<<8)|atr[atr_size-3]) {
+//		case 0x6268: ver="2.3"; break;
+//		case 0x6668: ver="2.4(?)"; break;
+//		case 0xa268:
+//		default: ver="unknown"; break;
+//	}
 
 	reader[ridx].caid[0] = 0x500;
 	memset(reader[ridx].prid, 0xff, sizeof (reader[ridx].prid));
@@ -188,7 +182,6 @@ int cam_viaccess_load_card()
 	insb8[4] = 0x07;
 	cam_common_cmd2card(insb8, sizeof(insb8), result, sizeof(result), &result_size);	// read unique id
 	memcpy(reader[ridx].hexserial, result + 2, 5);
-//  cs_log("type: viaccess, ver: %s serial: %llu", ver, b2ll(5, result+2));
 	cs_log("type: viaccess(%sstandard atr), caid: %04X, serial: %llu", reader[ridx].card_atr[9] == 0x68 ? "" : "non-", reader[ridx].caid[0], b2ll(5, result + 2));
 
 	i = 0;
@@ -203,7 +196,6 @@ int cam_viaccess_load_card()
 		memcpy(&reader[ridx].prid[i][1], result, 3);
 		memcpy(&reader[ridx].availkeys[i][0], result + 10, 16);
 		sprintf((char *) buf + strlen((char *) buf), ",%06lX", b2i(3, &reader[ridx].prid[i][1]));
-//cs_log("buf: %s", buf);
 
 		insac[2] = 0xa5;
 		cam_common_cmd2card(insac, sizeof(insac), result, sizeof(result), &result_size);	// request sa
@@ -212,12 +204,12 @@ int cam_viaccess_load_card()
 		memcpy(&reader[ridx].sa[i][0], result + 2, 4);
 
 /*
-    insac[2]=0xa7; cam_common_cmd2card(insac, sizeof(insac), result, sizeof(result), &result_size); // request name
-    insb8[4]=0x02; cam_common_cmd2card(insb8, sizeof(insb8), result, sizeof(result), &result_size); // read name nano + len
-    l=result[1];
-    insb8[4]=l; cam_common_cmd2card(insb8, sizeof(insb8), result, sizeof(result), &result_size); // read name
-    result[l]=0;
-cs_log("name: %s", result);
+		insac[2]=0xa7; cam_common_cmd2card(insac, sizeof(insac), result, sizeof(result), &result_size); // request name
+		insb8[4]=0x02; cam_common_cmd2card(insb8, sizeof(insb8), result, sizeof(result), &result_size); // read name nano + len
+		l = result[1];
+		insb8[4] = l; cam_common_cmd2card(insb8, sizeof(insb8), result, sizeof(result), &result_size); // read name
+		result[l] = 0;
+		cs_log("name: %s", result);
 */
 
 		insa4[2] = 0x02;
@@ -234,7 +226,7 @@ cs_log("name: %s", result);
 	if (cfg->ulparent) {
 		static uchar inDPL[] = { 0xca, 0x24, 0x02, 0x00, 0x09 };
 		static uchar cmDPL[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F };
-		card_send_ins(inDPL, cmDPL, result, sizeof(result), &result_size);
+		cam_viaccess_card_send_ins(inDPL, cmDPL, result, sizeof(result), &result_size);
 		if (!(result[result_size - 2] == 0x90 && result[result_size - 1] == 0))
 			cs_log("Can't disable parental lock. Wrong PIN? I assumed 0000!");
 		else
@@ -245,7 +237,7 @@ cs_log("name: %s", result);
 	memset(&last_geo, 0, sizeof (last_geo));
 
 	// set pin
-	card_send_ins(ins24, pin, result, sizeof(result), &result_size);
+	cam_viaccess_card_send_ins(ins24, pin, result, sizeof(result), &result_size);
 
 	insac[2] = 0xa4;
 	cam_common_cmd2card(insac, sizeof(insac), result, sizeof(result), &result_size);	// request unique id
@@ -298,7 +290,7 @@ cs_log("name: %s", result);
 		// read classes subscription
 		insac[2] = 0xa9;
 		insac[4] = 4;
-		card_send_ins(insac, cls, result, sizeof(result), &result_size);	// request class subs
+		cam_viaccess_card_send_ins(insac, cls, result, sizeof(result), &result_size);	// request class subs
 		scls = 0;
 		while ((result[result_size - 2] == 0x90) && (result[result_size - 1] == 0)) {
 			insb8[4] = 0x02;
@@ -307,12 +299,12 @@ cs_log("name: %s", result);
 				int fshow;
 
 				l = result[1];
-				//fshow=(client[cs_idx].dbglvl==D_DUMP)?1:(scls < show_cls)?1:0;
+				//fshow = (client[cs_idx].dbglvl==D_DUMP)?1:(scls < show_cls) ? 1 : 0;
 				fshow = (scls < show_cls);
 				insb8[4] = l;
 				cam_common_cmd2card(insb8, sizeof(insb8), result, sizeof(result), &result_size);	// read class subs
 				if ((result[result_size - 2] == 0x90) && (fshow) && (result[result_size - 1] == 0x00 || result[result_size - 1] == 0x08)) {
-					show_class(NULL, result, result_size - 2);
+					cam_viaccess_show_class(NULL, result, result_size - 2);
 					scls++;
 				}
 			}
@@ -361,7 +353,7 @@ int cam_viaccess_process_ecm(ECM_REQUEST * er)
 		provid = b2i(3, ident);
 		ident[2] &= 0xF0;
 		keynr = ecm88Data[4] & 0x0F;
-		if (!chk_prov(ident, keynr)) {
+		if (!cam_viaccess_chk_prov(ident, keynr)) {
 			cs_debug("smartcardviaccess ecm: provider or key not found on card");
 			return 0;
 		}
@@ -379,7 +371,7 @@ int cam_viaccess_process_ecm(ECM_REQUEST * er)
 			last_geo.provid = provid;
 			last_geo.geo_len = 0;
 			last_geo.geo[0] = 0;
-			card_send_ins(insa4, ident, result, sizeof(result), &result_size);	// set provider
+			cam_viaccess_card_send_ins(insa4, ident, result, sizeof(result), &result_size);	// set provider
 		}
 
 		while (ecm88Len > 0 && ecm88Data[0] < 0xA0) {
@@ -397,7 +389,7 @@ int cam_viaccess_process_ecm(ECM_REQUEST * er)
 				last_geo.geo_len = ecmf8Len;
 				insf8[3] = keynr;
 				insf8[4] = ecmf8Len;
-				card_send_ins(insf8, ecmf8Data, result, sizeof(result), &result_size);
+				cam_viaccess_card_send_ins(insf8, ecmf8Data, result, sizeof(result), &result_size);
 			}
 		}
 		ins88[2] = ecmf8Len ? 1 : 0;
@@ -407,9 +399,9 @@ int cam_viaccess_process_ecm(ECM_REQUEST * er)
 		// DE04
 		if (DE04[0] == 0xDE) {
 			memcpy(DE04 + 6, (uchar *) ecm88Data, ecm88Len - 6);
-			card_send_ins(ins88, DE04, result, sizeof(result), &result_size);	// request dcw
+			cam_viaccess_card_send_ins(ins88, DE04, result, sizeof(result), &result_size);	// request dcw
 		} else {
-			card_send_ins(ins88, (uchar *) ecm88Data, result, sizeof(result), &result_size);	// request dcw
+			cam_viaccess_card_send_ins(ins88, (uchar *) ecm88Data, result, sizeof(result), &result_size);	// request dcw
 		}
 		//
 
@@ -458,8 +450,6 @@ int cam_viaccess_process_emm(EMM_PACKET * ep)
 	int emmLen = SCT_LEN(ep->emm) - 7;
 	int rc = 0;
 
-	///cs_dump(ep->emm, emmLen+7, "RECEIVED EMM VIACCESS");
-
 	int emmUpToEnd;
 	uchar *emmParsed = ep->emm + 7;
 	int provider_ok = 0;
@@ -486,7 +476,7 @@ int cam_viaccess_process_emm(EMM_PACKET * ep)
 			}
 			ident[2] &= 0xF0;
 			keynr = soid[2] & 0x0F;
-			if (chk_prov(ident, keynr)) {
+			if (cam_viaccess_chk_prov(ident, keynr)) {
 				provider_ok = 1;
 			} else {
 				cs_debug("smartcardviaccess emm: provider or key not found on card (%x, %x)", ident, keynr);
@@ -494,7 +484,7 @@ int cam_viaccess_process_emm(EMM_PACKET * ep)
 			}
 
 			// set provider
-			card_send_ins(insa4, soid, result, sizeof(result), &result_size);
+			cam_viaccess_card_send_ins(insa4, soid, result, sizeof(result), &result_size);
 			if (result[result_size - 2] != 0x90 || result[result_size - 1] != 0x00) {
 				cs_dump(insa4, 5, "set provider cmd:");
 				cs_dump(soid, 3, "set provider data:");
@@ -533,7 +523,7 @@ int cam_viaccess_process_emm(EMM_PACKET * ep)
 			/* from cccam... skip it... */
 		} else {
 			/* other nanos */
-			show_subs(emmParsed);
+			cam_viaccess_show_subs(emmParsed);
 
 			memcpy(ins18Data + ins18Len, emmParsed, emmParsed[1] + 2);
 			ins18Len += emmParsed[1] + 2;
@@ -544,7 +534,6 @@ int cam_viaccess_process_emm(EMM_PACKET * ep)
 		cs_debug("viaccess: provider not found in emm... continue anyway...");
 		// force key to 1...
 		keynr = 1;
-		///return 0;
 	}
 
 	if (!nanoF0Data) {
@@ -556,7 +545,7 @@ int cam_viaccess_process_emm(EMM_PACKET * ep)
 		if (!nano91Data) {
 			// set adf
 			insf0[3] = keynr;	// key
-			card_send_ins(insf0, nano9EData, result, sizeof(result), &result_size);
+			cam_viaccess_card_send_ins(insf0, nano9EData, result, sizeof(result), &result_size);
 			if (result[result_size - 2] != 0x90 || result[result_size - 1] != 0x00) {
 				cs_dump(insf0, 5, "set adf cmd:");
 				cs_dump(nano9EData, 0x22, "set adf data:");
@@ -569,7 +558,7 @@ int cam_viaccess_process_emm(EMM_PACKET * ep)
 			insf4[4] = nano91Data[1] + 2 + nano9EData[1] + 2;
 			memcpy(insData, nano91Data, nano91Data[1] + 2);
 			memcpy(insData + nano91Data[1] + 2, nano9EData, nano9EData[1] + 2);
-			card_send_ins(insf4, insData, result, sizeof(result), &result_size);
+			cam_viaccess_card_send_ins(insf4, insData, result, sizeof(result), &result_size);
 			if ((result[result_size - 2] != 0x90 && result[result_size - 2] != 0x91) || result[result_size - 1] != 0x00) {
 				cs_dump(insf4, 5, "set adf encrypted cmd:");
 				cs_dump(insData, insf4[4], "set adf encrypted data:");
@@ -584,7 +573,7 @@ int cam_viaccess_process_emm(EMM_PACKET * ep)
 		ins18[4] = ins18Len + nanoF0Data[1] + 2;
 		memcpy(insData, ins18Data, ins18Len);
 		memcpy(insData + ins18Len, nanoF0Data, nanoF0Data[1] + 2);
-		card_send_ins(ins18, insData, result, sizeof(result), &result_size);
+		cam_viaccess_card_send_ins(ins18, insData, result, sizeof(result), &result_size);
 		if (result[result_size - 2] == 0x90 && result[result_size - 1] == 0x00) {
 			cs_debug("update successfully written");
 			rc = 1;	// written
@@ -607,16 +596,16 @@ int cam_viaccess_process_emm(EMM_PACKET * ep)
 		memcpy(insData, nano92Data, nano92Data[1] + 2);
 		memcpy(insData + nano92Data[1] + 2, nano81Data, nano81Data[1] + 2);
 		memcpy(insData + nano92Data[1] + 2 + nano81Data[1] + 2, nanoF0Data, nanoF0Data[1] + 2);
-		card_send_ins(ins1c, insData, result, sizeof(result), &result_size);
+		cam_viaccess_card_send_ins(ins1c, insData, result, sizeof(result), &result_size);
 		if (result[result_size - 2] != 0x90 || result[result_size - 1] != 0x00) {
 			/* maybe a 2nd level status, so read it */
-			///cs_dump(ins1c, 5, "set subscription encrypted cmd:");
-			///cs_dump(insData, ins1c[4], "set subscription encrypted data:");
-			///cs_log("update error: %02X %02X", result[result_size-2], result[result_size-1]);
+			//cs_dump(ins1c, 5, "set subscription encrypted cmd:");
+			//cs_dump(insData, ins1c[4], "set subscription encrypted data:");
+			//cs_log("update error: %02X %02X", result[result_size-2], result[result_size-1]);
 
 			cam_common_cmd2card(insc8, sizeof(insc8), result, sizeof(result), &result_size);
 			if (result[0] != 0x00 || result[1] != 00 || result[result_size - 2] != 0x90 || result[result_size - 1] != 0x00) {
-				///cs_dump(result, result_size, "extended status error:");
+				//cs_dump(result, result_size, "extended status error:");
 				return 0;
 			} else {
 				cs_debug("update successfully written (with extended status OK)");
