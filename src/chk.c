@@ -39,17 +39,17 @@ int chk_srvid(ECM_REQUEST * er, int idx)
 
 	if (!client[idx].sidtabok) {
 		if (!client[idx].sidtabno)
-			return (1);
+			return 1;
 		rc = 1;
 	}
 	for (nr = 0, sidtab = cfg->sidtab; sidtab; sidtab = sidtab->next, nr++)
 		if (sidtab->num_caid | sidtab->num_provid | sidtab->num_srvid) {
 			if ((client[idx].sidtabno & (1 << nr)) && (chk_srvid_match(er, sidtab)))
-				return (0);
+				return 0;
 			if ((client[idx].sidtabok & (1 << nr)) && (chk_srvid_match(er, sidtab)))
 				rc = 1;
 		}
-	return (rc);
+	return rc;
 }
 
 // server filter for newcamd
@@ -60,7 +60,7 @@ int chk_sfilter(ECM_REQUEST * er, PTAB * ptab)
 	ulong prid, sprid;
 
 	if (!ptab)
-		return (1);
+		return 1;
 
 	caid = er->caid;
 	prid = er->prid;
@@ -84,10 +84,10 @@ int chk_sfilter(ECM_REQUEST * er, PTAB * ptab)
 			log_debug("no match, %04X:%06X rejected by server filters", caid, prid);
 			if (!er->rcEx)
 				er->rcEx = (E1_LSERVER << 4) | E2_IDENT;
-			return (rc);
+			return rc;
 		}
 	}
-	return (rc);
+	return rc;
 }
 
 static int chk_chid(ECM_REQUEST * er, FTAB * fchid, char *type, char *name)
@@ -114,7 +114,7 @@ static int chk_chid(ECM_REQUEST * er, FTAB * fchid, char *type, char *name)
 	if (!rc)
 		log_debug("no match, %04X:%04X rejected by %s '%s' CHID filter(s)", er->caid, er->chid, type, name);
 
-	return (rc);
+	return rc;
 }
 
 int chk_ufilters(ECM_REQUEST * er)
@@ -144,7 +144,7 @@ int chk_ufilters(ECM_REQUEST * er)
 			log_debug("no match, %04X:%06X rejected by user '%s' filters", er->caid, er->prid, client[cs_idx].usr);
 			if (!er->rcEx)
 				er->rcEx = (E1_USER << 4) | E2_IDENT;
-			return (rc);
+			return rc;
 		}
 	}
 
@@ -195,7 +195,7 @@ int chk_rsfilter(ECM_REQUEST * er, int disable_server_filt)
 		return 0;
 	}
 
-	return (rc);
+	return rc;
 }
 
 int chk_rfilter(ECM_REQUEST * er, struct s_reader *rdr)
@@ -246,20 +246,16 @@ int chk_avail_reader(ECM_REQUEST * er, struct s_reader *rdr)
 	}
 
 /*
-  if( rdr->typ=='r' )
-  {
-    if( rdr->qlen>=rdr->maxqlen )
-    {
-      log_normal("reader '%s' max. queue length(%d) reached, rejected", rdr->label,
-               rdr->qlen);
-      if( !er->rcEx ) er->rcEx=(E1_READER<<4)|E2_QUEUE;
-      return 0;
-    }
-    else {
-      log_normal("reader '%s' qlen=%d", rdr->label, rdr->qlen);
-      rdr->qlen++;
-    }
-  }
+	if (rdr->typ=='r') {
+		if (rdr->qlen>=rdr->maxqlen) {
+			log_normal("reader '%s' max. queue length(%d) reached, rejected", rdr->label, rdr->qlen);
+			if (!er->rcEx) er->rcEx=(E1_READER<<4)|E2_QUEUE;
+			return 0;
+		} else {
+			log_normal("reader '%s' qlen=%d", rdr->label, rdr->qlen);
+			rdr->qlen++;
+		}
+	}
 */
 	return 1;
 }
@@ -267,20 +263,21 @@ int chk_avail_reader(ECM_REQUEST * er, struct s_reader *rdr)
 int chk_matching_reader(ECM_REQUEST * er, struct s_reader *rdr)
 {
 	if (!((rdr->fd) && (rdr->grp & client[cs_idx].grp)))
-		return (0);
+		return 0;
 	if (!chk_srvid(er, rdr->cs_idx))
-		return (0);
+		return 0;
 	if (!chk_rfilter(er, rdr)) {
-//    if (!er->rcEx) er->rcEx=(E1_READER<<4)|E2_IDENT;
-		return (0);
+//	if (!er->rcEx) er->rcEx=(E1_READER<<4)|E2_IDENT;
+		return 0;
 	}
 	if (!nano_chk_class(er, &rdr->cltab, "reader", rdr->label)) {
-//    if (!er->rcEx) er->rcEx=(E1_READER<<4)|E2_CLASS;
-		return (0);
+//	if (!er->rcEx) er->rcEx=(E1_READER<<4)|E2_CLASS;
+		return 0;
 	}
 	if (!chk_chid(er, &rdr->fchid, "reader", rdr->label)) {
-//    if (!er->rcEx) er->rcEx=(E1_READER<<4)|E2_CHID;
-		return (0);
+//	if (!er->rcEx) er->rcEx=(E1_READER<<4)|E2_CHID;
+		return 0;
 	}
-	return (1);
+
+	return 1;
 }
