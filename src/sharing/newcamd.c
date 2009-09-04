@@ -6,11 +6,11 @@
 #include "chk.h"
 #include "simples.h"
 #include "log.h"
+#include "network.h"
 
 /* CSCRYPT */
 #include "cscrypt.h"
 
-#include <fcntl.h>
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
@@ -105,12 +105,12 @@ static int sharing_newcamd_message_receive(int handle, ushort * netMsgId, uchar 
 	log_debug("nmr(): len=%d, errno=%d", len, (len == -1) ? errno : 0);
 	if (!len) {
 		log_debug("nmr: 1 return 0");
-		card_network_tcp_connection_close(handle);
+		network_tcp_connection_close(handle);
 		return 0;
 	}
 	if (len != 2) {
 		log_debug("nmr: len!=2");
-		card_network_tcp_connection_close(handle);
+		network_tcp_connection_close(handle);
 		return -1;
 	}
 	if (((netbuf[0] << 8) | netbuf[1]) > CWS_NETMSGSIZE - 2) {
@@ -213,93 +213,6 @@ static int sharing_newcamd_cmd_no_data_receive(int handle, ushort * netMsgId, uc
 	return buffer[2];
 }
 
-static int sharing_newcamd_connect_nonb(int sockfd, const struct sockaddr *saptr, socklen_t salen, int nsec)
-{
-	int flags, n, error;
-	socklen_t len;
-	fd_set rset, wset;
-	struct timeval tval;
-
-	flags = fcntl(sockfd, F_GETFL, 0);
-	fcntl(sockfd, F_SETFL, flags | O_NONBLOCK);
-
-	error = 0;
-	log_debug("conn_nb 1 (fd=%d)", sockfd);
-
-	if ((n = connect(sockfd, saptr, salen)) < 0) {
-		if (errno == EALREADY) {
-			log_debug("conn_nb in progress, errno=%d", errno);
-			return (-1);
-		} else if (errno == EISCONN) {
-			log_debug("conn_nb already connected, errno=%d", errno);
-			goto done;
-		}
-		log_debug("conn_nb 2 (fd=%d)", sockfd);
-		if (errno != EINPROGRESS) {
-			log_debug("conn_nb 3 (fd=%d)", sockfd);
-			return (-1);
-		}
-	}
-
-	/* Do whatever we want while the connect is taking place. */
-	if (n == 0)
-		goto done;	/* connect completed immediately */
-
-	FD_ZERO(&rset);
-	FD_SET(sockfd, &rset);
-	wset = rset;
-	tval.tv_sec = nsec;
-	tval.tv_usec = 0;
-
-	if ((n = select(sockfd + 1, &rset, &wset, 0, nsec ? &tval : 0)) == 0) {
-		//close(sockfd);          // timeout 
-		log_debug("conn_nb 4 (fd=%d)", sockfd);
-		errno = ETIMEDOUT;
-		return (-1);
-	}
-
-	log_debug("conn_nb 5 (fd=%d)", sockfd);
-
-	if (FD_ISSET(sockfd, &rset) || FD_ISSET(sockfd, &wset)) {
-		log_debug("conn_nb 6 (fd=%d)", sockfd);
-		len = sizeof (error);
-		if (getsockopt(sockfd, SOL_SOCKET, SO_ERROR, &error, &len) < 0) {
-			log_debug("conn_nb 7 (fd=%d)", sockfd);
-			return (-1);	// Solaris pending error
-		}
-	} else {
-		log_debug("conn_nb 8 (fd=%d)", sockfd);
-		return -2;
-	}
-
-      done:
-	log_debug("conn_nb 9 (fd=%d)", sockfd);
-	fcntl(sockfd, F_SETFL, flags);	/* restore file status flags */
-
-	if (error) {
-		log_debug("conn_nb 10 (fd=%d)", sockfd);
-		//close(sockfd);            /* just in case */
-		errno = error;
-		return (-1);
-	}
-	return (0);
-}
-
-int sharing_newcamd_tcp_connection_open(char *hostname, ushort port)
-{
-	int flags;
-
-	if (sharing_newcamd_connect_nonb(client[cs_idx].udp_fd, (struct sockaddr *) &client[cs_idx].udp_sa, sizeof (client[cs_idx].udp_sa), 5) < 0) {
-		log_normal("connect(fd=%d) failed: (errno=%d)", client[cs_idx].udp_fd, errno);
-		return -1;
-	}
-	flags = fcntl(client[cs_idx].udp_fd, F_GETFL, 0);
-	flags &= ~O_NONBLOCK;
-	fcntl(client[cs_idx].udp_fd, F_SETFL, flags);
-
-	return client[cs_idx].udp_fd;
-}
-
 static void sharing_newcamd_reply_ka()
 {
 	if (!client[cs_idx].udp_fd) {
@@ -328,7 +241,7 @@ static int sharing_newcamd_connect_server()
 
 	// 1. Connect
 	//
-	handle = sharing_newcamd_tcp_connection_open(reader[ridx].device, reader[ridx].r_port);
+	handle = network_tcp_connection_open(reader[ridx].device, reader[ridx].r_port);
 	if (handle < 0)
 		return -1;
 
@@ -337,7 +250,7 @@ static int sharing_newcamd_connect_server()
 	reader[ridx].ncd_msgid = 0;
 	if (read(handle, keymod, sizeof (keymod)) != sizeof (keymod)) {
 		log_normal("server does not return 14 bytes");
-		card_network_tcp_connection_close(handle);
+		network_tcp_connection_close(handle);
 		return -2;
 	}
 	log_ddump(keymod, 14, "server init sequence:");
@@ -363,12 +276,12 @@ static int sharing_newcamd_connect_server()
 	login_answer = sharing_newcamd_cmd_no_data_receive(handle, &reader[ridx].ncd_msgid, key, COMMTYPE_CLIENT);
 	if (login_answer == MSG_CLIENT_2_SERVER_LOGIN_NAK) {
 		log_normal("login failed for user '%s'", reader[ridx].r_usr);
-		card_network_tcp_connection_close(handle);
+		network_tcp_connection_close(handle);
 		return -3;
 	}
 	if (login_answer != MSG_CLIENT_2_SERVER_LOGIN_ACK) {
 		log_normal("expected MSG_CLIENT_2_SERVER_LOGIN_ACK (%02X), received %02X", MSG_CLIENT_2_SERVER_LOGIN_ACK, login_answer);
-		card_network_tcp_connection_close(handle);
+		network_tcp_connection_close(handle);
 		return -3;
 	}
 	// 4. Send MSG_CARD_DATE_REQ
@@ -379,7 +292,7 @@ static int sharing_newcamd_connect_server()
 	bytes_received = sharing_newcamd_message_receive(handle, &reader[ridx].ncd_msgid, buf, key, COMMTYPE_CLIENT);
 	if (bytes_received < 16 || buf[2] != MSG_CARD_DATA) {
 		log_normal("expected MSG_CARD_DATA (%02X), received %02X", MSG_CARD_DATA, buf[2]);
-		card_network_tcp_connection_close(handle);
+		network_tcp_connection_close(handle);
 		return -4;
 	}
 	// 5. Parse CAID and PROVID(s)
@@ -1099,7 +1012,7 @@ static int sharing_newcamd_client_init()
 	memset((char *) &loc_sa, 0, sizeof (loc_sa));
 	loc_sa.sin_family = AF_INET;
 	if (cfg->serverip[0])
-		loc_sa.sin_addr.s_addr = cs_inet_addr(cfg->serverip);
+		loc_sa.sin_addr.s_addr = network_inet_addr(cfg->serverip);
 	else
 		loc_sa.sin_addr.s_addr = INADDR_ANY;
 	loc_sa.sin_port = htons(reader[ridx].l_port);

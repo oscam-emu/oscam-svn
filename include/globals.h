@@ -3,11 +3,10 @@
 
 #  include <errno.h>
 #  include <string.h>
-#  include <sys/types.h>
 
+#  include <sys/types.h>
+#  include <arpa/inet.h>	// to be removed when ip is stored in a different way in structures
 #  include <sys/timeb.h>
-#  include <netdb.h>
-#  include <arpa/inet.h>
 
 #  include "os-types.h"
 

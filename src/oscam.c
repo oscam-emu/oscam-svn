@@ -10,6 +10,7 @@
 #include "log.h"
 #include "monitor.h"
 #include "simples.h"
+#include "network.h"
 
 #include "CAM/common.h"
 
@@ -21,7 +22,6 @@
 #include "sharing/radegast.h"
 #include "sharing/serial.h"
 
-#include <arpa/inet.h>
 #include <pthread.h>
 #include <signal.h>
 #include <stdlib.h>
@@ -362,7 +362,7 @@ void oscam_set_priority(int prio)
 static void oscam_alarm(int sig)
 {
 	log_debug("Got alarm signal");
-	log_normal("disconnect from %s (deadlock!)", cs_inet_ntoa(client[cs_idx].ip));
+	log_normal("disconnect from %s (deadlock!)", network_inet_ntoa(client[cs_idx].ip));
 	oscam_exit(0);
 }
 
@@ -611,7 +611,7 @@ int oscam_fork(in_addr_t ip, in_port_t port)
 					client[i].typ = 'c';	// dynamic client
 					client[i].ip = ip;
 					client[i].port = port;
-					log_normal("client(%d) connect from %s (pid=%d, pipfd=%d)", i - cdiff, cs_inet_ntoa(ip), pid, client[i].fd_m2c);
+					log_normal("client(%d) connect from %s (pid=%d, pipfd=%d)", i - cdiff, network_inet_ntoa(ip), pid, client[i].fd_m2c);
 				} else {
 					client[i].stat = 1;
 					switch (port) {
@@ -670,7 +670,7 @@ int oscam_fork(in_addr_t ip, in_port_t port)
 				i = 0;
 		}
 	} else {
-		log_normal("max connections reached -> reject client %s", cs_inet_ntoa(ip));
+		log_normal("max connections reached -> reject client %s", network_inet_ntoa(ip));
 		i = (-1);
 	}
 	return (i);
@@ -780,7 +780,7 @@ static void oscam_init_shm()
 	*oscam_sem = 0;
 	client[0].pid = getpid();
 	client[0].login = time((time_t *) 0);
-	client[0].ip = cs_inet_addr("127.0.0.1");
+	client[0].ip = network_inet_addr("127.0.0.1");
 	client[0].typ = 's';
 	client[0].au = (-1);
 	client[0].dbglvl = cs_dblevel;
@@ -817,7 +817,6 @@ static int oscam_start_listener(struct s_module *ph, int port_idx)
 	} else
 		sad.sin_addr.s_addr = INADDR_ANY;
 	timeout = cfg->bindwait;
-	//ph->fd=0;
 	ph->ptab->ports[port_idx].fd = 0;
 
 	if (ph->ptab->ports[port_idx].s_port > 0)	/* test for illegal value    */
@@ -905,7 +904,7 @@ static void *oscam_client_resolve(void *dummy)
 			if (account->dyndns[0]) {
 				if ((rht = gethostbyname((const char *) account->dyndns))) {
 					memcpy(&udp_sa.sin_addr, rht->h_addr, sizeof (udp_sa.sin_addr));
-					account->dynip = cs_inet_order(udp_sa.sin_addr.s_addr);
+					account->dynip = network_inet_order(udp_sa.sin_addr.s_addr);
 				} else {
 					log_normal("can't resolve hostname %s (user: %s)", account->dyndns, account->usr);
 				}
@@ -941,7 +940,7 @@ void oscam_resolve()
 			client[cs_idx].last = time((time_t) 0);
 			if ((rht = gethostbyname(reader[i].device))) {
 				memcpy(&client[idx].udp_sa.sin_addr, rht->h_addr, sizeof (client[idx].udp_sa.sin_addr));
-				client[idx].ip = cs_inet_order(client[idx].udp_sa.sin_addr.s_addr);
+				client[idx].ip = network_inet_order(client[idx].udp_sa.sin_addr.s_addr);
 			} else {
 				log_normal("can't resolve %s", reader[i].device);
 			}
@@ -1094,7 +1093,7 @@ void oscam_wait4master()
 		log_normal("PANIC: client not found in shared memory");
 		oscam_exit(1);
 	}
-	log_debug("starting client %d with ip %s", cs_idx - cdiff, cs_inet_ntoa(client[cs_idx].ip));
+	log_debug("starting client %d with ip %s", cs_idx - cdiff, network_inet_ntoa(client[cs_idx].ip));
 }
 
 static void oscam_fake_client(char *usr, int uniq, in_addr_t ip)
@@ -1112,7 +1111,7 @@ static void oscam_fake_client(char *usr, int uniq, in_addr_t ip)
 		    && ((uniq == 1) || (client[i].ip != ip))) {
 			client[cs_idx].dup = 1;
 			client[cs_idx].au = -1;
-			log_normal("client(%d) duplicate user '%s' from %s set to fake (uniq=%d)", cs_idx - cdiff, usr, cs_inet_ntoa(ip), uniq);
+			log_normal("client(%d) duplicate user '%s' from %s set to fake (uniq=%d)", cs_idx - cdiff, usr, network_inet_ntoa(ip), uniq);
 			break;
 		}
 	}
@@ -1135,7 +1134,7 @@ int oscam_auth_client(struct s_auth *account, char *e_txt)
 			break;
 		case 0:	// reject access
 			rc = 1;
-			log_normal("%s %s-client %s%s (%s)", client[cs_idx].crypted ? t_crypt : t_plain, ph[client[cs_idx].ctyp].desc, client[cs_idx].ip ? cs_inet_ntoa(client[cs_idx].ip) : "", client[cs_idx].ip ? t_reject : t_reject + 1, e_txt ? e_txt : t_msg[rc]);
+			log_normal("%s %s-client %s%s (%s)", client[cs_idx].crypted ? t_crypt : t_plain, ph[client[cs_idx].ctyp].desc, client[cs_idx].ip ? network_inet_ntoa(client[cs_idx].ip) : "", client[cs_idx].ip ? t_reject : t_reject + 1, e_txt ? e_txt : t_msg[rc]);
 			break;
 		default:	// grant/check access
 			if (client[cs_idx].ip && account->dyndns[0])
@@ -1179,7 +1178,7 @@ int oscam_auth_client(struct s_auth *account, char *e_txt)
 					client[cs_idx].crypted ? t_crypt : t_plain,
 					e_txt ? e_txt : ph[client[cs_idx].ctyp].desc,
 					cfg->ncd_ptab.ports[client[cs_idx].port_idx].s_port,
-					client[cs_idx].ip ? cs_inet_ntoa(client[cs_idx].ip) : "",
+					client[cs_idx].ip ? network_inet_ntoa(client[cs_idx].ip) : "",
 					client[cs_idx].ip ? t_grant : t_grant + 1,
 					oscam_username(cs_idx),
 					t_msg[rc]);
@@ -1187,7 +1186,7 @@ int oscam_auth_client(struct s_auth *account, char *e_txt)
 				log_normal("%s %s-client %s%s (%s, %s)",
 					client[cs_idx].crypted ? t_crypt : t_plain,
 					e_txt ? e_txt : ph[client[cs_idx].ctyp].desc,
-					client[cs_idx].ip ? cs_inet_ntoa(client[cs_idx].ip) : "",
+					client[cs_idx].ip ? network_inet_ntoa(client[cs_idx].ip) : "",
 					client[cs_idx].ip ? t_grant : t_grant + 1,
 					oscam_username(cs_idx),
 					t_msg[rc]);
@@ -1203,7 +1202,7 @@ void oscam_disconnect_client()
 {
 	char buf[32] = { 0 };
 	if (client[cs_idx].ip)
-		sprintf(buf, " from %s", cs_inet_ntoa(client[cs_idx].ip));
+		sprintf(buf, " from %s", network_inet_ntoa(client[cs_idx].ip));
 	log_normal("%s disconnected%s", oscam_username(cs_idx), buf);
 	oscam_exit(0);
 }
@@ -1793,7 +1792,7 @@ void oscam_get_cw(ECM_REQUEST * er)
 
 void oscam_log_emm_request(int auidx)
 {
-//	log_normal("%s send emm-request (reader=%s, caid=%04X)", cs_inet_ntoa(client[cs_idx].ip), reader[auidx].label, reader[auidx].caid[0]);
+//	log_normal("%s send emm-request (reader=%s, caid=%04X)", network_inet_ntoa(client[cs_idx].ip), reader[auidx].label, reader[auidx].caid[0]);
 	log_normal("%s emm-request sent (reader=%s, caid=%04X)", oscam_username(cs_idx), reader[auidx].label, reader[auidx].caid[0]);
 }
 
@@ -2208,13 +2207,13 @@ int main(int argc, char *argv[])
 							if ((n = recvfrom(ph[i].ptab->ports[j].fd, buf + 3, sizeof (buf) - 3, 0, (struct sockaddr *) &cad, (socklen_t *) & scad)) > 0) {
 								int idx;
 
-								idx = oscam_idx_from_ip(cs_inet_order(cad.sin_addr.s_addr), ntohs(cad.sin_port));
+								idx = oscam_idx_from_ip(network_inet_order(cad.sin_addr.s_addr), ntohs(cad.sin_port));
 								if (!idx) {
 									if (pipe(fdp)) {
 										log_normal("Cannot create pipe (errno=%d)", errno);
 										oscam_exit(1);
 									}
-									switch (oscam_fork(cs_inet_order(cad.sin_addr.s_addr), ntohs(cad.sin_port))) {
+									switch (oscam_fork(network_inet_order(cad.sin_addr.s_addr), ntohs(cad.sin_port))) {
 										case -1:
 											close(fdp[0]);
 											close(fdp[1]);
@@ -2249,7 +2248,7 @@ int main(int argc, char *argv[])
 						} else {
 							oscam_set_mloc(-1, "event: tcp-socket");
 							if ((pfd = accept(ph[i].ptab->ports[j].fd, (struct sockaddr *) &cad, (socklen_t *) & scad)) > 0) {
-								switch (oscam_fork(cs_inet_order(cad.sin_addr.s_addr), ntohs(cad.sin_port))) {
+								switch (oscam_fork(network_inet_order(cad.sin_addr.s_addr), ntohs(cad.sin_port))) {
 									case -1:
 									case 0:
 										close(pfd);

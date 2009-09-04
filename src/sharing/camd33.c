@@ -2,6 +2,7 @@
 #include "sharing/camd33.h"
 
 #include "oscam.h"
+#include "network.h"
 #include "simples.h"
 #include "log.h"
 
@@ -150,7 +151,7 @@ static int sharing_camd33_get_request(uchar * buf, int n)
 				break;
 			default:
 				if (!memcmp(buf + 1, client[cs_idx].usr, strlen(client[cs_idx].usr))) {
-					log_normal("%s still alive", cs_inet_ntoa(client[cs_idx].ip));
+					log_normal("%s still alive", network_inet_ntoa(client[cs_idx].ip));
 					rc = w = 0;
 				} else {
 					switch (buf[0]) {

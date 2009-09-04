@@ -4,8 +4,7 @@
 #include "oscam.h"
 #include "simples.h"
 #include "log.h"
-
-#include "sharing/newcamd.h"	// UGLY : to be removed !
+#include "network.h"
 
 /* CSCRYPT */
 #include "cscrypt.h"
@@ -347,7 +346,7 @@ static int sharing_camd35_client_init()
 	memset((char *) &loc_sa, 0, sizeof (loc_sa));
 	loc_sa.sin_family = AF_INET;
 	if (cfg->serverip[0])
-		loc_sa.sin_addr.s_addr = cs_inet_addr(cfg->serverip);
+		loc_sa.sin_addr.s_addr = network_inet_addr(cfg->serverip);
 	else
 		loc_sa.sin_addr.s_addr = INADDR_ANY;
 	loc_sa.sin_port = htons(reader[ridx].l_port);
@@ -427,7 +426,7 @@ static int sharing_camd35_tcp_connect()
 	if (!reader[ridx].tcp_connected) {
 		int handle = 0;
 
-		handle = sharing_newcamd_tcp_connection_open(reader[ridx].device, reader[ridx].r_port);
+		handle = network_tcp_connection_open(reader[ridx].device, reader[ridx].r_port);
 		if (handle < 0)
 			return (0);
 

@@ -12,6 +12,7 @@
 #include "oscam.h"
 #include "simples.h"
 #include "log.h"
+#include "network.h"
 
 #include <stdlib.h>
 #include <time.h>
@@ -64,35 +65,6 @@ static int card_casc_recv_timer(uchar * buf, int l, int msec)
 	return rc;
 }
 
-void card_network_tcp_connection_close(int fd)
-{
-	log_debug("tcp_conn_close(): fd=%d, is_server=%d", fd, is_server);
-	close(fd);
-	client[cs_idx].udp_fd = 0;
-
-	if (!is_server) {
-		int i;
-
-		pfd = 0;
-		reader[ridx].tcp_connected = 0;
-
-		for (i = 0; i < CS_MAXPENDING; i++) {
-			ecmtask[i].idx = 0;
-			ecmtask[i].rc = 0;
-		}
-
-		if (reader[ridx].ph.c_init()) {
-			log_debug("card_network_tcp_connection_close() exit(1);");
-			oscam_exit(1);
-		}
-
-		oscam_resolve();
-		reader[ridx].ncd_msgid = 0;
-		reader[ridx].last_s = reader[ridx].last_g = 0;
-//		log_normal("last_s=%d, last_g=%d", reader[ridx].last_s, reader[ridx].last_g);
-	}
-}
-
 static void card_casc_do_sock_log()
 {
 	int i, idx;
@@ -125,7 +97,7 @@ static void card_casc_do_sock(int w)
 	if ((n = card_casc_recv_timer(buf, sizeof (buf), w)) <= 0) {
 		if (reader[ridx].ph.type == MOD_CONN_TCP) {
 			log_debug("card_casc_do_sock: close connection");
-			card_network_tcp_connection_close(client[cs_idx].udp_fd);
+			network_tcp_connection_close(client[cs_idx].udp_fd);
 		}
 		return;
 	}
@@ -134,7 +106,7 @@ static void card_casc_do_sock(int w)
 	if (idx < 0)
 		return;	// no dcw received
 	reader[ridx].last_g = time((time_t *) 0);	// for reconnect timeout
-//log_normal("card_casc_do_sock: last_s=%d, last_g=%d", reader[ridx].last_s, reader[ridx].last_g);
+//	log_normal("card_casc_do_sock: last_s=%d, last_g=%d", reader[ridx].last_s, reader[ridx].last_g);
 	if (!idx)
 		idx = last_idx;
 	j = 0;
@@ -171,7 +143,7 @@ static void card_casc_get_dcw(int n)
 static int card_casc_process_ecm(ECM_REQUEST * er)
 {
 	int rc, n, i, sflag;
-	time_t t;		//, tls;
+	time_t t;
 
 	uchar buf[512];
 
@@ -204,7 +176,7 @@ static int card_casc_process_ecm(ECM_REQUEST * er)
 
 		if (rto >= reader[ridx].tcp_rto) {
 			log_debug("rto=%d", rto);
-			card_network_tcp_connection_close(client[cs_idx].udp_fd);
+			network_tcp_connection_close(client[cs_idx].udp_fd);
 		}
 	}
 
@@ -392,7 +364,7 @@ static int card_listen(int fd1, int fd2)
 			time_diff = abs(now - reader[ridx].last_s);
 			if (time_diff > (reader[ridx].tcp_ito * 60)) {
 				log_debug("%s inactive_timeout (%d), close connection (fd=%d)", reader[ridx].ph.desc, time_diff, fd2);
-				card_network_tcp_connection_close(fd2);
+				network_tcp_connection_close(fd2);
 			}
 		}
 		log_debug("select: pipe is set");
@@ -401,7 +373,7 @@ static int card_listen(int fd1, int fd2)
 
 	if (tcp_toflag) {
 		log_debug("%s inactive_timeout (%d), close connection (fd=%d)", reader[ridx].ph.desc, tv.tv_sec, fd2);
-		card_network_tcp_connection_close(fd2);
+		network_tcp_connection_close(fd2);
 		return (0);
 	}
 
@@ -492,7 +464,7 @@ void card_start_reader()
 		if ((reader[ridx].log_port) && (reader[ridx].ph.c_init_log))
 			reader[ridx].ph.c_init_log();
 	} else {
-		client[cs_idx].ip = cs_inet_addr("127.0.0.1");
+		client[cs_idx].ip = network_inet_addr("127.0.0.1");
 		if (!reader_common_init(&reader[ridx]))
 			oscam_exit(1);
 	}

@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/poll.h>
-#include <arpa/inet.h>
 #include <sys/select.h>
 
 #ifdef NO_FTIME
@@ -188,48 +187,6 @@ char *cs_hexdump(int m, uchar * buf, int n)
 	if (m == 3) dump[(3 * i) - 1] = '\0';
 
 	return dump;
-}
-
-static int inet_byteorder = 0;
-in_addr_t cs_inet_order(in_addr_t n)
-{
-	if (!inet_byteorder)
-		inet_byteorder = ((inet_addr("1.2.3.4") + 1) == inet_addr("1.2.3.5")) ? 1 : 2;
-	switch (inet_byteorder) {
-		case 1:
-			break;
-		case 2:
-			n = ((n & 0xff000000) >> 24) | ((n & 0x00ff0000) >> 8) | ((n & 0x0000ff00) << 8) | ((n & 0x000000ff) << 24);
-			break;
-	}
-
-	return n;
-}
-
-char *cs_inet_ntoa(in_addr_t n)
-{
-	struct in_addr in;
-
-	in.s_addr = cs_inet_order(n);
-	return ((char *) inet_ntoa(in));
-}
-
-in_addr_t cs_inet_addr(char *txt)
-{
-	in_addr_t n = 0;
-
-	if (!inet_byteorder)
-		inet_byteorder = ((inet_addr("1.2.3.4") + 1) == inet_addr("1.2.3.5")) ? 1 : 2;
-	switch (inet_byteorder) {
-		case 1:
-			n = inet_addr(txt);
-			break;
-		case 2:
-			n = inet_network(txt);
-			break;
-	}
-
-	return n;
 }
 
 ulong b2i(int n, uchar * b)

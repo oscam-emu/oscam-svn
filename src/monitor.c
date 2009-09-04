@@ -4,6 +4,7 @@
 #include "simples.h"
 #include "oscam.h"
 #include "log.h"
+#include "network.h"
 
 /* CSCRYPT */
 #include "cscrypt.h"
@@ -364,7 +365,7 @@ static char *monitor_client_info(char id, int i)
 			sprintf(ldate, "%2d.%02d.%02d", lt->tm_mday, lt->tm_mon + 1, lt->tm_year % 100);
 			sprintf(ltime, "%2d:%02d:%02d", lt->tm_hour, lt->tm_min, lt->tm_sec);
 			sprintf(sbuf, "[%c--CCC]%d|%c|%d|%s|%d|%d|%s|%d|%s|%s|%s|%d|%04X:%04X|%s|%d|%d\n",
-				id, client[i].pid, client[i].typ, cnr, usr, cau, client[i].crypted, cs_inet_ntoa(client[i].ip), client[i].port, monitor_get_proto(i), ldate, ltime, lsec, client[i].last_caid, client[i].last_srvid, monitor_get_srvname(client[i].last_srvid), isec, con);
+				id, client[i].pid, client[i].typ, cnr, usr, cau, client[i].crypted, network_inet_ntoa(client[i].ip), client[i].port, monitor_get_proto(i), ldate, ltime, lsec, client[i].last_caid, client[i].last_srvid, monitor_get_srvname(client[i].last_srvid), isec, con);
 		}
 	}
 	return (sbuf);

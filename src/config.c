@@ -5,6 +5,7 @@
 #include "ac.h"
 #include "log.h"
 #include "oscam.h"
+#include "network.h"
 
 #ifdef CS_WITH_BOXKEYS
 #  include "boxkeys.np"
@@ -12,7 +13,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <arpa/inet.h>
 
 static char *cs_conf = "oscam.conf";
 static char *cs_user = "oscam.user";
@@ -105,10 +105,10 @@ static void config_check_iprange(char *value, struct s_ip **base)
 	for (ptr1 = strtok(value, ","); ptr1; ptr1 = strtok(NULL, ",")) {
 		if ((ptr2 = strchr(trim(ptr1), '-'))) {
 			*ptr2++ = '\0';
-			cip->ip[0] = cs_inet_addr(trim(ptr1));
-			cip->ip[1] = cs_inet_addr(trim(ptr2));
+			cip->ip[0] = network_inet_addr(trim(ptr1));
+			cip->ip[1] = network_inet_addr(trim(ptr2));
 		} else
-			cip->ip[0] = cip->ip[1] = cs_inet_addr(ptr1);
+			cip->ip[0] = cip->ip[1] = network_inet_addr(ptr1);
 	}
 }
 
