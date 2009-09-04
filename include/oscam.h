@@ -11,7 +11,6 @@ int oscam_fork(in_addr_t, in_port_t);
 void oscam_wait4master();
 int oscam_auth_client(struct s_auth *, char *);
 void oscam_disconnect_client();
-int oscam_check_ecmcache(ECM_REQUEST *, ulong);
 int oscam_write_to_pipe(int, int, uchar *, int);
 int oscam_read_from_pipe(int, char **, int);
 int oscam_write_ecm_request(int, ECM_REQUEST *);
@@ -28,6 +27,7 @@ void oscam_resolve();
 void oscam_process_ecm(ECM_REQUEST *);
 void oscam_process_emm(EMM_PACKET *);
 
+int oscam_check_ecmcache(ECM_REQUEST *, ulong);
 void oscam_log_emm_request(int);
 void oscam_log_config();
 void oscam_store_logentry(char *);
