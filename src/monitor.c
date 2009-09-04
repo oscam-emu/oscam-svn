@@ -499,7 +499,7 @@ static void monitor_logsend(char *flag)
 			sprintf(sbuf, "%03d", client[cs_idx].logcounter);
 			client[cs_idx].logcounter = (client[cs_idx].logcounter + 1) % 1000;
 			memcpy(p_txt + 4, sbuf, 3);
-			monitor_send(p_txt);
+			monitor_send_idx(cs_idx, p_txt);
 		}
 	}
 #endif
