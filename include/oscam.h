@@ -14,7 +14,6 @@ int oscam_auth_client(struct s_auth *, char *);
 void oscam_disconnect_client();
 
 int oscam_chk_bcaid(ECM_REQUEST *, CAIDTAB *);
-struct timeval *oscam_chk_pending(struct timeb tp_ctimeout);
 
 int oscam_idx_from_pid(pid_t);
 int oscam_recv_from_udpipe(uchar *, int);

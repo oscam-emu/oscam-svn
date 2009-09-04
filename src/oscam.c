@@ -1807,7 +1807,7 @@ static void oscam_build_delay(struct timeb *tpe, struct timeb *tpc)
 	}
 }
 
-struct timeval *oscam_chk_pending(struct timeb tp_ctimeout)
+static struct timeval *oscam_chk_pending(struct timeb tp_ctimeout)
 {
 	int i;
 	ulong td;
