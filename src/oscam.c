@@ -4,6 +4,7 @@
 #include "oscam.h"
 
 #include "ac.h"
+#include "cache.h"
 #include "card.h"
 #include "chk.h"
 #include "config.h"
@@ -1210,33 +1211,6 @@ void oscam_disconnect_client()
 	oscam_exit(0);
 }
 
-int oscam_check_ecmcache(ECM_REQUEST * er, ulong grp)
-{
-	int i;
-
-//	log_ddump(ecmd5, CS_ECMSTORESIZE, "ECM search");
-//	log_normal("cache CHECK: grp=%lX", grp);
-	for (i = 0; i < CS_ECMCACHESIZE; i++)
-		if ((grp & ecmcache[i].grp) && (!memcmp(ecmcache[i].ecmd5, er->ecmd5, CS_ECMSTORESIZE))) {
-//			log_normal("cache found: grp=%lX cgrp=%lX", grp, ecmcache[i].grp);
-			memcpy(er->cw, ecmcache[i].cw, 16);
-			return (1);
-		}
-	return (0);
-}
-
-static void oscam_store_ecm(ECM_REQUEST * er)
-{
-//	log_normal("store ecm from reader %d", er->reader[0]);
-	memcpy(ecmcache[*ecmidx].ecmd5, er->ecmd5, CS_ECMSTORESIZE);
-	memcpy(ecmcache[*ecmidx].cw, er->cw, 16);
-	ecmcache[*ecmidx].caid = er->caid;
-	ecmcache[*ecmidx].prid = er->prid;
-	ecmcache[*ecmidx].grp = reader[er->reader[0]].grp;
-//	log_ddump(ecmcache[*ecmidx].ecmd5, CS_ECMSTORESIZE, "ECM stored (idx=%d)", *ecmidx);
-	*ecmidx = (*ecmidx + 1) % CS_ECMCACHESIZE;
-}
-
 /*
  * oscam_write_to_pipe():
  * write all kind of data to pipe specified by fd
@@ -1446,7 +1420,7 @@ int oscam_write_ecm_answer(int fd, ECM_REQUEST * er)
 //	log_normal("answer from reader %d (rc=%d)", er->reader[0], er->rc);
 	er->caid = er->ocaid;
 	if (er->rc == 1 || (er->gbxRidx && er->rc == 0)) {
-		oscam_store_ecm(er);
+		cache_store_ecm(er);
 		oscam_log_cw_to_file(er);
 	}
 
@@ -1754,7 +1728,7 @@ void oscam_process_ecm(ECM_REQUEST * er)
 
 		memcpy(er->ecmd5, MD5(er->ecm, er->l, NULL), CS_ECMSTORESIZE);
 
-		if (oscam_check_ecmcache(er, client[cs_idx].grp))
+		if (cache_lookup_ecm(er, client[cs_idx].grp))
 			er->rc = 1;	// cache1
 
 #ifdef CS_ANTICASC

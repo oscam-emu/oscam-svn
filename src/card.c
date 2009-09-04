@@ -9,6 +9,7 @@
 #include "sharing/radegast.h"
 #include "sharing/serial.h"
 
+#include "cache.h"
 #include "oscam.h"
 #include "simples.h"
 #include "log.h"
@@ -233,7 +234,7 @@ static void card_get_ecm(ECM_REQUEST * er)
 		oscam_write_ecm_answer(fd_c2m, er);
 		return;
 	}
-	if (oscam_check_ecmcache(er, client[er->cidx].grp)) {
+	if (cache_lookup_ecm(er, client[er->cidx].grp)) {
 		er->rc = 2;
 		oscam_write_ecm_answer(fd_c2m, er);
 		return;
