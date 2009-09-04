@@ -571,7 +571,6 @@ void config_init_cam_common_len4caid()
 	}
 	fclose(fp);
 	log_normal("%d lengths for caid guessing loaded", nr);
-	return;
 }
 
 int config_search_boxkey(ushort caid, ulong provid, char *key)
@@ -1285,7 +1284,5 @@ void config_init_ac()
 		}
 	}
 	fclose(fp);
-
-	return;
 }
 #endif

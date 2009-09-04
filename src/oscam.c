@@ -565,7 +565,6 @@ static void oscam_child_chk(int i)
 					client[i].au = (-1);
 				}
 			}
-	return;
 }
 
 int oscam_fork(in_addr_t ip, in_port_t port)
@@ -1584,7 +1583,6 @@ static void oscam_chk_dcw(int fd)
 	}
 	if (ert)
 		oscam_send_dcw(ert);
-	return;
 }
 
 static void oscam_request_cw(ECM_REQUEST * er, int flag, int reader_types)
