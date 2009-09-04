@@ -7,14 +7,14 @@
 
 #include <time.h>
 
-static int radegast_send(uchar * buf)
+static int sharing_radegast_send(uchar * buf)
 {
 	int l = buf[1] + 2;
 
 	return (send(pfd, buf, l, 0));
 }
 
-static int radegast_recv(uchar * buf, int l)
+static int sharing_radegast_recv(uchar * buf, int l)
 {
 	int n;
 
@@ -25,7 +25,7 @@ static int radegast_recv(uchar * buf, int l)
 	return (n);
 }
 
-static void radegast_auth_client(in_addr_t ip)
+static void sharing_radegast_auth_client(in_addr_t ip)
 {
 	int ok;
 	struct s_auth *account;
@@ -50,7 +50,7 @@ static void radegast_auth_client(in_addr_t ip)
 	}
 }
 
-static int get_request(uchar * buf)
+static int sharing_radegast_get_request(uchar * buf)
 {
 	int n, rc = 0;
 
@@ -67,7 +67,7 @@ static int get_request(uchar * buf)
 	return (rc);
 }
 
-static void radegast_send_dcw(ECM_REQUEST * er)
+static void sharing_radegast_send_dcw(ECM_REQUEST * er)
 {
 	mbuf[0] = 0x02;	// DCW
 	if (er->rc < 4) {
@@ -80,10 +80,10 @@ static void radegast_send_dcw(ECM_REQUEST * er)
 		mbuf[2] = 0x04;	// NO ACCESS
 		mbuf[3] = 0x00;	// len
 	}
-	radegast_send(mbuf);
+	sharing_radegast_send(mbuf);
 }
 
-static void radegast_process_ecm(uchar * buf, int l)
+static void sharing_radegast_process_ecm(uchar * buf, int l)
 {
 	int i, n, sl;
 	ECM_REQUEST *er;
@@ -119,25 +119,25 @@ static void radegast_process_ecm(uchar * buf, int l)
 		get_cw(er);
 }
 
-static void radegast_process_unknown(uchar * buf)
+static void sharing_radegast_process_unknown(uchar * buf)
 {
 	uchar answer[2] = { 0x81, 0x00 };
-	radegast_send(answer);
+	sharing_radegast_send(answer);
 	cs_log("unknown request %02X, len=%d", buf[0], buf[1]);
 }
 
-static void radegast_server()
+static void sharing_radegast_server()
 {
 	int n;
 
-	radegast_auth_client(client[cs_idx].ip);
-	while ((n = get_request(mbuf)) > 0) {
+	sharing_radegast_auth_client(client[cs_idx].ip);
+	while ((n = sharing_radegast_get_request(mbuf)) > 0) {
 		switch (mbuf[0]) {
 			case 1:
-				radegast_process_ecm(mbuf + 2, mbuf[1]);
+				sharing_radegast_process_ecm(mbuf + 2, mbuf[1]);
 				break;
 			default:
-				radegast_process_unknown(mbuf);
+				sharing_radegast_process_unknown(mbuf);
 		}
 	}
 	cs_disconnect_client();
@@ -156,7 +156,7 @@ void sharing_radegast_module(struct s_module *ph)
 	ph->multi = 0;
 	ph->watchdog = 1;
 	ph->s_ip = cfg->rad_srvip;
-	ph->s_handler = radegast_server;
-	ph->recv = radegast_recv;
-	ph->send_dcw = radegast_send_dcw;
+	ph->s_handler = sharing_radegast_server;
+	ph->recv = sharing_radegast_recv;
+	ph->send_dcw = sharing_radegast_send_dcw;
 }
