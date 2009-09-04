@@ -13,10 +13,7 @@
 
 char *remote_txt()
 {
-	if (is_server)
-		return ("client");
-	else
-		return ("remote server");
+	return (is_server ? "client" : "remote server");
 }
 
 char *trim(char *txt)
@@ -33,7 +30,7 @@ char *trim(char *txt)
 	if ((l = strlen(txt)) > 0)
 		for (p1 = txt + l - 1; (*p1 == ' ') || (*p1 == '\t') || (*p1 == '\n') || (*p1 == '\r'); *p1-- = '\0');
 
-	return (txt);
+	return txt;
 }
 
 char *strtolower(char *txt)
@@ -64,7 +61,8 @@ int gethexval(char c)
 		return (c - 'A' + 10);
 	if ((c >= 'a') && (c <= 'f'))
 		return (c - 'a' + 10);
-	return (-1);
+
+	return -1;
 }
 
 int cs_atob(uchar * buf, char *asc, int n)
@@ -76,7 +74,8 @@ int cs_atob(uchar * buf, char *asc, int n)
 			return (-1);
 		buf[i] = rc;
 	}
-	return (n);
+
+	return n;
 }
 
 ulong cs_atoi(char *asc, int l, int val_on_err)
@@ -96,32 +95,37 @@ ulong cs_atoi(char *asc, int l, int val_on_err)
 		rc |= b << (n << 3);
 		n++;
 	}
-	return (rc);
+
+	return rc;
 }
 
 int byte_atob(char *asc)
 {
 	int rc;
 
-	if (strlen(trim(asc)) != 2)
-		rc = (-1);
-	else if ((rc = (gethexval(asc[0]) << 4) | gethexval(asc[1])) & 0x100)
-		rc = (-1);
-	return (rc);
+	if (strlen(trim(asc)) != 2) {
+		rc = -1;
+	} else if ((rc = (gethexval(asc[0]) << 4) | gethexval(asc[1])) & 0x100) {
+		rc = -1;
+	}
+
+	return rc;
 }
 
 long word_atob(char *asc)
 {
 	long rc;
 
-	if (strlen(trim(asc)) != 4)
-		rc = (-1);
-	else {
+	if (strlen(trim(asc)) != 4) {
+		rc = -1;
+	} else {
 		rc = gethexval(asc[0]) << 12 | gethexval(asc[1]) << 8 | gethexval(asc[2]) << 4 | gethexval(asc[3]);
-		if (rc & 0x10000)
-			rc = (-1);
+		if (rc & 0x10000) {
+			rc = -1;
+		}
 	}
-	return (rc);
+
+	return rc;
 }
 
 int key_atob(char *asc, uchar * bin)
@@ -130,12 +134,13 @@ int key_atob(char *asc, uchar * bin)
 
 	for (i = rc = 0; i < 32; i += 2) {
 		if ((n1 = gethexval(asc[i])) < 0)
-			rc = (-1);
+			rc = -1;
 		if ((n2 = gethexval(asc[i + 1])) < 0)
-			rc = (-1);
+			rc = -1;
 		bin[i >> 1] = (n1 << 4) + (n2 & 0xff);
 	}
-	return (rc);
+
+	return rc;
 }
 
 int key_atob14(char *asc, uchar * bin)
@@ -144,12 +149,13 @@ int key_atob14(char *asc, uchar * bin)
 
 	for (i = rc = 0; i < 28; i += 2) {
 		if ((n1 = gethexval(asc[i])) < 0)
-			rc = (-1);
+			rc = -1;
 		if ((n2 = gethexval(asc[i + 1])) < 0)
-			rc = (-1);
+			rc = -1;
 		bin[i >> 1] = (n1 << 4) + (n2 & 0xff);
 	}
-	return (rc);
+
+	return rc;
 }
 
 char *key_btoa(char *asc, uchar * bin)
@@ -157,10 +163,12 @@ char *key_btoa(char *asc, uchar * bin)
 	int i;			//, n1, n2, rc;
 	static char buf[33];
 
-	if (!asc)
+	if (!asc) {
 		asc = buf;
-	for (i = 0; i < 16; i++)
+	}
+	for (i = 0; i < 16; i++) {
 		sprintf(asc + (i << 1), "%02X", bin[i]);
+	}
 
 	return asc;
 }
@@ -244,6 +252,7 @@ ullong b2ll(int n, uchar * b)
 
 	for (i = 0; i < n; k += b[i++])
 		k <<= 8;
+
 	return k;
 }
 
@@ -267,6 +276,7 @@ uchar *i2b(int n, ulong i)
 			b[3] = (i) & 0xff;
 			break;
 	}
+
 	return b;
 }
 
@@ -275,7 +285,7 @@ ulong a2i(char *asc, int bytes)
 	int i, n;
 	ulong rc;
 
-	for (rc = i = 0, n = strlen(trim(asc)) - 1; i < (abs(bytes) << 1); n--, i++)
+	for (rc = i = 0, n = strlen(trim(asc)) - 1; i < (abs(bytes) << 1); n--, i++) {
 		if (n >= 0) {
 			int rcl;
 
@@ -284,9 +294,12 @@ ulong a2i(char *asc, int bytes)
 				return (0x1F1F1F);
 			}
 			rc |= (rcl << (i << 2));
-		} else if (bytes < 0)
+		} else if (bytes < 0) {
 			rc |= (0xf << (i << 2));
+		}
+	}
 	errno = 0;
+
 	return rc;
 }
 
@@ -325,16 +338,18 @@ int bytes_available(int fd)
 	pfds.events = POLLIN;
 	pfds.revents = 0;
 	if (poll(&pfds, 1, 0) != 1)
-		return (0);
+		return 0;
 	else
 		return (((pfds.revents) & POLLIN) == POLLIN);
 }
 
 int file_exists (const char *filepath) {
 	FILE *file = fopen(filepath, "r");
+
 	if (file != NULL) {
 		fclose(file);
 		return 1;
 	}
+
 	return 0;
 }
