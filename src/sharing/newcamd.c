@@ -85,7 +85,7 @@ static int sharing_newcamd_message_send(int handle, ushort * netMsgId, uchar * b
 	}
 	netbuf[0] = (len - 2) >> 8;
 	netbuf[1] = (len - 2) & 0xff;
-	log_ddump(netbuf, len, "send %d bytes to %s", len, remote_txt());
+	log_ddump(netbuf, len, "send %d bytes to %s", len, (is_server ? "client" : "remote server"));
 	if ((len = des_encrypt(netbuf, len, deskey)) < 0)
 		return -1;
 	netbuf[0] = (len - 2) >> 8;
@@ -343,7 +343,7 @@ static int sharing_newcamd_send(uchar * buf, int ml, ushort sid)
 	if (!sharing_newcamd_connect())
 		return (-1);
 
-	//log_ddump(buf, ml, "send %d bytes to %s", ml, remote_txt());
+	//log_ddump(buf, ml, "send %d bytes to %s", ml, (is_server ? "client" : "remote server"));
 	return (sharing_newcamd_message_send(client[cs_idx].udp_fd, &reader[ridx].ncd_msgid, buf, ml, reader[ridx].ncd_skey, COMMTYPE_CLIENT, sid));
 }
 
@@ -363,13 +363,13 @@ static int sharing_newcamd_recv(uchar * buf, int l)
 	} else {
 		rc = rs;
 	}
-	log_ddump(buf, rs, "received %d bytes from %s", rs, remote_txt());
+	log_ddump(buf, rs, "received %d bytes from %s", rs, (is_server ? "client" : "remote server"));
 	client[cs_idx].last = time((time_t *) 0);
 	if (rc == -1) {
 		if (rs > 0) {
 			log_normal("packet to small (%d bytes)", rs);
 		} else {
-			log_normal("Connection closed to %s", remote_txt());
+			log_normal("Connection closed to %s", (is_server ? "client" : "remote server"));
 		}
 	}
 

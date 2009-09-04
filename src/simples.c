@@ -11,11 +11,6 @@
 #  include <sys/time.h>
 #endif
 
-char *remote_txt()
-{
-	return (is_server ? "client" : "remote server");
-}
-
 char *trim(char *txt)
 {
 	register int l;

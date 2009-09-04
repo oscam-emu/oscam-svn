@@ -39,7 +39,7 @@ static int sharing_camd35_send(uchar * buf)
 	memset(sbuf + l, 0xff, 15);	// set unused space to 0xff for newer camd3's
 	memcpy(sbuf + 4, i2b(4, crc32(0L, sbuf + 20, sbuf[1])), 4);
 	l = boundary(4, l);
-	log_ddump(sbuf, l, "send %d bytes to %s", l, remote_txt());
+	log_ddump(sbuf, l, "send %d bytes to %s", l, (is_server ? "client" : "remote server"));
 	for (i = 0; i < l; i += 16) {
 		AES_encrypt(sbuf + i, sbuf + i, &sharing_camd35_AES_key);
 	}
@@ -114,7 +114,7 @@ static int sharing_camd35_recv(uchar * buf, int l)
 				for (i = 0; i < rs; i += 16) {
 					AES_decrypt(buf + i, buf + i, &sharing_camd35_AES_key);
 				}
-				log_ddump(buf, rs, "received %d bytes from %s", rs, remote_txt());
+				log_ddump(buf, rs, "received %d bytes from %s", rs, (is_server ? "client" : "remote server"));
 				if (rs != boundary(4, rs))
 					log_debug("WARNING: packet size has wrong decryption boundary");
 				n = (buf[0] == 3) ? 0x34 : 0;
@@ -132,7 +132,7 @@ static int sharing_camd35_recv(uchar * buf, int l)
 				break;
 		}
 	if ((rs > 0) && ((rc == -1) || (rc == -2)))
-		log_ddump(buf, rs, "received %d bytes from %s (native)", rs, remote_txt);
+		log_ddump(buf, rs, "received %d bytes from %s (native)", rs, (is_server ? "client" : "remote server"));
 	client[cs_idx].last = time((time_t *) 0);
 	switch (rc) {
 		case -1:

@@ -282,7 +282,7 @@ static int sharing_serial_send(uchar * buf, int l)
 	tpe.millitm %= 1000;
 	n = sharing_serial_write(buf, l);
 	cs_ftime(&tpe);
-	log_ddump(buf, l, "send %d of %d bytes to %s in %d msec", n, l, remote_txt(), 1000 * (tpe.time - tps.time) + tpe.millitm - tps.millitm);
+	log_ddump(buf, l, "send %d of %d bytes to %s in %d msec", n, l, (is_server ? "client" : "remote server"), 1000 * (tpe.time - tps.time) + tpe.millitm - tps.millitm);
 	if (n != l)
 		log_normal("transmit error. send %d of %d bytes only !", n, l);
 
@@ -561,7 +561,7 @@ static int sharing_serial_recv(uchar * xbuf, int l)
 		serial_errors++;
 	}
 	cs_ftime(&tpe);
-	log_ddump(buf, n, "received %d bytes from %s in %d msec", n, remote_txt(), 1000 * (tpe.time - tps.time) + tpe.millitm - tps.millitm);
+	log_ddump(buf, n, "received %d bytes from %s in %d msec", n, (is_server ? "client" : "remote server"), 1000 * (tpe.time - tps.time) + tpe.millitm - tps.millitm);
 	client[cs_idx].last = tpe.time;
 	switch (p) {
 		case (-1):

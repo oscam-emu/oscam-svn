@@ -3,7 +3,6 @@
 
 #include <netdb.h>
 
-char *remote_txt();
 char *trim(char *);
 char *strtolower(char *);
 char *strtoupper(char *);
