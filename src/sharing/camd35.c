@@ -176,19 +176,18 @@ static void sharing_camd35_request_emm(ECM_REQUEST * er)
 
 	if (reader[au].caid[0]) {
 		disable_counter = 0;
-		oscam_log_emm_request(au);
-	} else if (disable_counter > 2)
+		log_normal("%s emm-request sent (reader=%s, caid=%04X)", oscam_username(cs_idx), reader[au].label, reader[au].caid[0]);
+	} else if (disable_counter > 2) {
 		return;
-	else
+	} else {
 		disable_counter++;
+	}
 
-//  if (reader[au].hexserial[3])
-//  {
-//    if (!reader[au].online)
-//    {
-//      memset(lastserial, 0, sizeof(lastserial));
-//      return;
-//    }
+//	if (reader[au].hexserial[3]) {
+//	if (!reader[au].online) {
+//		memset(lastserial, 0, sizeof(lastserial));
+//		return;
+//	}
 	memset(mbuf, 0, sizeof (mbuf));
 	mbuf[2] = mbuf[3] = 0xff;	// must not be zero
 	memcpy(mbuf + 8, i2b(2, er->srvid), 2);

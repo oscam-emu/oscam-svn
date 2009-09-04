@@ -1804,12 +1804,6 @@ void oscam_process_ecm(ECM_REQUEST * er)
 	oscam_request_cw(er, 0, cfg->preferlocalcards ? 1 : 0);
 }
 
-void oscam_log_emm_request(int auidx)
-{
-//	log_normal("%s send emm-request (reader=%s, caid=%04X)", network_inet_ntoa(client[cs_idx].ip), reader[auidx].label, reader[auidx].caid[0]);
-	log_normal("%s emm-request sent (reader=%s, caid=%04X)", oscam_username(cs_idx), reader[auidx].label, reader[auidx].caid[0]);
-}
-
 void oscam_process_emm(EMM_PACKET * ep)
 {
 	int au;			//, ephs;

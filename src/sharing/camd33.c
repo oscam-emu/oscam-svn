@@ -72,7 +72,7 @@ static void sharing_camd33_request_emm()
 		return;	// TODO
 	}
 	if (reader[au].hexserial[0]) {
-		oscam_log_emm_request(au);
+		log_normal("%s emm-request sent (reader=%s, caid=%04X)", oscam_username(cs_idx), reader[au].label, reader[au].caid[0]);
 		mbuf[0] = 0;
 		mbuf[1] = reader[au].caid[0] >> 8;
 		mbuf[2] = reader[au].caid[0] & 0xff;

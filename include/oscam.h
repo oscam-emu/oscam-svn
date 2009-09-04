@@ -28,7 +28,6 @@ void oscam_process_ecm(ECM_REQUEST *);
 void oscam_process_emm(EMM_PACKET *);
 
 int oscam_check_ecmcache(ECM_REQUEST *, ulong);
-void oscam_log_emm_request(int);
 void oscam_store_logentry(char *);
 
 #endif // __OSCAM_H__
