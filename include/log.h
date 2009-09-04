@@ -13,4 +13,6 @@ void log_close();
 int log_init_statistics(char *);
 void log_statistics(int);
 
+void log_cwl_write_to_file(ECM_REQUEST *);
+
 #endif // __LOG_H__
