@@ -16,9 +16,17 @@ static uchar upwd[64] = { 0 };
 static uchar *req;
 static int is_udp = 1;
 
+static AES_KEY sharing_camd35_AES_key;
+
+static void sharing_camd35_set_AES_key(char *key)
+{
+	AES_set_decrypt_key((const unsigned char *) key, 128, &sharing_camd35_AES_key);
+	AES_set_encrypt_key((const unsigned char *) key, 128, &sharing_camd35_AES_key);
+}
+
 static int sharing_camd35_send(uchar * buf)
 {
-	int l;
+	int l, i;
 	unsigned char rbuf[REQ_SIZE + 15 + 4], *sbuf = rbuf + 4;
 
 	if (!client[cs_idx].udp_fd)
@@ -30,7 +38,9 @@ static int sharing_camd35_send(uchar * buf)
 	memcpy(sbuf + 4, i2b(4, crc32(0L, sbuf + 20, sbuf[1])), 4);
 	l = boundary(4, l);
 	log_ddump(sbuf, l, "send %d bytes to %s", l, remote_txt());
-	aes_encrypt(sbuf, l);
+	for (i = 0; i < l; i += 16) {
+		AES_encrypt(sbuf + i, sbuf + i, &sharing_camd35_AES_key);
+	}
 
 	if (is_udp)
 		return (sendto(client[cs_idx].udp_fd, rbuf, l + 4, 0, (struct sockaddr *) &client[cs_idx].udp_sa, sizeof (client[cs_idx].udp_sa)));
@@ -44,23 +54,26 @@ static int sharing_camd35_auth_client(uchar * ucrc)
 	ulong crc;
 	struct s_auth *account;
 
-	if (upwd[0])
+	if (upwd[0]) {
 		return (memcmp(client[cs_idx].ucrc, ucrc, 4) ? 1 : 0);
+	}
 	client[cs_idx].crypted = 1;
 	crc = (ucrc[0] << 24) | (ucrc[1] << 16) | (ucrc[2] << 8) | ucrc[3];
-	for (account = cfg->account; (account) && (!upwd[0]); account = account->next)
+	for (account = cfg->account; (account) && (!upwd[0]); account = account->next) {
 		if (crc == crc32(0L, MD5((unsigned char *) account->usr, strlen(account->usr), NULL), 16)) {
 			memcpy(client[cs_idx].ucrc, ucrc, 4);
 			strcpy((char *) upwd, account->pwd);
-			aes_set_key((char *) MD5(upwd, strlen((char *) upwd), NULL));
+			sharing_camd35_set_AES_key((char *) MD5(upwd, strlen((char *) upwd), NULL));
 			rc = oscam_auth_client(account, NULL);
 		}
-	return (rc);
+	}
+
+	return rc;
 }
 
 static int sharing_camd35_recv(uchar * buf, int l)
 {
-	int rc, n = 0, s, rs;
+	int rc, n = 0, s, rs, i;
 	unsigned char recrc[4];
 
 	for (rc = rs = s = 0; !rc; s++)
@@ -96,7 +109,9 @@ static int sharing_camd35_recv(uchar * buf, int l)
 				}
 				break;
 			case 2:
-				aes_decrypt(buf, rs);
+				for (i = 0; i < rs; i += 16) {
+					AES_decrypt(buf + i, buf + i, &sharing_camd35_AES_key);
+				}
 				log_ddump(buf, rs, "received %d bytes from %s", rs, remote_txt());
 				if (rs != boundary(4, rs))
 					log_debug("WARNING: packet size has wrong decryption boundary");
@@ -303,7 +318,7 @@ static void sharing_camd35_casc_set_account()
 {
 	strcpy((char *) upwd, reader[ridx].r_pwd);
 	memcpy(client[cs_idx].ucrc, i2b(4, crc32(0L, MD5((unsigned char *) reader[ridx].r_usr, strlen(reader[ridx].r_usr), NULL), 16)), 4);
-	aes_set_key((char *) MD5(upwd, strlen((char *) upwd), NULL));
+	sharing_camd35_set_AES_key((char *) MD5(upwd, strlen((char *) upwd), NULL));
 	client[cs_idx].crypted = 1;
 }
 

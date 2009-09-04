@@ -287,7 +287,7 @@ struct s_client {
 	int cwnot;
 	uchar ucrc[4];		// needed by monitor and used by camd35
 	ulong pcrc;		// pwd crc
-	AES_KEY aeskey;		// needed by monitor and used by camd33, camd35
+	AES_KEY AES_key;	// needed by monitor
 	ushort ncd_msgid;
 	uchar ncd_skey[16];
 	int port_idx;		// index in server ptab

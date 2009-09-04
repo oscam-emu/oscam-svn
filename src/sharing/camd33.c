@@ -12,9 +12,17 @@
 static uchar camdbug[256];	// camd send wrong order
 static uchar *req;
 
+static AES_KEY sharing_camd33_AES_key;
+  
+static void sharing_camd33_set_AES_key(char *key)
+{
+	AES_set_decrypt_key((const unsigned char *) key, 128, &sharing_camd33_AES_key);
+	AES_set_encrypt_key((const unsigned char *) key, 128, &sharing_camd33_AES_key);
+}
+
 static int sharing_camd33_send(uchar * buf, int ml)
 {
-	int l;
+	int l, i;
 
 	if (!pfd) {
 		return -1;
@@ -23,7 +31,9 @@ static int sharing_camd33_send(uchar * buf, int ml)
 	memset(buf + ml, 0, l - ml);
 	log_ddump(buf, l, "send %d bytes to client", l);
 	if (client[cs_idx].crypted) {
-		aes_encrypt(buf, l);
+		for (i = 0; i < l; i += 16) {
+			AES_encrypt(buf + i, buf + i, &sharing_camd33_AES_key);
+		}
 	}
 
 	return send(pfd, buf, l, 0);
@@ -31,15 +41,18 @@ static int sharing_camd33_send(uchar * buf, int ml)
 
 static int sharing_camd33_recv(uchar * buf, int l)
 {
-	int n;
+	int n, i;
 
 	if (!pfd) {
 		return -1;
 	}
 	if ((n = recv(pfd, buf, l, 0)) > 0) {
 		client[cs_idx].last = time((time_t *) 0);
-		if (client[cs_idx].crypted)
-			aes_decrypt(buf, n);
+		if (client[cs_idx].crypted) {
+			for (i = 0; i < n; i += 16) {
+				AES_decrypt(buf + i, buf + i, &sharing_camd33_AES_key);
+			}
+		}
 	}
 	log_ddump(buf, n, "received %d bytes from client", n);
 
@@ -80,7 +93,7 @@ static void sharing_camd33_auth_client(in_addr_t ip)
 				client[cs_idx].crypted = 0;
 	}
 	if (client[cs_idx].crypted)
-		aes_set_key((char *) cfg->c33_key);
+		sharing_camd33_set_AES_key((char *) cfg->c33_key);
 
 	mbuf[0] = 0;
 	sharing_camd33_send(mbuf, 1);	// send login-request

@@ -3,12 +3,6 @@
 
 #include <netdb.h>
 
-void aes_set_key(char *);
-void aes_encrypt_idx(int, uchar *, int);
-void aes_decrypt(uchar *, int);
-
-#  define aes_encrypt(b, n) aes_encrypt_idx(cs_idx, b, n)
-
 char *remote_txt();
 char *trim(char *);
 char *strtolower(char *);

@@ -23,6 +23,8 @@ struct via_date {
 	ushort year_e:7;
 };
 
+static AES_KEY cam_viaccess_AES_key;
+  
 static void cam_viaccess_parse_via_date(const uchar * buf, struct via_date *vd, int fend)
 {
 	ushort date;
@@ -220,7 +222,7 @@ int cam_viaccess_load_card()
 	log_normal("providers: %d (%s)", reader[ridx].nprov, buf + 1);
 
 	/* init the maybe existing aes key */
-	aes_set_key((char *) reader[ridx].aes_key);
+	AES_set_decrypt_key((const unsigned char *) reader[ridx].aes_key, 128, &cam_viaccess_AES_key);
 
 	/* disabling parental lock. assuming pin "0000" */
 	if (cfg->ulparent) {
@@ -429,7 +431,7 @@ int cam_viaccess_process_ecm(ECM_REQUEST * er)
 	}
 
 	if (hasD2) {
-		aes_decrypt(er->cw, 16);
+		AES_decrypt(er->cw, er->cw, &cam_viaccess_AES_key);
 	}
 
 	return rc;

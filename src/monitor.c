@@ -12,6 +12,28 @@
 
 static int auth = 0;
 
+static void monitor_set_client_AES_key(int idx, char *key)
+{
+	AES_set_decrypt_key((const unsigned char *) key, 128, &client[idx].AES_key);
+	AES_set_encrypt_key((const unsigned char *) key, 128, &client[idx].AES_key);
+}
+
+static void monitor_AES_decrypt(int idx, uchar * buf, int n)
+{
+	int i;
+	for (i = 0; i < n; i += 16) {
+		AES_decrypt(buf + i, buf + i, &client[idx].AES_key);
+	}
+}
+  
+static void monitor_AES_encrypt(int idx, uchar * buf, int n)
+{
+	int i;
+	for (i = 0; i < n; i += 16) {
+		AES_encrypt(buf + i, buf + i, &client[idx].AES_key);
+	}
+}
+
 static void monitor_check_ip()
 {
 	int ok = 0;
@@ -68,7 +90,7 @@ static int monitor_secure_auth_client(uchar * ucrc)
 	for (account = cfg->account; (account) && (!auth); account = account->next)
 		if ((account->monlvl) && (crc == crc32(0L, MD5((unsigned char *) account->usr, strlen(account->usr), NULL), 16))) {
 			memcpy(client[cs_idx].ucrc, ucrc, 4);
-			aes_set_key((char *) MD5((unsigned char *) account->pwd, strlen(account->pwd), NULL));
+			monitor_set_client_AES_key(cs_idx, (char *) MD5((unsigned char *) account->pwd, strlen(account->pwd), NULL));
 			if (oscam_auth_client(account, NULL))
 				oscam_exit(0);
 			auth = 1;
@@ -77,7 +99,8 @@ static int monitor_secure_auth_client(uchar * ucrc)
 		oscam_auth_client((struct s_auth *) 0, "invalid user");
 		oscam_exit(0);
 	}
-	return (auth);
+
+	return auth;
 }
 
 int monitor_send_idx(int idx, char *txt)
@@ -96,11 +119,9 @@ int monitor_send_idx(int idx, char *txt)
 	memcpy(buf + 1, client[idx].ucrc, 4);
 	strcpy((char *) buf + 10, txt);
 	memcpy(buf + 5, i2b(4, crc32(0L, buf + 10, l - 10)), 4);
-	aes_encrypt_idx(idx, buf + 5, l - 5);
+	monitor_AES_encrypt(idx, buf + 5, l - 5);
 	return (sendto(client[idx].udp_fd, buf, l, 0, (struct sockaddr *) &client[idx].udp_sa, sizeof (client[idx].udp_sa)));
 }
-
-#define monitor_send(t) monitor_send_idx(cs_idx, t)
 
 static int monitor_recv(uchar * buf, int l)
 {
@@ -133,7 +154,7 @@ static int monitor_recv(uchar * buf, int l)
 		}
 		if (!monitor_secure_auth_client(buf + 1))
 			return (buf[0] = 0);
-		aes_decrypt(buf + 5, 16);
+		monitor_AES_decrypt(cs_idx, buf + 5, 16);
 		bsize = boundary(4, buf[9] + 5) + 5;
 //		log_normal("n=%d bsize=%d", n, bsize);
 		if (n > bsize) {
@@ -146,7 +167,7 @@ static int monitor_recv(uchar * buf, int l)
 			log_normal("packet-size mismatch !");
 			return (buf[0] = 0);
 		}
-		aes_decrypt(buf + 21, n - 21);
+		monitor_AES_decrypt(cs_idx, buf + 21, n - 21);
 		if (memcmp(buf + 5, i2b(4, crc32(0L, buf + 10, n - 10)), 4)) {
 			log_normal("CRC error ! wrong password ?");
 			return (buf[0] = 0);
@@ -191,13 +212,13 @@ static void monitor_send_info(char *txt, int last)
 
 	if (!last) {
 		if (btxt[0])
-			monitor_send(btxt);
+			monitor_send_idx(cs_idx, btxt);
 		strncpy(btxt, txt, sizeof (btxt));
 		return;
 	}
 
 	if (txt && btxt[0]) {
-		monitor_send(btxt);
+		monitor_send_idx(cs_idx, btxt);
 		txt[2] = 'E';
 		strncpy(btxt, txt, sizeof (btxt));
 	} else {
@@ -207,7 +228,7 @@ static void monitor_send_info(char *txt, int last)
 	}
 
 	if (btxt[0]) {
-		monitor_send(btxt);
+		monitor_send_idx(cs_idx, btxt);
 		seq = (seq + 1) % 10;
 	}
 	btxt[0] = 0;
@@ -395,11 +416,11 @@ static void monitor_process_details_master(char *buf, int pid)
 	monitor_send_details(buf, pid);
 
 //#ifdef CS_NOSHM
-//  sprintf(buf, "shared memory initialized (size=%d, fd=%d)", shmsize, shmid);
+//	sprintf(buf, "shared memory initialized (size=%d, fd=%d)", shmsize, shmid);
 //#else
-//  sprintf(buf, "shared memory initialized (size=%d, id=%d)", shmsize, shmid);
+//	sprintf(buf, "shared memory initialized (size=%d, id=%d)", shmsize, shmid);
 //#endif
-//  monitor_send_details(buf, pid);
+//	monitor_send_details(buf, pid);
 }
 
 static void monitor_process_details(char *arg)

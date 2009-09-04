@@ -11,30 +11,6 @@
 #  include <sys/time.h>
 #endif
 
-static AES_KEY aeskey;
-
-void aes_set_key(char *key)
-{
-	AES_set_decrypt_key((const unsigned char *) key, 128, &aeskey);
-	AES_set_encrypt_key((const unsigned char *) key, 128, &client[cs_idx].aeskey);
-}
-
-void aes_decrypt(uchar * buf, int n)
-{
-	int i;
-
-	for (i = 0; i < n; i += 16)
-		AES_decrypt(buf + i, buf + i, &aeskey);
-}
-
-void aes_encrypt_idx(int idx, uchar * buf, int n)
-{
-	int i;
-
-	for (i = 0; i < n; i += 16)
-		AES_encrypt(buf + i, buf + i, &client[idx].aeskey);
-}
-
 char *remote_txt()
 {
 	if (is_server)
