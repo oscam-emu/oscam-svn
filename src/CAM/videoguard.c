@@ -16,14 +16,14 @@ extern int reader_serial_need_dummy_char;
 int aes_active = 0;
 AES_KEY dkey, ekey;
 
-static void cAES_SetKey(const unsigned char *key)
+static void cam_videoguard_cAES_SetKey(const unsigned char *key)
 {
 	AES_set_decrypt_key(key, 128, &dkey);
 	AES_set_encrypt_key(key, 128, &ekey);
 	aes_active = 1;
 }
 
-static int cAES_Encrypt(const unsigned char *data, int len, unsigned char *crypt)
+static int cam_videoguard_cAES_Encrypt(const unsigned char *data, int len, unsigned char *crypt)
 {
 	if (aes_active) {
 		len = (len + 15) & (~15);	// pad up to a multiple of 16
@@ -38,7 +38,7 @@ static int cAES_Encrypt(const unsigned char *data, int len, unsigned char *crypt
 
 //////  ====================================================================================
 
-static inline void __xxor(unsigned char *data, int len, const unsigned char *v1, const unsigned char *v2)
+static inline void cam_videoguard_xxor(unsigned char *data, int len, const unsigned char *v1, const unsigned char *v2)
 {
 	switch (len) {	// looks ugly, but the compiler can optimize it very well ;)
 		case 16:
@@ -56,31 +56,31 @@ static inline void __xxor(unsigned char *data, int len, const unsigned char *v1,
 	}
 }
 
-#define xor16(v1,v2,d) __xxor((d),16,(v1),(v2))
+#define xor16(v1,v2,d) cam_videoguard_xxor((d),16,(v1),(v2))
 #define val_by2on3(x)  ((0xaaab*(x))>>16)	//fixed point *2/3
 
 unsigned short cardkeys[3][32];
 unsigned char stateD3A[16];
 
-static void cCamCryptVG2_LongMult(unsigned short *pData, unsigned short *pLen, unsigned int mult, unsigned int carry);
-static void cCamCryptVG2_PartialMod(unsigned short val, unsigned int count, unsigned short *outkey, const unsigned short *inkey);
-static void cCamCryptVG2_RotateRightAndHash(unsigned char *p);
-static void cCamCryptVG2_Reorder16A(unsigned char *dest, const unsigned char *src);
-static void cCamCryptVG2_ReorderAndEncrypt(unsigned char *p);
-static void cCamCryptVG2_Process_D0(const unsigned char *ins, unsigned char *data, const unsigned char *status);
-static void cCamCryptVG2_Process_D1(const unsigned char *ins, unsigned char *data, const unsigned char *status);
-static void cCamCryptVG2_Decrypt_D3(unsigned char *ins, unsigned char *data, const unsigned char *status);
-static void cCamCryptVG2_PostProcess_Decrypt(unsigned char *buff, int len, unsigned char *cw1, unsigned char *cw2);
-static void cCamCryptVG2_SetSeed(const unsigned char *Key1, const unsigned char *Key2);
-static void cCamCryptVG2_GetCamKey(unsigned char *buff);
+static void cam_videoguard_LongMult(unsigned short *pData, unsigned short *pLen, unsigned int mult, unsigned int carry);
+static void cam_videoguard_PartialMod(unsigned short val, unsigned int count, unsigned short *outkey, const unsigned short *inkey);
+static void cam_videoguard_RotateRightAndHash(unsigned char *p);
+static void cam_videoguard_Reorder16A(unsigned char *dest, const unsigned char *src);
+static void cam_videoguard_ReorderAndEncrypt(unsigned char *p);
+static void cam_videoguard_Process_D0(const unsigned char *ins, unsigned char *data, const unsigned char *status);
+static void cam_videoguard_Process_D1(const unsigned char *ins, unsigned char *data, const unsigned char *status);
+static void cam_videoguard_Decrypt_D3(unsigned char *ins, unsigned char *data, const unsigned char *status);
+static void cam_videoguard_PostProcess_Decrypt(unsigned char *buff, int len, unsigned char *cw1, unsigned char *cw2);
+static void cam_videoguard_SetSeed(const unsigned char *Key1, const unsigned char *Key2);
+static void cam_videoguard_GetCamKey(unsigned char *buff);
 
-static void cCamCryptVG2_SetSeed(const unsigned char *Key1, const unsigned char *Key2)
+static void cam_videoguard_SetSeed(const unsigned char *Key1, const unsigned char *Key2)
 {
 	memcpy(cardkeys[1], Key1, sizeof (cardkeys[1]));
 	memcpy(cardkeys[2], Key2, sizeof (cardkeys[2]));
 }
 
-static void cCamCryptVG2_GetCamKey(unsigned char *buff)
+static void cam_videoguard_GetCamKey(unsigned char *buff)
 {
 	unsigned short *tb2 = (unsigned short *) buff, c = 1;
 
@@ -89,20 +89,20 @@ static void cCamCryptVG2_GetCamKey(unsigned char *buff)
 	int i;
 
 	for (i = 0; i < 32; i++)
-		cCamCryptVG2_LongMult(tb2, &c, cardkeys[1][i], 0);
+		cam_videoguard_LongMult(tb2, &c, cardkeys[1][i], 0);
 }
 
-static void cCamCryptVG2_PostProcess_Decrypt(unsigned char *buff, int len, unsigned char *cw1, unsigned char *cw2)
+static void cam_videoguard_PostProcess_Decrypt(unsigned char *buff, int len, unsigned char *cw1, unsigned char *cw2)
 {
 	switch (buff[0]) {
 		case 0xD0:
-			cCamCryptVG2_Process_D0(buff, buff + 5, buff + buff[4] + 5);
+			cam_videoguard_Process_D0(buff, buff + 5, buff + buff[4] + 5);
 			break;
 		case 0xD1:
-			cCamCryptVG2_Process_D1(buff, buff + 5, buff + buff[4] + 5);
+			cam_videoguard_Process_D1(buff, buff + 5, buff + buff[4] + 5);
 			break;
 		case 0xD3:
-			cCamCryptVG2_Decrypt_D3(buff, buff + 5, buff + buff[4] + 5);
+			cam_videoguard_Decrypt_D3(buff, buff + 5, buff + buff[4] + 5);
 			if (buff[1] == 0x54) {
 				memcpy(cw1, buff + 5, 8);
 				int ind;
@@ -121,7 +121,7 @@ static void cCamCryptVG2_PostProcess_Decrypt(unsigned char *buff, int len, unsig
 	}
 }
 
-static void cCamCryptVG2_Process_D0(const unsigned char *ins, unsigned char *data, const unsigned char *status)
+static void cam_videoguard_Process_D0(const unsigned char *ins, unsigned char *data, const unsigned char *status)
 {
 	switch (ins[1]) {
 		case 0xb4:
@@ -153,23 +153,23 @@ static void cCamCryptVG2_Process_D0(const unsigned char *ins, unsigned char *dat
 					rem = ((rem * rem) % div) & 0xffff;
 					t >>= 1;
 				}
-				cCamCryptVG2_PartialMod(carry, count2, key2, key1);
+				cam_videoguard_PartialMod(carry, count2, key2, key1);
 			}
 			unsigned short idatacount = 0;
 			int i;
 
 			for (i = 31; i >= 0; i--)
-				cCamCryptVG2_LongMult(idata, &idatacount, key1[i], key2[i]);
+				cam_videoguard_LongMult(idata, &idatacount, key1[i], key2[i]);
 			unsigned char stateD1[16];
 
-			cCamCryptVG2_Reorder16A(stateD1, data);
-			cAES_SetKey(stateD1);
+			cam_videoguard_Reorder16A(stateD1, data);
+			cam_videoguard_cAES_SetKey(stateD1);
 			break;
 		}
 	}
 }
 
-static void cCamCryptVG2_Process_D1(const unsigned char *ins, unsigned char *data, const unsigned char *status)
+static void cam_videoguard_Process_D1(const unsigned char *ins, unsigned char *data, const unsigned char *status)
 {
 	unsigned char iter[16], tmp[16];
 
@@ -202,14 +202,14 @@ static void cCamCryptVG2_Process_D1(const unsigned char *ins, unsigned char *dat
 
 		if (docalc) {
 			xor16(iter, in, tmp);
-			cCamCryptVG2_ReorderAndEncrypt(tmp);
+			cam_videoguard_ReorderAndEncrypt(tmp);
 			xor16(tmp, stateD3A, iter);
 		}
 	}
 	memcpy(stateD3A, tmp, 16);
 }
 
-static void cCamCryptVG2_Decrypt_D3(unsigned char *ins, unsigned char *data, const unsigned char *status)
+static void cam_videoguard_Decrypt_D3(unsigned char *ins, unsigned char *data, const unsigned char *status)
 {
 	if (ins[4] > 16)
 		ins[4] -= 16;
@@ -236,7 +236,7 @@ static void cCamCryptVG2_Decrypt_D3(unsigned char *ins, unsigned char *data, con
 	for (blockindex = 0; blockindex < blocklen; blockindex++) {
 		iter[0] += blockindex;
 		xor16(iter, stateD3A, iter);
-		cCamCryptVG2_ReorderAndEncrypt(iter);
+		cam_videoguard_ReorderAndEncrypt(iter);
 		xor16(iter, &data[blockindex * 16], states[blockindex]);
 		if (blockindex == (len1 >> 4)) {
 			int c = len1 - (blockindex * 16);
@@ -245,35 +245,35 @@ static void cCamCryptVG2_Decrypt_D3(unsigned char *ins, unsigned char *data, con
 				memset(&states[blockindex][c], 0, 16 - c);
 		}
 		xor16(states[blockindex], stateD3A, stateD3A);
-		cCamCryptVG2_RotateRightAndHash(stateD3A);
+		cam_videoguard_RotateRightAndHash(stateD3A);
 	}
 	memset(tmp, 0, sizeof (tmp));
 	memcpy(tmp + 5, status, 2);
 	xor16(tmp, stateD3A, stateD3A);
-	cCamCryptVG2_ReorderAndEncrypt(stateD3A);
+	cam_videoguard_ReorderAndEncrypt(stateD3A);
 
 	memcpy(stateD3A, status - 16, sizeof (stateD3A));
-	cCamCryptVG2_ReorderAndEncrypt(stateD3A);
+	cam_videoguard_ReorderAndEncrypt(stateD3A);
 
 	memcpy(data, states[0], len1);
 	if (ins[1] == 0xbe) {
-		cCamCryptVG2_Reorder16A(tmp, states[0]);
-		cAES_SetKey(tmp);
+		cam_videoguard_Reorder16A(tmp, states[0]);
+		cam_videoguard_cAES_SetKey(tmp);
 	}
 }
 
-static void cCamCryptVG2_ReorderAndEncrypt(unsigned char *p)
+static void cam_videoguard_ReorderAndEncrypt(unsigned char *p)
 {
 	unsigned char tmp[16];
 
-	cCamCryptVG2_Reorder16A(tmp, p);
-	cAES_Encrypt(tmp, 16, tmp);
-	cCamCryptVG2_Reorder16A(p, tmp);
+	cam_videoguard_Reorder16A(tmp, p);
+	cam_videoguard_cAES_Encrypt(tmp, 16, tmp);
+	cam_videoguard_Reorder16A(p, tmp);
 }
 
 // reorder AAAABBBBCCCCDDDD to ABCDABCDABCDABCD
 
-static void cCamCryptVG2_Reorder16A(unsigned char *dest, const unsigned char *src)
+static void cam_videoguard_Reorder16A(unsigned char *dest, const unsigned char *src)
 {
 	int i;
 	int j;
@@ -284,7 +284,7 @@ static void cCamCryptVG2_Reorder16A(unsigned char *dest, const unsigned char *sr
 			dest[k] = src[j];
 }
 
-static void cCamCryptVG2_LongMult(unsigned short *pData, unsigned short *pLen, unsigned int mult, unsigned int carry)
+static void cam_videoguard_LongMult(unsigned short *pData, unsigned short *pLen, unsigned int mult, unsigned int carry)
 {
 	int i;
 
@@ -297,7 +297,7 @@ static void cCamCryptVG2_LongMult(unsigned short *pData, unsigned short *pLen, u
 		pData[(*pLen)++] = carry;
 }
 
-static void cCamCryptVG2_PartialMod(unsigned short val, unsigned int count, unsigned short *outkey, const unsigned short *inkey)
+static void cam_videoguard_PartialMod(unsigned short val, unsigned int count, unsigned short *outkey, const unsigned short *inkey)
 {
 	if (count) {
 		unsigned int mod = inkey[count];
@@ -339,7 +339,7 @@ static const unsigned char table1[256] = {
 	0x8c, 0xa1, 0x89, 0x0d, 0xbf, 0xe6, 0x42, 0x68, 0x41, 0x99, 0x2d, 0x0f, 0xb0, 0x54, 0xbb, 0x16,
 };
 
-static void cCamCryptVG2_RotateRightAndHash(unsigned char *p)
+static void cam_videoguard_RotateRightAndHash(unsigned char *p)
 {
 	unsigned char t1 = p[15];
 	int i;
@@ -372,13 +372,13 @@ struct CmdTab {
 };
 
 struct CmdTab *cmd_table = NULL;
-static void memorize_cmd_table(const unsigned char *mem, int size)
+static void cam_videoguard_memorize_cmd_table(const unsigned char *mem, int size)
 {
 	cmd_table = (struct CmdTab *) malloc(sizeof (unsigned char) * size);
 	memcpy(cmd_table, mem, size);
 }
 
-static int cmd_table_get_info(const unsigned char *cmd, unsigned char *rlen, unsigned char *rmode)
+static int cam_videoguard_cmd_table_get_info(const unsigned char *cmd, unsigned char *rlen, unsigned char *rmode)
 {
 	struct CmdTabEntry *pcte = cmd_table->e;
 	int i;
@@ -392,9 +392,8 @@ static int cmd_table_get_info(const unsigned char *cmd, unsigned char *rlen, uns
 	return 0;
 }
 
-static int status_ok(const unsigned char *status)
+static int cam_videoguard_status_ok(const unsigned char *status)
 {
-	//cs_log("check status %02x%02x", status[0],status[1]);
 	return (status[0] == 0x90 || status[0] == 0x91)
 		&& (status[1] == 0x00 || status[1] == 0x01 || status[1] == 0x20 || status[1] == 0x21 || status[1] == 0x80 || status[1] == 0x81 || status[1] == 0xa0 || status[1] == 0xa1);
 }
@@ -415,14 +414,14 @@ static int cam_videoguard_read_cmd_len(const unsigned char *cmd)
 	return result[0];
 }
 
-static int do_cmd(const unsigned char *ins, const unsigned char *txbuff, unsigned char *rxbuff, uchar *result, ushort result_max_size, ushort *result_size)
+static int cam_videoguard_do_cmd(const unsigned char *ins, const unsigned char *txbuff, unsigned char *rxbuff, uchar *result, ushort result_max_size, ushort *result_size)
 {
 	unsigned char ins2[5];
 
 	memcpy(ins2, ins, 5);
 	unsigned char len = 0, mode = 0;
 
-	if (cmd_table_get_info(ins2, &len, &mode)) {
+	if (cam_videoguard_cmd_table_get_info(ins2, &len, &mode)) {
 		if (len == 0xFF && mode == 2) {
 			if (ins2[4] == 0)
 				ins2[4] = len = cam_videoguard_read_cmd_len(ins2);
@@ -438,7 +437,7 @@ static int do_cmd(const unsigned char *ins, const unsigned char *txbuff, unsigne
 	if (!rxbuff)
 		rxbuff = tmp;
 	if (mode > 1) {
-		if (!cam_common_cmd2card(ins2, sizeof(ins2), result, result_max_size, result_size) || !status_ok(result + len))
+		if (!cam_common_cmd2card(ins2, sizeof(ins2), result, result_max_size, result_size) || !cam_videoguard_status_ok(result + len))
 			return -1;
 		memcpy(rxbuff, ins2, 5);
 		memcpy(rxbuff + 5, result, len);
@@ -447,20 +446,20 @@ static int do_cmd(const unsigned char *ins, const unsigned char *txbuff, unsigne
 		uchar cmd[272];
 		memcpy(cmd, ins2, 5);
 		memcpy(cmd + 5, txbuff, ins2[4]);
-		if (!cam_common_cmd2card(cmd, 5 + ins2[4], result, sizeof(result), result_size) || !status_ok(result))
+		if (!cam_common_cmd2card(cmd, 5 + ins2[4], result, sizeof(result), result_size) || !cam_videoguard_status_ok(result))
 			return -2;
 		memcpy(rxbuff, ins2, 5);
 		memcpy(rxbuff + 5, txbuff, len);
 		memcpy(rxbuff + 5 + len, result, 2);
 	}
 
-	cCamCryptVG2_PostProcess_Decrypt(rxbuff, len, CW1, CW2);
+	cam_videoguard_PostProcess_Decrypt(rxbuff, len, CW1, CW2);
 
 	return len;
 }
 
 #define BASEYEAR 1997
-static void rev_date_calc(const unsigned char *Date, int *year, int *mon, int *day, int *hh, int *mm, int *ss)
+static void cam_videoguard_rev_date_calc(const unsigned char *Date, int *year, int *mon, int *day, int *hh, int *mm, int *ss)
 {
 	*year = (Date[0] / 12) + BASEYEAR;
 	*mon = (Date[0] % 12) + 1;
@@ -470,20 +469,20 @@ static void rev_date_calc(const unsigned char *Date, int *year, int *mon, int *d
 	*ss = (Date[3] - *mm * 32) * 2;
 }
 
-static void read_tiers()
+static void cam_videoguard_read_tiers()
 {
 	static const unsigned char ins2a[5] = { 0xd0, 0x2a, 0x00, 0x00, 0x00 };
 	int l;
 
 	uchar result[260];
 	ushort result_size;
-	l = do_cmd(ins2a, NULL, NULL, result, sizeof(result), &result_size);
-	if (l < 0 || !status_ok(result + l))
+	l = cam_videoguard_do_cmd(ins2a, NULL, NULL, result, sizeof(result), &result_size);
+	if (l < 0 || !cam_videoguard_status_ok(result + l))
 		return;
 	static unsigned char ins76[5] = { 0xd0, 0x76, 0x00, 0x00, 0x00 };
 	ins76[3] = 0x7f;
 	ins76[4] = 2;
-	if (!cam_common_cmd2card(ins76, sizeof(ins76), result, sizeof(result), &result_size) || !status_ok(result + 2))
+	if (!cam_common_cmd2card(ins76, sizeof(ins76), result, sizeof(result), &result_size) || !cam_videoguard_status_ok(result + 2))
 		return;
 	ins76[3] = 0;
 	ins76[4] = 0;
@@ -492,24 +491,24 @@ static void read_tiers()
 
 	for (i = 0; i < num; i++) {
 		ins76[2] = i;
-		l = do_cmd(ins76, NULL, NULL, result, sizeof(result), &result_size);
-		if (l < 0 || !status_ok(result + l))
+		l = cam_videoguard_do_cmd(ins76, NULL, NULL, result, sizeof(result), &result_size);
+		if (l < 0 || !cam_videoguard_status_ok(result + l))
 			return;
 		if (result[2] == 0 && result[3] == 0)
 			break;
 		int y, m, d, H, M, S;
 
-		rev_date_calc(&result[4], &y, &m, &d, &H, &M, &S);
+		cam_videoguard_rev_date_calc(&result[4], &y, &m, &d, &H, &M, &S);
 		cs_log("Tier: %02x%02x, expiry date: %04d/%02d/%02d-%02d:%02d:%02d", result[2], result[3], y, m, d, H, M, S);
 	}
 }
 
-static unsigned int num_addr(const unsigned char *data)
+static unsigned int cam_videoguard_num_addr(const unsigned char *data)
 {
 	return ((data[3] & 0x30) >> 4) + 1;
 }
 
-static int addr_mode(const unsigned char *data)
+static int cam_videoguard_addr_mode(const unsigned char *data)
 {
 	switch (data[3] & 0xC0) {
 		case 0x40:
@@ -521,13 +520,13 @@ static int addr_mode(const unsigned char *data)
 	}
 }
 
-static const unsigned char *payload_addr(const unsigned char *data, const unsigned char *a)
+static const unsigned char *cam_videoguard_payload_addr(const unsigned char *data, const unsigned char *a)
 {
 	int s;
 	int l;
 	const unsigned char *ptr = NULL;
 
-	switch (addr_mode(data)) {
+	switch (cam_videoguard_addr_mode(data)) {
 		case 2:
 			s = 3;
 			break;
@@ -540,7 +539,7 @@ static const unsigned char *payload_addr(const unsigned char *data, const unsign
 
 	int position = -1;
 
-	for (l = 0; l < num_addr(data); l++) {
+	for (l = 0; l < cam_videoguard_num_addr(data); l++) {
 		if (!memcmp(&data[l * 4 + 4], a + 4, s)) {
 			position = l;
 			break;
@@ -548,7 +547,7 @@ static const unsigned char *payload_addr(const unsigned char *data, const unsign
 	}
 
 	/* skip header, the list of address, and the separator (the two 00 00) */
-	ptr = data + 4 + 4 * num_addr(data) + 2;
+	ptr = data + 4 + 4 * cam_videoguard_num_addr(data) + 2;
 
 	/* skip optional 00 */
 	if (*ptr == 0x00)
@@ -629,16 +628,16 @@ int cam_videoguard_load_card()
 	ins7401[4] = l;
 	uchar result[260];
 	ushort result_size;
-	if (!cam_common_cmd2card(ins7401, sizeof(ins7401), result, sizeof(result), &result_size) || !status_ok(result + l)) {
+	if (!cam_common_cmd2card(ins7401, sizeof(ins7401), result, sizeof(result), &result_size) || !cam_videoguard_status_ok(result + l)) {
 		cs_log("failed to read cmd list");
 		return 0;
 	}
-	memorize_cmd_table(result, l);
+	cam_videoguard_memorize_cmd_table(result, l);
 
 	unsigned char buff[256];
 
 	unsigned char ins7416[5] = { 0xD0, 0x74, 0x16, 0x00, 0x00 };
-	if (do_cmd(ins7416, NULL, NULL, result, sizeof(result), &result_size) < 0) {
+	if (cam_videoguard_do_cmd(ins7416, NULL, NULL, result, sizeof(result), &result_size) < 0) {
 		cs_log("cmd 7416 failed");
 		return 0;
 	}
@@ -657,7 +656,7 @@ int cam_videoguard_load_card()
 		/* we can try to get the boxid from the card */
 		int boxidOK = 0;
 
-		l = do_cmd(ins36, NULL, buff, result, sizeof(result), &result_size);
+		l = cam_videoguard_do_cmd(ins36, NULL, buff, result, sizeof(result), &result_size);
 		if (l >= 0) {
 			int i;
 
@@ -682,13 +681,13 @@ int cam_videoguard_load_card()
 	uchar cmd[272];
 	memcpy(cmd, ins4C, 5);
 	memcpy(cmd + 5, payload4C, ins4C[4]);
-	if (!cam_common_cmd2card(cmd, 5 + ins4C[4], result, sizeof(result), &result_size) || !status_ok(result + l)) {
+	if (!cam_common_cmd2card(cmd, 5 + ins4C[4], result, sizeof(result), &result_size) || !cam_videoguard_status_ok(result + l)) {
 		cs_log("sending boxid failed");
 		return 0;
 	}
 
 	unsigned char ins58[5] = { 0xD0, 0x58, 0x00, 0x00, 0x00 };
-	l = do_cmd(ins58, NULL, buff, result, sizeof(result), &result_size);
+	l = cam_videoguard_do_cmd(ins58, NULL, buff, result, sizeof(result), &result_size);
 	if (l < 0) {
 		cs_log("cmd ins58 failed");
 		return 0;
@@ -713,49 +712,49 @@ int cam_videoguard_load_card()
 		0xc9, 0x9f, 0xa1, 0x2a, 0x8d, 0x86, 0xb6, 0xd6, 0x39, 0xb4, 0x64, 0x65, 0x13, 0x77, 0xa1, 0x0a,
 		0x0c, 0xcf, 0xb4, 0x2b, 0x3a, 0x2f, 0xd2, 0x09, 0x92, 0x15, 0x40, 0x47, 0x66, 0x5c, 0xda, 0xc9
 	};
-	cCamCryptVG2_SetSeed(seed1, seed2);
+	cam_videoguard_SetSeed(seed1, seed2);
 
 	unsigned char insB4[5] = { 0xD0, 0xB4, 0x00, 0x00, 0x40 };
 	unsigned char tbuff[64];
 
-	cCamCryptVG2_GetCamKey(tbuff);
-	l = do_cmd(insB4, tbuff, NULL, result, sizeof(result), &result_size);
-	if (l < 0 || !status_ok(result)) {
+	cam_videoguard_GetCamKey(tbuff);
+	l = cam_videoguard_do_cmd(insB4, tbuff, NULL, result, sizeof(result), &result_size);
+	if (l < 0 || !cam_videoguard_status_ok(result)) {
 		cs_log("cmd D0B4 failed (%02X%02X)", result[0], result[1]);
 		return 0;
 	}
 
 	unsigned char insBC[5] = { 0xD0, 0xBC, 0x00, 0x00, 0x00 };
-	l = do_cmd(insBC, NULL, NULL, result, sizeof(result), &result_size);
+	l = cam_videoguard_do_cmd(insBC, NULL, NULL, result, sizeof(result), &result_size);
 	if (l < 0) {
 		cs_log("cmd D0BC failed");
 		return 0;
 	}
 
 	unsigned char insBE[5] = { 0xD3, 0xBE, 0x00, 0x00, 0x00 };
-	l = do_cmd(insBE, NULL, NULL, result, sizeof(result), &result_size);
+	l = cam_videoguard_do_cmd(insBE, NULL, NULL, result, sizeof(result), &result_size);
 	if (l < 0) {
 		cs_log("cmd D3BE failed");
 		return 0;
 	}
 
 	unsigned char ins58a[5] = { 0xD1, 0x58, 0x00, 0x00, 0x00 };
-	l = do_cmd(ins58a, NULL, NULL, result, sizeof(result), &result_size);
+	l = cam_videoguard_do_cmd(ins58a, NULL, NULL, result, sizeof(result), &result_size);
 	if (l < 0) {
 		cs_log("cmd D158 failed");
 		return 0;
 	}
 
 	unsigned char ins4Ca[5] = { 0xD1, 0x4C, 0x00, 0x00, 0x00 };
-	l = do_cmd(ins4Ca, payload4C, NULL, result, sizeof(result), &result_size);
-	if (l < 0 || !status_ok(result)) {
+	l = cam_videoguard_do_cmd(ins4Ca, payload4C, NULL, result, sizeof(result), &result_size);
+	if (l < 0 || !cam_videoguard_status_ok(result)) {
 		cs_log("cmd D14Ca failed");
 		return 0;
 	}
 
 	cs_log("caid: %04X, serial: %02X%02X%02X%02X, BoxID: %02X%02X%02X%02X", reader[ridx].caid[0], reader[ridx].hexserial[4], reader[ridx].hexserial[5], reader[ridx].hexserial[6], reader[ridx].hexserial[7], boxID[0], boxID[1], boxID[2], boxID[3]);
 
-	read_tiers();
+	cam_videoguard_read_tiers();
 
 	return 1;
 }
@@ -775,10 +774,10 @@ int cam_videoguard_process_ecm(ECM_REQUEST * er)
 
 	uchar result[260];
 	ushort result_size;
-	l = do_cmd(ins40, tbuff, NULL, result, sizeof(result), &result_size);
-	if (l > 0 && status_ok(result)) {
-		l = do_cmd(ins54, NULL, NULL, result, sizeof(result), &result_size);
-		if (l > 0 && status_ok(result + l)) {
+	l = cam_videoguard_do_cmd(ins40, tbuff, NULL, result, sizeof(result), &result_size);
+	if (l > 0 && cam_videoguard_status_ok(result)) {
+		l = cam_videoguard_do_cmd(ins54, NULL, NULL, result, sizeof(result), &result_size);
+		if (l > 0 && cam_videoguard_status_ok(result + l)) {
 			if (er->ecm[0] & 1) {
 				memcpy(er->cw + 8, CW1, 8);
 			} else {
@@ -799,19 +798,19 @@ int cam_videoguard_process_emm(EMM_PACKET * ep)
 	ushort result_size;
 	int rc = 0;
 
-	const unsigned char *payload = payload_addr(ep->emm, reader[ridx].hexserial);
+	const unsigned char *payload = cam_videoguard_payload_addr(ep->emm, reader[ridx].hexserial);
 
 	if (payload) {
 		ins42[4] = *payload;
-		int l = do_cmd(ins42, payload + 1, NULL, result, sizeof(result), &result_size);
+		int l = cam_videoguard_do_cmd(ins42, payload + 1, NULL, result, sizeof(result), &result_size);
 
-		if (l > 0 && status_ok(result)) {
+		if (l > 0 && cam_videoguard_status_ok(result)) {
 			rc = 1;
 		}
 
 		cs_log("EMM request return code : %02X%02X", result[0], result[1]);
-		if (status_ok(result)) {
-			read_tiers();
+		if (cam_videoguard_status_ok(result)) {
+			cam_videoguard_read_tiers();
 		}
 
 	}
