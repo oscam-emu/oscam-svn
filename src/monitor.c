@@ -478,7 +478,7 @@ static void monitor_login(char *usr)
 
 static void monitor_logsend(char *flag)
 {
-#ifdef log_normalHISTORY
+#ifdef CS_LOGHISTORY
 	int i;
 #endif
 	if (strcmp(flag, "on")) {
@@ -487,7 +487,7 @@ static void monitor_logsend(char *flag)
 	}
 	if (client[cs_idx].log)	// already on
 		return;
-#ifdef log_normalHISTORY
+#ifdef CS_LOGHISTORY
 	for (i = (*loghistidx + 3) % CS_MAXLOGHIST; i != *loghistidx; i = (i + 1) % CS_MAXLOGHIST) {
 		char *p_usr, *p_txt;
 

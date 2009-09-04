@@ -89,7 +89,7 @@ struct s_config *cfg;		// Shared Memory
 #ifdef CS_ANTICASC
 struct s_acasc_shm *acasc;	// anti-cascading table indexed by account.ac_idx
 #endif
-#ifdef log_normalHISTORY
+#ifdef CS_LOGHISTORY
 int *loghistidx;		// ptr to current entry
 char *loghist;			// ptr of log-history
 #endif
@@ -103,7 +103,7 @@ int shmsize = CS_ECMCACHESIZE * (sizeof (struct s_ecm)) + CS_MAXPID * (sizeof (s
 #ifdef CS_ANTICASC
 	CS_MAXPID * (sizeof (struct s_acasc_shm)) +
 #endif
-#ifdef log_normalHISTORY
+#ifdef CS_LOGHISTORY
 	CS_MAXLOGHIST * log_normalHISTSIZE + sizeof (int) +
 #endif
 	sizeof (struct s_config) + (6 * sizeof (int));
@@ -757,7 +757,7 @@ static void oscam_init_shm()
 #else
 	cfg = (struct s_config *) &reader[CS_MAXREADER];
 #endif
-#ifdef log_normalHISTORY
+#ifdef CS_LOGHISTORY
 	loghistidx = (int *) ((void *) cfg + sizeof (struct s_config));
 	loghist = (char *) ((void *) loghistidx + sizeof (int));
 #endif
@@ -786,7 +786,7 @@ static void oscam_init_shm()
 	client[0].au = (-1);
 	client[0].dbglvl = cs_dblevel;
 	strcpy(client[0].usr, "root");
-#ifdef log_normalHISTORY
+#ifdef CS_LOGHISTORY
 	*loghistidx = 0;
 	memset(loghist, 0, CS_MAXLOGHIST * log_normalHISTSIZE);
 #endif
@@ -1237,7 +1237,7 @@ static void oscam_store_ecm(ECM_REQUEST * er)
 
 void oscam_store_logentry(char *txt)
 {
-#ifdef log_normalHISTORY
+#ifdef CS_LOGHISTORY
 	char *ptr;
 
 	ptr = (char *) (loghist + (*loghistidx * log_normalHISTSIZE));
