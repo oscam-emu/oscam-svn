@@ -2,6 +2,6 @@
 #  define __SHARING_NEWCAMD_H__
 
 void sharing_newcamd_module(struct s_module *);
-int network_tcp_connection_open(char *, ushort);
+int sharing_newcamd_tcp_connection_open(char *, ushort);
 
 #endif // __SHARING_NEWCAMD_H__
