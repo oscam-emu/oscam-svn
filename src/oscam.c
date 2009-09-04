@@ -104,7 +104,7 @@ int shmsize = CS_ECMCACHESIZE * (sizeof (struct s_ecm)) + CS_MAXPID * (sizeof (s
 	CS_MAXPID * (sizeof (struct s_acasc_shm)) +
 #endif
 #ifdef CS_LOGHISTORY
-	CS_MAXLOGHIST * log_normalHISTSIZE + sizeof (int) +
+	CS_MAXLOGHIST * CS_LOGHISTSIZE + sizeof (int) +
 #endif
 	sizeof (struct s_config) + (6 * sizeof (int));
 
@@ -674,15 +674,17 @@ int oscam_fork(in_addr_t ip, in_port_t port)
 		log_normal("max connections reached -> reject client %s", network_inet_ntoa(ip));
 		i = (-1);
 	}
-	return (i);
+
+	return i;
 }
 
 static void oscam_init_signal()
 {
 	int i;
 
-	for (i = 1; i < NSIG; i++)
+	for (i = 1; i < NSIG; i++) {
 		oscam_set_signal_handler(i, 3, oscam_exit);
+	}
 	oscam_set_signal_handler(SIGWINCH, 1, SIG_IGN);
 //	oscam_set_signal_handler(SIGPIPE, 0, SIG_IGN);
 	oscam_set_signal_handler(SIGPIPE, 0, oscam_sigpipe);
@@ -694,14 +696,14 @@ static void oscam_init_signal()
 	oscam_set_signal_handler(SIGUSR1, 1, oscam_debug_level);
 	oscam_set_signal_handler(SIGUSR2, 1, oscam_card_info);
 	oscam_set_signal_handler(SIGCONT, 1, SIG_IGN);
+
 	log_normal("signal handling initialized (type=%s)",
 #ifdef CS_SIGBSD
 	       "bsd"
 #else
 	       "sysv"
 #endif
-		);
-	return;
+	);
 }
 
 static void oscam_init_shm()
@@ -788,7 +790,7 @@ static void oscam_init_shm()
 	strcpy(client[0].usr, "root");
 #ifdef CS_LOGHISTORY
 	*loghistidx = 0;
-	memset(loghist, 0, CS_MAXLOGHIST * log_normalHISTSIZE);
+	memset(loghist, 0, CS_MAXLOGHIST * CS_LOGHISTSIZE);
 #endif
 }
 
@@ -1240,12 +1242,12 @@ void oscam_store_logentry(char *txt)
 #ifdef CS_LOGHISTORY
 	char *ptr;
 
-	ptr = (char *) (loghist + (*loghistidx * log_normalHISTSIZE));
+	ptr = (char *) (loghist + (*loghistidx * CS_LOGHISTSIZE));
 	ptr[0] = '\1';	// make username unusable
 	ptr[1] = '\0';
 	if ((client[cs_idx].typ == 'c') || (client[cs_idx].typ == 'm'))
 		strncpy(ptr, client[cs_idx].usr, 31);
-	strncpy(ptr + 32, txt, log_normalHISTSIZE - 33);
+	strncpy(ptr + 32, txt, CS_LOGHISTSIZE - 33);
 	*loghistidx = (*loghistidx + 1) % CS_MAXLOGHIST;
 #endif
 }

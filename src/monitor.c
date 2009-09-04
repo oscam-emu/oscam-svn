@@ -491,7 +491,7 @@ static void monitor_logsend(char *flag)
 	for (i = (*loghistidx + 3) % CS_MAXLOGHIST; i != *loghistidx; i = (i + 1) % CS_MAXLOGHIST) {
 		char *p_usr, *p_txt;
 
-		p_usr = (char *) (loghist + (i * log_normalHISTSIZE));
+		p_usr = (char *) (loghist + (i * CS_LOGHISTSIZE));
 		p_txt = p_usr + 32;
 		if ((p_txt[0]) && ((client[cs_idx].monlvl > 1) || (!strcmp(p_usr, client[cs_idx].usr)))) {
 			char sbuf[8];
