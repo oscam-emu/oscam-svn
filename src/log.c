@@ -25,6 +25,37 @@ FILE *fpa = (FILE *) 0;
 int use_ac_log = 0;
 #endif
 
+extern int shmsize;
+extern int shmid;
+
+static void log_config()
+{
+	uchar buf[2048];
+
+	if (cfg->nice != 99)
+		sprintf((char *) buf, ", nice=%d", cfg->nice);
+	else
+		buf[0] = '\0';
+	log_normal("version=%s, system=%s%s", CS_VERSION, oscam_platform((char *) buf + 64), buf);
+	log_normal("max. clients=%d, client max. idle=%d sec",
+#ifdef CS_ANTICASC
+	       CS_MAXPID - 3, cfg->cmaxidle);
+#else
+	       CS_MAXPID - 2, cfg->cmaxidle);
+#endif
+	if (cfg->max_log_size)
+		sprintf((char *) buf, "%d Kb", cfg->max_log_size);
+	else
+		strcpy((char *) buf, "unlimited");
+	log_normal("max. logsize=%s", buf);
+	log_normal("client timeout=%lu ms, fallback timeout=%lu ms, cache delay=%d ms", cfg->ctimeout, cfg->ftimeout, cfg->delay);
+#ifdef CS_NOSHM
+	log_normal("shared memory initialized (size=%d, fd=%d)", shmsize, shmid);
+#else
+	log_normal("shared memory initialized (size=%d, id=%d)", shmsize, shmid);
+#endif
+}
+
 static void log_switch(char *file, FILE ** f, int (*pfinit) (char *))
 {
 	if (cfg->max_log_size && mcl) {
@@ -97,7 +128,7 @@ int log_init(char *file)
 				line[(sizeof (line) / sizeof (char)) - 1] = '\0';
 				time(&t);
 				fprintf(fp, "\n%s\n>> OSCam <<  cardserver started at %s%s\n", line, ctime(&t), line);
-				oscam_log_config();
+				log_config();
 			}
 		}
 

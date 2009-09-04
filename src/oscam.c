@@ -95,7 +95,8 @@ char *loghist;			// ptr of log-history
 #endif
 int *mcl = 0;			// Master close log?
 
-static int shmsize = CS_ECMCACHESIZE * (sizeof (struct s_ecm)) + CS_MAXPID * (sizeof (struct s_client)) + CS_MAXREADER * (sizeof (struct s_reader)) +
+int shmid = 0;		// Shared Memory ID
+int shmsize = CS_ECMCACHESIZE * (sizeof (struct s_ecm)) + CS_MAXPID * (sizeof (struct s_client)) + CS_MAXREADER * (sizeof (struct s_reader)) + 
 #ifdef CS_WITH_GBOX
 	CS_MAXCARDS * (sizeof (struct card_struct)) + CS_MAXIGNORE * (sizeof (long)) + CS_MAXPID * (sizeof (struct idstore_struct)) +
 #endif
@@ -115,7 +116,6 @@ char cs_memfile[128] = CS_MMAPFILE;
         Statics
 *****************************************************************************/
 static char mloc[128] = { 0 };
-static int shmid = 0;		// Shared Memory ID
 static int cs_last_idx = 0;	// client index of last fork (master only)
 static char *logo = "  ___  ____                      \n / _ \\/ ___|  ___ __ _ _ __ ___  \n| | | \\___ \\ / __/ _` | '_ ` _ \\ \n| |_| |___) | (_| (_| | | | | | |\n \\___/|____/ \\___\\__,_|_| |_| |_|\n";
 static char *credit[] = {
@@ -2008,34 +2008,6 @@ static void oscam_process_master_pipe()
 			oscam_accounts_chk();
 			break;
 	}
-}
-
-void oscam_log_config()
-{
-	uchar buf[2048];
-
-	if (cfg->nice != 99)
-		sprintf((char *) buf, ", nice=%d", cfg->nice);
-	else
-		buf[0] = '\0';
-	log_normal("version=%s, system=%s%s", CS_VERSION, oscam_platform((char *) buf + 64), buf);
-	log_normal("max. clients=%d, client max. idle=%d sec",
-#ifdef CS_ANTICASC
-	       CS_MAXPID - 3, cfg->cmaxidle);
-#else
-	       CS_MAXPID - 2, cfg->cmaxidle);
-#endif
-	if (cfg->max_log_size)
-		sprintf((char *) buf, "%d Kb", cfg->max_log_size);
-	else
-		strcpy((char *) buf, "unlimited");
-	log_normal("max. logsize=%s", buf);
-	log_normal("client timeout=%lu ms, fallback timeout=%lu ms, cache delay=%d ms", cfg->ctimeout, cfg->ftimeout, cfg->delay);
-#ifdef CS_NOSHM
-	log_normal("shared memory initialized (size=%d, fd=%d)", shmsize, shmid);
-#else
-	log_normal("shared memory initialized (size=%d, id=%d)", shmsize, shmid);
-#endif
 }
 
 int main(int argc, char *argv[])
