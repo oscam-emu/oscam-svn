@@ -174,6 +174,21 @@ static char *log_get_header(int m, char *txt)
 	return txt;
 }
 
+static void log_store_entry(char *txt)
+{
+#ifdef CS_LOGHISTORY
+	char *ptr;
+
+	ptr = (char *) (loghist + (*loghistidx * CS_LOGHISTSIZE));
+	ptr[0] = '\1';	// make username unusable
+	ptr[1] = '\0';
+	if ((client[cs_idx].typ == 'c') || (client[cs_idx].typ == 'm'))
+		strncpy(ptr, client[cs_idx].usr, 31);
+	strncpy(ptr + 32, txt, CS_LOGHISTSIZE - 33);
+	*loghistidx = (*loghistidx + 1) % CS_MAXLOGHIST;
+#endif
+}
+
 static void log_write_to_log(int flag, char *txt)
 {
 	int i;
@@ -205,7 +220,7 @@ static void log_write_to_log(int flag, char *txt)
 		}
 //		}
 	}
-	oscam_store_logentry(buf);
+	log_store_entry(buf);
 
 	for (i = 0; i < CS_MAXPID; i++)	// monitor-clients
 	{

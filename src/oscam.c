@@ -1237,21 +1237,6 @@ static void oscam_store_ecm(ECM_REQUEST * er)
 	*ecmidx = (*ecmidx + 1) % CS_ECMCACHESIZE;
 }
 
-void oscam_store_logentry(char *txt)
-{
-#ifdef CS_LOGHISTORY
-	char *ptr;
-
-	ptr = (char *) (loghist + (*loghistidx * CS_LOGHISTSIZE));
-	ptr[0] = '\1';	// make username unusable
-	ptr[1] = '\0';
-	if ((client[cs_idx].typ == 'c') || (client[cs_idx].typ == 'm'))
-		strncpy(ptr, client[cs_idx].usr, 31);
-	strncpy(ptr + 32, txt, CS_LOGHISTSIZE - 33);
-	*loghistidx = (*loghistidx + 1) % CS_MAXLOGHIST;
-#endif
-}
-
 /*
  * oscam_write_to_pipe():
  * write all kind of data to pipe specified by fd
