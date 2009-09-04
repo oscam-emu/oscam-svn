@@ -12,7 +12,7 @@
 static uchar camdbug[256];	// camd send wrong order
 static uchar *req;
 
-static int camd33_send(uchar * buf, int ml)
+static int sharing_camd33_send(uchar * buf, int ml)
 {
 	int l;
 
@@ -26,7 +26,7 @@ static int camd33_send(uchar * buf, int ml)
 	return (send(pfd, buf, l, 0));
 }
 
-static int camd33_recv(uchar * buf, int l)
+static int sharing_camd33_recv(uchar * buf, int l)
 {
 	int n;
 
@@ -41,7 +41,7 @@ static int camd33_recv(uchar * buf, int l)
 	return (n);
 }
 
-static void camd33_request_emm()
+static void sharing_camd33_request_emm()
 {
 	int au;
 
@@ -56,11 +56,11 @@ static void camd33_request_emm()
 		memcpy(mbuf + 3, reader[au].hexserial, 4);
 		memcpy(mbuf + 7, &reader[au].prid[0][1], 3);
 		memcpy(mbuf + 10, &reader[au].prid[2][1], 3);
-		camd33_send(mbuf, 13);
+		sharing_camd33_send(mbuf, 13);
 	}
 }
 
-static void camd33_auth_client(in_addr_t ip)
+static void sharing_camd33_auth_client(in_addr_t ip)
 {
 	int i, rc;
 	uchar *usr = NULL, *pwd = NULL;
@@ -77,7 +77,7 @@ static void camd33_auth_client(in_addr_t ip)
 		aes_set_key((char *) cfg->c33_key);
 
 	mbuf[0] = 0;
-	camd33_send(mbuf, 1);	// send login-request
+	sharing_camd33_send(mbuf, 1);	// send login-request
 
 	for (rc = 0, camdbug[0] = 0, mbuf[0] = 1; (rc < 2) && (mbuf[0]); rc++) {
 		i = process_input(mbuf, sizeof (mbuf), 1);
@@ -91,7 +91,7 @@ static void camd33_auth_client(in_addr_t ip)
 		if ((!strcmp((char *) usr, account->usr)) && (!strcmp((char *) pwd, account->pwd)))
 			rc = cs_auth_client(account, NULL);
 	if (!rc)
-		camd33_request_emm();
+		sharing_camd33_request_emm();
 	else {
 		if (rc < 0)
 			cs_auth_client(0, usr ? "invalid account" : "no user given");
@@ -99,7 +99,7 @@ static void camd33_auth_client(in_addr_t ip)
 	}
 }
 
-static int get_request(uchar * buf, int n)
+static int sharing_camd33_get_request(uchar * buf, int n)
 {
 	int rc, w;
 
@@ -117,7 +117,7 @@ static int get_request(uchar * buf, int n)
 					rc = -1;
 				else {
 					buf[0] = 0;
-					camd33_send(buf, 1);
+					sharing_camd33_send(buf, 1);
 					w++;
 				}
 			case -1:
@@ -146,17 +146,17 @@ static int get_request(uchar * buf, int n)
 	return (rc);
 }
 
-static void camd33_send_dcw(ECM_REQUEST * er)
+static void sharing_camd33_send_dcw(ECM_REQUEST * er)
 {
 	mbuf[0] = 2;
 	memcpy(mbuf + 1, req + (er->cpti * REQ_SIZE), 4);	// get pin
 	memcpy(mbuf + 5, er->cw, 16);
-	camd33_send(mbuf, 21);
+	sharing_camd33_send(mbuf, 21);
 	if (!cfg->c33_passive)
-		camd33_request_emm();
+		sharing_camd33_request_emm();
 }
 
-static void camd33_process_ecm(uchar * buf, int l)
+static void sharing_camd33_process_ecm(uchar * buf, int l)
 {
 	ECM_REQUEST *er;
 
@@ -169,7 +169,7 @@ static void camd33_process_ecm(uchar * buf, int l)
 	get_cw(er);
 }
 
-static void camd33_process_emm(uchar * buf, int l)
+static void sharing_camd33_process_emm(uchar * buf, int l)
 {
 	memset(&epg, 0, sizeof (epg));
 	epg.l = l - 7;
@@ -179,7 +179,7 @@ static void camd33_process_emm(uchar * buf, int l)
 	do_emm(&epg);
 }
 
-static void camd33_server()
+static void sharing_camd33_server()
 {
 	int n;
 
@@ -190,15 +190,15 @@ static void camd33_server()
 	}
 	memset(req, 0, CS_MAXPENDING * REQ_SIZE);
 
-	camd33_auth_client(client[cs_idx].ip);
+	sharing_camd33_auth_client(client[cs_idx].ip);
 
-	while ((n = get_request(mbuf, sizeof (mbuf))) > 0) {
+	while ((n = sharing_camd33_get_request(mbuf, sizeof (mbuf))) > 0) {
 		switch (mbuf[0]) {
 			case 2:
-				camd33_process_ecm(mbuf, n);
+				sharing_camd33_process_ecm(mbuf, n);
 				break;
 			case 3:
-				camd33_process_emm(mbuf, n);
+				sharing_camd33_process_emm(mbuf, n);
 				break;
 			default:
 				cs_debug("unknown command !");
@@ -221,7 +221,7 @@ void sharing_camd33_module(struct s_module *ph)
 	ph->multi = 1;
 	ph->watchdog = 1;
 	ph->s_ip = cfg->c33_srvip;
-	ph->s_handler = camd33_server;
-	ph->recv = camd33_recv;
-	ph->send_dcw = camd33_send_dcw;
+	ph->s_handler = sharing_camd33_server;
+	ph->recv = sharing_camd33_recv;
+	ph->send_dcw = sharing_camd33_send_dcw;
 }
