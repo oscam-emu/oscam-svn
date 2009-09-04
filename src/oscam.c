@@ -1582,7 +1582,7 @@ static void oscam_chk_dcw(int fd)
 	return;
 }
 
-void oscam_request_cw(ECM_REQUEST * er, int flag, int reader_types)
+static void oscam_request_cw(ECM_REQUEST * er, int flag, int reader_types)
 {
 	int i;
 
