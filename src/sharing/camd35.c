@@ -16,7 +16,7 @@ static uchar upwd[64] = { 0 };
 static uchar *req;
 static int is_udp = 1;
 
-static int camd35_send(uchar * buf)
+static int sharing_camd35_send(uchar * buf)
 {
 	int l;
 	unsigned char rbuf[REQ_SIZE + 15 + 4], *sbuf = rbuf + 4;
@@ -38,7 +38,7 @@ static int camd35_send(uchar * buf)
 		return (send(client[cs_idx].udp_fd, rbuf, l + 4, 0));
 }
 
-static int camd35_auth_client(uchar * ucrc)
+static int sharing_camd35_auth_client(uchar * ucrc)
 {
 	int rc = 1;
 	ulong crc;
@@ -58,7 +58,7 @@ static int camd35_auth_client(uchar * ucrc)
 	return (rc);
 }
 
-static int camd35_recv(uchar * buf, int l)
+static int sharing_camd35_recv(uchar * buf, int l)
 {
 	int rc, n = 0, s, rs;
 	unsigned char recrc[4];
@@ -84,7 +84,7 @@ static int camd35_recv(uchar * buf, int l)
 			case 1:
 				memcpy(recrc, buf, 4);
 				memmove(buf, buf + 4, rs -= 4);
-				switch (camd35_auth_client(recrc)) {
+				switch (sharing_camd35_auth_client(recrc)) {
 					case 0:
 						break;	// ok
 					case 1:
@@ -138,7 +138,7 @@ static int camd35_recv(uchar * buf, int l)
  *	server functions
  */
 
-static void camd35_request_emm(ECM_REQUEST * er)
+static void sharing_camd35_request_emm(ECM_REQUEST * er)
 {
 	int i, au;
 	time_t now;
@@ -203,13 +203,13 @@ static void camd35_request_emm(ECM_REQUEST * er)
 	} else	// disable emm
 		mbuf[20] = mbuf[39] = mbuf[40] = mbuf[47] = mbuf[49] = 1;
 	memcpy(mbuf + 10, mbuf + 20, 2);
-	camd35_send(mbuf);	// send with data-len 111 for camd3 > 3.890
+	sharing_camd35_send(mbuf);	// send with data-len 111 for camd3 > 3.890
 	mbuf[1]++;
-	camd35_send(mbuf);	// send with data-len 112 for camd3 < 3.890
+	sharing_camd35_send(mbuf);	// send with data-len 112 for camd3 < 3.890
 //  }
 }
 
-static void camd35_send_dcw(ECM_REQUEST * er)
+static void sharing_camd35_send_dcw(ECM_REQUEST * er)
 {
 	uchar *buf;
 
@@ -224,11 +224,11 @@ static void camd35_send_dcw(ECM_REQUEST * er)
 		buf[0] = 0x44;
 		buf[1] = 0;
 	}
-	camd35_send(buf);
-	camd35_request_emm(er);
+	sharing_camd35_send(buf);
+	sharing_camd35_request_emm(er);
 }
 
-static void camd35_process_ecm(uchar * buf)
+static void sharing_camd35_process_ecm(uchar * buf)
 {
 	ECM_REQUEST *er;
 
@@ -244,7 +244,7 @@ static void camd35_process_ecm(uchar * buf)
 	get_cw(er);
 }
 
-static void camd35_process_emm(uchar * buf)
+static void sharing_camd35_process_emm(uchar * buf)
 {
 	int au;
 
@@ -260,7 +260,7 @@ static void camd35_process_emm(uchar * buf)
 	do_emm(&epg);
 }
 
-static void camd35_server()
+static void sharing_camd35_server()
 {
 	int n;
 
@@ -277,10 +277,10 @@ static void camd35_server()
 		switch (mbuf[0]) {
 			case 0:	// ECM
 			case 3:	// ECM (cascading)
-				camd35_process_ecm(mbuf);
+				sharing_camd35_process_ecm(mbuf);
 				break;
 			case 6:	// EMM
-				camd35_process_emm(mbuf);
+				sharing_camd35_process_emm(mbuf);
 				break;
 			default:
 				cs_log("unknown command !");
@@ -299,7 +299,7 @@ static void camd35_server()
  *	client functions
  */
 
-static void casc_set_account()
+static void sharing_camd35_casc_set_account()
 {
 	strcpy((char *) upwd, reader[ridx].r_pwd);
 	memcpy(client[cs_idx].ucrc, i2b(4, crc32(0L, MD5((unsigned char *) reader[ridx].r_usr, strlen(reader[ridx].r_usr), NULL), 16)), 4);
@@ -307,11 +307,11 @@ static void casc_set_account()
 	client[cs_idx].crypted = 1;
 }
 
-static int camd35_client_init()
+static int sharing_camd35_client_init()
 {
 	static struct sockaddr_in loc_sa;
 	struct protoent *ptrp;
-	int p_proto;		//, sock_type;
+	int p_proto;
 	char ptxt[16];
 
 	pfd = 0;
@@ -353,7 +353,7 @@ static int camd35_client_init()
 	} else
 		ptxt[0] = '\0';
 
-	casc_set_account();
+	sharing_camd35_casc_set_account();
 	memset((char *) &client[cs_idx].udp_sa, 0, sizeof (client[cs_idx].udp_sa));
 	client[cs_idx].udp_sa.sin_family = AF_INET;
 	client[cs_idx].udp_sa.sin_port = htons((u_short) reader[ridx].r_port);
@@ -366,7 +366,7 @@ static int camd35_client_init()
 	return (0);
 }
 
-static int camd35_client_init_log()
+static int sharing_camd35_client_init_log()
 {
 	static struct sockaddr_in loc_sa;
 	struct protoent *ptrp;
@@ -404,7 +404,7 @@ static int camd35_client_init_log()
 	return (0);
 }
 
-static int tcp_connect()
+static int sharing_camd35_tcp_connect()
 {
 	if (!reader[ridx].tcp_connected) {
 		int handle = 0;
@@ -422,12 +422,12 @@ static int tcp_connect()
 	return (1);
 }
 
-static int camd35_send_ecm(ECM_REQUEST * er, uchar * buf)
+static int sharing_camd35_send_ecm(ECM_REQUEST * er, uchar * buf)
 {
 	if (!client[cs_idx].udp_sa.sin_addr.s_addr)	// once resolved at least
 		return (-1);
 
-	if (!is_udp && !tcp_connect())
+	if (!is_udp && !sharing_camd35_tcp_connect())
 		return (-1);
 
 	memset(buf, 0, 20);
@@ -436,30 +436,29 @@ static int camd35_send_ecm(ECM_REQUEST * er, uchar * buf)
 	memcpy(buf + 8, i2b(2, er->srvid), 2);
 	memcpy(buf + 10, i2b(2, er->caid), 2);
 	memcpy(buf + 12, i2b(4, er->prid), 4);
-//  memcpy(buf+16, i2b(2, er->pid  ), 2);
-//  memcpy(buf+16, &er->idx , 2);
+//	memcpy(buf+16, i2b(2, er->pid  ), 2);
+//	memcpy(buf+16, &er->idx , 2);
 	memcpy(buf + 16, i2b(2, er->idx), 2);
 	buf[18] = 0xff;
 	buf[19] = 0xff;
 	memcpy(buf + 20, er->ecm, er->l);
-	return ((camd35_send(buf) < 1) ? (-1) : 0);
+	return ((sharing_camd35_send(buf) < 1) ? (-1) : 0);
 }
 
-static int camd35_recv_chk(uchar * dcw, int *rc, uchar * buf, int n)
+static int sharing_camd35_recv_chk(uchar * dcw, int *rc, uchar * buf, int n)
 {
-	//int i;
 	ushort idx;
 
 	if ((buf[0] != 1) && (buf[0] != 0x44))	// no cw, ignore others
 		return (-1);
-//  memcpy(&idx, buf+16, 2);
+//	memcpy(&idx, buf+16, 2);
 	idx = b2i(2, buf + 16);
 	*rc = (buf[0] != 0x44);
 	memcpy(dcw, buf + 20, 16);
 	return (idx);
 }
 
-static int camd35_recv_log(ushort * caid, ulong * provid, ushort * srvid)
+static int sharing_camd35_recv_log(ushort * caid, ulong * provid, ushort * srvid)
 {
 	int i;
 	uchar buf[512], *ptr, *ptr2;
@@ -519,15 +518,15 @@ void sharing_camd35_module_udp(struct s_module *ph)
 	ph->multi = 1;
 	ph->watchdog = 1;
 	ph->s_ip = cfg->c35_srvip;
-	ph->s_handler = camd35_server;
-	ph->recv = camd35_recv;
-	ph->send_dcw = camd35_send_dcw;
+	ph->s_handler = sharing_camd35_server;
+	ph->recv = sharing_camd35_recv;
+	ph->send_dcw = sharing_camd35_send_dcw;
 	ph->c_multi = 1;
-	ph->c_init = camd35_client_init;
-	ph->c_recv_chk = camd35_recv_chk;
-	ph->c_send_ecm = camd35_send_ecm;
-	ph->c_init_log = camd35_client_init_log;
-	ph->c_recv_log = camd35_recv_log;
+	ph->c_init = sharing_camd35_client_init;
+	ph->c_recv_chk = sharing_camd35_recv_chk;
+	ph->c_send_ecm = sharing_camd35_send_ecm;
+	ph->c_init_log = sharing_camd35_client_init_log;
+	ph->c_recv_log = sharing_camd35_recv_log;
 }
 
 void sharing_camd35_module_tcp(struct s_module *ph)
@@ -540,13 +539,13 @@ void sharing_camd35_module_tcp(struct s_module *ph)
 	if (ph->ptab->nports == 0)
 		ph->ptab->nports = 1;	// show disabled in log
 	ph->s_ip = cfg->c35_tcp_srvip;
-	ph->s_handler = camd35_server;
-	ph->recv = camd35_recv;
-	ph->send_dcw = camd35_send_dcw;
+	ph->s_handler = sharing_camd35_server;
+	ph->recv = sharing_camd35_recv;
+	ph->send_dcw = sharing_camd35_send_dcw;
 	ph->c_multi = 1;
-	ph->c_init = camd35_client_init;
-	ph->c_recv_chk = camd35_recv_chk;
-	ph->c_send_ecm = camd35_send_ecm;
-	ph->c_init_log = camd35_client_init_log;
-	ph->c_recv_log = camd35_recv_log;
+	ph->c_init = sharing_camd35_client_init;
+	ph->c_recv_chk = sharing_camd35_recv_chk;
+	ph->c_send_ecm = sharing_camd35_send_ecm;
+	ph->c_init_log = sharing_camd35_client_init_log;
+	ph->c_recv_log = sharing_camd35_recv_log;
 }
