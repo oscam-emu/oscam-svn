@@ -118,21 +118,7 @@ char cs_memfile[128] = CS_MMAPFILE;
 *****************************************************************************/
 static char mloc[128] = { 0 };
 static int cs_last_idx = 0;	// client index of last fork (master only)
-static char *logo = "  ___  ____                      \n / _ \\/ ___|  ___ __ _ _ __ ___  \n| | | \\___ \\ / __/ _` | '_ ` _ \\ \n| |_| |___) | (_| (_| | | | | | |\n \\___/|____/ \\___\\__,_|_| |_| |_|\n";
-static char *credit[] = {
-	"dukat for the great MpCS piece of code",
-	"all members of streamboard.de.vu for testing",
-	"scotty and aroureos for the first softcam (no longer used)",
-	"John Moore for the hsic-client (humax 5400) and the arm-support",
-	"doz21 for the sio-routines and his support on camd3-protocol",
-	"kindzadza for his support on radegast-protocol",
-	"DS and ago for several modules in mpcs development",
-	"dingo35 for seca reader-support",
-	"dingo35 and okmikel for newcamd-support",
-	"hellmaster1024 for gb*x-support",
-	"the vdr-sc team for several good ideas :-)",
-	NULL
-};
+static char *logo = "  ___  ____   ___                \n / _ \\/ ___| / __|__ _ _ __ ___  \n| | | \\___ \\| |  / _` | '_ ` _ \\ \n| |_| |___) | |_| (_| | | | | | |\n \\___/|____/ \\___\\__,_|_| |_| |_|\n";
 
 static void oscam_set_mloc(int ato, char *txt)
 {
@@ -179,10 +165,9 @@ char *oscam_platform(char *buf)
 
 static void oscam_usage()
 {
-	int i;
-
 	fprintf(stderr, "%s\n\n", logo);
-	fprintf(stderr, "OSCam cardserver v%s (%s) - (w) 2009 by smurzch\n", CS_VERSION, CS_OSTYPE);
+	fprintf(stderr, "OSCam cardserver v%s (%s) - (w) 2009 streamboard SVN\n", CS_VERSION, CS_OSTYPE);
+	fprintf(stderr, "\tsee http://streamboard.gmc.to:8001/oscam for more details\n");
 	fprintf(stderr, "\tbased on streamboard mp-cardserver v0.9d - (w) 2004-2007 by dukat\n\n");
 	fprintf(stderr, "oscam [-b] [-c config-dir]");
 #ifdef CS_NOSHM
@@ -195,10 +180,6 @@ static void oscam_usage()
 	fprintf(stderr, "\t-m <file>: use <file> as mmaped memory file\n");
 	fprintf(stderr, "\t           default=%s\n", CS_MMAPFILE);
 #endif
-	fprintf(stderr, "\nthanks to ...\n");
-	for (i = 0; credit[i]; i++) {
-		fprintf(stderr, "\t%s\n", credit[i]);
-	}
 	fprintf(stderr, "\n");
 
 	exit(1);
