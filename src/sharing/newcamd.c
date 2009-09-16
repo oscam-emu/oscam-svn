@@ -579,10 +579,16 @@ static void sharing_newcamd_auth_client(in_addr_t ip)
 			passwdcrypt = (uchar *) __md5_crypt(account->pwd, "$1$abcdefgh$");
 			log_debug("account->pwd=%s", passwdcrypt);
 			if (strcmp((char *) pwd, (const char *) passwdcrypt) == 0) {
+				int auth_reject;
 				client[cs_idx].crypted = 1;
-				oscam_auth_client(account, NULL);
-				log_normal("user %s authenticated successfully (using client %02X%02X)", usr, mbuf[0], mbuf[1]);
-				ok = 1;
+				auth_reject = oscam_auth_client(account, NULL);
+				if (!auth_reject) {
+					log_normal("user %s authenticated successfully (using client %02X%02X)", usr, mbuf[0], mbuf[1]);
+					ok = 1;
+				} else {
+					log_normal("user %s did not authenticate (using client %02X%02X) (error: %d)", usr, mbuf[0], mbuf[1], auth_reject);
+				}
+
 				break;
 			} else {
 				log_normal("user %s is providing a wrong password (using client %02X%02X)", usr, mbuf[0], mbuf[1]);
