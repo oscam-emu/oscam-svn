@@ -120,11 +120,17 @@ int PPS_Perform(PPS * pps, BYTE * params, unsigned *length)
 		ATR_GetParameter(atr, ATR_PARAMETER_N, &(pps->parameters.n));
 		ATR_GetParameter(atr, ATR_PARAMETER_D, &(pps->parameters.d));
 		ATR_GetParameter(atr, ATR_PARAMETER_F, &(pps->parameters.f));
+        
+        // for some unknown reason (for now):
+        // ATR_GetParameter(atr, ATR_PARAMETER_D, &(pps->parameters.d)); 
+        // set pps->parameters.d to 0 on viaccess
+        // this totaly breaks on OS X
+        // so for now we're commenting the PPS_InitICC call.
+        
+		//ret = PPS_InitICC(pps);
 
-		ret = PPS_InitICC(pps);
-
-		if (ret != PPS_OK)
-			return ret;
+		//if (ret != PPS_OK)
+		//	return ret;
 #endif
 	}
 
