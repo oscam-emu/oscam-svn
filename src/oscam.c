@@ -1237,7 +1237,7 @@ int oscam_auth_client(struct s_auth *account, char *e_txt)
 void oscam_disconnect_client()
 {
 	if (client[cs_idx].ip) {
-		log_normal("%s disconnected%s from %s", oscam_username(cs_idx), network_inet_ntoa(client[cs_idx].ip));
+		log_normal("%s disconnected %s from %s", oscam_username(cs_idx), network_inet_ntoa(client[cs_idx].ip));
 	} else {
 		log_normal("%s disconnected", oscam_username(cs_idx));
 	}

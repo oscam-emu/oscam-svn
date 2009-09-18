@@ -3,10 +3,10 @@ oscam.user(5)							 oscam.user(5)
 
 
 NAME
-       oscam.user - user configuration file for oscam
+       oscam.user - user configuration file for OSCam
 
 SYNOPSIS
-       The  user  configuration  file  for  oscam  contains  user definitions.
+       The  user  configuration  file  for  OSCam  contains  user definitions.
        [account] sections in oscam.user are recurring (more than one account).
 
 SECTION DESCRIPTIONS
