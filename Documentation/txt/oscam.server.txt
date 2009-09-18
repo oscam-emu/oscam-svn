@@ -66,11 +66,8 @@ SECTION DESCRIPTIONS
        detect = CD|DSR|CTS|RING|NONE|gpio[2-7]
 	  status detect of card (NONE = no detection), default:CD
 
-       mhz = 357|358|600|1000
+       frequency = 357|358|600|1000
 	  set serial speed in mhz, default:none
-
-       customspeed = 0,1
-	  use "mhz" parameter to set serial speed, default:0
 
        protocol = reader protocol
 	  reader protocol, required:
