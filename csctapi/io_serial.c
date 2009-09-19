@@ -643,84 +643,23 @@ void IO_Serial_Delete(IO_Serial * io)
 
 static int IO_Serial_Bitrate_to_Speed(int bitrate)
 {
-#ifdef B230400
-	if ((bitrate) >= 230400)
-		return B230400;
-#endif
-#ifdef B115200
-	if ((bitrate) >= 115200)
-		return B115200;
-#endif
-#ifdef B57600
-	if ((bitrate) >= 57600)
-		return B57600;
-#endif
-#ifdef B38400
-	if ((bitrate) >= 38400)
-		return B38400;
-#endif
-#ifdef B19200
-	if ((bitrate) >= 19200)
-		return B19200;
-#endif
-#ifdef B9600
-	if ((bitrate) >= 9600)
-		return B9600;
-#endif
-#ifdef B4800
-	if ((bitrate) >= 4800)
-		return B4800;
-#endif
-#ifdef B2400
-	if ((bitrate) >= 2400)
-		return B2400;
-#endif
-#ifdef B1800
-	if ((bitrate) >= 1800)
-		return B1800;
-#endif
-#ifdef B1200
-	if ((bitrate) >= 1200)
-		return B1200;
-#endif
-#ifdef B600
-	if ((bitrate) >= 600)
-		return B600;
-#endif
-#ifdef B300
-	if ((bitrate) >= 300)
-		return B300;
-#endif
-#ifdef B200
-	if ((bitrate) >= 200)
-		return B200;
-#endif
-#ifdef B150
-	if ((bitrate) >= 150)
-		return B150;
-#endif
-#ifdef B134
-	if ((bitrate) >= 134)
-		return B134;
-#endif
-#ifdef B110
-	if ((bitrate) >= 110)
-		return B110;
-#endif
-#ifdef B75
-	if ((bitrate) >= 75)
-		return B75;
-#endif
-#ifdef B50
-	if ((bitrate) >= 50)
-		return B50;
-#endif
-#ifdef B0
-	if ((bitrate) >= 0)
-		return B0;
-#endif
+	static const struct BaudRates { int real; speed_t apival; } BaudRateTab[] = {
+		{   200, B200   }, {  300, B300  }, {  600, B600  },
+		{   1200, B1200   }, {  2400, B2400  }, {  4800, B4800  },
+		{   9600, B9600   }, {  19200, B19200  }, {  38400, B38400  },
+		{  57600, B57600  }, { 115200, B115200 }, { 230400, B230400 }
+    };
 
-	return 0;	/* Should never get here */
+	int i;
+	
+	for(i=0; i<(int)(sizeof(BaudRateTab)/sizeof(struct BaudRates)); i++) {
+		int b=BaudRateTab[i].real;
+		int d=((b-bitrate)*10000)/b;
+		if(abs(d)<=300) {
+			return BaudRateTab[i].apival;
+		}
+    }
+	return B0;
 }
 
 static int IO_Serial_Bitrate_from_Speed(int speed)
