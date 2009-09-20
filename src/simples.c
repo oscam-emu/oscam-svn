@@ -187,11 +187,11 @@ ulong b2i(int n, uchar * b)
 {
 	switch (n) {
 		case 2:
-			return ((b[0] << 8) | b[1]);
+			return 0xFFFF & ((b[0] << 8) | b[1]);
 		case 3:
-			return ((b[0] << 16) | (b[1] << 8) | b[2]);
+			return 0xFFFFFF & ((b[0] << 16) | (b[1] << 8) | b[2]);
 		case 4:
-			return ((b[0] << 24) | (b[1] << 16) | (b[2] << 8) | b[3]);
+			return 0xFFFFFFFF & ((b[0] << 24) | (b[1] << 16) | (b[2] << 8) | b[3]);
 	}
 
 	return 0;
