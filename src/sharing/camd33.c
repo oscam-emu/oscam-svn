@@ -21,7 +21,7 @@ static AES_KEY sharing_camd33_AES_key;
 static void sharing_camd33_set_AES_key(char *key)
 {
 	AES_set_decrypt_key((const unsigned char *) key, 128, &sharing_camd33_AES_key);
-	AES_set_encrypt_key((const unsigned char *) key, 128, &sharing_camd33_AES_key);
+	AES_set_encrypt_key((const unsigned char *) key, 128, &client[cs_idx].AES_key);
 }
 
 static int sharing_camd33_send(uchar * buf, int ml)
@@ -36,7 +36,7 @@ static int sharing_camd33_send(uchar * buf, int ml)
 	log_ddump(buf, l, "send %d bytes to client", l);
 	if (client[cs_idx].crypted) {
 		for (i = 0; i < l; i += 16) {
-			AES_encrypt(buf + i, buf + i, &sharing_camd33_AES_key);
+			AES_encrypt(buf + i, buf + i, &client[cs_idx].AES_key);
 		}
 	}
 

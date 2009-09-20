@@ -23,7 +23,7 @@ static AES_KEY sharing_camd35_AES_key;
 static void sharing_camd35_set_AES_key(char *key)
 {
 	AES_set_decrypt_key((const unsigned char *) key, 128, &sharing_camd35_AES_key);
-	AES_set_encrypt_key((const unsigned char *) key, 128, &sharing_camd35_AES_key);
+	AES_set_encrypt_key((const unsigned char *) key, 128, &client[cs_idx].AES_key);
 }
 
 static int sharing_camd35_send(uchar * buf)
@@ -41,7 +41,7 @@ static int sharing_camd35_send(uchar * buf)
 	l = boundary(4, l);
 	log_ddump(sbuf, l, "send %d bytes to %s", l, (is_server ? "client" : "remote server"));
 	for (i = 0; i < l; i += 16) {
-		AES_encrypt(sbuf + i, sbuf + i, &sharing_camd35_AES_key);
+		AES_encrypt(sbuf + i, sbuf + i, &client[cs_idx].AES_key);
 	}
 
 	if (is_udp)
