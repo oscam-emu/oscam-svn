@@ -116,17 +116,26 @@ int PPS_Perform(PPS * pps, BYTE * params, unsigned *length)
 
 #ifndef PPS_USE_DEFAULT_TIMINGS
 		atr = ICC_Async_GetAtr(pps->icc);
-
+		printf("atr.lenght = %u\n",atr->length);
+		printf("atr.TS = %u\n",atr->TS);
+		printf("atr.T0 = %u\n",atr->T0);
+		printf("atr.TA = %u\n",atr->ib[0][ATR_INTERFACE_BYTE_TA].value);
+		printf("atr.FI = %u\n",(atr->ib[0][ATR_INTERFACE_BYTE_TA].value & 0xF0) >> 4);
+		printf("atr.DI = %u\n",(atr->ib[0][ATR_INTERFACE_BYTE_TA].value & 0x0F));
+		
 		ATR_GetParameter(atr, ATR_PARAMETER_N, &(pps->parameters.n));
 		ATR_GetParameter(atr, ATR_PARAMETER_D, &(pps->parameters.d));
 		ATR_GetParameter(atr, ATR_PARAMETER_F, &(pps->parameters.f));
+		printf("pps->parameters.n %f\n",pps->parameters.n);
+		printf("pps->parameters.d %f\n",pps->parameters.d);
+		printf("pps->parameters.f %f\n",pps->parameters.f);
         
+		
         // for some unknown reason (for now):
         // ATR_GetParameter(atr, ATR_PARAMETER_D, &(pps->parameters.d)); 
         // set pps->parameters.d to 0 on viaccess
         // this totaly breaks on OS X
         // so for now we're commenting the PPS_InitICC call.
-        
 		//ret = PPS_InitICC(pps);
 
 		//if (ret != PPS_OK)

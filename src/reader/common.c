@@ -115,8 +115,8 @@ static int reader_common_init_card(struct s_reader *reader)
 int reader_common_init(struct s_reader *reader)
 {
 	int rc = 0;
-
 	if ((reader->type & R_IS_SERIAL) != 0) {
+		printf("reader_common_init\n");
 		rc = reader_serial_init(reader);
 		log_normal("Reader: Initialized serial reader %s (%s @ %2.2f Mhz %s%s)", reader->label, reader->device, (float) reader->frequency / 1000000, reader->detect & 0x80 ? "!" : "", RDR_CD_TXT[reader->detect & 0x7f]);
 	}
