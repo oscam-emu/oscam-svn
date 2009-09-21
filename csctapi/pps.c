@@ -101,6 +101,11 @@ int PPS_Perform(PPS * pps, BYTE * params, unsigned *length)
 			if (PPS_HAS_PPS1(params)) {
 				pps->parameters.f = atr_f_table[(params[2] >> 4)];
 				pps->parameters.d = atr_d_table[(params[2] & 0x0F)];
+				if(pps->parameters.d==0)
+				    {
+				    // we need to attempt PTS, if it fails we need to set pps->parameters.d to 1 as 0 is not a valid value
+				    pps->parameters.d=ATR_DEFAULT_D;
+				    }
 			}
 
 			ret = PPS_InitICC(pps);
@@ -127,21 +132,21 @@ int PPS_Perform(PPS * pps, BYTE * params, unsigned *length)
 		ATR_GetParameter(atr, ATR_PARAMETER_N, &(pps->parameters.n));
 		ATR_GetParameter(atr, ATR_PARAMETER_D, &(pps->parameters.d));
 		ATR_GetParameter(atr, ATR_PARAMETER_F, &(pps->parameters.f));
+        if(pps->parameters.d==0)
+            {
+            // we need to attempt PTS, if it fails we need to set pps->parameters.d to 1 as 0 is not a valid value
+            pps->parameters.d=ATR_DEFAULT_D;
+            }
+
 #ifdef DEBUG_PROTOCOL
 		printf("pps->parameters.n %f\n",pps->parameters.n);
 		printf("pps->parameters.d %f\n",pps->parameters.d);
 		printf("pps->parameters.f %f\n",pps->parameters.f);
 #endif        
-		
-        // for some unknown reason (for now):
-        // ATR_GetParameter(atr, ATR_PARAMETER_D, &(pps->parameters.d)); 
-        // set pps->parameters.d to 0 on viaccess
-        // this totaly breaks on OS X
-        // so for now we're commenting the PPS_InitICC call.
-		//ret = PPS_InitICC(pps);
+		ret = PPS_InitICC(pps);
 
-		//if (ret != PPS_OK)
-		//	return ret;
+		if (ret != PPS_OK)
+			return ret;
 #endif
 	}
 
