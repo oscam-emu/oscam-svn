@@ -116,20 +116,22 @@ int PPS_Perform(PPS * pps, BYTE * params, unsigned *length)
 
 #ifndef PPS_USE_DEFAULT_TIMINGS
 		atr = ICC_Async_GetAtr(pps->icc);
+#ifdef DEBUG_PROTOCOL
 		printf("atr.lenght = %u\n",atr->length);
 		printf("atr.TS = %u\n",atr->TS);
 		printf("atr.T0 = %u\n",atr->T0);
 		printf("atr.TA = %u\n",atr->ib[0][ATR_INTERFACE_BYTE_TA].value);
 		printf("atr.FI = %u\n",(atr->ib[0][ATR_INTERFACE_BYTE_TA].value & 0xF0) >> 4);
 		printf("atr.DI = %u\n",(atr->ib[0][ATR_INTERFACE_BYTE_TA].value & 0x0F));
-		
+#endif		
 		ATR_GetParameter(atr, ATR_PARAMETER_N, &(pps->parameters.n));
 		ATR_GetParameter(atr, ATR_PARAMETER_D, &(pps->parameters.d));
 		ATR_GetParameter(atr, ATR_PARAMETER_F, &(pps->parameters.f));
+#ifdef DEBUG_PROTOCOL
 		printf("pps->parameters.n %f\n",pps->parameters.n);
 		printf("pps->parameters.d %f\n",pps->parameters.d);
 		printf("pps->parameters.f %f\n",pps->parameters.f);
-        
+#endif        
 		
         // for some unknown reason (for now):
         // ATR_GetParameter(atr, ATR_PARAMETER_D, &(pps->parameters.d)); 
