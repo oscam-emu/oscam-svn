@@ -195,11 +195,13 @@ int IFD_Towitoko_Init(IFD * ifd, IO_Serial * io, BYTE slot)
 	}
 
 	// set smartreader+ default values
-	// use the frequency to get F for the smartreader
-	// to make sure the ATR is sent at 9600.
-	sr_config.F=io->frequency/9600;
+	// for Irdeto card, the Frequency is 6.00MHz and the F parameter need to be set to 558
+	// test have shown that an irdeto card still reply to an ATR at 9600 with a Freq of 3.5712 MHz
+	// we need to do more test to see if this work with irdeto cards so I'm reverting my changes
+	// to use the original default smartreader+ values 
+	sr_config.F=372;
 	sr_config.D=1.0;
-	sr_config.fs=io->frequency;
+	sr_config.fs=3571200;
 	sr_config.N=0;
 	sr_config.T=0;
 	sr_config.inv=0;
