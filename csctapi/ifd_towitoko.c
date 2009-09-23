@@ -195,9 +195,11 @@ int IFD_Towitoko_Init(IFD * ifd, IO_Serial * io, BYTE slot)
 	}
 
 	// set smartreader+ default values
-	sr_config.F=372;
+	// use the frequency to get F for the smartreader
+	// to make sure the ATR is sent at 9600.
+	sr_config.F=io->frequency/9600;
 	sr_config.D=1.0;
-	sr_config.fs=3571200;
+	sr_config.fs=io->frequency;
 	sr_config.N=0;
 	sr_config.T=0;
 	sr_config.inv=0;

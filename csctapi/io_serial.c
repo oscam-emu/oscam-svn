@@ -291,9 +291,11 @@ bool IO_Serial_GetProperties(IO_Serial * io, IO_Serial_Properties * props, SR_Co
 	props->rts = ((mctl & TIOCM_RTS) ? IO_SERIAL_HIGH : IO_SERIAL_LOW);
 
 	// set smartreader+ default values
-	sr_config->F=372;
+	// use the frequency to get F for the smartreader
+	// to make sure the ATR is sent at 9600.
+	sr_config->F=io->frequency/9600;
 	sr_config->D=1.0;
-	sr_config->fs=3571200;
+	sr_config->fs=io->frequency;
 	sr_config->N=0;
 	sr_config->T=0;
 	sr_config->inv=0;
@@ -962,9 +964,11 @@ static bool IO_Serial_InitPnP(IO_Serial * io)
 	}
 
 	// set smartreader+ default values
-	srConfig.F=372;
+	// use the frequency to get F for the smartreader
+	// to make sure the ATR is sent at 9600.
+	srConfig.F=io->frequency/9600;
 	srConfig.D=1.0;
-	srConfig.fs=3571200;
+	srConfig.fs=io->frequency;
 	srConfig.N=0;
 	srConfig.T=0;
 	srConfig.inv=0;
