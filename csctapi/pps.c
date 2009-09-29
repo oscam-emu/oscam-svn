@@ -85,6 +85,71 @@ PPS *PPS_New(ICC_Async * icc)
 	return pps;
 }
 
+int PPS_PreformPTS(PPS *pps)
+{
+	int ret;
+	int i;
+	unsigned long baudrate;
+	BYTE req[4];
+	BYTE confirm[PPS_MAX_LENGTH];
+	ATR *atr;
+	unsigned len_confirm;
+	unsigned len_request=4;
+	
+	
+	atr = ICC_Async_GetAtr(pps->icc);
+	ATR_GetProtocolType(atr,0,&(pps->parameters.t));
+
+	req[0]=0xFF;
+    req[1]=0x10 | pps->parameters.t;
+    req[2]=atr->ib[0][ATR_INTERFACE_BYTE_TA].value;
+    req[3]=PPS_GetPCK(req,len_request-1);
+	
+#ifdef DEBUG_PROTOCOL
+	printf("PTS: Sending request: ");
+	for (i = 0; i < len_request; i++)
+		printf("%X ", req[i]);
+	printf("\n");
+#endif
+	
+	/* Send PTS request */
+	if (ICC_Async_Transmit(pps->icc, len_request, req) != ICC_ASYNC_OK)
+		return PPS_ICC_ERROR;
+	
+	if (ICC_Async_Receive(pps->icc, len_request, confirm) != ICC_ASYNC_OK)
+	{
+#ifdef DEBUG_PROTOCOL
+		printf("PTS: error receiving PTS answer !!\n");
+#endif
+		return PPS_ICC_ERROR;
+	}
+	
+	len_confirm=len_request;
+	
+#ifdef DEBUG_PROTOCOL
+	printf("PTS: Receiving confirm: ");
+	for (i = 0; i < len_confirm; i++)
+		printf("%X ", confirm[i]);
+	printf("\n");
+#endif
+	
+	if (!PPS_Match(req, len_request, confirm, len_confirm))
+		ret = PPS_HANDSAKE_ERROR;
+	else
+		ret = PPS_OK;
+	
+	/* Copy PPS handsake */
+	memcpy(req, confirm, len_confirm);
+	
+	// compute baudrate to be use if PTS handshake was successfull.
+	baudrate=(long unsigned int)((float)ICC_Async_GetClockRate(pps->icc)*pps->parameters.d /pps->parameters.f);
+
+	if (ICC_Async_SetBaudrate(pps->icc, baudrate) != ICC_ASYNC_OK)
+		return PPS_ICC_ERROR;
+
+	return ret;
+}
+
 int PPS_Perform(PPS * pps, BYTE * params, unsigned *length)
 {
 	ATR *atr;
@@ -103,9 +168,15 @@ int PPS_Perform(PPS * pps, BYTE * params, unsigned *length)
 				pps->parameters.d = atr_d_table[(params[2] & 0x0F)];
 				if(pps->parameters.d==0)
 				    {
-				    // we need to attempt PTS, if it fails we need to set pps->parameters.d to 1 as 0 is not a valid value
+				    // set pps->parameters.d to 1 as 0 is not a valid value
 				    pps->parameters.d=ATR_DEFAULT_D;
 				    }
+#ifdef DEBUG_PROTOCOL
+				printf("PPS: pps->parameters.n %f\n",pps->parameters.n);
+				printf("PPS: pps->parameters.d %f\n",pps->parameters.d);
+				printf("PPS: pps->parameters.f %f\n",pps->parameters.f);
+				printf("PPS: Calling PPP_InitICC to set PPS params\n");
+#endif        
 			}
 
 			ret = PPS_InitICC(pps);
@@ -122,26 +193,27 @@ int PPS_Perform(PPS * pps, BYTE * params, unsigned *length)
 #ifndef PPS_USE_DEFAULT_TIMINGS
 		atr = ICC_Async_GetAtr(pps->icc);
 #ifdef DEBUG_PROTOCOL
-		printf("atr.lenght = %u\n",atr->length);
-		printf("atr.TS = %u\n",atr->TS);
-		printf("atr.T0 = %u\n",atr->T0);
-		printf("atr.TA = %u\n",atr->ib[0][ATR_INTERFACE_BYTE_TA].value);
-		printf("atr.FI = %u\n",(atr->ib[0][ATR_INTERFACE_BYTE_TA].value & 0xF0) >> 4);
-		printf("atr.DI = %u\n",(atr->ib[0][ATR_INTERFACE_BYTE_TA].value & 0x0F));
+		printf("PPS: atr.lenght = %u\n",atr->length);
+		printf("PPS: atr.TS = %u\n",atr->TS);
+		printf("PPS: atr.T0 = %u\n",atr->T0);
+		printf("PPS: atr.TA = %u\n",atr->ib[0][ATR_INTERFACE_BYTE_TA].value);
+		printf("PPS: atr.FI = %u\n",(atr->ib[0][ATR_INTERFACE_BYTE_TA].value & 0xF0) >> 4);
+		printf("PPS: atr.DI = %u\n",(atr->ib[0][ATR_INTERFACE_BYTE_TA].value & 0x0F));
 #endif		
 		ATR_GetParameter(atr, ATR_PARAMETER_N, &(pps->parameters.n));
 		ATR_GetParameter(atr, ATR_PARAMETER_D, &(pps->parameters.d));
 		ATR_GetParameter(atr, ATR_PARAMETER_F, &(pps->parameters.f));
         if(pps->parameters.d==0)
             {
-            // we need to attempt PTS, if it fails we need to set pps->parameters.d to 1 as 0 is not a valid value
+            // set pps->parameters.d to 1 as 0 is not a valid value
             pps->parameters.d=ATR_DEFAULT_D;
             }
 
 #ifdef DEBUG_PROTOCOL
-		printf("pps->parameters.n %f\n",pps->parameters.n);
-		printf("pps->parameters.d %f\n",pps->parameters.d);
-		printf("pps->parameters.f %f\n",pps->parameters.f);
+		printf("PPS: pps->parameters.n %f\n",pps->parameters.n);
+		printf("PPS: pps->parameters.d %f\n",pps->parameters.d);
+		printf("PPS: pps->parameters.f %f\n",pps->parameters.f);
+		printf("PPS: Calling PPP_InitICC to set PPS params\n");
 #endif        
 		ret = PPS_InitICC(pps);
 
@@ -156,7 +228,25 @@ int PPS_Perform(PPS * pps, BYTE * params, unsigned *length)
 
 	/* Initialize selected protocol with selected parameters */
 	ret = PPS_InitProtocol(pps);
-
+/*
+#ifdef DEBUG_PROTOCOL
+	printf("PPS: Attempting PTS\n");
+#endif
+	if(PPS_PreformPTS(pps)==PPS_OK)
+	{
+		printf("PTS handcheck succeded.\n");
+	}
+	else
+	{
+		printf("PTS handcheck failed.\n");
+	}
+	
+#ifdef DEBUG_PROTOCOL
+	printf("PPS: pps->parameters.n %f\n",pps->parameters.n);
+	printf("PPS: pps->parameters.d %f\n",pps->parameters.d);
+	printf("PPS: pps->parameters.f %f\n",pps->parameters.f);
+#endif
+ */
 	return ret;
 }
 
@@ -206,15 +296,24 @@ static int PPS_Exchange(PPS * pps, BYTE * params, unsigned *length)
 
 	/* Get PPS confirm */
 	if (ICC_Async_Receive(pps->icc, 2, confirm) != ICC_ASYNC_OK)
+	{
+#ifdef DEBUG_PROTOCOL
+		printf("PPS: error receiving confirm !!\n");
+#endif
 		return PPS_ICC_ERROR;
-
+	}
 	len_confirm = PPS_GetLength(confirm);
 
 	if (ICC_Async_Receive(pps->icc, len_confirm - 2, confirm + 2) != ICC_ASYNC_OK)
-		return PPS_ICC_ERROR;
-
+	{
 #ifdef DEBUG_PROTOCOL
-	printf("PPS: Receivig confirm: ");
+		printf("PPS: error receiving answer !!\n");
+#endif
+		return PPS_ICC_ERROR;
+	}
+	
+#ifdef DEBUG_PROTOCOL
+	printf("PPS: Receiving confirm: ");
 	for (i = 0; i < len_confirm; i++)
 		printf("%X ", confirm[i]);
 	printf("\n");
@@ -268,6 +367,22 @@ static int PPS_InitICC(PPS * pps)
 	/* Work etu = (1/D) * (F/fs) * 1000 milliseconds */
 	work_etu = (1000 * pps->parameters.f) / (pps->parameters.d * ICC_Async_GetClockRate(pps->icc));
 
+	// FIXME : 
+	// initializing the baudrate here is plain wrong.
+	// the card inits MUST be done at 9600 bps 
+	// and if , and only if, there is a PPS (or PTS) handshake
+	// then we use this value for the new baudrate
+	// The F and D parameter returned by the ATR are to be used ONLY
+	// if a PPS or PTS exchange is done, otherwize everything MUST
+	// be done at 9600 bps
+	// this mean we need to fix the logic around the card reset
+	// as for now it uses this new rate in the midle of the reset just after getting the ATR
+	// which doesn't work for example with a card returning 3F 77 18 .. as in this case
+	// F=372 and D=12 (see the commented atr_d_table in atr.c which has the right value
+	// as the curent one as 0 for the index 8 which is of course wrong as D=0 is an invalid value).
+	// I'm leaving it like this until we discuss what to do as a rework of the code is needed.
+	// 
+	
 	/* Baudrate = 1000 / etu bps */
 	baudrate = (long unsigned int) (1000 / work_etu);
 

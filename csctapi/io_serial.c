@@ -339,6 +339,11 @@ bool IO_Serial_SetProperties(IO_Serial * io, IO_Serial_Properties * props, SR_Co
 		/* Standard bitrate */
 		int output_speed = IO_Serial_Bitrate_to_Speed(props->output_bitrate);
 		int input_speed = IO_Serial_Bitrate_to_Speed(props->input_bitrate);
+#ifdef DEBUG_IO
+		printf("IO: output_speed = %d\n",output_speed);
+		printf("IO: input_speed = %d\n",input_speed);
+		
+#endif
 		cfsetospeed(&newtio, output_speed);
 		cfsetispeed(&newtio, input_speed);
 
@@ -389,6 +394,10 @@ bool IO_Serial_SetProperties(IO_Serial * io, IO_Serial_Properties * props, SR_Co
 		/* Save the effective bitrate value for OScam */
 		reader_serial_bitrate_effective = effective_bitrate;
 
+#ifdef DEBUG_IO
+		printf("IO: standard bitrate being set to %d\n",IO_Serial_Bitrate_to_Speed(standard_bitrate);
+		
+#endif
 		/* Set the standard bitrate value */
 		cfsetospeed(&newtio, IO_Serial_Bitrate_to_Speed(standard_bitrate));
 		cfsetispeed(&newtio, IO_Serial_Bitrate_to_Speed(standard_bitrate));
