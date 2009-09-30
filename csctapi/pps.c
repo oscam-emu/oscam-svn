@@ -88,7 +88,6 @@ PPS *PPS_New(ICC_Async * icc)
 int PPS_PreformPTS(PPS *pps)
 {
 	int ret;
-	int i;
 	unsigned long baudrate;
 	BYTE req[4];
 	BYTE confirm[PPS_MAX_LENGTH];

@@ -373,9 +373,9 @@ bool IO_Serial_SetProperties(IO_Serial * io, IO_Serial_Properties * props, SR_Co
 						ioctl(io->fd, TIOCSSERIAL, &s);
 					}
 					standard_bitrate = effective_bitrate;
-#ifdef DEBUG_IO
+# ifdef DEBUG_IO
 					printf("IO: Using standard bitrate of %lu (baud_base too small)\n", standard_bitrate);
-#endif
+# endif
 				} else {
 					/* Use custom divisor */
 					s.custom_divisor = custom_divisor;
@@ -384,9 +384,9 @@ bool IO_Serial_SetProperties(IO_Serial * io, IO_Serial_Properties * props, SR_Co
 					if (ioctl(io->fd, TIOCSSERIAL, &s) >= 0) {
 						standard_bitrate = 38400;
 					}
-#ifdef DEBUG_IO
+# ifdef DEBUG_IO
 					printf("IO: Using special bitrate of = %lu (%+.2f%% off)\n", effective_bitrate, ((double) (effective_bitrate - wanted_bitrate)) / wanted_bitrate * 100);
-#endif
+# endif
 				}
 			}
 		}
@@ -394,10 +394,10 @@ bool IO_Serial_SetProperties(IO_Serial * io, IO_Serial_Properties * props, SR_Co
 		/* Save the effective bitrate value for OScam */
 		reader_serial_bitrate_effective = effective_bitrate;
 
-#ifdef DEBUG_IO
-		printf("IO: standard bitrate being set to %d\n",IO_Serial_Bitrate_to_Speed(standard_bitrate);
+# ifdef DEBUG_IO
+		printf("IO: standard bitrate being set to %d\n",IO_Serial_Bitrate_to_Speed(standard_bitrate));
 		
-#endif
+# endif
 		/* Set the standard bitrate value */
 		cfsetospeed(&newtio, IO_Serial_Bitrate_to_Speed(standard_bitrate));
 		cfsetispeed(&newtio, IO_Serial_Bitrate_to_Speed(standard_bitrate));
