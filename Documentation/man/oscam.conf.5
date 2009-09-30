@@ -1,8 +1,8 @@
 .TH oscam.conf 5
 .SH NAME
-\fBoscam.conf\fR - main configuration file for OSCam
+\fBoscam.conf\fR - main configuration file for oscam
 .SH SYNOPSIS
-The main configuration file for OSCam contais global parameters 
+The main configuration file for oscam contais global parameters 
 such as debugging, logging, monitor, protocols and anti-cascading. 
 sections in \fBoscam.conf\fR are \fInonrecurring\fR. The [global] 
 section is \fIrequired\fR. All other sections are optional.
@@ -27,6 +27,21 @@ PID file, default:no PID file
 \fBusrfile\fP = \fBfilename\fP
 .RS 3n
 log file for user logging, default:none
+
+log file format:
+
+ date
+ time
+ CWs per second
+ username
+ IP address of client
+ TCP/IP port
+ CWs found
+ CWs from cache
+ CWS not found
+ login time in unix/POSIX format
+ logout time in unix/POSIX format
+ protocol
 .RE
 .PP
 \fBcwlogdir\fP = \fBpath\fP
