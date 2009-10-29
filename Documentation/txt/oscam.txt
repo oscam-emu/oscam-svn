@@ -44,7 +44,7 @@ OPTIONS
 
        -c <directory>
 	  read configuration from  <directory>,  default:  see	CS_CONFDIR  in
-	  globals.h
+	  globals.h, comment lines start with # character.
 
        -d <level>
 	  debug level mask:
