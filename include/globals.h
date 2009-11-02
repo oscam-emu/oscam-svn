@@ -313,6 +313,7 @@ struct s_reader {
 
 	int detect;
 	unsigned long frequency;
+	unsigned long card_frequency;
 
 	int online;
 	int card_status;

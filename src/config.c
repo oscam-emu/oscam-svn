@@ -1073,6 +1073,13 @@ static void config_check_reader(char *token, char *value, struct s_reader *rdr)
 			rdr->frequency = mhz * 1000000;
 		}
 	}
+	if (!strcmp(token, "card_frequency")) {
+		char *endptr;
+		double mhz = strtod(value, &endptr);
+		if (*endptr == '\0') {
+			rdr->card_frequency = mhz * 1000000;
+		}
+	}
 	if (!strcmp(token, "protocol")) {
 		if (!strcmp(value, "phoenix"))
 			rdr->type = R_PHOENIX;
@@ -1174,6 +1181,7 @@ int config_init_readerdb()
 			reader[nr].show_cls = 10;
 			reader[nr].maxqlen = CS_MAXQLEN;
 			reader[nr].frequency = 3571200;
+			reader[nr].card_frequency = 3571200;
 			strcpy(reader[nr].pincode, "none");
 			for (i = 1; i < CS_MAXCAIDTAB; reader[nr].ctab.mask[i++] = 0xffff);
 			continue;
