@@ -107,10 +107,8 @@ char CT_data(unsigned char *dad, unsigned char *sad, unsigned short lc, unsigned
 	int i;
 
 	printf("CTAPI: CT_data(*dad=0x%02X, *sad=0x%02X, lc=%u, *cmd={", *dad, *sad, lc);
-
 	for (i = 0; i < lc; i++)
 		printf("%02X ", cmd[i]);
-
 	printf("}, *lr=%u, rsp=[])\n", *lr);
 #endif
 
@@ -119,7 +117,6 @@ char CT_data(unsigned char *dad, unsigned char *sad, unsigned short lc, unsigned
 		apdu_cmd = APDU_Cmd_New(cmd, lc);
 
 		if (apdu_cmd != NULL) {
-
 #ifdef HAVE_PTHREAD_H
 			pthread_mutex_lock(CardTerminal_GetMutex(ct));
 #endif
