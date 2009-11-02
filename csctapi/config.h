@@ -38,7 +38,7 @@
 //#define DEBUG_PROTOCOL 1
 
 //#define PROTOCOL_T0_ISO 1
-#define PROTOCOL_T1_ISO 1
+//#define PROTOCOL_T1_ISO 1
 
 
 /* Define to 1 if you have the <dlfcn.h> header file. */
