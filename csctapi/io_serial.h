@@ -64,15 +64,6 @@ typedef struct {
 	int rts;
 } IO_Serial_Properties;
 
-typedef struct {
-	int F;
-	float D;
-	int fs;
-	int N;
-	int T;
-	int inv;
-} SR_Config;
-
 /* IO_Serial exported datatype */
 typedef struct {
 	int fd;				/* Handle of the serial device */
@@ -83,7 +74,6 @@ typedef struct {
 	int reader_type;		/* Reader type */
 	unsigned long frequency;	/* Frequency (Hz) */
 	int wr;
-	SR_Config *SmartReaderConf;
 } IO_Serial;
 
 /* 
@@ -101,8 +91,8 @@ extern bool IO_Serial_Init(IO_Serial * io, char *device, unsigned long frequency
 extern bool IO_Serial_Close(IO_Serial * io);
 
 /* Transmission properties */
-extern bool IO_Serial_SetProperties(IO_Serial * io, IO_Serial_Properties * props, SR_Config *sr_config);
-extern bool IO_Serial_GetProperties(IO_Serial * io, IO_Serial_Properties * props, SR_Config *sr_config);
+extern bool IO_Serial_SetProperties(IO_Serial * io, IO_Serial_Properties * props);
+extern bool IO_Serial_GetProperties(IO_Serial * io, IO_Serial_Properties * props);
 extern bool IO_Serial_DTR_RTS(IO_Serial * io, int, int);
 
 #  if defined(TUXBOX) && defined(PPC)

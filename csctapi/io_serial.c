@@ -66,13 +66,11 @@ static bool IO_Serial_InitPnP(IO_Serial * io);
 
 static void IO_Serial_Clear(IO_Serial * io);
 
-static bool IO_Serial_GetPropertiesCache(IO_Serial * io, IO_Serial_Properties * props, SR_Config *sr_config);
+static bool IO_Serial_GetPropertiesCache(IO_Serial * io, IO_Serial_Properties * props);
 
-static void IO_Serial_SetPropertiesCache(IO_Serial * io, IO_Serial_Properties * props, SR_Config *sr_config);
+static void IO_Serial_SetPropertiesCache(IO_Serial * io, IO_Serial_Properties * props);
 
 static void IO_Serial_ClearPropertiesCache(IO_Serial * io);
-
-static bool IO_Serial_Set_Smartreader_Config(IO_Serial * io, SR_Config *sr_config);
 
 static int _in_echo_read = 0;
 extern int reader_serial_need_dummy_char;
@@ -217,7 +215,7 @@ bool IO_Serial_Init(IO_Serial * io, char *device, unsigned long frequency, unsig
 	return TRUE;
 }
 
-bool IO_Serial_GetProperties(IO_Serial * io, IO_Serial_Properties * props, SR_Config *sr_config)
+bool IO_Serial_GetProperties(IO_Serial * io, IO_Serial_Properties * props)
 {
 	struct termios currtio;
 	speed_t i_speed, o_speed;
@@ -228,7 +226,7 @@ bool IO_Serial_GetProperties(IO_Serial * io, IO_Serial_Properties * props, SR_Co
 		return FALSE;
 #endif
 
-	if (IO_Serial_GetPropertiesCache(io, props,sr_config))
+	if (IO_Serial_GetPropertiesCache(io, props))
 		return TRUE;
 
 	if (tcgetattr(io->fd, &currtio) != 0)
@@ -290,19 +288,7 @@ bool IO_Serial_GetProperties(IO_Serial * io, IO_Serial_Properties * props, SR_Co
 	props->dtr = ((mctl & TIOCM_DTR) ? IO_SERIAL_HIGH : IO_SERIAL_LOW);
 	props->rts = ((mctl & TIOCM_RTS) ? IO_SERIAL_HIGH : IO_SERIAL_LOW);
 
-	// set smartreader+ default values
-	// for Irdeto card, the Frequency is 6.00MHz and the F parameter need to be set to 558
-	// test have shown that an irdeto card still reply to an ATR at 9600 with a Freq of 3.5712 MHz
-	// we need to do more test to see if this work with irdeto cards so I'm reverting my changes
-	// to use the original default smartreader+ values 
-	sr_config->F=372;
-	sr_config->D=1.0;
-	sr_config->fs=3571200;
-	sr_config->N=0;
-	sr_config->T=0;
-	sr_config->inv=0;
-	
-	IO_Serial_SetPropertiesCache(io, props, sr_config);
+	IO_Serial_SetPropertiesCache(io, props);
 
 #ifdef DEBUG_IO
 	printf("IO: Getting properties: %ld bps; %d bits/byte; %s parity; %d stopbits; dtr=%d; rts=%d\n", props->input_bitrate, props->bits, props->parity == IO_SERIAL_PARITY_EVEN ? "Even" : props->parity == IO_SERIAL_PARITY_ODD ? "Odd" : "None", props->stopbits, props->dtr, props->rts);
@@ -311,7 +297,7 @@ bool IO_Serial_GetProperties(IO_Serial * io, IO_Serial_Properties * props, SR_Co
 	return TRUE;
 }
 
-bool IO_Serial_SetProperties(IO_Serial * io, IO_Serial_Properties * props, SR_Config *sr_config)
+bool IO_Serial_SetProperties(IO_Serial * io, IO_Serial_Properties * props)
 {
 	struct termios newtio;
 
@@ -339,11 +325,6 @@ bool IO_Serial_SetProperties(IO_Serial * io, IO_Serial_Properties * props, SR_Co
 		/* Standard bitrate */
 		int output_speed = IO_Serial_Bitrate_to_Speed(props->output_bitrate);
 		int input_speed = IO_Serial_Bitrate_to_Speed(props->input_bitrate);
-#ifdef DEBUG_IO
-		printf("IO: output_speed = %d\n",output_speed);
-		printf("IO: input_speed = %d\n",input_speed);
-		
-#endif
 		cfsetospeed(&newtio, output_speed);
 		cfsetispeed(&newtio, input_speed);
 
@@ -394,27 +375,11 @@ bool IO_Serial_SetProperties(IO_Serial * io, IO_Serial_Properties * props, SR_Co
 		/* Save the effective bitrate value for OScam */
 		reader_serial_bitrate_effective = effective_bitrate;
 
-# ifdef DEBUG_IO
-		printf("IO: standard bitrate being set to %d\n",IO_Serial_Bitrate_to_Speed(standard_bitrate));
-		
-# endif
 		/* Set the standard bitrate value */
 		cfsetospeed(&newtio, IO_Serial_Bitrate_to_Speed(standard_bitrate));
 		cfsetispeed(&newtio, IO_Serial_Bitrate_to_Speed(standard_bitrate));
 	}
 #endif
-
-	if (io->reader_type == RTYP_SMARTREADER) {
-#ifdef DEBUG_IO
-		printf("IO: Smartreader+ .. setting config with a frequency of %2.2fMHz\n", (float) io->frequency / 1000000);
-#endif
-		if (!IO_Serial_Set_Smartreader_Config(io,sr_config)) {
-#ifdef DEBUG_IO
-			printf("IO: Smartreader+ ..  ERROR setting configuration\n");
-#endif
-			return FALSE;
-		}
-	}
 
 	/* Set the character size */
 	switch (props->bits) {
@@ -488,7 +453,7 @@ bool IO_Serial_SetProperties(IO_Serial * io, IO_Serial_Properties * props, SR_Co
 	IO_Serial_DTR_RTS(io, 1, props->dtr == IO_SERIAL_HIGH);
 	IO_Serial_Ioctl_Lock(io, 0);
 
-	IO_Serial_SetPropertiesCache(io, props, sr_config);
+	IO_Serial_SetPropertiesCache(io, props);
 
 #ifdef DEBUG_IO
 	printf("IO: Setting properties: device=%s, %ld bps; %d bits/byte; %s parity; %d stopbits; dtr=%d; rts=%d\n", io->device, props->input_bitrate, props->bits, props->parity == IO_SERIAL_PARITY_EVEN ? "Even" : props->parity == IO_SERIAL_PARITY_ODD ? "Odd" : "None", props->stopbits, props->dtr, props->rts);
@@ -665,22 +630,76 @@ void IO_Serial_Delete(IO_Serial * io)
 static int IO_Serial_Bitrate_to_Speed(int bitrate)
 {
 	static const struct BaudRates { int real; speed_t apival; } BaudRateTab[] = {
-		{   200, B200   }, {  300, B300  }, {  600, B600  },
-		{   1200, B1200   }, {  2400, B2400  }, {  4800, B4800  },
-		{   9600, B9600   }, {  19200, B19200  }, {  38400, B38400  },
-		{  57600, B57600  }, { 115200, B115200 }, { 230400, B230400 }
-    };
+#ifdef B50
+		{     50, B50     },
+#endif
+#ifdef B75
+		{     75, B75     },
+#endif
+#ifdef B110
+		{    110, B110    },
+#endif
+#ifdef B134
+		{    134, B134    },
+#endif
+#ifdef B150
+		{    150, B150    },
+#endif
+#ifdef B200
+		{    200, B200    },
+#endif
+#ifdef B300
+		{    300, B300    },
+#endif
+#ifdef B600
+		{    600, B600    },
+#endif
+#ifdef B1200
+		{   1200, B1200   },
+#endif
+#ifdef B1800
+		{   1800, B1800   },
+#endif
+#ifdef B2400
+		{   2400, B2400   },
+#endif
+#ifdef B4800
+		{   4800, B4800   },
+#endif
+#ifdef B9600
+		{   9600, B9600   },
+#endif
+#ifdef B19200
+		{  19200, B19200  },
+#endif
+#ifdef B38400
+		{  38400, B38400  },
+#endif
+#ifdef B57600
+		{  57600, B57600  },
+#endif
+#ifdef B115200
+		{ 115200, B115200 },
+#endif
+#ifdef B230400
+		{ 230400, B230400 },
+#endif
+	};
 
-	int i;
-	
-	for(i=0; i<(int)(sizeof(BaudRateTab)/sizeof(struct BaudRates)); i++) {
-		int b=BaudRateTab[i].real;
-		int d=((b-bitrate)*10000)/b;
-		if(abs(d)<=300) {
-			return BaudRateTab[i].apival;
+	speed_t result = B0;
+	int i, d_result = bitrate;
+
+	for ( i = 0 ; i < (int)(sizeof(BaudRateTab)/sizeof(struct BaudRates)) ; i++) {
+	 	int d = abs(BaudRateTab[i].real - bitrate);
+		if (d < d_result) {
+			result = BaudRateTab[i].apival;
+			d_result = d;
+		} else {
+			break;
 		}
-    }
-	return B0;
+	}
+
+	return result;
 }
 
 static int IO_Serial_Bitrate_from_Speed(int speed)
@@ -882,7 +901,7 @@ static void IO_Serial_Clear(IO_Serial * io)
 	io->wr = 0;
 }
 
-static void IO_Serial_SetPropertiesCache(IO_Serial * io, IO_Serial_Properties * props, SR_Config *sr_config)
+static void IO_Serial_SetPropertiesCache(IO_Serial * io, IO_Serial_Properties * props)
 {
 #ifdef SCI_DEV
 	if (io->reader_type == RTYP_SCI)
@@ -891,55 +910,24 @@ static void IO_Serial_SetPropertiesCache(IO_Serial * io, IO_Serial_Properties * 
 
 	if (io->props == NULL)
 		io->props = (IO_Serial_Properties *) malloc(sizeof (IO_Serial_Properties));
-
-	if (io->SmartReaderConf == NULL)
-		io->SmartReaderConf = (SR_Config *) malloc(sizeof (SR_Config));
-
 #ifdef DEBUG_IO
 	printf("IO: Catching properties\n");
 #endif
 
 	memcpy(io->props, props, sizeof (IO_Serial_Properties));
-	memcpy(io->SmartReaderConf, sr_config, sizeof (SR_Config));
 }
 
-static bool IO_Serial_GetPropertiesCache(IO_Serial * io, IO_Serial_Properties * props, SR_Config *sr_config)
+static bool IO_Serial_GetPropertiesCache(IO_Serial * io, IO_Serial_Properties * props)
 {
-	bool ok_props, ok_sr;
-	
-	ok_props=FALSE;
-	ok_sr=FALSE;
-	if (io->props != NULL)
-		{
+	if (io->props != NULL) {
 		memcpy(props, io->props, sizeof (IO_Serial_Properties));
-#  ifdef DEBUG_IO
-		printf("IO: Getting properties (catched): %ld bps; %d bits/byte; %s parity; %d stopbits; dtr=%d; rts=%d\n",
-				props->input_bitrate, props->bits, 
-				props->parity == IO_SERIAL_PARITY_EVEN ? "Even" : props->parity == IO_SERIAL_PARITY_ODD ? "Odd" : "None",
-				props->stopbits,
-				props->dtr,
-				props->rts);
-#  endif
-		ok_props=TRUE;
-		}
+#ifdef DEBUG_IO
+               printf("IO: Getting properties (catched): %ld bps; %d bits/byte; %s parity; %d stopbits; dtr=%d; rts=%d\n", props->input_bitrate, props->bits, props->parity == IO_SERIAL_PARITY_EVEN ? "Even" : props->parity == IO_SERIAL_PARITY_ODD ? "Odd" : "None", props->stopbits, props->dtr, props->rts);
+#endif
+		return TRUE;
+	}
 
-	if (io->SmartReaderConf != NULL)
-		{
-		memcpy(sr_config, io->SmartReaderConf, sizeof (SR_Config));
-#  ifdef DEBUG_IO
-		printf("IO: Getting SmartReader+ config (catched): F=%d; D=%f; fs=%d; N=%d; T=%d; inv=%d \n",
-				sr_config->F,
-				sr_config->D,
-				sr_config->fs,
-				sr_config->N,
-				sr_config->T,
-				sr_config->inv);
-#  endif
-		ok_sr=TRUE;
-		}
-
-
-	return ok_props && ok_sr;
+	return FALSE;
 }
 
 static void IO_Serial_ClearPropertiesCache(IO_Serial * io)
@@ -956,8 +944,6 @@ static void IO_Serial_ClearPropertiesCache(IO_Serial * io)
 static bool IO_Serial_InitPnP(IO_Serial * io)
 {
 	IO_Serial_Properties props;
-	SR_Config srConfig;
-	
 	int i = 0;
 
 	props.input_bitrate = io->frequency / 372;
@@ -974,17 +960,7 @@ static bool IO_Serial_InitPnP(IO_Serial * io)
 		props.rts = IO_SERIAL_LOW;
 	}
 
-	// set smartreader+ default values
-	// use the frequency to get F for the smartreader
-	// to make sure the ATR is sent at 9600.
-	srConfig.F=io->frequency/9600;
-	srConfig.D=1.0;
-	srConfig.fs=io->frequency;
-	srConfig.N=0;
-	srConfig.T=0;
-	srConfig.inv=0;
-	
-	if (!IO_Serial_SetProperties(io, &props, &srConfig))
+	if (!IO_Serial_SetProperties(io, &props))
 		return FALSE;
 
 	while ((i < IO_SERIAL_PNPID_SIZE) && IO_Serial_Read(io, 200, 1, &(io->PnP_id[i])))
@@ -993,87 +969,3 @@ static bool IO_Serial_InitPnP(IO_Serial * io)
 	io->PnP_id_size = i;
 	return TRUE;
 }
-
-static bool IO_Serial_Set_Smartreader_Config(IO_Serial * io, SR_Config *sr_config)
-{
-	int F=sr_config->F;
-	float D=sr_config->D;
-	int fs=sr_config->fs;
-	int N=sr_config->N;
-	int T=sr_config->T;
-	int inv=sr_config->inv;
-
-	fs/=1000; // convert to kHz.
-#  ifdef DEBUG_IO
-	printf("IO: Smartreader+ on %s: SR+ options F=%d D=%f fs=%d N=%d T=%d inv=%d\n",io->device,F,D,fs,N,T,inv);
-#  endif
-
-	// Set SmartReader+ in CMD mode.
-	struct termios term;
-	if(tcgetattr(io->fd,&term)==-1)
-		{
-#  ifdef DEBUG_IO
-		printf("%s: tcgetattr failed: %s",io->device,strerror(errno));
-#endif
-		return FALSE;
-		}
-
-	term.c_cflag&=~CSIZE;
-	term.c_cflag|=CS5;
-	if(tcsetattr(io->fd,TCSADRAIN,&term)==-1)
-		{
-#  ifdef DEBUG_IO
-		printf("%s: tcsetattr failed: %s",io->device,strerror(errno));
-#endif
-		return FALSE;
-		}
-	// Write SmartReader+ configuration commands.
-	unsigned char cmd[16];
-
-	//XXX how is (int)D supposed to work for fractional values e.g. 0.125 ??
-	cmd[0]=1; cmd[1]=F>>8; cmd[2]=F; cmd[3]=(int)D;
-	if(!IO_Serial_Write(io, 0, 4, cmd))
-		return FALSE;
-
-	cmd[0]=2; cmd[1]=fs>>8; cmd[2]=fs;
-	if(!IO_Serial_Write(io, 0, 3, cmd))
-		return FALSE;
-
-	cmd[0]=3; cmd[1]=N;
-	if(!IO_Serial_Write(io, 0, 2, cmd))
-		return FALSE;
-
-	cmd[0]=4; cmd[1]=T;
-	if(!IO_Serial_Write(io, 0, 2, cmd))
-		return FALSE;
-
-	cmd[0]=5; cmd[1]=inv;
-	if(!IO_Serial_Write(io, 0, 2, cmd))
-		return FALSE;
-
-	// Send zero bits for 0.25 - 0.5 seconds.
-	if(tcsendbreak(io->fd,0)==-1)
-		{
-#  ifdef DEBUG_IO
-		printf("%s: tcsendbreak failed: %s",io->device,strerror(errno));
-#endif
-		return FALSE;
-		}
-	// We're entering SmartReader+ mode; speed up serial communication.
-	// B230400 is the highest setting that sticks.
-	cfsetispeed(&term,B230400);
-	cfsetospeed(&term,B230400);
-	// Set SmartReader+ in DATA mode.
-	term.c_cflag&=~CSIZE;
-	term.c_cflag|=CS8;
-	if(tcsetattr(io->fd,TCSADRAIN,&term)==-1)
-		{
-#  ifdef DEBUG_IO
-		printf("%s: tcsetattr failed: %s",io->device,strerror(errno));
-#endif
-		return FALSE;
-		}
-	return TRUE;
-}
-
-
