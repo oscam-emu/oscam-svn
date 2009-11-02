@@ -13,8 +13,6 @@
 #include "ctbcs.h"
 #include "defines.h"
 
-#define CTAPI_CTN 1
-
 int reader_serial_card_detect;		// UGLY : to be removed
 int reader_serial_need_dummy_char;	// UGLY : to be removed
 
@@ -83,7 +81,6 @@ static int reader_serial_cmd2api(uchar dad, uchar *cmd, ushort cmd_size, uchar *
 
 	/* Call CT-API */
 	ret = CT_data(
-		CTAPI_CTN,	/* Terminal Number */
 		&dad,		/* Destination */
 		&sad,		/* Source */
 		cmd_size,	/* Length of command */
@@ -122,7 +119,7 @@ int reader_serial_init(struct s_reader *reader)
 	ushort reader_type = reader_serial_get_reader_type(reader);
 
 	/* Initialize CardTerminal */
-	if ((ret = CT_init(CTAPI_CTN, reader->device, reader->frequency, reader_type)) != OK) {
+	if ((ret = CT_init(reader->device, reader->frequency, reader_type)) != OK) {
 		log_normal("Reader: Cannot open device \"%s\" (%d) !", reader->device, ret);
 	}
 

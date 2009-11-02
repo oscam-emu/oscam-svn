@@ -26,7 +26,6 @@
 #include "defines.h"
 #include "ctapi.h"
 #include "ctbcs.h"
-#include "ct_list.h"
 #include "cardterminal.h"
 #include "ct_slot.h"
 #include <stdio.h>
@@ -40,28 +39,18 @@
  */
 
 /* Linked list of card-terminals */
-static CT_List *ct_list = NULL;
-
-#ifdef HAVE_PTHREAD_H
-static pthread_mutex_t ct_list_mutex = PTHREAD_MUTEX_INITIALIZER;
-#endif
+static CardTerminal *ct = NULL;
 
 /*
  * Exported functions definition
  */
 
-char CT_init(unsigned short ctn, char *device, unsigned long frequency, unsigned short reader_type)
+char CT_init(char *device, unsigned long frequency, unsigned short reader_type)
 {
-	CardTerminal *ct;
 	char ret;
-	bool ct_list_empty;
 
-#ifdef HAVE_PTHREAD_H
-	pthread_mutex_lock(&ct_list_mutex);
-#endif
-
-	/* Check that ctn is not in use */
-	if (CT_List_GetCardTerminal(ct_list, ctn) == NULL) {
+	/* Check if card terminal is initialized */
+	if (ct == NULL) {
 		/* Create a new CardTerminal */
 		ct = CardTerminal_New();
 
@@ -70,26 +59,7 @@ char CT_init(unsigned short ctn, char *device, unsigned long frequency, unsigned
 			ret = CardTerminal_Init(ct, device, frequency, reader_type);
 
 			/* Add CardTerminal to list */
-			if (ret == OK) {
-				/* See if list is initialised */
-				ct_list_empty = (ct_list == NULL);
-
-				if (ct_list_empty)
-					ct_list = CT_List_New();
-
-				/* Add the CardTerminal to the list */
-				if (!CT_List_AddCardTerminal(ct_list, ct, ctn)) {
-					CardTerminal_Close(ct);
-					CardTerminal_Delete(ct);
-
-					if (ct_list_empty) {
-						CT_List_Delete(ct_list);
-						ct_list = NULL;
-					}
-
-					ret = ERR_MEMORY;
-				}
-			} else {
+			if (ret != OK) {
 				CardTerminal_Delete(ct);
 			}
 		} else {
@@ -99,59 +69,33 @@ char CT_init(unsigned short ctn, char *device, unsigned long frequency, unsigned
 		ret = ERR_CT;
 	}
 
-#ifdef HAVE_PTHREAD_H
-	pthread_mutex_unlock(&ct_list_mutex);
-#endif
-
 #ifdef DEBUG_CTAPI
-	printf("CTAPI: CT_init(ctn=%u, device=%s)=%d\n", ctn, device, ret);
+	printf("CTAPI: CT_init(device=%s)=%d\n", device, ret);
 #endif
 
 	return ret;
 }
 
-char CT_close(unsigned short ctn)
+char CT_close()
 {
-	CardTerminal *ct;
 	char ret;
-
-#ifdef HAVE_PTHREAD_H
-	pthread_mutex_lock(&ct_list_mutex);
-#endif
-
-	/* Get the card-terminal */
-	ct = CT_List_GetCardTerminal(ct_list, ctn);
 
 	if (ct != NULL) {
 		/* Close CardTerminal */
 		ret = CardTerminal_Close(ct);
-
-		/* Remove card-terminal from list */
-		CT_List_RemoveCardTerminal(ct_list, ctn);
-
-		/* Delete the list if there are no more card-terminals */
-		if (CT_List_GetNumberOfElements(ct_list) == 0) {
-			CT_List_Delete(ct_list);
-			ct_list = NULL;
-		}
 	} else {
 		ret = ERR_CT;
 	}
 
-#ifdef HAVE_PTHREAD_H
-	pthread_mutex_unlock(&ct_list_mutex);
-#endif
-
 #ifdef DEBUG_CTAPI
-	printf("CTAPI: CT_close(ctn=%d)=%u\n", ctn, ret);
+	printf("CTAPI: CT_close()=%u\n", ret);
 #endif
 
 	return ret;
 }
 
-char CT_data(unsigned short ctn, unsigned char *dad, unsigned char *sad, unsigned short lc, unsigned char *cmd, unsigned short *lr, unsigned char *rsp)
+char CT_data(unsigned char *dad, unsigned char *sad, unsigned short lc, unsigned char *cmd, unsigned short *lr, unsigned char *rsp)
 {
-	CardTerminal *ct;
 	CT_Slot *slot;
 	APDU_Cmd *apdu_cmd;
 	APDU_Rsp *apdu_rsp = NULL;
@@ -162,23 +106,12 @@ char CT_data(unsigned short ctn, unsigned char *dad, unsigned char *sad, unsigne
 #ifdef DEBUG_CTAPI
 	int i;
 
-	printf("CTAPI: CT_data(ctn=%u, *dad=0x%02X, *sad=0x%02X, lc=%u, *cmd={", ctn, *dad, *sad, lc);
+	printf("CTAPI: CT_data(*dad=0x%02X, *sad=0x%02X, lc=%u, *cmd={", *dad, *sad, lc);
 
 	for (i = 0; i < lc; i++)
 		printf("%02X ", cmd[i]);
 
 	printf("}, *lr=%u, rsp=[])\n", *lr);
-#endif
-
-#ifdef HAVE_PTHREAD_H
-	pthread_mutex_lock(&ct_list_mutex);
-#endif
-
-	/* Get card-terminal */
-	ct = CT_List_GetCardTerminal(ct_list, ctn);
-
-#ifdef HAVE_PTHREAD_H
-	pthread_mutex_unlock(&ct_list_mutex);
 #endif
 
 	if (ct != NULL) {
@@ -256,7 +189,7 @@ char CT_data(unsigned short ctn, unsigned char *dad, unsigned char *sad, unsigne
 	}
 
 #ifdef DEBUG_CTAPI
-	printf("CTAPI: CT_data(ctn=%u, *dad=0x%02X, *sad=0x%02X, lc=%u, *cmd={}, *lr=%u, rsp={", ctn, *dad, *sad, lc, *lr);
+	printf("CTAPI: CT_data(*dad=0x%02X, *sad=0x%02X, lc=%u, *cmd={}, *lr=%u, rsp={", *dad, *sad, lc, *lr);
 
 	for (i = 0; i < *lr; i++)
 		printf("%02X ", rsp[i]);
