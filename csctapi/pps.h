@@ -64,8 +64,8 @@ typedef struct {
 /* Create PPS context */
 extern PPS *PPS_New(ICC_Async * icc);
 
-/* perform PTS for tha card that supports it */
-extern int PPS_PreformPTS(PPS *pps);
+/* Perform PTS for tha card that supports it */
+extern int PPS_PerformPTS(PPS *pps);
 
 /* Perform protcol type selection and return confirm */
 extern int PPS_Perform(PPS * pps, BYTE * params, unsigned *length);

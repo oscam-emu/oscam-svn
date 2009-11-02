@@ -85,7 +85,7 @@ PPS *PPS_New(ICC_Async * icc)
 	return pps;
 }
 
-int PPS_PreformPTS(PPS *pps)
+int PPS_PerformPTS(PPS *pps)
 {
 	int ret;
 	unsigned long baudrate;
@@ -95,14 +95,13 @@ int PPS_PreformPTS(PPS *pps)
 	unsigned len_confirm;
 	unsigned len_request=4;
 	
-	
 	atr = ICC_Async_GetAtr(pps->icc);
 	ATR_GetProtocolType(atr,0,&(pps->parameters.t));
 
 	req[0]=0xFF;
-    req[1]=0x10 | pps->parameters.t;
-    req[2]=atr->ib[0][ATR_INTERFACE_BYTE_TA].value;
-    req[3]=PPS_GetPCK(req,len_request-1);
+	req[1]=0x10 | pps->parameters.t;
+	req[2]=atr->ib[0][ATR_INTERFACE_BYTE_TA].value;
+	req[3]=PPS_GetPCK(req,len_request-1);
 	
 #ifdef DEBUG_PROTOCOL
 	printf("PTS: Sending request: ");
@@ -122,8 +121,7 @@ int PPS_PreformPTS(PPS *pps)
 #endif
 		return PPS_ICC_ERROR;
 	}
-	
-	len_confirm=len_request;
+	len_confirm = len_request;
 	
 #ifdef DEBUG_PROTOCOL
 	printf("PTS: Receiving confirm: ");
@@ -165,11 +163,6 @@ int PPS_Perform(PPS * pps, BYTE * params, unsigned *length)
 			if (PPS_HAS_PPS1(params)) {
 				pps->parameters.f = atr_f_table[(params[2] >> 4)];
 				pps->parameters.d = atr_d_table[(params[2] & 0x0F)];
-				if(pps->parameters.d==0)
-				    {
-				    // set pps->parameters.d to 1 as 0 is not a valid value
-				    pps->parameters.d=ATR_DEFAULT_D;
-				    }
 #ifdef DEBUG_PROTOCOL
 				printf("PPS: pps->parameters.n %f\n",pps->parameters.n);
 				printf("PPS: pps->parameters.d %f\n",pps->parameters.d);
@@ -202,11 +195,6 @@ int PPS_Perform(PPS * pps, BYTE * params, unsigned *length)
 		ATR_GetParameter(atr, ATR_PARAMETER_N, &(pps->parameters.n));
 		ATR_GetParameter(atr, ATR_PARAMETER_D, &(pps->parameters.d));
 		ATR_GetParameter(atr, ATR_PARAMETER_F, &(pps->parameters.f));
-        if(pps->parameters.d==0)
-            {
-            // set pps->parameters.d to 1 as 0 is not a valid value
-            pps->parameters.d=ATR_DEFAULT_D;
-            }
 
 #ifdef DEBUG_PROTOCOL
 		printf("PPS: pps->parameters.n %f\n",pps->parameters.n);
