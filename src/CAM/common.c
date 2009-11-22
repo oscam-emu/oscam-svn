@@ -7,6 +7,7 @@
 #include "CAM/seca.h"
 #include "CAM/viaccess.h"
 #include "CAM/videoguard.h"
+#include "CAM/drecrypt.h"
 
 #include "reader/common.h"
 
@@ -23,7 +24,8 @@ typedef enum {
 	CAM_IRDETO,
 	CAM_SECA,
 	CAM_VIACCESS,
-	CAM_VIDEOGUARD
+	CAM_VIDEOGUARD,
+	CAM_DRECRYPT,
 } cam_common_card_system;
 
 int cam_common_detect(uchar *atr, ushort atr_size)
@@ -49,6 +51,9 @@ int cam_common_detect(uchar *atr, ushort atr_size)
 	} else if (cam_videoguard_detect(atr, atr_size)) {
 		card_system = CAM_VIDEOGUARD;
 		log_normal("CAM: Videoguard detected");
+	} else if (cam_drecrypt_detect(atr, atr_size)) {
+		card_system = CAM_DRECRYPT;
+		log_normal("CAM: Drecrypt detected");
 	} else {
 		log_normal("CAM: Card system not supported !");
 	}
@@ -84,6 +89,9 @@ int cam_common_load_card()
 		case CAM_VIDEOGUARD:
 			rc = cam_videoguard_load_card();
 			break;
+		case CAM_DRECRYPT:
+			rc = cam_drecrypt_load_card();
+			break;
 	}
 
 	if (rc) {
@@ -118,6 +126,9 @@ int cam_common_process_ecm(ECM_REQUEST * er)
 		case CAM_VIDEOGUARD:
 			rc = cam_videoguard_process_ecm(er);
 			break;
+		case CAM_DRECRYPT:
+			rc = cam_drecrypt_process_ecm(er);
+			break;
 	}
 
 	return rc;
@@ -145,6 +156,9 @@ int cam_common_process_emm(EMM_PACKET * ep)
 			break;
 		case CAM_VIDEOGUARD:
 			rc = cam_videoguard_process_emm(ep);
+			break;
+		case CAM_DRECRYPT:
+			rc = cam_drecrypt_process_emm(ep);
 			break;
 	}
 
