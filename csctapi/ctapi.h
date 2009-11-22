@@ -19,18 +19,14 @@ extern "C" {
 
 #  define MAX_APDULEN     1040
 
-	extern char CT_init(unsigned short Ctn,	/* Terminal Number */
-			    char *device,	/* Device Path */
+	extern char CT_init(char *device,	/* Device Path */
 			    unsigned long frequency,	/* Frequency */
 			    unsigned short reader_type	/* Reader Type (phoenix, smartmouse, sci, smartreader+) */
 		);
 
-	extern char CT_close(
-			    unsigned short Ctn  /* Terminal Number */
-		);
+	extern char CT_close();
 
-	extern char CT_data(unsigned short ctn,	/* Terminal Number */
-			    unsigned char *dad,	/* Destination */
+	extern char CT_data(unsigned char *dad,	/* Destination */
 			    unsigned char *sad,	/* Source */
 			    unsigned short lc,	/* Length of command */
 			    unsigned char *cmd,	/* Command/Data Buffer */
