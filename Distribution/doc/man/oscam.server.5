@@ -1,0 +1,241 @@
+.TH oscam.server 5
+.SH NAME
+\fBoscam.server\fR - reader configuration file for OSCam
+.SH SYNOPSIS
+The server configuration file for OSCam contains reader parameters. 
+sections in \fBoscam.server\fR are \fIrecurring\fR (more than one reader possible).
+At least one [reader] section is \fIrequired\fR.
+.SH SECTION DESCRIPTIONS
+.SS "The [reader] section"
+.PP
+\fBdevice\fP = \fBdevice\fP|\fB<ip|hostname>,<port>[,<lport>]\fP
+.RS 3n
+define local or remote reader (lport: remapping to local port)
+.RE
+.PP
+\fBkey\fP = \fBDES key\fP
+.RS 3n
+key for newcamd remote reader encryption
+.RE
+.PP
+\fBpassword\fP = \fBpassword\fP
+.RS 3n
+password for remote gbox reader
+.RE
+.PP
+\fBpremium\fP = \fB???\fP
+.RS 3n
+for gbox reader
+.RE
+.PP
+\fBaccount\fP = \fBuser,password\fP
+.RS 3n
+user and password for remote reader
+.RE
+.PP
+\fBpincode\fP = \fBpincode\fP
+.RS 3n
+pincode for Conax and Cryptoworks SCs
+.RE
+.PP
+\fBservices\fP = \fB[!]services[,[!]<services>]...\fP
+.RS 3n
+reader [de]assingment to service group, default=none
+.RE
+.PP
+\fBinactivitytimeout\fP = \fBminutes\fP
+.RS 3n
+inactivity timeout for newcamd reader, default:none
+.RE
+.PP
+\fBreconnecttimeout\fP = \fBminutes\fP
+.RS 3n
+TCP reconnect, if missing answers, default:none
+.RE
+.PP
+\fBdisableserverfilter\fP = \fB0\fP|\fB1\fP
+.RS 3n
+1 = ignore "caid" and "ident" settings of reader due faulty clients, default=0
+.RE
+.PP
+\fBlabel\fP = \fBname\fP
+.RS 3n
+name for reader, \fIrequired\fR
+.RE
+.PP
+\fBfallback\fP = \fB0\fP|\fB1\fP
+.RS 3n
+1 = define reader as fallback, standard and fallback reader must have the same group, default:0
+.RE
+.PP
+\fBlogport\fP = \fB0\fP|\fBport\fP
+.RS 3n
+camd3 reader logport, camd3 UDP must be activated, only works if there's no camd3 cascading, 0=disabled, default=0
+.RE
+.PP
+\fBcaid\fP = \fBCAID\fP
+.RS 3n
+define CAID for reader
+.RE
+.PP
+\fBboxid\fP = \fBNDS box ID\fP
+.RS 3n
+NDS receiver box id
+.RE
+.PP
+\fBaeskey\fP = \fBAES key\fP
+.RS 3n
+AES key for Viaccess SCs
+.RE
+.PP
+\fBdetect\fP = \fBCD\fP|\fBDSR\fP|\fBCTS\fP|\fBRING\fP|\fBNONE\fP|\fBgpio[2-7]\fP
+.RS 3n
+status detect of card (NONE = no detection), default:CD
+.RE
+.PP
+\fBmhz\fP = \fB357\fP|\fB358\fP|\fB600\fP|\fB800\fP|\fB1000\fP
+.RS 3n
+set reader clock speed in mhz, default:357
+.RE
+.PP
+\fBcustomspeed\fP = \fB0\fP|\fB1\fP
+.RS 3n
+supported by the Videoguard 2 module only: 1 = calculate and use a custom baudrate to communicate with SC reader, \fBcustomspeed\fP overwrites \fBmhz\fP, default:1
+.RE
+.PP
+\fBprotocol\fP = \fBreader protocol\fP
+.RS 3n
+reader protocol, \fIrequired\fR:
+ \fBmouse\fP
+ \fBsmartreader\fP
+ \fBinternal\fP
+ \fBserial\fP
+ \fBcamd35\fP|\fBcs357x\fP
+ \fBcs378x\fP
+ \fBgbox\fP
+ \fBnewcamd\fP|\fBnewcamd525\fP
+ \fBnewcamd524\fP
+.RE
+.PP
+\fBident\fP = \fB<CAID>:<ident>[,ident]...[,<CAID>:<ident>[,ident]...]...\fP
+.RS 3n
+define CAID and ident for reader
+
+exmaple: ident = 0100:123456,234567;0200:345678,456789
+.RE
+.PP
+\fBprovid\fP = \fBID\fP
+.RS 3n
+define provider ID for reader
+.RE
+.PP
+\fBclass\fP = \fB[!]class[,[!]class]...\fP
+.RS 3n
+define class in hex for reader
+
+example: class = 01,02,!1b,!2b
+.RE
+.PP
+\fBchid\fP = \fBCAID:ChID\fP
+.RS 3n
+define Irdeto ChID for reader
+
+example: chid = 0100:12
+.RE
+.PP
+\fBshowcls\fP = \fBquantity\fP
+.RS 3n
+number of classes subscriptions to show for Viaccess SCs, default=10
+.RE
+.PP
+\fBmaxqlen\fP = \fBsize\fP
+.RS 3n
+size of request queue for reader, default:128
+.RE
+.PP
+\fBgroup\fP = \fBgroupname\fP
+.RS 3n
+reader assingment to group, \fIrequired\fR
+.RE
+.PP
+\fBemmcache\fP = \fBusecache,rewrite,logging\fP
+.RS 3n
+set EMM cache of local reader:
+ \fBusecache\fP = \fB0\fP|\fB1\fP  1=enable EMM chaching, default:0
+ \fBrewrite\fP  = determines how often one and the same EMM is written
+ \fBlogging\fP  = \fB0\fP = log errors only
+            \fB1\fP = log all EMMs except the double EMMs
+            \fB2\fP = log all EMMs
+.RE
+.PP
+\fBblocknano\fP = \fBnano[,nano]...\fP|\fPall\fP
+.RS 3n
+list of EMM-nanos to block (in hex w/o 0x) or all EMM-nanos, only valid for physical readers, default:none
+
+ example: blocknano = 45,93,7a,ff
+          blocknano = all
+.RE
+.PP
+\fBsavenano\fP = \fBnano[,nano]....\fP|\fPall\fP
+.RS 3n
+list of EMM-nanos to save (in hex w/o 0x) or all EMM-nanos, only valid for physical readers, default:none
+
+ example: savenano = 45,93,7a,ff
+          savenano = all
+.RE
+.PP
+\fBreadnano\fP = \fB[path]filename\fP
+.RS 3n
+write file (usually a copy of a file saved by savenano) to your smartcard, if no path is specified, the specified file is searched for in the configuration directory, only valid for physical readers, default:none
+
+ example: readnano = write.emm
+          readnano = /var/oscam/write.emm
+.RE
+.SH EXAMPLES
+.TP 3n
+\(bu
+serial mouse compatible reader
+ 
+ [reader]
+ label    = myserialmousereader
+ detect   = cd
+ protocol = mouse
+ device   = /dev/ttyS1
+ group    = 1
+ caid     = 0100
+ services = myservice,!thisservice
+.TP 3n
+\(bu
+USB mouse compatible reader
+ 
+ [reader]
+ label    = myusbmousereader
+ detect   = cd
+ protocol = mouse
+ device   = /dev/ttyUSB0
+ aeskey   = 0102030405060708090a0b0c0d0e0f10
+ group    = 2
+ caid     = 0200
+.TP 3n
+\(bu
+camd 3.78x reader
+ 
+ [reader]
+ label    = mycamd378xreader
+ protocol = cs378x
+ device   = 192.168.0.1,1234
+ account  = user,password
+ group    = 3
+.TP 3n
+\(bu
+newcamd reader
+ 
+ [reader]
+ label    = mynewcamdreader
+ protocol = newcamd
+ key      = 0102030405060708091011121314
+ device   = 192.168.0.2,2345
+ account  = user,password
+ group    = 4
+.SH "SEE ALSO"
+\fBoscam\fR(1), \fBoscam.conf\fR(5), \fBoscam.user\fR(5), \fBoscam.srvid\fR(5), \fBoscam.guess\fR(5), \fBoscam.cert\fR(5), \fBoscam.services\fR(5), \fBoscam.ird\fR(5), \fBoscam.ac\fR(5)
