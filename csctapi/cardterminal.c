@@ -70,14 +70,14 @@ CardTerminal * CardTerminal_New (void)
 	return ct;
 }
 
-char CardTerminal_Init (CardTerminal * ct, unsigned short pn, int reader_type)
+char CardTerminal_Init (CardTerminal * ct, unsigned short pn, int reader_type, int mhz)
 {
 	char ret;
 	int i;
 	bool usbserial;
 	
 	/* Create a new IO_Serial */
-	ct->io = IO_Serial_New (reader_type);
+	ct->io = IO_Serial_New (reader_type, mhz);
 	
 	/* Memory error */
 	if (ct->io == NULL)
@@ -100,7 +100,7 @@ char CardTerminal_Init (CardTerminal * ct, unsigned short pn, int reader_type)
 	/* Initialise serial port */
 	if (!IO_Serial_Init (ct->io, pn + 1, usbserial, FALSE))
 	{
-		IO_Serial_Delete (ct->io);
+		free (ct->io);
 		ct->io = NULL;
 		return ERR_TRANS;
 	}
@@ -144,7 +144,7 @@ char CardTerminal_Init (CardTerminal * ct, unsigned short pn, int reader_type)
 		}
 		
 		IO_Serial_Close (ct->io);
-		IO_Serial_Delete (ct->io);
+		free (ct->io);
 		ct->io = NULL;
 	}
 #ifdef HAVE_PTHREAD_H
@@ -228,7 +228,7 @@ char CardTerminal_Close (CardTerminal * ct)
 		if (!IO_Serial_Close (ct->io))
 			ret = ERR_TRANS;
 		
-		IO_Serial_Delete (ct->io);
+		free (ct->io);
 	}
 	
 	CardTerminal_Clear (ct);

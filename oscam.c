@@ -446,9 +446,9 @@ static void cs_child_chk(int i)
         {
 #ifdef CS_ANTICASC
           char usr[32];
-          ushort    ac_idx;
-          ushort    ac_limit;
-          uchar     ac_penalty;
+          ushort    ac_idx=0;
+          ushort    ac_limit=0;
+          uchar     ac_penalty=0;
           if( cfg->ac_enabled )
           {
             strncpy(usr, client[i].usr, sizeof(usr)-1);
@@ -1442,7 +1442,7 @@ int write_ecm_answer(int fd, ECM_REQUEST *er)
   
   return(write_ecm_request(fd, er));
 }
-
+/*
 static int cs_read_timer(int fd, uchar *buf, int l, int msec)
 {
   struct timeval tv;
@@ -1463,7 +1463,7 @@ static int cs_read_timer(int fd, uchar *buf, int l, int msec)
       rc=-1;
 
   return(rc);
-}
+}*/
 
 ECM_REQUEST *get_ecmtask()
 {
@@ -2142,7 +2142,7 @@ void cs_log_config()
     sprintf((char *)buf, ", nice=%d", cfg->nice);
   else
     buf[0]='\0';
-  cs_log("version=%s, system=%s%s", CS_VERSION_X, cs_platform((char *)buf+64), buf);
+  cs_log("version=%s, build #%s, system=%s%s", CS_VERSION_X, CS_SVN_VERSION, cs_platform((char *)buf+64), buf);
   cs_log("max. clients=%d, client max. idle=%d sec",
 #ifdef CS_ANTICASC
          CS_MAXPID-3, cfg->cmaxidle);
