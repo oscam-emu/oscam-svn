@@ -470,10 +470,9 @@ static int cc_cmd_send(uint8 *buf, int len, cc_msg_type_t cmd)
     len += 4;
   }
 
+  cs_ddump(netbuf, len, "cccam: send:");
   cc_crypt(&cc->block[ENCRYPT], netbuf, len, ENCRYPT);
 
-  cs_ddump(buf, len, "cccam: send:");
-  //cs_ddump(netbuf, len, "cccam: send enc:");
   n = send(client[cs_idx].udp_fd, netbuf, len, 0);
 
   X_FREE(netbuf);
