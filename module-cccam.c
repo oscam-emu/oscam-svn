@@ -138,6 +138,7 @@ void *llist_itr_remove(LLIST_ITR *itr)  // this needs cleaning - I was lazy
     free(itr->cur);
     nxt->prv = NULL;
     itr->l->first = nxt;
+    itr->cur = nxt;
   } else if (itr->cur == itr->l->last) {
   //  cs_log("DEBUG %d: last", llist_count(itr->l));
     itr->l->last = itr->cur->prv;
@@ -516,14 +517,16 @@ static int cc_send_ecm(ECM_REQUEST *er, uchar *buf)
 
   card = llist_itr_init(cc->cards, &itr);
 
-  while (card && !h) {
+  while (card) {
     if (card->caid == er->caid) {   // caid matches
       LLIST_ITR pitr;
       char *prov = llist_itr_init(card->provs, &pitr);
       while (prov && !h) {
         if (B24(prov) == er->prid) {  // provid matches
-          cc->cur_card = card;
-          h = 1;  // card has been matched
+          if (!h || (card->hop < h)) {  // card is closer
+            cc->cur_card = card;
+            h = 1;  // card has been matched
+          }
         }
         prov = llist_itr_next(&pitr);
       }
@@ -593,14 +596,14 @@ static cc_msg_type_t cc_parse_msg(uint8 *buf, int l)
       card->hop = buf[14];
       memcpy(card->key, buf+16, 8);
 
-      cs_log("cccam: card %08x added, caid %04x, hop %d, key %s",
+      cs_debug("cccam: card %08x added, caid %04x, hop %d, key %s",
           card->id, card->caid, card->hop, cs_hexdump(0, card->key, 8));
 
       for (i = 0; i < buf[24]; i++) {  // providers
         uint8 *prov = malloc(3);
 
         memcpy(prov, buf+25+(7*i), 3);
-        cs_log("      prov %d, %06x", i+1, B24(prov));
+        cs_debug("      prov %d, %06x", i+1, B24(prov));
 
         llist_append(card->provs, prov);
       }
@@ -617,19 +620,12 @@ static cc_msg_type_t cc_parse_msg(uint8 *buf, int l)
     card = llist_itr_init(cc->cards, &itr);
     while (card) {
       if (card->id == B32(buf+4)) {
-        char *prov;
-        LLIST_ITR pitr;
+        cs_debug("cccam: card %08x removed, caid %04x", card->id, card->caid);
 
-        prov = llist_itr_init(card->provs, &pitr);
-        while (prov) {
-          free(prov);
-          prov = llist_itr_remove(&pitr);
-        }
-        llist_itr_release(&pitr);
-
-        cs_log("cccam: card %08x removed, caid %04x", card->id, card->caid);
-        card = llist_itr_remove(&itr);
+        llist_destroy(card->provs);
         free(card);
+
+        card = llist_itr_remove(&itr);
         break;
       } else {
         card = llist_itr_next(&itr);
@@ -677,10 +673,13 @@ static int cc_recv_chk(uchar *dcw, int *rc, uchar *buf, int n)
 int cc_recv(uchar *buf, int l)
 {
   int n;
+  uchar *cbuf = malloc(l);
+
+  memcpy(cbuf, buf, l);   // make a copy of buf
 
   if (!is_server) {
     if (!client[cs_idx].udp_fd) return(-1);
-    n = cc_msg_recv(buf, l);  // recv and decrypt msg
+    n = cc_msg_recv(cbuf, l);  // recv and decrypt msg
   } else {
     return -2;
   }
@@ -688,7 +687,7 @@ int cc_recv(uchar *buf, int l)
   cs_ddump(buf, n, "cccam: received %d bytes from %s", n, remote_txt());
   client[cs_idx].last = time((time_t *) 0);
 
-  if ((0 < n) && (n < 4)) {
+  if (n < 4) {
     cs_log("cccam: packet to small (%d bytes)", n);
     n = -1;
   } else if (n == 0) {
@@ -696,7 +695,11 @@ int cc_recv(uchar *buf, int l)
     n = -1;
   }
 
-  cc_parse_msg(buf, n);
+  cc_parse_msg(cbuf, n);
+
+  memcpy(buf, cbuf, l);
+
+  X_FREE(cbuf);
 
   return(n);
 }
