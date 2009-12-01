@@ -506,7 +506,7 @@ static int cc_send_cli_data()
 
 static int cc_send_ecm(ECM_REQUEST *er, uchar *buf)
 {
-  int n, h = 0;
+  int n, h = -1;
   struct cc_data *cc = reader[ridx].cc;
   struct cc_card *card;
   LLIST_ITR itr;
@@ -521,11 +521,11 @@ static int cc_send_ecm(ECM_REQUEST *er, uchar *buf)
     if (card->caid == er->caid) {   // caid matches
       LLIST_ITR pitr;
       char *prov = llist_itr_init(card->provs, &pitr);
-      while (prov && !h) {
+      while (prov) {
         if (B24(prov) == er->prid) {  // provid matches
-          if (!h || (card->hop < h)) {  // card is closer
+          if ((h < 0) || (card->hop < h)) {  // card is closer
             cc->cur_card = card;
-            h = 1;  // card has been matched
+            h = card->hop;  // card has been matched
           }
         }
         prov = llist_itr_next(&pitr);
