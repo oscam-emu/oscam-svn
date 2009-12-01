@@ -18,6 +18,7 @@ struct llist_node {
 typedef struct llist {
   struct llist_node *first;
   struct llist_node *last;
+  int items;
   pthread_mutex_t lock;
 } LLIST;
 
@@ -27,7 +28,7 @@ typedef struct llist_itr {
 } LLIST_ITR;
 
 LLIST *llist_create(void);                  // init linked list
-void llist_destroy(LLIST *l);               // de-init linked list
+void llist_destroy(LLIST *l);               // de-init linked list - frees all objects on the list
 
 void *llist_append(LLIST *l, void *o);       // append object onto bottom of list, returns ptr to obj
 
@@ -37,6 +38,8 @@ void *llist_itr_next(LLIST_ITR *itr);                 // iterates, returns ptr t
 
 void *llist_itr_insert(LLIST_ITR *itr, void *o);  // insert object at itr point, iterates to and returns ptr to new obj
 void *llist_itr_remove(LLIST_ITR *itr);           // remove obj at itr, iterates to and returns ptr to next obj
+
+int llist_count(LLIST *l);    // returns number of obj in list
 
 /******************************** */
 
@@ -49,6 +52,8 @@ LLIST *llist_create(void)
   bzero(l, sizeof(LLIST));
 
   pthread_mutex_init(&l->lock, NULL);
+
+  l->items = 0;
 
   return l;
 }
@@ -80,6 +85,8 @@ void *llist_append(LLIST *l, void *o)
       l->first = ln;
     }
     l->last = ln;
+
+    l->items++;
   }
   pthread_mutex_unlock(&l->lock);
 
@@ -88,8 +95,8 @@ void *llist_append(LLIST *l, void *o)
 
 void *llist_itr_init(LLIST *l, LLIST_ITR *itr)
 {
+  pthread_mutex_lock(&l->lock);
   if (l->first) {
-    pthread_mutex_lock(&l->lock);
 
     bzero(itr, sizeof(LLIST_ITR));
     itr->cur = l->first;
@@ -116,30 +123,29 @@ void *llist_itr_next(LLIST_ITR *itr)
   return NULL;
 }
 
-void *llist_itr_insert(LLIST_ITR *itr, void *o)
-{
-
-  return itr->cur->obj;
-}
-
 void *llist_itr_remove(LLIST_ITR *itr)  // this needs cleaning - I was lazy
 {
+  itr->l->items--;
   if ((itr->cur == itr->l->first) && (itr->cur == itr->l->last)) {
+ //   cs_log("DEBUG %d: first&last", llist_count(itr->l));
     free(itr->cur);
     itr->l->first = NULL;
     itr->l->last = NULL;
     return NULL;
   } else if (itr->cur == itr->l->first) {
+  //  cs_log("DEBUG %d: first", llist_count(itr->l));
     struct llist_node *nxt = itr->cur->nxt;
     free(itr->cur);
     nxt->prv = NULL;
     itr->l->first = nxt;
   } else if (itr->cur == itr->l->last) {
+  //  cs_log("DEBUG %d: last", llist_count(itr->l));
     itr->l->last = itr->cur->prv;
     itr->l->last->nxt = NULL;
     free(itr->cur);
     return NULL;
   } else {
+   // cs_log("DEBUG %d: free middle", llist_count(itr->l));
     struct llist_node *nxt = itr->cur->nxt;
     itr->cur->prv->nxt = itr->cur->nxt;
     itr->cur->nxt->prv = itr->cur->prv;
@@ -148,6 +154,11 @@ void *llist_itr_remove(LLIST_ITR *itr)  // this needs cleaning - I was lazy
   }
 
   return itr->cur->obj;
+}
+
+int llist_count(LLIST *l)
+{
+  return l->items;
 }
 
 /******************************** */
@@ -476,8 +487,6 @@ static int cc_send_cli_data()
 
   cs_debug("cccam: send client data");
 
-  //memcpy(cc->node_id, "\x7A\xDD\xAB\x28\xC9\x39\x4A\x2F", 8);
-
   seed = (unsigned int) time((time_t*)0);
   for( i=0; i<8; i++ ) cc->node_id[i]=fast_rnd();
 
@@ -505,14 +514,17 @@ static int cc_send_ecm(ECM_REQUEST *er, uchar *buf)
 
   card = llist_itr_init(cc->cards, &itr);
 
-  while (card && !h) {
+  while (card) {
     if (card->caid == er->caid) {   // caid matches
       LLIST_ITR pitr;
       char *prov = llist_itr_init(card->provs, &pitr);
       while (prov && !h) {
         if (B24(prov) == er->prid) {  // provid matches
-          cc->cur_card = card;
-          h = 1;  // card has been matched
+      //    if ((card->hop < h) || !h) {  // card is closer
+          if (card->hop == 0) {// test
+            cc->cur_card = card;
+            h = card->hop;
+          }
         }
         prov = llist_itr_next(&pitr);
       }
@@ -589,7 +601,7 @@ static cc_msg_type_t cc_parse_msg(uint8 *buf, int l)
         uint8 *prov = malloc(3);
 
         memcpy(prov, buf+25+(7*i), 3);
-        cs_log("      prov %d, %06x", i+1, B24(prov));
+        cs_debug("      prov %d, %06x", i+1, B24(prov));
 
         llist_append(card->provs, prov);
       }
@@ -606,15 +618,7 @@ static cc_msg_type_t cc_parse_msg(uint8 *buf, int l)
     card = llist_itr_init(cc->cards, &itr);
     while (card) {
       if (card->id == B32(buf+4)) {
-        char *prov;
-        LLIST_ITR pitr;
-
-        prov = llist_itr_init(card->provs, &pitr);
-        while (prov) {
-          free(prov);
-          prov = llist_itr_remove(&pitr);
-        }
-        llist_itr_release(&pitr);
+        llist_destroy(card->provs);
 
         cs_log("cccam: card %08x removed, caid %04x", card->id, card->caid);
         card = llist_itr_remove(&itr);
@@ -652,12 +656,13 @@ static int cc_recv_chk(uchar *dcw, int *rc, uchar *buf, int n)
 {
   struct cc_data *cc = reader[ridx].cc;
 
-  if (buf[1] == MSG_CW) {
-    memcpy(dcw, cc->dcw, 16);
-    cs_debug("cccam: recv chk - MSG_CW %d - %s", cc->count, cs_hexdump(0, dcw, 16));
-    *rc = 1;
-    //return 0;
-    return(cc->count);
+  if (buf && n) {
+    if (buf[1] == MSG_CW) {
+      memcpy(dcw, cc->dcw, 16);
+      cs_debug("cccam: recv chk - MSG_CW %d - %s", cc->count, cs_hexdump(0, dcw, 16));
+      *rc = 1;
+      return(cc->count);
+    }
   }
 
   return -1;
@@ -665,11 +670,14 @@ static int cc_recv_chk(uchar *dcw, int *rc, uchar *buf, int n)
 
 int cc_recv(uchar *buf, int l)
 {
-  int n;
+  int n = -1;
+  uint8 *cbuf = malloc(l);
+
+  memcpy(cbuf, buf, l);
 
   if (!is_server) {
     if (!client[cs_idx].udp_fd) return(-1);
-    n = cc_msg_recv(buf, l);  // recv and decrypt msg
+    if (reader[ridx].cc) n = cc_msg_recv(cbuf, l);  // recv and decrypt msg
   } else {
     return -2;
   }
@@ -677,7 +685,7 @@ int cc_recv(uchar *buf, int l)
   cs_ddump(buf, n, "cccam: received %d bytes from %s", n, remote_txt());
   client[cs_idx].last = time((time_t *) 0);
 
-  if ((0 < n) && (n < 4)) {
+  if (n < 4) {
     cs_log("cccam: packet to small (%d bytes)", n);
     n = -1;
   } else if (n == 0) {
@@ -685,7 +693,9 @@ int cc_recv(uchar *buf, int l)
     n = -1;
   }
 
-  cc_parse_msg(buf, n);
+  cc_parse_msg(cbuf, n);
+
+  X_FREE(cbuf);
 
   return(n);
 }
@@ -843,7 +853,21 @@ int cc_cli_init(void)
 
 void cc_cleanup(void)
 {
+  struct cc_data *cc = reader[ridx].cc;
+  LLIST_ITR itr;
+  struct cc_card *card = llist_itr_init(cc, &itr);
 
+  cs_debug("cccam: cleanup");
+
+  while (card) {
+    cs_debug("card %x: cleanup", card->id);
+    llist_destroy(card->provs);
+    card = llist_itr_next(&itr);
+  }
+  llist_itr_release(&itr);
+
+  llist_destroy(cc->cards);
+  X_FREE(cc);
 }
 
 void module_cccam(struct s_module *ph)
