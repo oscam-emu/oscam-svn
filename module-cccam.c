@@ -487,6 +487,8 @@ static int cc_send_cli_data()
 
   cs_debug("cccam: send client data");
 
+  //memcpy(cc->node_id, "\x7A\xDD\xAB\x28\xC9\x39\x4A\x2F", 8);
+
   seed = (unsigned int) time((time_t*)0);
   for( i=0; i<8; i++ ) cc->node_id[i]=fast_rnd();
 
@@ -514,17 +516,14 @@ static int cc_send_ecm(ECM_REQUEST *er, uchar *buf)
 
   card = llist_itr_init(cc->cards, &itr);
 
-  while (card) {
+  while (card && !h) {
     if (card->caid == er->caid) {   // caid matches
       LLIST_ITR pitr;
       char *prov = llist_itr_init(card->provs, &pitr);
       while (prov && !h) {
         if (B24(prov) == er->prid) {  // provid matches
-      //    if ((card->hop < h) || !h) {  // card is closer
-          if (card->hop == 0) {// test
-            cc->cur_card = card;
-            h = card->hop;
-          }
+          cc->cur_card = card;
+          h = 1;  // card has been matched
         }
         prov = llist_itr_next(&pitr);
       }
@@ -601,7 +600,7 @@ static cc_msg_type_t cc_parse_msg(uint8 *buf, int l)
         uint8 *prov = malloc(3);
 
         memcpy(prov, buf+25+(7*i), 3);
-        cs_debug("      prov %d, %06x", i+1, B24(prov));
+        cs_log("      prov %d, %06x", i+1, B24(prov));
 
         llist_append(card->provs, prov);
       }
@@ -618,7 +617,15 @@ static cc_msg_type_t cc_parse_msg(uint8 *buf, int l)
     card = llist_itr_init(cc->cards, &itr);
     while (card) {
       if (card->id == B32(buf+4)) {
-        llist_destroy(card->provs);
+        char *prov;
+        LLIST_ITR pitr;
+
+        prov = llist_itr_init(card->provs, &pitr);
+        while (prov) {
+          free(prov);
+          prov = llist_itr_remove(&pitr);
+        }
+        llist_itr_release(&pitr);
 
         cs_log("cccam: card %08x removed, caid %04x", card->id, card->caid);
         card = llist_itr_remove(&itr);
@@ -656,13 +663,12 @@ static int cc_recv_chk(uchar *dcw, int *rc, uchar *buf, int n)
 {
   struct cc_data *cc = reader[ridx].cc;
 
-  if (buf && n) {
-    if (buf[1] == MSG_CW) {
-      memcpy(dcw, cc->dcw, 16);
-      cs_debug("cccam: recv chk - MSG_CW %d - %s", cc->count, cs_hexdump(0, dcw, 16));
-      *rc = 1;
-      return(cc->count);
-    }
+  if (buf[1] == MSG_CW) {
+    memcpy(dcw, cc->dcw, 16);
+    cs_debug("cccam: recv chk - MSG_CW %d - %s", cc->count, cs_hexdump(0, dcw, 16));
+    *rc = 1;
+    //return 0;
+    return(cc->count);
   }
 
   return -1;
@@ -670,14 +676,11 @@ static int cc_recv_chk(uchar *dcw, int *rc, uchar *buf, int n)
 
 int cc_recv(uchar *buf, int l)
 {
-  int n = -1;
-  uint8 *cbuf = malloc(l);
-
-  memcpy(cbuf, buf, l);
+  int n;
 
   if (!is_server) {
     if (!client[cs_idx].udp_fd) return(-1);
-    if (reader[ridx].cc) n = cc_msg_recv(cbuf, l);  // recv and decrypt msg
+    n = cc_msg_recv(buf, l);  // recv and decrypt msg
   } else {
     return -2;
   }
@@ -685,7 +688,7 @@ int cc_recv(uchar *buf, int l)
   cs_ddump(buf, n, "cccam: received %d bytes from %s", n, remote_txt());
   client[cs_idx].last = time((time_t *) 0);
 
-  if (n < 4) {
+  if ((0 < n) && (n < 4)) {
     cs_log("cccam: packet to small (%d bytes)", n);
     n = -1;
   } else if (n == 0) {
@@ -693,9 +696,7 @@ int cc_recv(uchar *buf, int l)
     n = -1;
   }
 
-  cc_parse_msg(cbuf, n);
-
-  X_FREE(cbuf);
+  cc_parse_msg(buf, n);
 
   return(n);
 }
@@ -853,21 +854,7 @@ int cc_cli_init(void)
 
 void cc_cleanup(void)
 {
-  struct cc_data *cc = reader[ridx].cc;
-  LLIST_ITR itr;
-  struct cc_card *card = llist_itr_init(cc, &itr);
 
-  cs_debug("cccam: cleanup");
-
-  while (card) {
-    cs_debug("card %x: cleanup", card->id);
-    llist_destroy(card->provs);
-    card = llist_itr_next(&itr);
-  }
-  llist_itr_release(&itr);
-
-  llist_destroy(cc->cards);
-  X_FREE(cc);
 }
 
 void module_cccam(struct s_module *ph)
