@@ -714,7 +714,7 @@ static int cc_cli_connect(void)
   if(handle < 0) return -1;
 
   // get init seed
-  if(read(handle, data, 16) != sizeof(data)) {
+  if(read(handle, data, 16) != 16) {
     cs_log("cccam: server does not return 16 bytes");
     network_tcp_connection_close(handle);
     return -2;
@@ -779,7 +779,7 @@ static int cc_cli_connect(void)
   return 0;
 }
 
-int cccam_cli_init(void)
+int cc_cli_init(void)
 {
   static struct sockaddr_in loc_sa;
   struct protoent *ptrp;
@@ -841,6 +841,11 @@ int cccam_cli_init(void)
   return(0);
 }
 
+void cc_cleanup(void)
+{
+
+}
+
 void module_cccam(struct s_module *ph)
 {
   strcpy(ph->desc, "cccam");
@@ -848,8 +853,9 @@ void module_cccam(struct s_module *ph)
   ph->logtxt = ", crypted";
   ph->watchdog=1;
   ph->recv=cc_recv;
+  ph->cleanup=cc_cleanup;
   ph->c_multi=1;
-  ph->c_init=cccam_cli_init;
+  ph->c_init=cc_cli_init;
   ph->c_recv_chk=cc_recv_chk;
   ph->c_send_ecm=cc_send_ecm;
 }
