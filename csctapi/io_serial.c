@@ -40,6 +40,7 @@
 #include <sys/signal.h>
 #include <sys/types.h>
 #endif
+#include <math.h>
 #include <sys/time.h>
 #include <sys/ioctl.h>
 #include <time.h>
@@ -309,11 +310,12 @@ bool IO_Serial_GetProperties (IO_Serial * io)
 
 bool IO_Serial_SetProperties (IO_Serial * io)
 {
-   struct termios newtio;
-	
+	struct termios newtio;
+	int mhz;
+		
 #ifdef SCI_DEV
-   if(io->com==RTYP_SCI)
-      return FALSE;
+	if(io->com==RTYP_SCI)
+		return FALSE;
 #endif
    
    //	printf("IO: Setting properties: com%d, %ld bps; %d bits/byte; %s parity; %d stopbits; dtr=%d; rts=%d\n", io->com, io->input_bitrate, io->bits, io->parity == IO_SERIAL_PARITY_EVEN ? "Even" : io->parity == IO_SERIAL_PARITY_ODD ? "Odd" : "None", io->stopbits, io->dtr, io->rts);
@@ -321,19 +323,23 @@ bool IO_Serial_SetProperties (IO_Serial * io)
    /* Set the bitrate */
    
 
-   int mhz = io->mhz;
+   mhz = io->mhz;
+
    if(io->reader_type==RTYP_SMART)
    {
 #ifdef DEBUG_IO
-      printf("IO: SMARTREADER .. switching to frequency to %2.2fMHz\n", (float)mhz/100.0);
+      printf("IO: SMARTREADER .. switching %s to %2.2fMHz\n", io->filename,(float)mhz/100.0);
 #endif
       if(!IO_Serial_Set_Smartreader_Config(io))
       {
 #ifdef DEBUG_IO
-         printf("IO: SMARTREADER .. ERROR switching to 6MHz\n");
+         printf("IO: SMARTREADER .. ERROR switching %s to %2.2fMHz\n", io->filename,(float)mhz/100.0);
 #endif
          return FALSE;
       }
+	return TRUE;
+	// no need to continue as the smartreader is ready to be used
+	// and we don't want any changes in the baudrate or anything else.
    }
 
 
@@ -876,6 +882,7 @@ static bool IO_Serial_WaitToWrite (IO_Serial *io, unsigned delay_ms, unsigned ti
 
 static void IO_Serial_Clear (IO_Serial * io)
 {
+	memset(io->filename,0,IO_SERIAL_FILENAME_LENGTH);
 	io->fd = -1;
 	io->com = 0;
 	memset (io->PnP_id, 0, IO_SERIAL_PNPID_SIZE);
@@ -930,9 +937,9 @@ static bool IO_Serial_InitPnP (IO_Serial * io)
 	// to make sure the ATR is sent at 9600.
 	if(io->SmartReaderConf)
 	{
-		io->SmartReaderConf->F=(io->mhz)*1000/9600;
+		io->SmartReaderConf->F=(int)ceil((float)(io->mhz)*10000.0/9600);
 		io->SmartReaderConf->D=1.0;
-		io->SmartReaderConf->fs=(io->mhz)*1000; // freq in Hz
+		io->SmartReaderConf->fs=(io->mhz)*10000; // freq in Hz
 		io->SmartReaderConf->N=0;
 		io->SmartReaderConf->T=0;
 		io->SmartReaderConf->inv=0;
@@ -960,13 +967,13 @@ static bool IO_Serial_Set_Smartreader_Config(IO_Serial * io)
 		return FALSE;
 
 #  ifdef DEBUG_IO
-		printf("IO: Setting SmartReader+ config : F=%d; D=%f; fs=%d; N=%d; T=%d; inv=%d \n",
-				sr_config->F,
-				sr_config->D,
-				sr_config->fs,
-				sr_config->N,
-				sr_config->T,
-				sr_config->inv);
+	printf("IO: Setting SmartReader+ config : F=%d; D=%f; fs=%d; N=%d; T=%d; inv=%d \n",
+			sr_config->F,
+			sr_config->D,
+			sr_config->fs,
+			sr_config->N,
+			sr_config->T,
+			sr_config->inv);
 #  endif
 		
 	F=sr_config->F;
@@ -978,7 +985,7 @@ static bool IO_Serial_Set_Smartreader_Config(IO_Serial * io)
 
 	fs/=1000; // convert to kHz.
 #  ifdef DEBUG_IO
-	printf("IO: Smartreader+ on %s: SR+ options F=%d D=%f fs=%d N=%d T=%d inv=%d\n",io->filename,F,D,fs,N,T,inv);
+	printf("IO: Smartreader+ on %s: SR+ options F=%d D=%f fs=%dKHz N=%d T=%d inv=%d\n",io->filename,F,D,fs,N,T,inv);
 #  endif
 
 	// Set SmartReader+ in CMD mode.
