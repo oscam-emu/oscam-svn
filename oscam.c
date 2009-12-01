@@ -446,9 +446,9 @@ static void cs_child_chk(int i)
         {
 #ifdef CS_ANTICASC
           char usr[32];
-          ushort    ac_idx;
-          ushort    ac_limit;
-          uchar     ac_penalty;
+          ushort    ac_idx=0;
+          ushort    ac_limit=0;
+          uchar     ac_penalty=0;
           if( cfg->ac_enabled )
           {
             strncpy(usr, client[i].usr, sizeof(usr)-1);
@@ -835,7 +835,7 @@ static int start_listener(struct s_module *ph, int port_idx)
   return(ph->ptab->ports[port_idx].fd);
 }
 
-static void *cs_client_resolve(void *dummy)
+static void cs_client_resolve(void *dummy)
 {
   while (1)
   {
@@ -864,7 +864,7 @@ static void start_client_resolver()
   int i;
   pthread_t tid;
 
-  if (i=pthread_create(&tid, (pthread_attr_t *)0, cs_client_resolve, (void *) 0))
+  if (i=pthread_create(&tid, (pthread_attr_t *)0, (void *)&cs_client_resolve, (void *) 0))
     cs_log("ERROR: can't create resolver-thread (err=%d)", i);
   else
   {
@@ -895,7 +895,7 @@ void cs_resolve()
 }
 
 #ifdef USE_PTHREAD
-static void *cs_logger(void *dummy)
+static void cs_logger(void *dummy)
 #else
 static void cs_logger(void)
 #endif
@@ -935,7 +935,7 @@ static void start_resolver()
   int i;
 #ifdef USE_PTHREAD
   pthread_t tid;
-  if (i=pthread_create(&tid, (pthread_attr_t *)0, cs_logger, (void *) 0))
+  if (i=pthread_create(&tid, (pthread_attr_t *)0, (void *) &cs_logger, (void *) 0))
     cs_log("ERROR: can't create logging-thread (err=%d)", i);
   else
   {
@@ -1442,7 +1442,7 @@ int write_ecm_answer(int fd, ECM_REQUEST *er)
   
   return(write_ecm_request(fd, er));
 }
-
+/*
 static int cs_read_timer(int fd, uchar *buf, int l, int msec)
 {
   struct timeval tv;
@@ -1463,7 +1463,7 @@ static int cs_read_timer(int fd, uchar *buf, int l, int msec)
       rc=-1;
 
   return(rc);
-}
+}*/
 
 ECM_REQUEST *get_ecmtask()
 {
