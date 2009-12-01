@@ -693,7 +693,7 @@ int cc_recv(uchar *buf, int l)
 static int cc_cli_connect(void)
 {
   int handle;
-  uint8 data[16];
+  uint8 data[20];
   uint8 hash[SHA1_DIGEST_SIZE];
   uint8 buf[CC_MAXMSGSIZE];
   struct cc_data *cc;
@@ -714,12 +714,12 @@ static int cc_cli_connect(void)
   if(handle < 0) return -1;
 
   // get init seed
-  if( read(handle, data, sizeof(data)) != sizeof(data)) {
+  if(read(handle, data, 16) != sizeof(data)) {
     cs_log("cccam: server does not return 16 bytes");
     network_tcp_connection_close(handle);
     return -2;
   }
-  cs_ddump(data, sizeof(data), "cccam: server init seed:");
+  cs_ddump(data, 16, "cccam: server init seed:");
 
   cc_xor(data);  // XOR init bytes with 'CCcam'
 
@@ -751,7 +751,10 @@ static int cc_cli_connect(void)
   cc_crypt(&cc->block[ENCRYPT], (uint8 *)reader[ridx].r_pwd, strlen(reader[ridx].r_pwd), ENCRYPT);     // modify encryption state w/ pwd
   cc_cmd_send(buf, 6, MSG_NO_HEADER); // send 'CCcam' xor w/ pwd
 
-  read(handle, data, 20);
+  if (read(handle, data, 20) != 20) {
+    cs_log("ccam: login failed, pwd ack not received");
+    return -2;
+  }
   cc_crypt(&cc->block[DECRYPT], data, 20, DECRYPT);
   cs_ddump(data, 20, "cccam: pwd ack received:");
 
