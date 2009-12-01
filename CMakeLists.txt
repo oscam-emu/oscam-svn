@@ -1,5 +1,6 @@
 project (OSCam C)
 
+
 #----------------------- minimum version of cmake to use ------------
 
 # if you want to switch to 2.6 min, please look at the escaped definitions
