@@ -95,7 +95,7 @@ void *llist_append(LLIST *l, void *o)
 
 void *llist_itr_init(LLIST *l, LLIST_ITR *itr)
 {
-  pthread_mutex_lock(&l->lock);
+ // pthread_mutex_lock(&l->lock);
   if (l->first) {
 
     bzero(itr, sizeof(LLIST_ITR));
@@ -110,7 +110,7 @@ void *llist_itr_init(LLIST *l, LLIST_ITR *itr)
 
 void llist_itr_release(LLIST_ITR *itr)
 {
-  pthread_mutex_unlock(&itr->l->lock);
+ // pthread_mutex_unlock(&itr->l->lock);
 }
 
 void *llist_itr_next(LLIST_ITR *itr)
@@ -227,6 +227,7 @@ struct cc_data {
   LLIST *cards;               // cards list
 
   uint32 count;
+  uint16 cur_sid;
 };
 
 static unsigned int seed;
@@ -513,14 +514,28 @@ static int cc_send_ecm(ECM_REQUEST *er, uchar *buf)
   memcpy(buf, er->ecm, er->l);
 
   cc->cur_card = NULL;
+  cc->cur_sid = er->srvid;
 
   card = llist_itr_init(cc->cards, &itr);
 
   while (card) {
     if (card->caid == er->caid) {   // caid matches
+      int s = 0;
+
+      LLIST_ITR sitr;
+      uint16 *sid = llist_itr_init(card->badsids, &sitr);
+      while (sid) {
+        if (*sid == cc->cur_sid) {
+          s = 1;
+          break;
+        }
+        sid = llist_itr_next(&sitr);
+      }
+      llist_itr_release(&sitr);
+
       LLIST_ITR pitr;
       char *prov = llist_itr_init(card->provs, &pitr);
-      while (prov) {
+      while (prov && !s) {
         if (B24(prov) == er->prid) {  // provid matches
           if ((h < 0) || (card->hop < h)) {  // card is closer
             cc->cur_card = card;
@@ -566,8 +581,7 @@ static int cc_send_ecm(ECM_REQUEST *er, uchar *buf)
     cs_log("cccam: no suitable card on server");
   }
 
-  if (n) return 0;
-  else return -1;
+  return 0;
 }
 
 static cc_msg_type_t cc_parse_msg(uint8 *buf, int l)
@@ -590,6 +604,7 @@ static cc_msg_type_t cc_parse_msg(uint8 *buf, int l)
       bzero(card, sizeof(struct cc_card));
 
       card->provs = llist_create();
+      card->badsids = llist_create();
       card->id = B32(buf+4);
       card->caid = B16(buf+12);
       card->hop = buf[14];
@@ -622,6 +637,7 @@ static cc_msg_type_t cc_parse_msg(uint8 *buf, int l)
         cs_debug("cccam: card %08x removed, caid %04x", card->id, card->caid);
 
         llist_destroy(card->provs);
+        llist_destroy(card->badsids);
         free(card);
 
         card = llist_itr_remove(&itr);
@@ -635,7 +651,29 @@ static cc_msg_type_t cc_parse_msg(uint8 *buf, int l)
     break;
   case MSG_CW_NOK1:
   case MSG_CW_NOK2:
-    cs_log("cccam: cw nok");
+    cs_log("cccam: cw nok, sid = %x", cc->cur_sid);
+
+    int f = 0;
+    LLIST_ITR itr;
+    uint16 *sid = llist_itr_init(cc->cur_card->badsids, &itr);
+    while (sid && !f) {
+      if (*sid == cc->cur_sid) {
+        llist_itr_release(&itr);
+        f = 1;
+      }
+      sid = llist_itr_next(&itr);
+    }
+    llist_itr_release(&itr);
+
+    if (!f) {
+      sid = malloc(sizeof(uint16));
+      *sid = cc->cur_sid;
+
+      sid = llist_append(cc->cur_card->badsids, sid);
+      cs_debug("   added sid block for card %08x", cc->cur_card->id);
+    }
+    bzero(cc->dcw, 16);
+    return 0;
     break;
   case MSG_CW:
     cc_cw_decrypt(buf+4);
@@ -662,11 +700,14 @@ static int cc_recv_chk(uchar *dcw, int *rc, uchar *buf, int n)
     memcpy(dcw, cc->dcw, 16);
     cs_debug("cccam: recv chk - MSG_CW %d - %s", cc->count, cs_hexdump(0, dcw, 16));
     *rc = 1;
-    //return 0;
     return(cc->count);
+  } else if ((buf[1] == (MSG_CW_NOK1)) || (buf[1] == (MSG_CW_NOK2))) {
+    /*memcpy(dcw, cc->dcw, 16);
+    return *rc = 1;
+    return(cc->count);*/
   }
 
-  return -1;
+  return (-1);
 }
 
 int cc_recv(uchar *buf, int l)
