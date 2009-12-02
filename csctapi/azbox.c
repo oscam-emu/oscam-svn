@@ -51,7 +51,7 @@ int xcas_sc_get_atr(int rfd, unsigned char *atr)
     return -1;
   }
 
-  cs_log("azbox: atr len = %d: %s", n, cs_hexdump(0, buf, n));
+  cs_log("azbox: atr len = %d: %s", n, cs_hexdump(0, atr, n));
 
   return n;
 }
