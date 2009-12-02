@@ -159,7 +159,7 @@ add_library (${csoscam} STATIC ${csoscam_srcs} ${csoscam_hdrs})
 
 set (exe_name "oscam")
 add_executable (${exe_name} ${exe_srcs} ${exe_hdrs})
-target_link_libraries (${exe_name} ${csoscam} ${csmodules} ${csreaders} csctapi cscrypt pthread)
+target_link_libraries (${exe_name} ${csoscam} ${csmodules} ${csreaders} csctapi cscrypt pthread m)
 if (HAVE_AES)
     target_link_libraries (${exe_name} crypto)
 endif (HAVE_AES)

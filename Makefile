@@ -59,7 +59,7 @@ nptar:	clean
 i386-pc-linux:
 	@-$(MAKE) --no-print-directory \
 		-f Maketype TYP=$(subst i386,$(shell uname --machine),$(subst cross-,,$@)) \
-		OS_LIBS="-lcrypto" \
+		OS_LIBS="-lcrypto -lm" \
 		OS_CULI="-lncurses" \
 		OS_PTLI="-lpthread" \
 		DS_OPTS="-O2 -DOS_LINUX -DCS_CONFDIR=${CS_CONFDIR} -Winline -Wall -Wno-implicit-function-declaration -Wno-parentheses  -finline-functions -fomit-frame-pointer -D'CS_SVN_VERSION="'"$(shell svnversion -n . | sed 's/[MS]$$//' )"'"'" \
@@ -80,7 +80,7 @@ i386-pc-linux:
 macosx-native:
 	@-$(MAKE) --no-print-directory \
 		-f Maketype TYP=$(subst cross-,,$@) \
-		OS_LIBS="-lcrypto" \
+		OS_LIBS="-lcrypto -lm" \
 		OS_CULI="-lncurses" \
 		OS_PTLI="-lpthread" \
 		DS_OPTS="-O2 -DOS_MACOSX -DNEED_DAEMON -DCS_NOSHM -DHAVE_PTHREAD_H -DUSE_PTHREAD -DCS_CONFDIR=${CS_CONFDIR} -Winline -Wall -Wno-implicit-function-declaration -Wno-parentheses  -finline-functions -fomit-frame-pointer -D'CS_SVN_VERSION="'"$(shell svnversion -n . | sed 's/[MS]$$//' )"'"'" \
@@ -102,7 +102,7 @@ macosx-native:
 i386-pc-freebsd:
 	@-$(MAKE) --no-print-directory \
 		-f Maketype TYP=$(subst cross-,,$@) \
-		OS_LIBS="" \
+		OS_LIBS="-lm" \
 		OS_CULI="-lncurses" \
 		OS_PTLI="-lpthread" \
 		DS_OPTS="-O2 -DOS_FREEBSD -DBSD_COMP  -DCS_CONFDIR=${CS_CONFDIR} -static-libgcc -D'CS_SVN_VERSION="'"$(shell svnversion -n . | sed 's/[MS]$$//' )"'"'" \
@@ -123,7 +123,7 @@ i386-pc-freebsd:
 cross-i386-pc-freebsd:
 	@-$(MAKE) --no-print-directory \
 		-f Maketype TYP=$(subst cross-,,$@) \
-		OS_LIBS="" \
+		OS_LIBS="-lm" \
 		OS_CULI="-lncurses" \
 		OS_PTLI="-lpthread" \
 		DS_OPTS="-O2 -DOS_FREEBSD -DBSD_COMP -DCS_CONFDIR=${CS_CONFDIR} -static-libgcc -D'CS_SVN_VERSION="'"$(shell svnversion -n . | sed 's/[MS]$$//' )"'"'" \
@@ -144,7 +144,7 @@ cross-i386-pc-freebsd:
 cross-powerpc-tuxbox-linux:
 	@-$(MAKE) --no-print-directory \
 		-f Maketype TYP=$(subst cross-,,$@) \
-		OS_LIBS="-lcrypto -ldl" \
+		OS_LIBS="-lcrypto -ldl -lm" \
 		OS_CULI="-lncurses" \
 		OS_PTLI="-lpthread" \
 		DS_OPTS="-O2 -DOS_LINUX -DTUXBOX -DPPC -DCS_CONFDIR='\"/var/tuxbox/config\"' -D'CS_SVN_VERSION="'"$(shell svnversion -n . | sed 's/[MS]$$//' )"'"'" \
@@ -160,7 +160,7 @@ cross-powerpc-tuxbox-linux:
 cross-powerpc-tuxbox-linux-uclibc:
 	@-$(MAKE) --no-print-directory \
 		-f Maketype TYP=$(subst cross-,,$@) \
-		OS_LIBS="" \
+		OS_LIBS="-lm" \
 		OS_CULI="-lncurses" \
 		OS_PTLI="-lpthread" \
 		DS_OPTS="-O2 -DOS_LINUX -DTUXBOX -DPPC -DCS_CONFDIR='\"/var/tuxbox/config\"' -D'CS_SVN_VERSION="'"$(shell svnversion -n . | sed 's/[MS]$$//' )"'"'" \
@@ -182,7 +182,7 @@ cross-powerpc-tuxbox-linux-uclibc:
 cross-sh4-linux:
 	@-$(MAKE) --no-print-directory \
 		-f Maketype TYP=$(subst cross-,,$@) \
-		OS_LIBS="-lcrypto" \
+		OS_LIBS="-lcrypto -lm" \
 		OS_CULI="-lncurses" \
 		OS_PTLI="-lpthread" \
 		DS_OPTS="-O2 -DOS_LINUX -DSH4 -DTUXBOX -DCS_CONFDIR='\"/var/tuxbox/config\"' -D'CS_SVN_VERSION="'"$(shell svnversion -n . | sed 's/[MS]$$//' )"'"'" \
@@ -203,7 +203,7 @@ cross-sh4-linux:
 cross-i386-pc-cygwin:
 	@-$(MAKE) --no-print-directory \
 		-f Maketype TYP=$(subst cross-,,$@) \
-		OS_LIBS="-lcrypto" \
+		OS_LIBS="-lcrypto -lm" \
 		OS_CULI="-lncurses" \
 		OS_PTLI="-lpthread" \
 		DS_OPTS="-O2 -DOS_CYGWIN32 -DCS_CONFDIR=${CS_CONFDIR} -static -D'CS_SVN_VERSION="'"$(shell svnversion -n . | sed 's/[MS]$$//' )"'"'" \
@@ -224,7 +224,7 @@ cross-i386-pc-cygwin:
 i386-pc-cygwin:
 	@-$(MAKE) --no-print-directory \
 		-f Maketype TYP=$(subst cross-,,$@) \
-		OS_LIBS="-lcrypto" \
+		OS_LIBS="-lcrypto -lm" \
 		OS_CULI="-lncurses" \
 		OS_PTLI="-lpthread" \
 		DS_OPTS="-O2 -DOS_CYGWIN32 -DCS_CONFDIR=${CS_CONFDIR} -I /tmp/include -D'CS_SVN_VERSION="'"$(shell svnversion -n . | sed 's/[MS]$$//' )"'"'" \
@@ -245,7 +245,7 @@ i386-pc-cygwin:
 cross-sparc-sun-solaris2.7:
 	@-$(MAKE) --no-print-directory \
 		-f Maketype TYP=$(subst cross-,,$@) \
-		OS_LIBS="" \
+		OS_LIBS="-lm" \
 		OS_CULI="-lncurses" \
 		OS_PTLI="-lpthread" \
 		DS_OPTS="-O2 -DOS_SOLARIS -DOS_SOLARIS7 -DBSD_COMP -DCS_CONFDIR=${CS_CONFDIR} -static-libgcc -D'CS_SVN_VERSION="'"$(shell svnversion -n . | sed 's/[MS]$$//' )"'"'" \
@@ -266,7 +266,7 @@ cross-sparc-sun-solaris2.7:
 opensolaris:
 	@-$(MAKE) --no-print-directory \
 		-f Maketype TYP=$(subst cross-,,$@) \
-		OS_LIBS="-lcrypto -lnsl" \
+		OS_LIBS="-lcrypto -lnsl -lm" \
 		OS_CULI="-lncurses" \
 		OS_PTLI="-lpthread" \
 		DS_OPTS="-O2 -DOS_SOLARIS -DOS_SOLARIS7 -DBSD_COMP -DCS_CONFDIR=${CS_CONFDIR} -static-libgcc -D'CS_SVN_VERSION="'"$(shell svnversion -n . | sed 's/[MS]$$//' )"'"'" \
@@ -287,7 +287,7 @@ opensolaris:
 cross-rs6000-ibm-aix4.2:
 	@-$(MAKE) --no-print-directory \
 		-f Maketype TYP=$(subst cross-,,$@) \
-		OS_LIBS="" \
+		OS_LIBS="-lm" \
 		OS_CULI="-lncurses" \
 		OS_PTLI="-lpthreads" \
 		DS_OPTS="-O2 -DOS_AIX -DOS_AIX42 -DCS_CONFDIR=${CS_CONFDIR} -static-libgcc -D'CS_SVN_VERSION="'"$(shell svnversion -n . | sed 's/[MS]$$//' )"'"'" \
@@ -308,7 +308,7 @@ cross-rs6000-ibm-aix4.2:
 cross-mips-sgi-irix6.5:
 	@-$(MAKE) --no-print-directory \
 		-f Maketype TYP=$(subst cross-,,$@) \
-		OS_LIBS="" \
+		OS_LIBS="-lm" \
 		OS_CULI="-lncurses" \
 		OS_PTLI="-lpthread" \
 		DS_OPTS="-O2 -DOS_IRIX -DOS_IRIX65 -DCS_CONFDIR=${CS_CONFDIR} -static-libgcc -D'CS_SVN_VERSION="'"$(shell svnversion -n . | sed 's/[MS]$$//' )"'"'" \
@@ -331,7 +331,7 @@ cross-mipsel-router-linux-uclibc927:
 	@-mipsel-linux-uclibc-setlib 0.9.27
 	@-$(MAKE) --no-print-directory \
 		-f Maketype TYP=$(subst cross-,,$@) \
-		OS_LIBS="" \
+		OS_LIBS="-lm" \
 		OS_CULI="-lncurses" \
 		OS_PTLI="-lpthread" \
 		DS_OPTS="-O2 -DOS_LINUX -DMIPSEL -DUCLIBC -DUSE_GPIO -DCS_CONFDIR=${CS_CONFDIR} -static-libgcc -D'CS_SVN_VERSION="'"$(shell svnversion -n . | sed 's/[MS]$$//' )"'"'" \
@@ -353,7 +353,7 @@ cross-mipsel-router-linux-uclibc928:
 	@-mipsel-linux-uclibc-setlib 0.9.28
 	@-$(MAKE) --no-print-directory \
 		-f Maketype TYP=$(subst cross-,,$@) \
-		OS_LIBS="" \
+		OS_LIBS="-lm" \
 		OS_CULI="-lncurses" \
 		OS_PTLI="-lpthread" \
 		DS_OPTS="-O2 -DOS_LINUX -DMIPSEL -DUCLIBC -DUSE_GPIO -DCS_CONFDIR=${CS_CONFDIR} -static-libgcc -D'CS_SVN_VERSION="'"$(shell svnversion -n . | sed 's/[MS]$$//' )"'"'" \
@@ -375,7 +375,7 @@ cross-mipsel-router-linux-uclibc929:
 	@-mipsel-linux-uclibc-setlib 0.9.29
 	@-$(MAKE) --no-print-directory \
 		-f Maketype TYP=$(subst cross-,,$@) \
-		OS_LIBS="-lcrypto" \
+		OS_LIBS="-lcrypto -lm" \
 		OS_CULI="-lncurses" \
 		OS_PTLI="-lpthread" \
 		DS_OPTS="-O2 -DOS_LINUX -DMIPSEL -DUCLIBC -DUSE_GPIO -DCS_CONFDIR=${CS_CONFDIR} -static-libgcc -D'CS_SVN_VERSION="'"$(shell svnversion -n . | sed 's/[MS]$$//' )"'"'" \
@@ -397,7 +397,7 @@ cross-mipsel-router-linux-uclibc929-static:
 	@-mipsel-linux-uclibc-setlib 0.9.29
 	@-$(MAKE) --no-print-directory \
 		-f Maketype TYP=$(subst cross-,,$@) \
-		OS_LIBS="-lcrypto" \
+		OS_LIBS="-lcrypto -lm" \
 		OS_CULI="-lncurses" \
 		OS_PTLI="-lpthread" \
 		DS_OPTS="-O2 -DOS_LINUX -DMIPSEL -DUCLIBC -DUSE_GPIO -DCS_CONFDIR=${CS_CONFDIR} -static-libgcc -D'CS_SVN_VERSION="'"$(shell svnversion -n . | sed 's/[MS]$$//' )"'"'" \
@@ -418,7 +418,7 @@ cross-mipsel-router-linux-uclibc929-static:
 cross-mipsel-fonera2:
 	@-$(MAKE) --no-print-directory \
 		-f Maketype TYP=$(subst cross-,,$@) \
-		OS_LIBS="-Lopenssl-lib -lcrypto" \
+		OS_LIBS="-Lopenssl-lib -lcrypto -lm" \
 		OS_CULI="-lncurses" \
 		OS_PTLI="-lpthread" \
 		DS_OPTS="-Iopenssl-include -O2 -DOS_LINUX -DMIPSEL -DUCLIBC -DCS_CONFDIR=${CS_CONFDIR} -static-libgcc -D'CS_SVN_VERSION="'"$(shell svnversion -n . | sed 's/[MS]$$//' )"'"'" \
@@ -439,7 +439,7 @@ cross-mipsel-fonera2:
 cross-mipsel-tuxbox-linux-glibc:
 	@-$(MAKE) --no-print-directory \
 		-f Maketype TYP=$(subst cross-,,$@) \
-		OS_LIBS="-lcrypto" \
+		OS_LIBS="-lcrypto -lm" \
 		OS_CULI="-lncurses" \
 		OS_PTLI="-lpthread" \
 		DS_OPTS="-O2 -DOS_LINUX -DTUXBOX -DMIPSEL -DCS_CONFDIR='\"/var/tuxbox/config\"' -static-libgcc -D'CS_SVN_VERSION="'"$(shell svnversion -n . | sed 's/[MS]$$//' )"'"'" \
@@ -455,7 +455,7 @@ cross-mipsel-tuxbox-linux-glibc:
 cross-mipsel-tuxbox-linux:
 	@-$(MAKE) --no-print-directory \
 		-f Maketype TYP=$(subst cross-,,$@) \
-		OS_LIBS="-lcrypto" \
+		OS_LIBS="-lcrypto -lm" \
 		OS_CULI="-lncurses" \
 		OS_PTLI="-lpthread" \
 		DS_OPTS="-O2 -DOS_LINUX -DTUXBOX -DMIPSEL -DCS_CONFDIR='\"/var/tuxbox/config\"' -static-libgcc -D'CS_SVN_VERSION="'"$(shell svnversion -n . | sed 's/[MS]$$//' )"'"'" \
@@ -476,7 +476,7 @@ cross-mipsel-tuxbox-linux:
 hppa1.1-hp-hpux10.20:
 	@-$(MAKE) --no-print-directory \
 		-f Maketype TYP=$(subst cross-,,$@) \
-		OS_LIBS="" \
+		OS_LIBS="-lm" \
 		OS_CULI="-lncurses" \
 		OS_PTLI="-lpthread" \
 		DS_OPTS="-O2 -DOS_HPUX -DOS_HPUX10 -D_XOPEN_SOURCE_EXTENDED -DCS_CONFDIR=${CS_CONFDIR} -D'CS_SVN_VERSION="'"$(shell svnversion -n . | sed 's/[MS]$$//' )"'"'" \
@@ -497,7 +497,7 @@ hppa1.1-hp-hpux10.20:
 alpha-dec-osf5.1:
 	@-$(MAKE) --no-print-directory \
 		-f Maketype TYP=$(subst cross-,,$@) \
-		OS_LIBS="" \
+		OS_LIBS="-lm" \
 		OS_CULI="-lncurses" \
 		OS_PTLI="-lpthread" \
 		DS_OPTS="-O2 -DOS_OSF -DOS_OSF5 -DCS_CONFDIR=${CS_CONFDIR} -D'CS_SVN_VERSION="'"$(shell svnversion -n . | sed 's/[MS]$$//' )"'"'" \
@@ -519,7 +519,7 @@ alpha-dec-osf5.1:
 cross-arm-nslu2-linux:
 	@-$(MAKE) --no-print-directory \
 		-f Maketype TYP="$(subst cross-,,$@)" \
-		OS_LIBS="" \
+		OS_LIBS="-lm" \
 		OS_CULI="-lncurses" \
 		OS_PTLI="-lpthread" \
 		DS_OPTS="-DOS_LINUX -O2 -DARM -DALIGNMENT -DCS_CONFDIR=${CS_CONFDIR} -D'CS_SVN_VERSION="'"$(shell svnversion -n . | sed 's/[MS]$$//' )"'"'" \
@@ -541,7 +541,7 @@ cross-arm-nslu2-linux:
 cross-armBE-unkown-linux:
 	-$(MAKE) --no-print-directory \
 		-f Maketype TYP="$(subst cross-,,$@)" \
-		OS_LIBS="" \
+		OS_LIBS="-lm" \
 		OS_CULI="-lncurses" \
 		OS_PTLI="-lpthread" \
 		DS_OPTS="-DOS_LINUX -O2 -DARM -DALIGNMENT -DCS_CONFDIR=${CS_CONFDIR} -D'CS_SVN_VERSION="'"$(shell svnversion -n . | sed 's/[MS]$$//' )"'"'" \
@@ -563,7 +563,7 @@ cross-armBE-unkown-linux:
 cross-armLE-unkown-linux:
 	-$(MAKE) --no-print-directory \
 		-f Maketype TYP="$(subst cross-,,$@)" \
-		OS_LIBS="" \
+		OS_LIBS="-lm" \
 		OS_CULI="-lncurses" \
 		OS_PTLI="-lpthread" \
 		DS_OPTS="-DOS_LINUX -O2 -DARM -DALIGNMENT -DCS_CONFDIR=${CS_CONFDIR}  -D'CS_SVN_VERSION="'"$(shell svnversion -n . | sed 's/[MS]$$//' )"'"'" \
