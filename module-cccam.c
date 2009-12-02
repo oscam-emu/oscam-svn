@@ -530,7 +530,7 @@ static int cc_send_ecm(ECM_REQUEST *er, uchar *buf)
       llist_itr_release(&sitr);
 
       LLIST_ITR pitr;
-      char *prov = llist_itr_init(card->provs, &pitr);
+      uint8 *prov = llist_itr_init(card->provs, &pitr);
       while (prov && !s) {
         if (b2i(3, prov) == er->prid) {  // provid matches
           if ((h < 0) || (card->hop < h)) {  // card is closer
