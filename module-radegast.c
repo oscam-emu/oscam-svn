@@ -173,7 +173,7 @@ static int radegast_send_ecm(ECM_REQUEST *er, uchar *buf)
   ecmbuf[1] = er->l + 30 - 2;
   memcpy(ecmbuf + 2, header, sizeof(header));
   for(n = 0; n < 4; n++) {
-    sprintf(provid_buf+(n*2), "%02X", ((uchar *)(&er->prid))[4 - 1 - n]);
+    sprintf((char*)provid_buf+(n*2), "%02X", ((uchar *)(&er->prid))[4 - 1 - n]);
   }
   ecmbuf[7] = provid_buf[0];
   ecmbuf[8] = provid_buf[1];
