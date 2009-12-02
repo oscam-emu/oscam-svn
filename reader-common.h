@@ -1,5 +1,6 @@
 #include "ctapi.h"
 #include "ctbcs.h"
+#include "azbox.h"
 
 #define ADDRLEN      4    // Address length in EMM commands
 #define MAX_PROV     16

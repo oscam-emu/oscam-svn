@@ -98,7 +98,12 @@ int reader_cmd2icc(uchar *buf, int l)
 {
     int rc;
     cs_ddump(buf, l, "write to cardreader %s:",reader[ridx].label);
-    rc = reader_doapi(0, buf, l, D_DEVICE);
+    if (reader[ridx].typ != R_AZBOX) {
+      rc = xcas_sc_write(reader[ridx].fd, buf, l);
+      cta_lr = xcas_sc_read(reader[ridx].fd, cta_res, 512);
+    } else {
+      rc = reader_doapi(0, buf, l, D_DEVICE);
+    }
     cs_ddump(cta_res, cta_lr, "answer from cardreader %s:", reader[ridx].label);
     return rc;
 }
@@ -119,70 +124,76 @@ int card_write(uchar *cmd, uchar *data)
 
 static int reader_activate_card()
 {
-  int i;
-  char ret;
+  if (reader[ridx].typ = R_AZBOX) {
+    reader[ridx].fd = xcas_sc_open();
+    atr_size = xcas_sc_get_atr(reader[ridx].fd, atr);
+    cs_ri_log("ATR: %s", cs_hexdump(1, atr, atr_size));
+  } else {
+    int i;
+    char ret;
 
-  cta_cmd[0] = CTBCS_INS_RESET;
-  cta_cmd[1] = CTBCS_P2_RESET_GET_ATR;
-  cta_cmd[2] = 0x00;
-
-  ret = reader_cmd2api(cta_cmd, 3);
-  if (ret!=OK)
-  {
-    cs_log("Error reset terminal: %d", ret);
-    return(0);
-  }
+    cta_cmd[0] = CTBCS_INS_RESET;
+    cta_cmd[1] = CTBCS_P2_RESET_GET_ATR;
+    cta_cmd[2] = 0x00;
   
-  cta_cmd[0] = CTBCS_CLA;
-  cta_cmd[1] = CTBCS_INS_STATUS;
-  cta_cmd[2] = CTBCS_P1_CT_KERNEL;
-  cta_cmd[3] = CTBCS_P2_STATUS_ICC;
-  cta_cmd[4] = 0x00;
+    ret = reader_cmd2api(cta_cmd, 3);
+    if (ret!=OK)
+    {
+      cs_log("Error reset terminal: %d", ret);
+      return(0);
+    }
 
-//  ret=reader_cmd2api(cmd, 11); warum 11 ??????
-  ret=reader_cmd2api(cta_cmd, 5);
-  if (ret!=OK)
-  {
-    cs_log("Error getting status of terminal: %d", ret);
-    return(0);
-  }
-  if (cta_res[0]!=CTBCS_DATA_STATUS_CARD_CONNECT)
-    return(0);
-
-  /* Activate card */
-//  for (i=0; (i<5) && ((ret!=OK)||(cta_res[cta_lr-2]!=0x90)); i++)
-  for (i=0; i<5; i++)
-  {
-    //reader_irdeto_mode = i%2 == 1; //does not work when overclocking
     cta_cmd[0] = CTBCS_CLA;
-    cta_cmd[1] = CTBCS_INS_REQUEST;
-    cta_cmd[2] = CTBCS_P1_INTERFACE1;
-    cta_cmd[3] = CTBCS_P2_REQUEST_GET_ATR;
+    cta_cmd[1] = CTBCS_INS_STATUS;
+    cta_cmd[2] = CTBCS_P1_CT_KERNEL;
+    cta_cmd[3] = CTBCS_P2_STATUS_ICC;
     cta_cmd[4] = 0x00;
 
+  //  ret=reader_cmd2api(cmd, 11); warum 11 ??????
     ret=reader_cmd2api(cta_cmd, 5);
-    if ((ret==OK)||(cta_res[cta_lr-2]==0x90))
+    if (ret!=OK)
     {
-      i=100;
-      break;
+      cs_log("Error getting status of terminal: %d", ret);
+      return(0);
     }
-    cs_log("Error activating card: %d", ret);
-    cs_sleepms(500);
-  }
-  if (i<100) return(0);
+    if (cta_res[0]!=CTBCS_DATA_STATUS_CARD_CONNECT)
+      return(0);
 
-  /* Store ATR */
-  atr_size=cta_lr-2;
-  memcpy(atr, cta_res, atr_size);
-#ifdef CS_RDR_INIT_HIST
-  reader[ridx].init_history_pos=0;
-  memset(reader[ridx].init_history, 0, sizeof(reader[ridx].init_history));
-#endif
-  cs_ri_log("ATR: %s", cs_hexdump(1, atr, atr_size));
-  if (!memcmp(atr+4, "IRDETO", 6))
-    reader_irdeto_mode = 1;
-  else
-    reader_irdeto_mode = 0;
+    /* Activate card */
+  //  for (i=0; (i<5) && ((ret!=OK)||(cta_res[cta_lr-2]!=0x90)); i++)
+    for (i=0; i<5; i++)
+    {
+      //reader_irdeto_mode = i%2 == 1; //does not work when overclocking
+      cta_cmd[0] = CTBCS_CLA;
+      cta_cmd[1] = CTBCS_INS_REQUEST;
+      cta_cmd[2] = CTBCS_P1_INTERFACE1;
+      cta_cmd[3] = CTBCS_P2_REQUEST_GET_ATR;
+      cta_cmd[4] = 0x00;
+
+      ret=reader_cmd2api(cta_cmd, 5);
+      if ((ret==OK)||(cta_res[cta_lr-2]==0x90))
+      {
+        i=100;
+        break;
+      }
+      cs_log("Error activating card: %d", ret);
+      cs_sleepms(500);
+    }
+    if (i<100) return(0);
+
+    /* Store ATR */
+    atr_size=cta_lr-2;
+    memcpy(atr, cta_res, atr_size);
+  #ifdef CS_RDR_INIT_HIST
+    reader[ridx].init_history_pos=0;
+    memset(reader[ridx].init_history, 0, sizeof(reader[ridx].init_history));
+  #endif
+    cs_ri_log("ATR: %s", cs_hexdump(1, atr, atr_size));
+    if (!memcmp(atr+4, "IRDETO", 6))
+      reader_irdeto_mode = 1;
+    else
+      reader_irdeto_mode = 0;
+  }
   sleep(1);
   return(1);
 }
@@ -298,8 +309,10 @@ int reader_device_init(char *device, int typ)
   cs_ptyp_orig=cs_ptyp;
   cs_ptyp=D_DEVICE;
   snprintf(oscam_device, sizeof(oscam_device), "%s", device);
-  if ((rc=CT_init(1, reader_device_type(device, typ),reader[ridx].typ,reader[ridx].mhz))!=OK)
-    cs_log("Cannot open device: %s", device);
+  if (reader[ridx].typ != R_AZBOX) {
+    if ((rc=CT_init(1, reader_device_type(device, typ),reader[ridx].typ,reader[ridx].mhz))!=OK)
+      cs_log("Cannot open device: %s", device);
+  } else rc = OK;
   cs_debug("ct_init on %s: %d", device, rc);
   cs_ptyp=cs_ptyp_orig;
   return((rc!=OK) ? 2 : 0);

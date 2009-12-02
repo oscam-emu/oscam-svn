@@ -1098,6 +1098,7 @@ static void chk_reader(char *token, char *value, struct s_reader *rdr)
   if (!strcmp(token, "customspeed")) { rdr->custom_speed=atoi(value); return; }
   if (!strcmp(token, "protocol"))
   {
+    if (!strcmp(value, "azbox")) {      rdr->typ=R_AZBOX; return; }
     if (!strcmp(value, "mouse")) {      rdr->typ=R_MOUSE; return; }
     if (!strcmp(value, "smartreader")) {      rdr->typ=R_SMART; return; }
     if (!strcmp(value, "internal")) {   rdr->typ=R_INTERN; return; }
