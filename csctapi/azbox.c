@@ -1,6 +1,8 @@
 
 #include "azbox.h"
 
+typedef unsigned char uchar;
+
 int xcas_sc_open(void)
 {
   int n, rfd = -1;
