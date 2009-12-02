@@ -267,6 +267,7 @@ struct s_module
   void (*s_handler)();
   int  (*recv)();
   void (*send_dcw)();
+  void (*cleanup)();
   int  c_multi;
   int  (*c_recv_chk)();
   int  (*c_init)();

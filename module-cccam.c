@@ -168,10 +168,6 @@ int llist_count(LLIST *l)
 #define CC_MAX_PROV   16
 
 #define SWAPC(X, Y) do { char p; p = *X; *X = *Y; *Y = p; } while(0)
-#define B16(X) ( (X)[0] << 8 | (X)[1] )
-#define B24(X) ( (X)[0] << 16 | (X)[1] << 8 | (X)[2] )
-#define B32(X) ( (X)[0] << 24 | (X)[1] << 16 |  (X)[2] << 8 | (X)[3] )
-#define B64(X) ( (X)[0] << 56 | (X)[1] << 48 | (X)[2] << 40 | (X)[3] << 32 | (X)[4] << 24 | (X)[5] << 16 |  (X)[6] << 8 | (X)[7] )
 #define X_FREE(X) do { if (X) { free(X); X = NULL; } } while(0)
 
 typedef unsigned char uint8;
@@ -294,8 +290,8 @@ static void cc_cw_decrypt(uint8 *cws)
   struct cc_data *cc = reader[ridx].cc;
 
   uint32 cur_card = cc->cur_card->id;
-  uint32 node_id_1 = B32(cc->node_id);
-  uint32 node_id_2 = B32(cc->node_id + 4);
+  uint32 node_id_1 = b2i(4, cc->node_id);
+  uint32 node_id_2 = b2i(4, cc->node_id + 4);
   uint32 tmp;
   int i;
 
@@ -536,7 +532,7 @@ static int cc_send_ecm(ECM_REQUEST *er, uchar *buf)
       LLIST_ITR pitr;
       char *prov = llist_itr_init(card->provs, &pitr);
       while (prov && !s) {
-        if (B24(prov) == er->prid) {  // provid matches
+        if (b2i(3, prov) == er->prid) {  // provid matches
           if ((h < 0) || (card->hop < h)) {  // card is closer
             cc->cur_card = card;
             h = card->hop;  // card has been matched
@@ -597,7 +593,7 @@ static cc_msg_type_t cc_parse_msg(uint8 *buf, int l)
     cs_log("cccam: srv %s running v%s (%s)", cs_hexdump(0, cc->server_node_id, 8), buf+12, buf+44);
     break;
   case MSG_NEW_CARD:
-    if (B16(buf+12) == reader[ridx].ctab.caid[0]) { // only add cards with relevant caid (for now)
+    if (b2i(2, buf+12) == reader[ridx].ctab.caid[0]) { // only add cards with relevant caid (for now)
       int i;
       struct cc_card *card = malloc(sizeof(struct cc_card));
 
@@ -605,8 +601,8 @@ static cc_msg_type_t cc_parse_msg(uint8 *buf, int l)
 
       card->provs = llist_create();
       card->badsids = llist_create();
-      card->id = B32(buf+4);
-      card->caid = B16(buf+12);
+      card->id = b2i(4, buf+4);
+      card->caid = b2i(2, buf+12);
       card->hop = buf[14];
       memcpy(card->key, buf+16, 8);
 
@@ -617,7 +613,7 @@ static cc_msg_type_t cc_parse_msg(uint8 *buf, int l)
         uint8 *prov = malloc(3);
 
         memcpy(prov, buf+25+(7*i), 3);
-        cs_debug("      prov %d, %06x", i+1, B24(prov));
+        cs_debug("      prov %d, %06x", i+1, b2i(3, prov));
 
         llist_append(card->provs, prov);
       }
@@ -633,7 +629,7 @@ static cc_msg_type_t cc_parse_msg(uint8 *buf, int l)
 
     card = llist_itr_init(cc->cards, &itr);
     while (card) {
-      if (card->id == B32(buf+4)) {
+      if (card->id == b2i(4, buf+4)) {
         cs_debug("cccam: card %08x removed, caid %04x", card->id, card->caid);
 
         llist_destroy(card->provs);

@@ -153,6 +153,17 @@ int key_atob14(char *asc, uchar *bin)
   return(rc);
 }
 
+char *btoa(char *asc, uchar *bin, int l)
+{
+  int i;//, n1, n2, rc;
+  static char buf[33];
+  if (!asc)
+    asc=buf;
+  for (i=0; i<l; i++)
+    sprintf(asc+(i<<1), "%02X", bin[i]);
+  return(asc);
+}
+
 char *key_btoa(char *asc, uchar *bin)
 {
   int i;//, n1, n2, rc;
