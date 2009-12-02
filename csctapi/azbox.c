@@ -4,7 +4,7 @@
 int xcas_sc_open(void)
 {
   int n, rfd = -1;
-  uchar buf[512];
+  unsigned char buf[512];
 
   bzero(buf, sizeof(buf));
 
@@ -31,17 +31,17 @@ int xcas_sc_open(void)
    return rfd;
 }
 
-int xcas_sc_read(int rfd, uchar *buf, int l)
+int xcas_sc_read(int rfd, unsigned char *buf, int l)
 {
   return read(rfd, buf, l);
 }
 
-int xcas_sc_write(int rfd, uchar *buf, int l)
+int xcas_sc_write(int rfd, unsigned char *buf, int l)
 {
   return write(rfd, buf, l);
 }
 
-int xcas_sc_get_atr(int rfd, uchar *atr)
+int xcas_sc_get_atr(int rfd, unsigned char *atr)
 {
   int n;
 
