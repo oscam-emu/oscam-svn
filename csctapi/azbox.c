@@ -1,8 +1,6 @@
 
 #include "azbox.h"
 
-typedef unsigned char uchar;
-
 int xcas_sc_open(void)
 {
   int n, rfd = -1;
@@ -47,7 +45,7 @@ int xcas_sc_get_atr(int rfd, uchar *atr)
 {
   int n;
 
-  buf[0] = 1;
+  atr[0] = 1;
   if (!(n = ioctl (rfd, SCARD_IOC_CHECKCARD, &atr))) {
     cs_log("azbox: failed to get atr");
     return -1;

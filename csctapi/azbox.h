@@ -5,7 +5,8 @@
 #include "openxcas/openxcas_api.h"
 #include "openxcas/openxcas_message.h"
 #include "openxcas/openxcas_smartcard.h"
-#include "azbox.h"
+
+typedef unsigned char uchar;
 
 int xcas_sc_open(void);
 int xcas_sc_read(int rfd, uchar *buf, int l);
