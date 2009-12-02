@@ -163,7 +163,7 @@ bool IO_Serial_DTR_RTS(IO_Serial * io, int dtr, int set)
  * Public functions definition
  */
 
-IO_Serial * IO_Serial_New (int reader_type, int mhz)
+IO_Serial * IO_Serial_New (int reader_type, int mhz, int cardmhz)
 {
 	IO_Serial *io;
 	
@@ -174,6 +174,7 @@ IO_Serial * IO_Serial_New (int reader_type, int mhz)
 	
 	io->reader_type=reader_type;
 	io->mhz=mhz;
+	io->cardmhz=cardmhz;
 
 	io->SmartReaderConf = (SR_Config *) malloc(sizeof (SR_Config));
 	if (io != NULL)
@@ -344,12 +345,7 @@ bool IO_Serial_SetProperties (IO_Serial * io)
 
 
 #ifdef OS_LINUX
-   int standard_card_clock; //contains non-overclocked, standard clockrate of the card in 10kHz steps
-   if (reader_irdeto_mode)
-     standard_card_clock = 600;
-   else
-     standard_card_clock = 357;
-   if (mhz == standard_card_clock) 
+   if (io->mhz == io->cardmhz)
 #endif
    { //no overclocking
      cfsetospeed(&newtio, IO_Serial_Bitrate_to_Speed(io->output_bitrate));
@@ -360,10 +356,10 @@ bool IO_Serial_SetProperties (IO_Serial * io)
     /* these structures are only available on linux as fas as we know so limit this code to OS_LINUX */
     struct serial_struct nuts;
     ioctl(io->fd, TIOCGSERIAL, &nuts);
-    int custom_baud = 9600 * mhz / standard_card_clock;
+    int custom_baud = 9600 * io->mhz / io->cardmhz;
     nuts.custom_divisor = (nuts.baud_base + (custom_baud/2))/ custom_baud;
-    cs_debug("customspeed: standardclock=%d mhz=%d custom_baud=%d baud_base=%d divisor=%d -> effective baudrate %d", 
-	                      standard_card_clock, mhz, custom_baud, nuts.baud_base, nuts.custom_divisor, nuts.baud_base/nuts.custom_divisor);
+    cs_debug("custom baudrate: cardmhz=%d mhz=%d custom_baud=%d baud_base=%d divisor=%d -> effective baudrate %d", 
+	                      io->cardmhz, io->mhz, custom_baud, nuts.baud_base, nuts.custom_divisor, nuts.baud_base/nuts.custom_divisor);
     nuts.flags &= ~ASYNC_SPD_MASK;
     nuts.flags |= ASYNC_SPD_CUST;
     ioctl(io->fd, TIOCSSERIAL, &nuts);
