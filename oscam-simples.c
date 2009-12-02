@@ -165,6 +165,18 @@ int key_atob_l(char *asc, uchar *bin, int l)
   return(rc);
 }
 
+char *key_btoa_l(char *asc, uchar *bin, int l)
+{
+  cs_log("DEBUG: 0x%x", bin);
+  int i;
+  static char buf[512];
+  if (!asc)
+    asc=buf;
+  for (i=0; i<l; i++)
+    sprintf(asc+(i<<1), "%02X", bin[i]);
+  return(asc);
+}
+
 char *key_btoa(char *asc, uchar *bin)
 {
   int i;//, n1, n2, rc;

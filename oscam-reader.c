@@ -141,7 +141,7 @@ static void casc_do_sock(int w)
 
   if ((n=casc_recv_timer(buf, sizeof(buf), w))<=0)
   {
-    if (reader[ridx].ph.type==MOD_CONN_TCP)
+    if (reader[ridx].ph.type==MOD_CONN_TCP && reader[ridx].typ != R_RADEGAST)
     {
       cs_debug("casc_do_sock: close connection");
       network_tcp_connection_close(client[cs_idx].udp_fd);

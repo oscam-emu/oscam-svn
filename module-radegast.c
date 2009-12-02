@@ -35,7 +35,7 @@ static int radegast_recv_chk(uchar *dcw, int *rc, uchar *buf, int n)
     memcpy(dcw, buf+4, 16);
     cs_debug("radegast: recv chk - %s", cs_hexdump(0, dcw, 16));
     *rc = 1;
-    return(reader[ridx].mhz);
+    return(reader[ridx].msg_idx);
   }
 
   return (-1);
@@ -164,13 +164,25 @@ static void radegast_server()
 static int radegast_send_ecm(ECM_REQUEST *er, uchar *buf)
 {
   int n;
-  uchar header[22] = "\x02\x01\x09\x06\x08\x30\x30\x30\x30\x30\x30\x30\x30\x07\x04\x30\x30\x30\x30\x08\x01\x02";
+  uchar provid_buf[8];
+  uchar header[22] = "\x02\x01\x00\x06\x08\x30\x30\x30\x30\x30\x30\x30\x30\x07\x04\x30\x30\x30\x38\x08\x01\x02";
   uchar *ecmbuf = malloc(er->l + 30);
   bzero(ecmbuf, er->l + 30);
 
   ecmbuf[0] = 1;
   ecmbuf[1] = er->l + 30 - 2;
   memcpy(ecmbuf + 2, header, sizeof(header));
+  for(n = 0; n < 4; n++) {
+    sprintf(provid_buf+(n*2), "%02X", ((uchar *)(&er->prid))[4 - 1 - n]);
+  }
+  ecmbuf[7] = provid_buf[0];
+  ecmbuf[8] = provid_buf[1];
+  ecmbuf[9] = provid_buf[2];
+  ecmbuf[10] = provid_buf[3];
+  ecmbuf[11] = provid_buf[4];
+  ecmbuf[12] = provid_buf[5];
+  ecmbuf[13] = provid_buf[6];
+  ecmbuf[14] = provid_buf[7];
   ecmbuf[2 + sizeof(header)] = 0xa;
   ecmbuf[3 + sizeof(header)] = 2;
   ecmbuf[4 + sizeof(header)] = er->caid >> 8;
@@ -180,12 +192,13 @@ static int radegast_send_ecm(ECM_REQUEST *er, uchar *buf)
   memcpy(ecmbuf + 8 + sizeof(header), er->ecm, er->l);
   ecmbuf[4] = er->caid >> 8;
 
-  reader[ridx].mhz = er->idx;
+  reader[ridx].msg_idx = er->idx;
   n = send(pfd, ecmbuf, er->l + 30, 0);
 
-  free(ecmbuf);
-
   cs_log("radegast: sending ecm");
+  cs_ddump(ecmbuf, er->l + 30, "ecm:");
+
+  free(ecmbuf);
 
   return 0;
 }

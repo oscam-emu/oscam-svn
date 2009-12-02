@@ -412,6 +412,7 @@ struct s_reader
   uchar     init_history[4096];
   int       init_history_pos;
 #endif
+  int       msg_idx;
 };
 
 #ifdef CS_ANTICASC
