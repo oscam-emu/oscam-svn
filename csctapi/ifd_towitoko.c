@@ -793,7 +793,7 @@ int IFD_Towitoko_ResetAsyncICC (IFD * ifd, ATR ** atr)
 					ATR_GetParameter((*atr), ATR_PARAMETER_D, &tmp_param);
 					((ifd->io)->SmartReaderConf)->D=(float)tmp_param;
 					
-					((ifd->io)->SmartReaderConf)->fs = (ifd->io)->mhz;
+					((ifd->io)->SmartReaderConf)->fs = (ifd->io->mhz)*10000; // freq in Hz
 					
 					ATR_GetParameter((*atr), ATR_PARAMETER_N, &tmp_param);
 					((ifd->io)->SmartReaderConf)->N=(int)tmp_param;
