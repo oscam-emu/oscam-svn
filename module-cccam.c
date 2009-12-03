@@ -568,7 +568,7 @@ static int cc_send_ecm(ECM_REQUEST *er, uchar *buf)
 
     cc->count = er->idx;
 
-    cs_log("cccam: sending ecm for sid %04x to card %08x, hop %d", er->srvid, cc->cur_card->id, cc->cur_card->hop);
+    cs_log("cccam: sending ecm for sid %04x to card %08x, hop %d", er->srvid, cc->cur_card->id, cc->cur_card->hop + 1);
     n = cc_cmd_send(ecmbuf, er->l+13, MSG_ECM);      // send ecm
 
     X_FREE(ecmbuf);
