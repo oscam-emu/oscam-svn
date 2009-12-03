@@ -2,6 +2,8 @@
 #ifndef AZBOX_H_
 #define AZBOX_H_
 
+#include <sys/ioctl.h>
+
 #include "openxcas/openxcas_api.h"
 #include "openxcas/openxcas_message.h"
 #include "openxcas/openxcas_smartcard.h"

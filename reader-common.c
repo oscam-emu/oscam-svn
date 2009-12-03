@@ -124,6 +124,7 @@ int card_write(uchar *cmd, uchar *data)
 
 static int reader_activate_card()
 {
+cs_log("DEBUG: ACTIVE CARD");
   if (reader[ridx].typ = R_AZBOX) {
     reader[ridx].fd = xcas_sc_open();
     atr_size = xcas_sc_get_atr(reader[ridx].fd, atr);
@@ -309,7 +310,7 @@ int reader_device_init(char *device, int typ)
   cs_ptyp_orig=cs_ptyp;
   cs_ptyp=D_DEVICE;
   snprintf(oscam_device, sizeof(oscam_device), "%s", device);
-  if (reader[ridx].typ != R_AZBOX) {
+  if (typ != R_AZBOX) {
     if ((rc=CT_init(1, reader_device_type(device, typ),reader[ridx].typ,reader[ridx].mhz))!=OK)
       cs_log("Cannot open device: %s", device);
   } else rc = OK;
@@ -320,9 +321,9 @@ int reader_device_init(char *device, int typ)
 
 int reader_checkhealth(void)
 {
-  if (reader_card_inserted())
+  if (reader_card_inserted() || (reader[ridx].typ == R_AZBOX))
   {
-    if (!(reader[ridx].card_status & CARD_INSERTED))
+    if (!(reader[ridx].card_status & CARD_INSERTED) || (reader[ridx].typ == R_AZBOX))
     {
       cs_log("card detected");
       reader[ridx].card_status  = CARD_NEED_INIT;
