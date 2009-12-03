@@ -652,6 +652,7 @@ int IFD_Towitoko_ResetAsyncICC (IFD * ifd, ATR ** atr)
 //			printf("atr D=%f\n", a);
 			ATR_GetParameter(*atr, ATR_PARAMETER_N, &a);
 			params.EGT = (unsigned char)a;
+			if (params.EGT==255) params.EGT=0;
 			ATR_GetParameter(*atr, ATR_PARAMETER_P, &a);
 //			printf("atr P=%f\n", a);
 			params.P = (unsigned char)a;
@@ -680,6 +681,11 @@ int IFD_Towitoko_ResetAsyncICC (IFD * ifd, ATR ** atr)
 				params.ETU=atrparam_f/atrparam_d;
 			else
 				params.ETU=372;
+
+			if (ifd->io->mhz == 600) { //overclock works on Sky It 919
+			  params.f = 5;
+			  cs_log("Forcing params.f to 5");
+			}
 
 			if(ioctl(ifd->io->fd, IOCTL_SET_PARAMETERS, &params)!=0)
 			{

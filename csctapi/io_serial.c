@@ -956,10 +956,11 @@ static bool IO_Serial_InitPnP (IO_Serial * io)
 
 static bool IO_Serial_Set_Smartreader_Config(IO_Serial * io)
 {
-	float D;
-	int F,fs,N,T,inv;
 	SR_Config *sr_config;
-
+	struct termios term;
+	BYTE cmd[16];
+	int fs;
+	
 	sr_config=io->SmartReaderConf;
 	if(sr_config==NULL)
 		return FALSE;
@@ -973,21 +974,19 @@ static bool IO_Serial_Set_Smartreader_Config(IO_Serial * io)
 			sr_config->T,
 			sr_config->inv);
 #  endif
-		
-	F=sr_config->F;
-	D=sr_config->D;
-	fs=sr_config->fs;
-	N=sr_config->N;
-	T=sr_config->T;
-	inv=sr_config->inv;
-
 	fs/=1000; // convert to kHz.
 #  ifdef DEBUG_IO
-	printf("IO: Smartreader+ on %s: SR+ options F=%d D=%f fs=%dKHz N=%d T=%d inv=%d\n",io->filename,F,D,fs,N,T,inv);
+	printf("IO: Smartreader+ on %s: SR+ options F=%d D=%f fs=%dKHz N=%d T=%d inv=%d\n",
+			io->filename,
+			sr_config->F,
+			sr_config->D,
+			fs,
+			sr_config->N,
+			sr_config->T,
+			sr_config->inv);
 #  endif
 
 	// Set SmartReader+ in CMD mode.
-	struct termios term;
 	if(tcgetattr(io->fd,&term)==-1)
 		{
 #  ifdef DEBUG_IO
@@ -1006,26 +1005,33 @@ static bool IO_Serial_Set_Smartreader_Config(IO_Serial * io)
 		return FALSE;
 		}
 	// Write SmartReader+ configuration commands.
-	unsigned char cmd[16];
 
-	//XXX how is (int)D supposed to work for fractional values e.g. 0.125 ??
-	cmd[0]=1; cmd[1]=F>>8; cmd[2]=F; cmd[3]=(int)D;
+	//XXX how is (BYTE)D supposed to work for fractional values e.g. 0.125 ??
+	cmd[0]=1;
+	cmd[1]=(BYTE)(((sr_config->F)>>8) & 0xFF);
+	cmd[2]=(BYTE)(sr_config->F & 0xFF);
+	cmd[3]=(BYTE)((int)(sr_config->D)  & 0xFF);
 	if(!IO_Serial_Write(io, 0, 4, cmd))
 		return FALSE;
 
-	cmd[0]=2; cmd[1]=fs>>8; cmd[2]=fs;
+	cmd[0]=2;
+	cmd[1]=(BYTE)((fs>>8) & 0xFF);
+	cmd[2]=(BYTE)(fs & 0xFF);
 	if(!IO_Serial_Write(io, 0, 3, cmd))
 		return FALSE;
 
-	cmd[0]=3; cmd[1]=N;
+	cmd[0]=3;
+	cmd[1]=(BYTE)(sr_config->N & 0xFF);
 	if(!IO_Serial_Write(io, 0, 2, cmd))
 		return FALSE;
 
-	cmd[0]=4; cmd[1]=T;
+	cmd[0]=4;
+	cmd[1]=(BYTE)(sr_config->T & 0xFF);
 	if(!IO_Serial_Write(io, 0, 2, cmd))
 		return FALSE;
 
-	cmd[0]=5; cmd[1]=inv;
+	cmd[0]=5;
+	cmd[1]=(BYTE)(sr_config->inv & 0xFF);
 	if(!IO_Serial_Write(io, 0, 2, cmd))
 		return FALSE;
 
