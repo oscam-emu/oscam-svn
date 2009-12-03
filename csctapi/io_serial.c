@@ -590,7 +590,11 @@ bool IO_Serial_Write (IO_Serial * io, unsigned delay, unsigned size, BYTE * data
               }
             }
             unsigned int u = write (io->fd, data_w, (1+io_serial_need_dummy_char)*to_send);
-            _in_echo_read = 1;
+			// once the smargo is in native smartreader mode we don't get the echo of the sent data.
+		   if(io->reader_type==RTYP_SMART)
+	            _in_echo_read = 0;
+		   else
+	            _in_echo_read = 1;
             if (u != (1+io_serial_need_dummy_char)*to_send)
 			{
 #ifdef DEBUG_IO
@@ -965,18 +969,10 @@ static bool IO_Serial_Set_Smartreader_Config(IO_Serial * io)
 	if(sr_config==NULL)
 		return FALSE;
 
-#  ifdef DEBUG_IO
-	printf("IO: Setting SmartReader+ config : F=%d; D=%f; fs=%d; N=%d; T=%d; inv=%d \n",
-			sr_config->F,
-			sr_config->D,
-			sr_config->fs,
-			sr_config->N,
-			sr_config->T,
-			sr_config->inv);
-#  endif
 	fs/=1000; // convert to kHz.
+
 #  ifdef DEBUG_IO
-	printf("IO: Smartreader+ on %s: SR+ options F=%d D=%f fs=%dKHz N=%d T=%d inv=%d\n",
+	printf("IO: Smartreader+ on %s: F=%d D=%f fs=%dKHz N=%d T=%d inv=%d\n",
 			io->filename,
 			sr_config->F,
 			sr_config->D,
@@ -1006,7 +1002,7 @@ static bool IO_Serial_Set_Smartreader_Config(IO_Serial * io)
 		}
 	// Write SmartReader+ configuration commands.
 
-	//XXX how is (BYTE)D supposed to work for fractional values e.g. 0.125 ??
+	// how is (BYTE)D supposed to work for fractional values e.g. 0.125 ??
 	cmd[0]=1;
 	cmd[1]=(BYTE)(((sr_config->F)>>8) & 0xFF);
 	cmd[2]=(BYTE)(sr_config->F & 0xFF);
@@ -1044,10 +1040,7 @@ static bool IO_Serial_Set_Smartreader_Config(IO_Serial * io)
 		return FALSE;
 		}
 	
-	IO_Serial_Flush(io);
-	
 	// We're entering SmartReader+ mode; speed up serial communication.
-	// B230400 is the highest setting that sticks.
 	cfsetispeed(&term,B115200);
 	cfsetospeed(&term,B115200);
 	io->input_bitrate=115200;
