@@ -527,6 +527,8 @@ int IFD_Towitoko_DeactivateICC (IFD * ifd)
 
 int IFD_Towitoko_ResetAsyncICC (IFD * ifd, ATR ** atr)
 {	 
+	double tmp_param;
+	BYTE tmp;
 
 #ifdef DEBUG_IFD
 	printf ("IFD: Resetting card:\n");
@@ -778,6 +780,30 @@ int IFD_Towitoko_ResetAsyncICC (IFD * ifd, ATR ** atr)
 #ifndef NO_PAR_SWITCH
 		IFD_Towitoko_SetParity (ifd, IFD_TOWITOKO_PARITY_NONE);
 #endif
+		if(ifd->io->reader_type == RTYP_SMART)
+		{
+			if((*atr)!=NULL && ret == IFD_TOWITOKO_OK && ifd->io!=NULL)
+			{
+					if((ifd->io)->SmartReaderConf!=NULL)
+					{
+						// if we get here we have a valid ATR and can init the IO->SmartReaderConf structure.
+						ATR_GetParameter((*atr), ATR_PARAMETER_F, &tmp_param);
+						((ifd->io)->SmartReaderConf)->F=(int)tmp_param;
+	
+						ATR_GetParameter((*atr), ATR_PARAMETER_D, &tmp_param);
+						((ifd->io)->SmartReaderConf)->D=(float)tmp_param;
+	
+						((ifd->io)->SmartReaderConf)->fs = (ifd->io)->mhz;
+	
+						ATR_GetParameter((*atr), ATR_PARAMETER_N, &tmp_param);
+						((ifd->io)->SmartReaderConf)->N=(int)tmp_param;
+	
+						ATR_GetProtocolType((*atr), 2, &tmp);
+						((ifd->io)->SmartReaderConf)->T = (int)tmp_param && 0xFF;
+						ATR_GetConvention((*atr), &((ifd->io)->SmartReaderConf)->inv);
+					}
+			}
+		}
 		return ret;
 	}
 }
