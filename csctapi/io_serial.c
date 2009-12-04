@@ -978,7 +978,11 @@ static bool IO_Serial_Set_Smartreader_Config(IO_Serial * io)
 	struct termios term;
 	BYTE cmd[16];
 	int fs;
-	
+	struct timespec req_ts;
+
+	req_ts.tv_sec = 0;
+	req_ts.tv_nsec = 50000000;
+
 	srConfig=io->SmartReaderConf;
 	if(srConfig==NULL)
 		return FALSE;
@@ -1071,9 +1075,21 @@ static bool IO_Serial_Set_Smartreader_Config(IO_Serial * io)
 		return FALSE;
 		}
 #ifdef DEBUG_IO
-		printf("IO: Setting SmartReader+ config done\n");
+		printf("IO: Setting SmartReader+ config done, Reseting the card\n");
 #endif
-	IO_Serial_Flush(io);
+	// reset the card
+	IO_Serial_Ioctl_Lock(io, 1);
+
+	IO_Serial_RTS_Set(io);
+#ifdef HAVE_NANOSLEEP
+	nanosleep (&req_ts, NULL);
+#else
+	usleep (50000L);
+#endif
+	IO_Serial_RTS_Clr(io);
+	IO_Serial_Ioctl_Lock(io, 0);
+
+	// IO_Serial_DTR_RTS(io, 0, io->rts == IO_SERIAL_HIGH);
 	return TRUE;
 }
 
