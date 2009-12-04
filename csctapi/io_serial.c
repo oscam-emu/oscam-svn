@@ -973,7 +973,7 @@ static bool IO_Serial_Set_Smartreader_Config(IO_Serial * io)
 	if(sr_config==NULL)
 		return FALSE;
 
-	fs/=1000; // convert to kHz.
+	fs=(sr_config->fs)/1000; // convert to kHz.
 
 #  ifdef DEBUG_IO
 	printf("IO: Smartreader+ on %s: F=%d D=%f fs=%dKHz N=%d T=%d inv=%d\n",
