@@ -213,10 +213,9 @@ bool IO_Serial_Init (IO_Serial * io, unsigned com, bool usbserial, bool pnp)
 #ifdef OS_MACOSX
 		// on mac os x, make sure you use the /dev/cu.XXXX device, /dev/tty.XXXX will only work with O_NDELAY
 		io->fd = open (filename,  O_RDWR | O_NOCTTY);
-		// io->fd = open (filename,  O_RDWR | O_NOCTTY | O_NDELAY );
 #else
 		if (com==RTYP_SMART)
-			io->fd = open (filename,  O_RDWR | O_NOCTTY);
+			io->fd = open (filename,  O_RDWR | O_NOCTTY | O_NONBLOCK);
 		else
 			io->fd = open (filename, O_RDWR | O_NOCTTY | O_SYNC);
 #endif
