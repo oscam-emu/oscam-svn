@@ -213,7 +213,11 @@ bool IO_Serial_Init (IO_Serial * io, unsigned com, bool usbserial, bool pnp)
 #ifdef OS_MACOSX
 		io->fd = open (filename,  O_RDWR | O_NOCTTY | O_NDELAY );
 #else
-		io->fd = open (filename, O_RDWR | O_NOCTTY | O_SYNC);
+		if (com==RTYP_SMART)
+			io->fd = open (filename,  O_RDWR | O_NOCTTY | O_NDELAY );
+		else
+			io->fd = open (filename, O_RDWR | O_NOCTTY | O_SYNC);
+
 #endif
 
 	if (io->fd < 0)
@@ -982,7 +986,7 @@ static bool IO_Serial_Set_Smartreader_Config(IO_Serial * io)
 			sr_config->inv);
 #  endif
 
-	// Set SmartReader+ in CMD mode.
+	// Set SmartReader+ in command mode.
 	if(tcgetattr(io->fd,&term)==-1)
 		{
 #  ifdef DEBUG_IO
@@ -1059,6 +1063,7 @@ static bool IO_Serial_Set_Smartreader_Config(IO_Serial * io)
 #ifdef DEBUG_IO
 		printf("IO: Setting SmartReader+ config done\n");
 #endif
+	IO_Serial_Flush(io);
 	return TRUE;
 }
 
