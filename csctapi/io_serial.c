@@ -211,7 +211,7 @@ bool IO_Serial_Init (IO_Serial * io, unsigned com, bool usbserial, bool pnp)
 #endif
 
 #ifdef OS_MACOSX
-		// on mac os x, make sure you use the /dev/cu.XXXX device, /dev/tty.XXXX will only work with O_NDELAY
+		// on mac os x, make sure you use the /dev/cu.XXXX device in oscam.server
 		io->fd = open (filename,  O_RDWR | O_NOCTTY | O_NONBLOCK);
 #else
 		if (com==RTYP_SMART)
