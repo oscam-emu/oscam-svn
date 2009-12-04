@@ -789,7 +789,7 @@ int IFD_Towitoko_ResetAsyncICC (IFD * ifd, ATR ** atr)
 #endif
 		if(ifd->io->reader_type == RTYP_SMART)
 		{
-			if((*atr)!=NULL && ret == IFD_TOWITOKO_OK && ifd->io!=NULL)
+			if((*atr) && ret == IFD_TOWITOKO_OK && ifd->io)
 			{
 				if((ifd->io)->SmartReaderConf!=NULL)
 				{
@@ -811,6 +811,32 @@ int IFD_Towitoko_ResetAsyncICC (IFD * ifd, ATR ** atr)
 				}
 			}
 		}
+		else if (*atr) { //if valid ATR switch to post-ATR baudrate
+		  double atrparam_f,atrparam_d;
+		  if (ATR_GetParameter(*atr,ATR_PARAMETER_F,&atrparam_f)!=ATR_OK) {
+			cs_log ("Error getting ATR parameter (F)");
+			ATR_Delete (*atr);
+			(*atr) = NULL;
+			return IFD_TOWITOKO_IO_ERROR;
+		  }  
+		  if (ATR_GetParameter(*atr,ATR_PARAMETER_D,&atrparam_d)!=ATR_OK) {
+			cs_log ("Error getting ATR parameter (D)");
+			ATR_Delete (*atr);
+			(*atr) = NULL;
+			return IFD_TOWITOKO_IO_ERROR;
+		  }
+
+		  if (atrparam_f && atrparam_d) { //both should be valid
+		    int baudrate = (int)(IFD_TOWITOKO_BAUDRATE * ATR_DEFAULT_F * atrparam_d / atrparam_f);
+
+		    if (baudrate != IFD_TOWITOKO_BAUDRATE) {
+		      cs_debug("After ATR switching to baudrate %i. F=%.0f, D=%f",baudrate, atrparam_f, atrparam_d);
+		      if (IFD_Towitoko_SetBaudrate (ifd, baudrate) !=  IFD_TOWITOKO_OK)  //switch to baud, if error stay on normal baudrate
+			cs_debug("After ATR switching failed");
+		    }
+		  }
+		}
+
 		return ret;
 	}
 }

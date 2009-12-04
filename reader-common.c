@@ -445,4 +445,3 @@ int reader_emm(EMM_PACKET *ep)
   }
   return(rc);
 }
-
