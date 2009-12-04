@@ -723,7 +723,7 @@ int IFD_Towitoko_ResetAsyncICC (IFD * ifd, ATR ** atr)
 		req_ts.tv_sec = 0;
 		req_ts.tv_nsec = 50000000;
 #endif
-		
+		(*atr) = NULL;
 		for(i=0; i<3; i++)
 		{
 			parity = par[i];
@@ -789,7 +789,7 @@ int IFD_Towitoko_ResetAsyncICC (IFD * ifd, ATR ** atr)
 #endif
 		if(ifd->io->reader_type == RTYP_SMART)
 		{
-			if((*atr) && ret == IFD_TOWITOKO_OK && ifd->io)
+			if((*atr) && ret == IFD_TOWITOKO_OK)
 			{
 				if((ifd->io)->SmartReaderConf!=NULL)
 				{
