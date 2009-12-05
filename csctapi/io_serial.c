@@ -979,7 +979,8 @@ static bool IO_Serial_Set_Smartreader_Config(IO_Serial * io)
 	BYTE cmd[16];
 	int fs;
 	struct timespec req_ts;
-
+	int i;
+	
 	req_ts.tv_sec = 0;
 	req_ts.tv_nsec = 50000000;
 
@@ -1067,13 +1068,15 @@ static bool IO_Serial_Set_Smartreader_Config(IO_Serial * io)
 	// Set SmartReader+ in DATA mode.
 	term.c_cflag&=~CSIZE;
 	term.c_cflag|=CS8;
-	if(tcsetattr(io->fd,TCSADRAIN,&term)==-1)
-		{
-#  ifdef DEBUG_IO
-		printf("%s: tcsetattr failed: %s\n",io->filename,strerror(errno));
-#endif
-		return FALSE;
-		}
+	for (i=0; i<3; i++)
+		if(tcsetattr(io->fd,TCSADRAIN,&term)==-1)
+			{
+	#  ifdef DEBUG_IO
+			printf("%s: tcsetattr failed: %s\n",io->filename,strerror(errno));
+	#endif
+			return FALSE;
+			}
+
 #ifdef DEBUG_IO
 		printf("IO: Setting SmartReader+ config done, Reseting the card\n");
 #endif
@@ -1088,8 +1091,6 @@ static bool IO_Serial_Set_Smartreader_Config(IO_Serial * io)
 #endif
 	IO_Serial_RTS_Clr(io);
 	IO_Serial_Ioctl_Lock(io, 0);
-
-	// IO_Serial_DTR_RTS(io, 0, io->rts == IO_SERIAL_HIGH);
 	return TRUE;
 }
 
