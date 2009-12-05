@@ -325,55 +325,35 @@ bool IO_Serial_SetProperties (IO_Serial * io)
    
    //	printf("IO: Setting properties: com%d, %ld bps; %d bits/byte; %s parity; %d stopbits; dtr=%d; rts=%d\n", io->com, io->input_bitrate, io->bits, io->parity == IO_SERIAL_PARITY_EVEN ? "Even" : io->parity == IO_SERIAL_PARITY_ODD ? "Odd" : "None", io->stopbits, io->dtr, io->rts);
    memset (&newtio, 0, sizeof (newtio));
-   /* Set the bitrate */
-   
 
+   /* Set the bitrate */
    mhz = io->mhz;
 
-   if(io->reader_type==RTYP_SMART)
-   {
-#ifdef DEBUG_IO
-      printf("IO: SMARTREADER .. switching %s to %2.2fMHz\n", io->filename,(float)mhz/100.0);
-#endif
-      if(!IO_Serial_Set_Smartreader_Config(io))
-      {
-#ifdef DEBUG_IO
-         printf("IO: SMARTREADER .. ERROR switching %s to %2.2fMHz\n", io->filename,(float)mhz/100.0);
-#endif
-         return FALSE;
-      }
-	//return TRUE;
-	// no need to continue as the smartreader is ready to be used
-	// and we don't want any changes in the baudrate or anything else.
-   }
-
-	else
-	{
 #ifdef OS_LINUX
-	   if (io->mhz == io->cardmhz)
+   if (io->mhz == io->cardmhz)
 #endif
-		{ //no overclocking
-			cfsetospeed(&newtio, IO_Serial_Bitrate_to_Speed(io->output_bitrate));
-			cfsetispeed(&newtio, IO_Serial_Bitrate_to_Speed(io->input_bitrate));
-		}
+	{ //no overclocking
+		cfsetospeed(&newtio, IO_Serial_Bitrate_to_Speed(io->output_bitrate));
+		cfsetispeed(&newtio, IO_Serial_Bitrate_to_Speed(io->input_bitrate));
+	}
 #ifdef OS_LINUX
    else 
-		{ //over or underclocking
-			/* these structures are only available on linux as fas as we know so limit this code to OS_LINUX */
-			struct serial_struct nuts;
-			ioctl(io->fd, TIOCGSERIAL, &nuts);
-			int custom_baud = 9600 * io->mhz / io->cardmhz;
-			nuts.custom_divisor = (nuts.baud_base + (custom_baud/2))/ custom_baud;
-			cs_debug("custom baudrate: cardmhz=%d mhz=%d custom_baud=%d baud_base=%d divisor=%d -> effective baudrate %d", 
-								  io->cardmhz, io->mhz, custom_baud, nuts.baud_base, nuts.custom_divisor, nuts.baud_base/nuts.custom_divisor);
-			nuts.flags &= ~ASYNC_SPD_MASK;
-			nuts.flags |= ASYNC_SPD_CUST;
-			ioctl(io->fd, TIOCSSERIAL, &nuts);
-			cfsetospeed(&newtio, IO_Serial_Bitrate_to_Speed(38400));
-			cfsetispeed(&newtio, IO_Serial_Bitrate_to_Speed(38400));
-	   }
+	{ //over or underclocking
+		/* these structures are only available on linux as fas as we know so limit this code to OS_LINUX */
+		struct serial_struct nuts;
+		ioctl(io->fd, TIOCGSERIAL, &nuts);
+		int custom_baud = 9600 * io->mhz / io->cardmhz;
+		nuts.custom_divisor = (nuts.baud_base + (custom_baud/2))/ custom_baud;
+		cs_debug("custom baudrate: cardmhz=%d mhz=%d custom_baud=%d baud_base=%d divisor=%d -> effective baudrate %d", 
+							  io->cardmhz, io->mhz, custom_baud, nuts.baud_base, nuts.custom_divisor, nuts.baud_base/nuts.custom_divisor);
+		nuts.flags &= ~ASYNC_SPD_MASK;
+		nuts.flags |= ASYNC_SPD_CUST;
+		ioctl(io->fd, TIOCSSERIAL, &nuts);
+		cfsetospeed(&newtio, IO_Serial_Bitrate_to_Speed(38400));
+		cfsetispeed(&newtio, IO_Serial_Bitrate_to_Speed(38400));
+	}
 #endif
-    }    
+	
    /* Set the character size */
    switch (io->bits)
    {
@@ -443,6 +423,20 @@ bool IO_Serial_SetProperties (IO_Serial * io)
 //	tcflush(io->fd, TCIOFLUSH);
 //	if (tcsetattr (io->fd, TCSAFLUSH, &newtio) < 0)
 //		return FALSE;
+
+	if(io->reader_type==RTYP_SMART)
+	{
+#ifdef DEBUG_IO
+      printf("IO: SMARTREADER .. switching %s to %2.2fMHz\n", io->filename,(float)mhz/100.0);
+#endif
+      if(!IO_Serial_Set_Smartreader_Config(io))
+      {
+#ifdef DEBUG_IO
+         printf("IO: SMARTREADER .. ERROR switching %s to %2.2fMHz\n", io->filename,(float)mhz/100.0);
+#endif
+         return FALSE;
+      }
+   }
 
 	IO_Serial_Ioctl_Lock(io, 1);
 	IO_Serial_DTR_RTS(io, 0, io->rts == IO_SERIAL_HIGH);
@@ -979,7 +973,7 @@ static bool IO_Serial_Set_Smartreader_Config(IO_Serial * io)
 	BYTE cmd[16];
 	int fs;
 	struct timespec req_ts;
-	int i;
+	// int i;
 	
 	req_ts.tv_sec = 0;
 	req_ts.tv_nsec = 50000000;
@@ -1068,14 +1062,14 @@ static bool IO_Serial_Set_Smartreader_Config(IO_Serial * io)
 	// Set SmartReader+ in DATA mode.
 	term.c_cflag&=~CSIZE;
 	term.c_cflag|=CS8;
-	for (i=0; i<3; i++)
-		if(tcsetattr(io->fd,TCSADRAIN,&term)==-1)
-			{
-	#  ifdef DEBUG_IO
-			printf("%s: tcsetattr failed: %s\n",io->filename,strerror(errno));
-	#endif
-			return FALSE;
-			}
+	//for (i=0; i<3; i++)
+	if(tcsetattr(io->fd,TCSADRAIN,&term)==-1)
+		{
+#  ifdef DEBUG_IO
+		printf("%s: tcsetattr failed: %s\n",io->filename,strerror(errno));
+#endif
+		return FALSE;
+		}
 
 #ifdef DEBUG_IO
 		printf("IO: Setting SmartReader+ config done, Reseting the card\n");
