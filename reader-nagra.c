@@ -436,7 +436,7 @@ int ParseDataType(unsigned char dt)
        				cs_log("|    |    |    |%s|%s|",date2,time2);
        			}
        		case 0x08:
-     		case 0x88: if (cta_res[11] == 0x49) decryptDT08();    			
+     		case 0x88: if (cta_res[11] == 0x49) decryptDT08(); return 1;  			
        		default:
        			return 1;
    	}
@@ -453,7 +453,7 @@ int GetDataType(unsigned char dt, int len, int shots)
   			cs_debug("[nagra-reader] failed to get datatype %02X",dt);
   			return 0;
   		}
-    		if(cta_res[2]==0) return 1;
+    		if((cta_res[2]==0) && (dt != CAMDATA)) return 1;
     		if(!ParseDataType(dt&0x0F)) return 0;
     		if ((dt == CAMDATA) && (cta_res[11] == 0x49)) return 1; //got dt08 data	
     		dt|=0x80; // get next item
@@ -484,7 +484,7 @@ int nagra2_card_init(uchar *atr, int atrlen)
 	memset (reader[ridx].sa, 0xff, sizeof (reader[ridx].sa));
 	reader[ridx].caid[0]=SYSTEM_NAGRA;
 	
-	if (memcmp(atr+11, "DNASP", 5)==0)
+	if ((memcmp(atr+11, "DNASP", 5)==0 || memcmp(atr+11, "TIGER", 5)==0))
 	{
 		//if(SetIFS(0xFE) != 1) return 0;
 		cs_debug("[nagra-reader] detect pure nagra card T1 protocol");
@@ -521,11 +521,11 @@ int nagra2_card_init(uchar *atr, int atrlen)
 	if(!GetDataType(DT01,0x0E,MAX_REC)) return 0;
 	cs_debug("[nagra-reader] DT01 DONE");
 	CamStateRequest();
-	if(!GetDataType(CAMDATA,0x55,10)) return 0;
-	cs_debug("[nagra-reader] CAMDATA Done");
-	CamStateRequest();
 	if(!GetDataType(IRDINFO,0x39,MAX_REC)) return 0;
 	cs_debug("[nagra-reader] IRDINFO DONE");
+	CamStateRequest();
+	if(!GetDataType(CAMDATA,0x55,10)) return 0;
+	cs_debug("[nagra-reader] CAMDATA Done");
 	/*
 	//DumpDatatypes();
 	if(!GetDataType(0x04,0x44,MAX_REC)) return 0;
@@ -556,12 +556,17 @@ int nagra2_card_info(void)
 
 int nagra2_do_ecm(ECM_REQUEST *er)
 {
-	if RENEW_SESSIONKEY NegotiateSessionKey();
-	if SENDDATETIME DateTimeCMD();
+	//if RENEW_SESSIONKEY NegotiateSessionKey();
+	//if SENDDATETIME DateTimeCMD();
 	if(!do_cmd(er->ecm[3],er->ecm[4]+2,0x87,0x02, er->ecm+3+2)) 
 	{
-		cs_debug("[nagra-reader] nagra2_do_ecm failed");
-		return (0);
+		cs_debug("[nagra-reader] nagra2_do_ecm failed, retry");
+		if(!do_cmd(er->ecm[3],er->ecm[4]+2,0x87,0x02, er->ecm+3+2))
+		{
+			cs_debug("[nagra-reader] nagra2_do_ecm failed");
+			return (0);
+		}
+
 	}
 	//cs_sleepms(100);
 	CamStateRequest();

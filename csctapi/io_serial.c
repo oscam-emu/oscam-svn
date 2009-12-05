@@ -210,15 +210,15 @@ bool IO_Serial_Init (IO_Serial * io, unsigned com, bool usbserial, bool pnp)
 	else
 #endif
 
-#ifdef OS_MACOSX
+//#ifdef OS_MACOSX
 		// on mac os x, make sure you use the /dev/cu.XXXX device in oscam.server
-		io->fd = open (filename,  O_RDWR | O_NOCTTY | O_NONBLOCK);
-#else
-		if (com==RTYP_SMART)
-			io->fd = open (filename,  O_RDWR | O_NOCTTY | O_NONBLOCK);
-		else
-			io->fd = open (filename, O_RDWR | O_NOCTTY | O_SYNC);
-#endif
+		io->fd = open (filename,  O_RDWR | O_NOCTTY| O_NONBLOCK);
+//#else
+//              with O_SYNC set OSCam is very critical on opening a device, on certain installs
+//              (eg virtual Ubuntu with /dev/ttyUSB) it gives "Error activating card"
+//              with O_NONBLOCK this problem is solved
+//		io->fd = open (filename, O_RDWR | O_NOCTTY | O_SYNC);
+//#endif
 
 	if (io->fd < 0)
 		return FALSE;
@@ -316,7 +316,6 @@ bool IO_Serial_GetProperties (IO_Serial * io)
 bool IO_Serial_SetProperties (IO_Serial * io)
 {
 	struct termios newtio;
-	int mhz;
 		
 #ifdef SCI_DEV
 	if(io->com==RTYP_SCI)
@@ -327,7 +326,6 @@ bool IO_Serial_SetProperties (IO_Serial * io)
    memset (&newtio, 0, sizeof (newtio));
 
    /* Set the bitrate */
-   mhz = io->mhz;
 
 #ifdef OS_LINUX
    if (io->mhz == io->cardmhz)
@@ -427,12 +425,12 @@ bool IO_Serial_SetProperties (IO_Serial * io)
 	if(io->reader_type==RTYP_SMART)
 	{
 #ifdef DEBUG_IO
-      printf("IO: SMARTREADER .. switching %s to %2.2fMHz\n", io->filename,(float)mhz/100.0);
+      printf("IO: SMARTREADER .. switching %s to %2.2fMHz\n", io->filename,(float)(io->mhz)/100.0);
 #endif
       if(!IO_Serial_Set_Smartreader_Config(io))
       {
 #ifdef DEBUG_IO
-         printf("IO: SMARTREADER .. ERROR switching %s to %2.2fMHz\n", io->filename,(float)mhz/100.0);
+         printf("IO: SMARTREADER .. ERROR switching %s to %2.2fMHz\n", io->filename,(float)(io->mhz)/100.0);
 #endif
          return FALSE;
       }
