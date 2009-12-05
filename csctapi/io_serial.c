@@ -1072,8 +1072,14 @@ static bool IO_Serial_Set_Smartreader_Config(IO_Serial * io)
 		}
 
 #ifdef DEBUG_IO
-		printf("IO: Setting SmartReader+ config done, Reseting the card\n");
+		printf("IO: Setting SmartReader+ config done\n");
 #endif
+	return TRUE;
+	
+#ifdef DEBUG_IO
+		printf("IO: SmartReader+ : Reseting the card\n");
+#endif
+	
 	// reset the card
 	IO_Serial_Ioctl_Lock(io, 1);
 
