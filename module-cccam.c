@@ -492,11 +492,11 @@ static int cc_send_cli_data()
   uint8 buf[CC_MAXMSGSIZE];
   bzero(buf, CC_MAXMSGSIZE);
 
-  memcpy(buf, reader[ridx].r_usr, strlen(reader[ridx].r_usr) );
+  memcpy(buf, reader[ridx].r_usr, sizeof(reader[ridx].r_usr));
   memcpy(buf + 20, cc->node_id, 8 );
-  memcpy(buf + 29, reader[ridx].cc_version, strlen(reader[ridx].cc_version));   // cccam version (ascii)
-  memcpy(buf + 61, reader[ridx].cc_build, strlen(reader[ridx].cc_build));       // build number (ascii)
-
+  memcpy(buf + 29, reader[ridx].cc_version, sizeof(reader[ridx].cc_version));   // cccam version (ascii)
+  memcpy(buf + 61, reader[ridx].cc_build, sizeof(reader[ridx].cc_build));       // build number (ascii)
+cs_log ("User: %s, version: %s, build: %s", reader[ridx].r_usr, reader[ridx].cc_version, reader[ridx].cc_build);
   return cc_cmd_send(buf, 20 + 8 + 6 + 26 + 4 + 28 + 1, MSG_CLI_DATA);
 }
 
@@ -744,7 +744,7 @@ static int cc_cli_connect(void)
 {
   int handle;
   uint8 data[20];
-  uint8 hash[SHA1_DIGEST_SIZE];
+  uint8 hash[SHA_DIGEST_LENGTH];
   uint8 buf[CC_MAXMSGSIZE];
   struct cc_data *cc;
 
@@ -764,7 +764,7 @@ static int cc_cli_connect(void)
   if(handle < 0) return -1;
 
   // get init seed
-  if(read(handle, data, 16) != 16) {
+  if(recv(handle, data, 16, MSG_WAITALL) != 16) {
     cs_log("cccam: server does not return 16 bytes");
     network_tcp_connection_close(handle);
     return -2;
@@ -773,10 +773,10 @@ static int cc_cli_connect(void)
 
   cc_xor(data);  // XOR init bytes with 'CCcam'
 
-  SHA1_CTX ctx;
+  SHA_CTX ctx;
   SHA1_Init(&ctx);
   SHA1_Update(&ctx, data, 16);
-  SHA1_Final(&ctx, hash);
+  SHA1_Final(hash, &ctx);
 
   cs_ddump(hash, sizeof(hash), "cccam: sha1 hash:");
 
@@ -801,7 +801,7 @@ static int cc_cli_connect(void)
   cc_crypt(&cc->block[ENCRYPT], (uint8 *)reader[ridx].r_pwd, strlen(reader[ridx].r_pwd), ENCRYPT);     // modify encryption state w/ pwd
   cc_cmd_send(buf, 6, MSG_NO_HEADER); // send 'CCcam' xor w/ pwd
 
-  if (read(handle, data, 20) != 20) {
+  if (recv(handle, data, 20, MSG_WAITALL) != 20) {
     cs_log("cccam: login failed, pwd ack not received");
     return -2;
   }
