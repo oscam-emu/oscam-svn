@@ -11,7 +11,6 @@ IDEA_KEY_SCHEDULE ksSession;
 extern uchar cta_res[];
 extern ushort cta_lr;
 int is_pure_nagra=0;
-int hasMod=0;
 unsigned char rom[15];
 unsigned char plainDT08RSA[64];
 unsigned char IdeaCamKey[16];
@@ -192,6 +191,25 @@ void DateTimeCMD(void)
 	*/
 }
 
+void getCamID(void)
+{
+	/*
+  	Hack: 
+  	Get camid. For provider 0401/3411 camid is 0xff,0xff,0xff,0xff. 
+  	for other provider we will take them from hexserial
+  	*/
+	unsigned char prv0401[] = {0x00, 0x00, 0x04, 0x01};
+	unsigned char prv3411[] = {0x00, 0x00, 0x34, 0x11};
+	if ((memcmp(prv3411,&reader[ridx].prid[0],4)==0) || (memcmp(prv0401,&reader[ridx].prid[0],4)==0))
+	{
+		memset(camid,0xff,4);
+	}
+	else
+	{
+		memcpy(camid,reader[ridx].hexserial,4);
+	}
+}
+
 int NegotiateSessionKey(void)
 {
 	unsigned char cmd2b[] = {0x21, 0x40, 0x48, 0xA0, 0xCA, 0x00, 0x00, 0x43, 0x2B, 0x40, 0x1C, 0x54, 0xd1, 0x26, 0xe7, 0xe2, 0x40, 0x20, 0xd1, 0x66, 0xf4, 0x18, 0x97, 0x9d, 0x5f, 0x16, 0x8f, 0x7f, 0x7a, 0x55, 0x15, 0x82, 0x31, 0x14, 0x06, 0x57, 0x1a, 0x3f, 0xf0, 0x75, 0x62, 0x41, 0xc2, 0x84, 0xda, 0x4c, 0x2e, 0x84, 0xe9, 0x29, 0x13, 0x81, 0xee, 0xd6, 0xa9, 0xf5, 0xe9, 0xdb, 0xaf, 0x22, 0x51, 0x3d, 0x44, 0xb3, 0x20, 0x83, 0xde, 0xcb, 0x5f, 0x35, 0x2b, 0xb0, 0xce, 0x70, 0x02, 0x00};
@@ -328,13 +346,14 @@ void decryptDT08(void)
   	//cs_debug("[nagra-reader] dt08 72byte idea decrypted: %s", cs_hexdump (1, &static_dt08[0], 36));
   	//cs_debug("[nagra-reader] dt08 72byte idea decrypted: %s", cs_hexdump (1, &static_dt08[35], 37));
   	
+  	getCamID();
+  	cs_debug("[nagra-reader] using camid %sfor dt08 calc",cs_hexdump (1,camid,4));
+  	
 	// Calculate signature
   	memcpy (signature, static_dt08, 8);
   	memset (static_dt08 + 0, 0, 4);
   	memcpy (static_dt08 + 4, camid, 4);
   	Signature(sign2,IdeaCamKey,static_dt08,72);
-  	
-  	memcpy (plainDT08RSA, static_dt08+8, 64);
 
 	BN_CTX_free (ctx);
 	//cs_debug("[nagra-reader] dt08 sign1: %s", cs_hexdump (0, signature, 8));
@@ -342,13 +361,14 @@ void decryptDT08(void)
 	
 	if (memcmp (signature, sign2, 8)==0)
 	{
+		memcpy (plainDT08RSA, static_dt08+8, 64);
 		cs_debug("[nagra-reader] DT08 signature check ok");
-		hasMod=1;
 	}
 	else
 	{
+		memcpy (plainDT08RSA, reader[ridx].rsa_mod, 64);
 		cs_debug("[nagra-reader] DT08 signature check nok");
-		hasMod=0;
+		cs_debug("[nagra-reader] DT08 use n3_rsakey as pairingkey");
 	}  	
 }
 
@@ -417,7 +437,7 @@ int ParseDataType(unsigned char dt)
 			reader[ridx].prid[0][1]=0x00;
 			reader[ridx].prid[0][2]=cta_res[7];
 			reader[ridx].prid[0][3]=cta_res[8];
-     			reader[ridx].caid[0] =(SYSTEM_NAGRA|cta_res[11]);
+			reader[ridx].caid[0] =(SYSTEM_NAGRA|cta_res[11]);
      			memcpy(irdId,cta_res+14,4);
      			cs_debug("[nagra-reader] CAID: %04X, IRD ID: %s",reader[ridx].caid[0], cs_hexdump (1,irdId,4));
      			cs_debug("[nagra-reader] ProviderID: %s",cs_hexdump (1,reader[ridx].prid[0],4));
@@ -436,7 +456,7 @@ int ParseDataType(unsigned char dt)
        				cs_log("|    |    |    |%s|%s|",date2,time2);
        			}
        		case 0x08:
-     		case 0x88: if (cta_res[11] == 0x49) decryptDT08(); return 1;  			
+     		case 0x88: if (cta_res[11] == 0x49) decryptDT08();  			
        		default:
        			return 1;
    	}
@@ -587,15 +607,21 @@ int nagra2_do_ecm(ECM_REQUEST *er)
 	}
 	return(0);
 }
-
+/*
+very experimental EMM support !!
+*/
 int nagra2_do_emm(EMM_PACKET *ep)
 {
+	cs_debug("[nagra-reader] -----------------");
+	cs_debug("[nagra-reader] -----------------");
+	cs_dump(ep->emm, 64, "[nagra-reader]EMM:");
+	cs_debug("[nagra-reader] -----------------");
+	cs_debug("[nagra-reader] -----------------");
 	if(!do_cmd(ep->emm[8],ep->emm[9]+2,0x84,0x02,ep->emm+8+2))
 	{
 		cs_debug("[nagra-reader] nagra2_do_emm failed");
 		return (0);
 	}
-	cs_sleepms(500);
-	cs_dump(ep->emm, 64, "[nagra-reader]EMM:");
+	cs_sleepms(300);
 	return 1;
 }

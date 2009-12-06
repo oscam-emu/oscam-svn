@@ -94,6 +94,7 @@ static  char* credit[] = {
     "dingo35 for seca reader-support",
     "dingo35 and okmikel for newcamd-support",
     "hellmaster1024 for gb*x-support",
+    "cogsi for cccam reader and radegast reader support",
     "the vdr-sc team for several good ideas :-)",
     NULL };
 
@@ -1511,8 +1512,8 @@ int send_dcw(ECM_REQUEST *er)
 {
   static char *stxt[]={"found", "cache1", "cache2", "emu",
                        "not found", "timeout", "sleeping",
-                       "fake", "invalid", "corrupt"};
-  static char *stxtEx[]={"", "group", "caid", "ident", "class", "chid", "queue"};
+                       "fake", "invalid", "corrupt", "no card"};
+  static char *stxtEx[]={"", "group", "caid", "ident", "class", "chid", "queue", "peer"};
   static char *stxtWh[]={"", "user ", "reader ", "server ", "lserver "};
   char sby[32]="";
   char erEx[32]="";
