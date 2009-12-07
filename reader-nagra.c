@@ -11,6 +11,7 @@ IDEA_KEY_SCHEDULE ksSession;
 extern uchar cta_res[];
 extern ushort cta_lr;
 int is_pure_nagra=0;
+int has_dt08=0;
 unsigned char rom[15];
 unsigned char plainDT08RSA[64];
 unsigned char IdeaCamKey[16];
@@ -20,6 +21,8 @@ unsigned char sessi[16];
 unsigned char signature[8];
 unsigned char cam_state[3];
 unsigned char static_dt08[73];
+unsigned char prv0401[] = {0x00, 0x00, 0x04, 0x01};
+unsigned char prv3411[] = {0x00, 0x00, 0x34, 0x11};
 
 // Card Status checks
 #define HAS_CW      ((cam_state[2]&6)==6)
@@ -89,7 +92,7 @@ int do_cmd(unsigned char cmd, int ilen, unsigned char res, int rlen, unsigned ch
 		cs_debug("[nagra-reader] invalid data length encountered");
     		return 0;
     	}
-    	if (is_pure_nagra==0) msg[4]+=1;
+    	if (is_pure_nagra==1) msg[4]+=1;
     	if(!reader_cmd2icc(msg,msglen))
   	{
   		cs_sleepms(10);
@@ -198,8 +201,6 @@ void getCamID(void)
   	Get camid. For provider 0401/3411 camid is 0xff,0xff,0xff,0xff. 
   	for other provider we will take them from hexserial
   	*/
-	unsigned char prv0401[] = {0x00, 0x00, 0x04, 0x01};
-	unsigned char prv3411[] = {0x00, 0x00, 0x34, 0x11};
 	if ((memcmp(prv3411,&reader[ridx].prid[0],4)==0) || (memcmp(prv0401,&reader[ridx].prid[0],4)==0))
 	{
 		memset(camid,0xff,4);
@@ -219,6 +220,8 @@ int NegotiateSessionKey(void)
 	unsigned char idea2[16];
 	unsigned char sign1[8];
 	unsigned char sign2[8];
+	
+	if (!has_dt08) memcpy(plainDT08RSA, reader[ridx].rsa_mod, 64);
 
 	if(!do_cmd(0x2a,0x02,0xaa,0x42,NULL))
 	{
@@ -361,14 +364,14 @@ void decryptDT08(void)
 	
 	if (memcmp (signature, sign2, 8)==0)
 	{
+		has_dt08=1;
 		memcpy (plainDT08RSA, static_dt08+8, 64);
 		cs_debug("[nagra-reader] DT08 signature check ok");
 	}
 	else
 	{
-		memcpy (plainDT08RSA, reader[ridx].rsa_mod, 64);
+		has_dt08=0;
 		cs_debug("[nagra-reader] DT08 signature check nok");
-		cs_debug("[nagra-reader] DT08 use n3_rsakey as pairingkey");
 	}  	
 }
 
@@ -473,28 +476,12 @@ int GetDataType(unsigned char dt, int len, int shots)
   			cs_debug("[nagra-reader] failed to get datatype %02X",dt);
   			return 0;
   		}
-    		if((cta_res[2]==0) && (dt != CAMDATA)) return 1;
+    		if((cta_res[2]==0) && (dt != 0x08 || dt != 0x88)) return 1;
     		if(!ParseDataType(dt&0x0F)) return 0;
-    		if ((dt == CAMDATA) && (cta_res[11] == 0x49)) return 1; //got dt08 data	
+    		if ((dt != 0x08 || dt != 0x88) && (cta_res[11] == 0x49)) return 1; //got dt08 data	
     		dt|=0x80; // get next item
     	}
   	return 1;
-}
-
-
-int chk_caid(CAIDTAB *ctab)
-{
-	int n;
-	for (n=0; (n<CS_MAXCAIDTAB); n++)
-	{
-		if ((ctab->caid[n]&SYSTEM_MASK)==SYSTEM_NAGRA && (ctab->caid[n]&0xFF)>0)
-		{
-			cs_debug("[nagra-reader] using nagra mode");
-    			return 1;
-    		}
-    	}
-    	cs_debug("[nagra-reader] using irdeto mode");
-    	return 0;
 }
 
 int nagra2_card_init(uchar *atr, int atrlen)
@@ -507,19 +494,15 @@ int nagra2_card_init(uchar *atr, int atrlen)
 	if ((memcmp(atr+11, "DNASP", 5)==0 || memcmp(atr+11, "TIGER", 5)==0))
 	{
 		//if(SetIFS(0xFE) != 1) return 0;
-		cs_debug("[nagra-reader] detect pure nagra card T1 protocol");
-		is_pure_nagra=1;
+		cs_debug("[nagra-reader] detect native nagra card T1 protocol");
 		memcpy(rom,atr+11,15);
 	}
 	else if (!memcmp(atr+4, "IRDETO", 6))
 	{
-		/*
-		cs_debug("[nagra-reader] support for non native nagra cards not finished Switching back to irdeto mode");
-		return 0;
-		*/
 		cs_debug("[nagra-reader] detect Irdeto tunneled nagra card");
-		if(!chk_caid(&reader[ridx].ctab)) return 0;
-		is_pure_nagra=0;
+		if(!reader[ridx].nagra_native) return 0;
+		cs_debug("[nagra-reader] using nagra mode");
+		is_pure_nagra=1;
 		if(!do_cmd(0x10,0x02,0x90,0x11,0))
 		{
 			cs_debug("[nagra-reader] get rom version failed");
@@ -574,10 +557,17 @@ int nagra2_card_info(void)
 	return(1);
 }
 
+void post_process(void)
+{
+	//Todo: Do not block!//
+	CamStateRequest();
+	//cs_sleepms(20);
+	if RENEW_SESSIONKEY NegotiateSessionKey();
+	if SENDDATETIME DateTimeCMD();
+}
+
 int nagra2_do_ecm(ECM_REQUEST *er)
 {
-	//if RENEW_SESSIONKEY NegotiateSessionKey();
-	//if SENDDATETIME DateTimeCMD();
 	if(!do_cmd(er->ecm[3],er->ecm[4]+2,0x87,0x02, er->ecm+3+2)) 
 	{
 		cs_debug("[nagra-reader] nagra2_do_ecm failed, retry");
@@ -588,40 +578,37 @@ int nagra2_do_ecm(ECM_REQUEST *er)
 		}
 
 	}
-	//cs_sleepms(100);
 	CamStateRequest();
-	
 	if (HAS_CW && do_cmd(0x1C,0x02,0x9C,0x36,NULL))
 	{
 		unsigned char v[8];
 		memset(v,0,sizeof(v));
-		idea_cbc_encrypt(&cta_res[4],er->cw,8,&ksSession,v,IDEA_DECRYPT);
+		idea_cbc_encrypt(&cta_res[30],er->cw,8,&ksSession,v,IDEA_DECRYPT);
 		memset(v,0,sizeof(v));
-		idea_cbc_encrypt(&cta_res[30],er->cw+8,8,&ksSession,v,IDEA_DECRYPT);
-		// after cw received. //Todo: Do not block!//
-		CamStateRequest();
-		//cs_sleepms(20);
-		if RENEW_SESSIONKEY NegotiateSessionKey();
-		if SENDDATETIME DateTimeCMD();
+		idea_cbc_encrypt(&cta_res[4],er->cw+8,8,&ksSession,v,IDEA_DECRYPT);
+		
+		if ((memcmp(prv3411,&reader[ridx].prid[0],4)==0) || (memcmp(prv0401,&reader[ridx].prid[0],4)==0))
+	  	{
+	    		unsigned char tt[8];
+	    		memcpy(&tt[0],&er->cw[0],8);
+	    		memcpy(&er->cw[0],&er->cw[8],8);
+	   		memcpy(&er->cw[8],&tt[0],8);
+	    	}
+	    	
+		post_process();
 		return (1);
 	}
 	return(0);
 }
-/*
-very experimental EMM support !!
-*/
+
 int nagra2_do_emm(EMM_PACKET *ep)
 {
-	cs_debug("[nagra-reader] -----------------");
-	cs_debug("[nagra-reader] -----------------");
-	cs_dump(ep->emm, 64, "[nagra-reader]EMM:");
-	cs_debug("[nagra-reader] -----------------");
-	cs_debug("[nagra-reader] -----------------");
 	if(!do_cmd(ep->emm[8],ep->emm[9]+2,0x84,0x02,ep->emm+8+2))
 	{
 		cs_debug("[nagra-reader] nagra2_do_emm failed");
 		return (0);
 	}
 	cs_sleepms(300);
+	post_process();
 	return 1;
 }
