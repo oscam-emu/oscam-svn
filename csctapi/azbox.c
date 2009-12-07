@@ -34,7 +34,7 @@ int xcas_sc_check(int rfd)
 
   if (rfd < 0) return -1;
 
-  n = ioctl (reader->handle, SCARD_IOC_CHECKCARD, &buf);
+  n = ioctl (rfd, SCARD_IOC_CHECKCARD, &buf);
 
   cs_dump("azbox: card status = %d", n);
 
@@ -67,7 +67,7 @@ int xcas_sc_open(void)
    
    sleep(1);
 
-   xcas_sc_reset(rfd, 1);
+   xcas_sc_reset(rfd);
 
    if ((n = xcas_sc_check) >= 3) {
      cs_log("azbox: failed to check card, status = %d", n);
@@ -121,7 +121,7 @@ int xcas_sc_set_type(int rfd, xcas_sc_type type)
   buf[2] = type;
   memcpy(buf + 5, "\x01\x01\x01\x01\x01", 5);
 
-  if ((n = ioctl(reader->handle, SCARD_IOC_CHECKCARD, &buf)) < 0) {
+  if ((n = ioctl(rfd, SCARD_IOC_CHECKCARD, &buf)) < 0) {
     cs_log("azbox: failed to set type = %d", type);
     return -1;
   }
