@@ -142,5 +142,7 @@ int xcas_sc_open(void) {return -1;};
 int xcas_sc_read(int rfd, unsigned char *buf, int l) {return -1;};
 int xcas_sc_write(int rfd, unsigned char *buf, int l) {return -1;};
 int xcas_sc_get_atr(int rfd, unsigned char *atr) {return -1;};
+int xcas_sc_reset(int rfd) {return -1;};
+int xcas_sc_set_type(int rfd, xcas_sc_type type) {return -1;};
 int xcas_sc_close(int rfd) {return -1;};
 #endif
