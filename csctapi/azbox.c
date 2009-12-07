@@ -69,7 +69,7 @@ int xcas_sc_open(void)
 
    xcas_sc_reset(rfd);
 
-   if ((n = xcas_sc_check) >= 3) {
+   if ((n = xcas_sc_check(rfd)) >= 3) {
      cs_log("azbox: failed to check card, status = %d", n);
     // return -1;
    }
