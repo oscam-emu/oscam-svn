@@ -722,6 +722,7 @@ int IFD_Towitoko_ResetAsyncICC (IFD * ifd, ATR ** atr)
 		req_ts.tv_sec = 0;
 		req_ts.tv_nsec = 50000000;
 #endif
+
 		(*atr) = NULL;
 		for(i=0; i<3; i++)
 		{
@@ -980,11 +981,12 @@ IFD_Towitoko_GetNumSlots (IFD * ifd)
 unsigned long
 IFD_Towitoko_GetClockRate (IFD * ifd)
 {
- 	//return IFD_TOWITOKO_CLOCK_RATE;
+ 	return (372L * 9600L);
+	/*
 	if (ifd->io->cardmhz == 357 || ifd->io->cardmhz == 358)
 	  return (372L * 9600L);
 	else
- 	  return ifd->io->cardmhz * 10000L; 
+ 	  return ifd->io->cardmhz * 10000L; */
 }
 
 unsigned long 
