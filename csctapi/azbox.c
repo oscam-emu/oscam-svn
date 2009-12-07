@@ -64,7 +64,7 @@ int xcas_sc_open(void)
    }
 
    cs_debug("azbox: scard fd = %d", rfd);
-   
+   /*
    sleep(1);
 
    xcas_sc_reset(rfd);
@@ -77,7 +77,7 @@ int xcas_sc_open(void)
    bzero(buf, sizeof(buf));
    xcas_sc_get_atr(rfd, buf);
 
-   cs_debug("azbox: checkcard = %d", n);
+   cs_debug("azbox: checkcard = %d", n);*/
    
    return rfd;
 }
