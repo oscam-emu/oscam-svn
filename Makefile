@@ -106,7 +106,7 @@ macosx-native:
 		OS_CULI="-lncurses" \
 		OS_PTLI="-lpthread" \
 		DS_OPTS="-O2 -DOS_MACOSX -DNEED_DAEMON -DCS_NOSHM -DHAVE_PTHREAD_H -DUSE_PTHREAD -DCS_CONFDIR=${CS_CONFDIR} -DHAVE_PCSC=1 -Winline -Wall -Wno-implicit-function-declaration -Wno-parentheses  -finline-functions -fomit-frame-pointer -D'CS_SVN_VERSION="'"$(shell svnversion -n . | sed 's/[MS]$$//' )"'"'" \
-		DS_CFLAGS="-c -framework PCSC" \
+		DS_CFLAGS="-c" \
 		DS_LDFLAGS="-framework PCSC" \
 		DS_ARFLAGS="-rvsl" \
 		DS_CC=gcc \
