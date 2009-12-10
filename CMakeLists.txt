@@ -70,7 +70,7 @@ endif (CMAKE_CROSSCOMPILING)
 #----------------------- some paths ------------------------------
 
 set (OPTIONAL_LINK_DIR "" CACHE STRING "Some optional link directories")
-set (OPTIONAL_INCLUDE_DIR "" CACHE STRING "Some optional include directories")
+set (OPTIONAL_INCLUDE_DIR "/usr/include/PCSC" CACHE STRING "Some optional include directories")
 
 include_directories (
     ${CMAKE_CURRENT_SOURCE_DIR}/csctapi
@@ -135,7 +135,7 @@ if (HAVE_SHA)
     add_definitions ("-DHAVE_SHA")
 endif (HAVE_SHA)
 
-check_include_file ("PCSC/pcsclite.h" HAVE_PCSC)
+check_include_file ("PCSC/wintypes.h" HAVE_PCSC)
 if (HAVE_PCSC)
     add_definitions ("-DHAVE_PCSC")
 endif (HAVE_PCSC)
@@ -180,6 +180,9 @@ target_link_libraries (${exe_name} ${csoscam} ${csmodules} ${csreaders} csctapi 
 if (HAVE_AES)
     target_link_libraries (${exe_name} crypto)
 endif (HAVE_AES)
+if (HAVE_PCSC)
+    target_link_libraries (${exe_name} pcsclite)
+endif (HAVE_PCSC)
 add_dependencies (${exe_name} ${csoscam} ${csreaders} ${csmodules})
 
 #----------------------- specific options ------------------------------
