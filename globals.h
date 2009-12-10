@@ -48,13 +48,11 @@
 #include "cscrypt/cscrypt.h"
 
 #ifdef HAVE_PCSC
-#ifdef OS_MACOSX
 #include <PCSC/pcsclite.h>
+#ifdef OS_MACOSX
 #include <PCSC/wintypes.h>
-// #include <PCSC/reader.h>
 #else
-#include <pcsclite.h>
-#include <reader.h>
+#include <PCSC/reader.h>
 #endif
 #endif
 
