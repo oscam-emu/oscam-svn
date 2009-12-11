@@ -367,6 +367,7 @@ struct s_reader
   int       card_system;
   char      label[32];
   char      device[128];
+  char      pcsc_name[128];
   int       detect;
   int       mhz;      //actual clock rate of reader in 10khz steps
   int	    cardmhz;	    //standard clock speed your card should have in 10khz steps; normally 357 but for Irdeto cards 600
