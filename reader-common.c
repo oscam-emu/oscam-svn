@@ -400,22 +400,81 @@ static int reader_card_inserted(void)
 int reader_device_init(char *device, int typ)
 {
 #ifdef HAVE_PCSC
-  if (reader[ridx].typ == R_PCSC) {
-	  long rv;
-	  cs_debug("PCSC establish context : %s", device);
-	  rv = SCardEstablishContext(SCARD_SCOPE_SYSTEM, NULL, NULL, &reader[ridx].hContext);
-	  if (	rv == SCARD_S_SUCCESS ) {
+	if (reader[ridx].typ == R_PCSC) {
+		long rv;
+		DWORD dwReaders;
+		LPSTR mszReaders = NULL;
+		char *ptr, **readers = NULL;
+		int nbReaders;
+		int reader_nb;
+		
+		cs_debug("PCSC establish context for PCSC reader %s", device);
+		rv = SCardEstablishContext(SCARD_SCOPE_SYSTEM, NULL, NULL, &reader[ridx].hContext);
+		if ( rv == SCARD_S_SUCCESS ) {
+			// here we need to list the pcsc readers and get the name from there,
+			// the reader[ridx].device should contain the reader number
+			// and after will contain the device actual name.
+			rv = SCardListReaders(reader[ridx].hContext, NULL, NULL, &dwReaders);
+			if( rv != SCARD_S_SUCCESS ) {
+				cs_debug("PCSC failed listing readers [1] : (%lx)", rv);
+				return  0;
+			}
+			mszReaders = malloc(sizeof(char)*dwReaders);
+			if (mszReaders == NULL) {
+				cs_debug("PCSC failed malloc");
+				return  0;
+			}
+			rv = SCardListReaders(reader[ridx].hContext, NULL, mszReaders, &dwReaders);
+			if( rv != SCARD_S_SUCCESS ) {
+				cs_debug("PCSC failed listing readers [2]: (%lx)", rv);
+				return  0;
+			}
+			/* Extract readers from the null separated string and get the total
+			 * number of readers */
+			nbReaders = 0;
+			ptr = mszReaders;
+			while (*ptr != '\0') {
+				ptr += strlen(ptr)+1;
+				nbReaders++;
+			}
+			
+			if (nbReaders == 0) {
+				cs_debug("PCSC : no reader found");
+				return  0;
+			}
 
-		  cs_debug("PCSC initializing reader (%s)", &reader[ridx].device);
-		  rv = SCardConnect(reader[ridx].hContext, &reader[ridx].device, SCARD_SHARE_DIRECT, SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1, &reader[ridx].hCard, &reader[ridx].dwActiveProtocol);
-		  cs_debug("PCSC initializing result (%lx) protocol (T=%lx)", rv, reader[ridx].dwActiveProtocol );
+			readers = calloc(nbReaders, sizeof(char *));
+			if (readers == NULL) {
+				cs_debug("PCSC failed malloc");
+				return  0;
+			}
 
-		  return  ((rv != SCARD_S_SUCCESS) ? 2 : 0);
-	  } else {
-		  cs_debug("PCSC failed establish context (%lx)", rv);
-		  return  0;
-	  }
-  }
+			/* fill the readers table */
+			nbReaders = 0;
+			ptr = mszReaders;
+			while (*ptr != '\0') {
+				cs_debug("%d: %s\n", nbReaders, ptr);
+				readers[nbReaders] = ptr;
+				ptr += strlen(ptr)+1;
+				nbReaders++;
+			}
+			reader_nb=atoi((const char *)&reader[ridx].device);
+			if (reader_nb < 0 || reader_nb >= nbReaders) {
+				cs_debug("Wrong reader index: %d\n", reader_nb);
+				return  0;
+			}
+			snprintf(reader[ridx].device,sizeof(reader[ridx].device),"%s",readers[reader_nb]);
+			cs_debug("PCSC initializing reader (%s)", &reader[ridx].device);
+			rv = SCardConnect(reader[ridx].hContext, &reader[ridx].device, SCARD_SHARE_DIRECT, SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1, &reader[ridx].hCard, &reader[ridx].dwActiveProtocol);
+			cs_debug("PCSC initializing result (%lx) protocol (T=%lx)", rv, reader[ridx].dwActiveProtocol );
+			
+			return  ((rv != SCARD_S_SUCCESS) ? 2 : 0);
+		}
+		else {
+			cs_debug("PCSC failed establish context (%lx)", rv);
+			return  0;
+		}
+	}
 #endif
  
   int rc;

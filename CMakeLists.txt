@@ -181,8 +181,11 @@ if (HAVE_AES)
     target_link_libraries (${exe_name} crypto)
 endif (HAVE_AES)
 if (HAVE_PCSC)
+if (NOT OSCamOperatingSystem MATCHES "Mac OS X")
     target_link_libraries (${exe_name} pcsclite)
+endif (NOT OSCamOperatingSystem MATCHES "Mac OS X")
 endif (HAVE_PCSC)
+
 add_dependencies (${exe_name} ${csoscam} ${csreaders} ${csmodules})
 
 #----------------------- specific options ------------------------------
