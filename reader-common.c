@@ -374,6 +374,7 @@ static int reader_card_inserted(void)
 			 if ( (rv==SCARD_W_RESET_CARD) && (dwState == 0) ) {
 				 cs_debug("PCSC check card reinserted in %s", reader[ridx].pcsc_name);
 				 // TODO: Removed and reinserted.. reconnect or connet card..
+			 	 SCardDisconnect(reader[ridx].hCard,SCARD_LEAVE_CARD);
 				 rv = SCardReleaseContext(&reader[ridx].hContext);
 
 				 reader_device_init(reader[ridx].device, reader[ridx].typ);
