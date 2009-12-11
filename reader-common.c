@@ -464,7 +464,7 @@ int reader_device_init(char *device, int typ)
 				return  0;
 			}
 			snprintf(reader[ridx].device,sizeof(reader[ridx].device),"%s",readers[reader_nb]);
-			cs_debug("PCSC initializing reader (%s)", &reader[ridx].device);
+			cs_log("PCSC initializing reader (%s)", &reader[ridx].device);
 			rv = SCardConnect(reader[ridx].hContext, &reader[ridx].device, SCARD_SHARE_DIRECT, SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1, &reader[ridx].hCard, &reader[ridx].dwActiveProtocol);
 			cs_debug("PCSC initializing result (%lx) protocol (T=%lx)", rv, reader[ridx].dwActiveProtocol );
 			
