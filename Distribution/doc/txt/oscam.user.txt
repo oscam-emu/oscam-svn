@@ -39,7 +39,7 @@ DESCRIPTIONS
 	  time waiting for inactive user, default:none
 
        caid = <CAID>[&<mask>][:<CAID>[&<mask>]...
-	  limit CAIDs, default:all CAIDs
+	  limit CAIDs, default:all CAIDs, required
 
 	  example: caid = 0100&ffff:0200:0300&ff00
 
@@ -68,7 +68,7 @@ DESCRIPTIONS
        chid = <CAID>:<ChID>[,<CAID>:<ChID>]...
 	  user assingment to Irdeto ChID, default:none
 
-       monlevel = 0|1|2|4|4
+       monlevel = 0|1|2|3|4
 	  monitor level:
 
 	   0 = no access to monitor

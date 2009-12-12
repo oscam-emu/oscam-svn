@@ -147,7 +147,7 @@ unsecured monitor connection, default:none
 time no EMM occurs so that client is set to low, default:30
 .RE
 .PP
-\fBmonlevel\fP = \fB0\fP|\fB1\fP|\fB2\fP|\fB4\fP|\fB4\fP
+\fBmonlevel\fP = \fB0\fP|\fB1\fP|\fB2\fP|\fB3\fP|\fB4\fP
 .RS 3n
 monitor level:
 
@@ -386,6 +386,16 @@ monitor commands:
  shutdown                = showdown OSCam
  reload                  = reinit user db, clients and anti-cascading
  details <PID>           = details about selected PID
+ debug <level>           = set debug level (\fBmonlevel\fP > 3 required)
+                            debug level mask:
+                              0 = no debugging (default)
+                              1 = debug dumps
+                              2 = debug master process
+                              4 = debug reader/proxy process
+                              8 = debug client process
+                             16 = debug reader I/O
+                             32 = debug watchdog
+                             63 = debug all
  version                 = show OSCam version
 .SH EXAMPLES
  [global]

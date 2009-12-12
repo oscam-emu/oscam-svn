@@ -70,7 +70,7 @@ endif (CMAKE_CROSSCOMPILING)
 #----------------------- some paths ------------------------------
 
 set (OPTIONAL_LINK_DIR "" CACHE STRING "Some optional link directories")
-set (OPTIONAL_INCLUDE_DIR "/usr/include/PCSC" CACHE STRING "Some optional include directories")
+set (OPTIONAL_INCLUDE_DIR "" CACHE STRING "Some optional include directories")
 
 include_directories (
     ${CMAKE_CURRENT_SOURCE_DIR}/csctapi
@@ -122,6 +122,12 @@ add_definitions ("-DCS_OS_CPU=\\\"${CS_OS_CPU}\\\"")
 add_definitions ("-DCS_OS_HW=\\\"${CS_OS_HW}\\\"")
 add_definitions ("-DCS_OS_SYS=\\\"${CS_OS_SYS}\\\"")
 
+if (${CS_OS_CPU} MATCHES "x86_64")
+    add_definitions ("-DSIXTY_FOUR_BIT")
+else (NOT ${CS_OS_CPU} MATCHES "x86_64")
+    add_definitions ("-DTHIRTY_TWO_BIT")
+endif (${CS_OS_CPU} MATCHES "x86_64")
+
 #----------------------- subdirectories ------------------------------
 
 include (CheckIncludeFile)
@@ -138,6 +144,9 @@ endif (HAVE_SHA)
 check_include_file ("PCSC/wintypes.h" HAVE_PCSC)
 if (HAVE_PCSC)
     add_definitions ("-DHAVE_PCSC")
+if (OSCamOperatingSystem MATCHES "Linux")
+    add_definitions ("-I/usr/include/PCSC")
+endif (OSCamOperatingSystem MATCHES "Linux")
 endif (HAVE_PCSC)
 
 #----------------------- subdirectories ------------------------------

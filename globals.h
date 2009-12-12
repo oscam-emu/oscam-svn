@@ -126,7 +126,7 @@
 #define D_ALL_DUMP  63
 
 #define R_MOUSE     0x1 // Reader smartcard mouse
-#define R_INTERN    0x2 // Reader smartcard intern
+#define R_INTERNAL  0x2 // Reader smartcard intern
 #define R_SMART     0x5 // Smartreader+
 #define R_CAMD35    0x10  // Reader cascading camd 3.5x
 #define R_CAMD33    0x11  // Reader cascading camd 3.3x
@@ -368,6 +368,7 @@ struct s_reader
   char      label[32];
   char      device[128];
   char      pcsc_name[128];
+  int       pcsc_has_card;
   int       detect;
   int       mhz;      //actual clock rate of reader in 10khz steps
   int	    cardmhz;	    //standard clock speed your card should have in 10khz steps; normally 357 but for Irdeto cards 600
@@ -677,6 +678,7 @@ extern char *cs_platform(char *);
 extern int recv_from_udpipe(uchar *, int);
 extern char* username(int);
 extern int idx_from_pid(pid_t);
+extern int idx_from_username(char *uname);
 extern int chk_bcaid(ECM_REQUEST *, CAIDTAB *);
 extern void cs_exit(int sig);
 extern int cs_fork(in_addr_t, in_port_t);
@@ -801,6 +803,7 @@ extern int nagra2_card_init(uchar *, int);
 extern int nagra2_do_ecm(ECM_REQUEST *er);
 extern int nagra2_card_info(void);
 extern int nagra2_do_emm(EMM_PACKET *);
+extern void nagra2_post_process();
  
 // protocol modules
 extern int  monitor_send_idx(int, char *);
