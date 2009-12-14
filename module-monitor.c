@@ -372,7 +372,7 @@ static void monitor_send_details(char *txt, int pid)
 static void monitor_send_details_version()
 {
   char buf[256];
-  sprintf(buf, "[A-0000]version=%s, build=%s, system=%s%s", CS_VERSION_X, CS_SVN_VERSION, cs_platform(buf+100), buf+200);
+  sprintf(buf, "[V-0000]version=%s, build=%s, system=%s%s\n", CS_VERSION_X, CS_SVN_VERSION, cs_platform(buf+100), buf+200);
   monitor_send_info(buf, 1);
 }
 
@@ -507,14 +507,107 @@ static void monitor_logsend(char *flag)
 }
 static void monitor_set_debuglevel(char *flag)
 {
-    cs_dblevel^=atoi(flag);
-    kill(client[0].pid, SIGUSR1);
+   cs_dblevel^=atoi(flag);
+   kill(client[0].pid, SIGUSR1);
+}
+
+static void monitor_set_account(char *args)
+{
+   struct s_auth *account;
+   char delimiter[] = " =";
+   char *ptr, *ptr1;
+   int argidx, i, found;
+   char *argarray[3];
+   char *token[]={"au", "sleep", "uniq", "monlevel", "group", "services", "betatunnel", "ident", "caid", "chid", "class", "hostname"};
+   char buf[256];
+
+   argidx=0;
+   found=0;
+
+   ptr = strtok(args, delimiter);
+
+   // resolve arguments
+   while(ptr != NULL) {
+      argarray[argidx]=trim(ptr);
+      ptr = strtok(NULL, delimiter);
+      argidx++;
+   }
+
+   if(argidx != 3) {
+      sprintf(buf, "[S-0000]setuser failed - wrong number of parameters (%d)\n", argidx);
+      monitor_send_info(buf, 1);
+      //cs_log("setuser failed - wrong number of parameters (%d)", argidx);
+      return;
+   }
+
+   //search account
+   for (account=cfg->account; (account) ; account=account->next){
+      if (!strcmp(argarray[0], account->usr)){
+         found=1;
+         break;
+      }
+   }
+
+   if (found != 1){
+      sprintf(buf, "[S-0000]setuser failed - user %s not found\n", argarray[0]);
+      monitor_send_info(buf, 1);
+      //cs_log("setuser failed - user %s not found", argarray[0]);
+      return;
+   }
+
+   for (i=0; i<12; i++){
+      if (!strcmp(argarray[1], token[i])){
+         switch(i){
+            case  0: strtolower(argarray[2]);
+                     for (i=0; i<CS_MAXREADER; i++)
+                        if ((reader[i].label[0]) && (!strncmp(reader[i].label, argarray[2], strlen(reader[i].label))))
+                           account->au=i;
+                        break;                              //au
+            case  1: account->tosleep=atoi(argarray[2]);
+                        break;                              //sleep
+            case  2: account->uniq=atoi(argarray[2]);
+                        break;                              //unique
+            case  3: account->monlvl=atoi(argarray[2]);
+                        break;                              //monlevel
+            case  4: for (ptr1=strtok(argarray[2], ","); ptr1; ptr1=strtok(NULL, ",")) {
+                        int g;
+                        g=atoi(ptr1);
+                        if ((g>0) && (g<33)) account->grp|=(1<<(g-1));
+                     }
+                        break;                              //group
+            case  5: chk_services(argarray[2], &account->sidtabok, &account->sidtabno);
+                        break;                              //services
+            case  6: chk_tuntab(argarray[2], &account->ttab);
+                        break;                              //betatunnel
+            case  7: chk_ftab(argarray[2], &account->ftab, "user", account->usr, "provid");
+                        break;                              //ident
+            case  8: chk_caidtab(argarray[2], &account->ctab);
+                        break;                              //caid
+            case  9: chk_ftab(argarray[2], &account->fchid, "user", account->usr, "chid");
+                        break;                              //chid
+            case  10:chk_cltab(argarray[2], &account->cltab);
+                        break;                              //class
+            case  11:strncpy((char *)account->dyndns, argarray[2], sizeof(account->dyndns)-1);
+                        break;
+                                                      //hostname
+            default: sprintf(buf, "[S-0000]setuser failed - parameter %s not exist", argarray[1]);
+                     monitor_send_info(buf, 1);
+                     //cs_log("setuser failed - parameter %s not exist", argarray[1]);
+         }
+      }
+   }
+
+   cs_reinit_clients();
+
+   sprintf(buf, "[S-0000]setuser %s done - param %s set to %s\n", argarray[0], argarray[1], argarray[2]);
+   monitor_send_info(buf, 1);
+   //cs_log("setuser %s done - param %s set to %s", argarray[0], argarray[1], argarray[2]);
 }
 
 static int monitor_process_request(char *req)
 {
   int i, rc;
-  char *cmd[]={"login", "exit", "log", "status", "shutdown", "reload", "details", "version", "debug"};
+  char *cmd[]={"login", "exit", "log", "status", "shutdown", "reload", "details", "version", "debug", "setuser"};
   char *arg;
   if( (arg=strchr(req, ' ')) )
   {
@@ -524,26 +617,36 @@ static int monitor_process_request(char *req)
   trim(req);
   if ((!auth) && (strcmp(req, cmd[0])))
     monitor_login(NULL);
-  for (rc=1, i=0; i<9; i++)
+  for (rc=1, i=0; i<10; i++)
     if (!strcmp(req, cmd[i]))
     {
       switch(i)
       {
-        case  0: monitor_login(arg); break;             // login
-        case  1: rc=0; break; // exit
-        case  2: monitor_logsend(arg); break;           // log
-        case  3: monitor_process_info(); break;         // status
-        case  4: if (client[cs_idx].monlvl>3)
-                   kill(client[0].pid, SIGQUIT);        // shutdown
-                 break;
-        case  5: if (client[cs_idx].monlvl>2)
-                   kill(client[0].pid, SIGHUP);         // reload
-                 break;
-        case  6: monitor_process_details(arg); break;   // details
-        case  7: monitor_send_details_version(); break;
-	case  8: if (client[cs_idx].monlvl>3)
-		  monitor_set_debuglevel(arg);          // debuglevel
-		 break; 
+        case  0:  monitor_login(arg);
+                     break;                              // login
+        case  1:  rc=0;
+                     break;                              // exit
+        case  2:  monitor_logsend(arg);
+                     break;                              // log
+        case  3:  monitor_process_info();
+                     break;                              // status
+        case  4:  if (client[cs_idx].monlvl>3)
+                     kill(client[0].pid, SIGQUIT);       // shutdown
+                        break;
+        case  5:  if (client[cs_idx].monlvl>2)
+                     kill(client[0].pid, SIGHUP);        // reload
+                        break;
+        case  6:  monitor_process_details(arg);
+                     break;                              // details
+        case  7:  monitor_send_details_version();
+                     break;                              // version
+        case  8:  if (client[cs_idx].monlvl>3)
+                     monitor_set_debuglevel(arg);        // debuglevel
+                     break;
+        case  9:  if (client[cs_idx].monlvl>3)
+                     monitor_set_account(arg);           // setuser
+                     break;
+
         default: continue;
       }
       break;

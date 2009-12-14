@@ -66,7 +66,7 @@ static  int  shmsize =  CS_ECMCACHESIZE*(sizeof(struct s_ecm)) +
                         CS_MAXPID*(sizeof(struct idstore_struct))+
 #endif
 #ifdef CS_ANTICASC
-                        CS_MAXPID*(sizeof(struct s_acasc_shm)) + 
+                        CS_MAXPID*(sizeof(struct s_acasc_shm)) +
 #endif
 #ifdef CS_LOGHISTORY
                         CS_MAXLOGHIST*CS_LOGHISTSIZE + sizeof(int) +
@@ -213,15 +213,6 @@ int idx_from_pid(pid_t pid)
   return(idx);
 }
 
-int idx_from_username(char *uname)
-{
-  int i, idx;
-  for (i=0, idx=(-1); (i<CS_MAXPID) && (idx<0); i++)
-    if (client[i].usr==uname)
-      idx=i;
-  return(idx);
-}
-
 static long chk_caid(ushort caid, CAIDTAB *ctab)
 {
   int n;
@@ -323,7 +314,7 @@ void cs_exit(int sig)
   exit(sig);
 }
 
-static void cs_reinit_clients()
+void cs_reinit_clients()
 {
   int i;
   struct s_auth *account;
@@ -335,8 +326,8 @@ static void cs_reinit_clients()
         if (!strcmp(client[i].usr, account->usr))
           break;
 
-      if (account && 
-          client[i].pcrc==crc32(0L, MD5((uchar *)account->pwd, strlen(account->pwd), NULL), 16)) 
+      if (account &&
+          client[i].pcrc==crc32(0L, MD5((uchar *)account->pwd, strlen(account->pwd), NULL), 16))
       {
         client[i].grp     = account->grp;
         client[i].au      = account->au;
@@ -354,13 +345,13 @@ static void cs_reinit_clients()
         client[i].ac_idx     = account->ac_idx;
         client[i].ac_penalty = account->ac_penalty;
         client[i].ac_limit   = (account->ac_users*100+80)*cfg->ac_stime;
-#endif      
+#endif
       }
-      else 
+      else
       {
-        if (ph[client[i].ctyp].type & MOD_CONN_NET) 
+        if (ph[client[i].ctyp].type & MOD_CONN_NET)
         {
-          cs_debug("client '%s', pid=%d not found in db (or password changed)", 
+          cs_debug("client '%s', pid=%d not found in db (or password changed)",
                     client[i].usr, client[i].pid);
           kill(client[i].pid, SIGQUIT);
         }
@@ -395,7 +386,7 @@ static void cs_debug_level()
   int i;
 
   cs_dblevel ^= D_ALL_DUMP;
-  if (master_pid==getpid()) 
+  if (master_pid==getpid())
     for (i=0; i<CS_MAXPID && client[i].pid; i++)
       client[i].dbglvl=cs_dblevel;
   else
@@ -568,7 +559,7 @@ int cs_fork(in_addr_t ip, in_port_t port)
             case 96: client[i].typ='a';
                      client[i].ip=client[0].ip;
                      strcpy(client[i].usr, client[0].usr);
-                     cs_log("anticascader started (pid=%d, delay=%d min)", 
+                     cs_log("anticascader started (pid=%d, delay=%d min)",
                             pid, cfg->ac_stime);
                      cdiff=i;
                      break;
@@ -637,7 +628,7 @@ static void init_shm()
   write(shmid, buf, shmsize);
   free(buf);
 
-  ecmcache=(struct s_ecm *)mmap((void *)0, (size_t) shmsize, 
+  ecmcache=(struct s_ecm *)mmap((void *)0, (size_t) shmsize,
                                 PROT_READ|PROT_WRITE, MAP_SHARED, shmid, 0);
 #else
   struct shmid_ds sd;
@@ -785,10 +776,10 @@ static int start_listener(struct s_module *ph, int port_idx)
   if( !is_udp )
   {
     ulong keep_alive = 1;
-    setsockopt(ph->ptab->ports[port_idx].fd, SOL_SOCKET, SO_KEEPALIVE, 
+    setsockopt(ph->ptab->ports[port_idx].fd, SOL_SOCKET, SO_KEEPALIVE,
                (void *)&keep_alive, sizeof(ulong));
   }
-  
+
   while (timeout--)
   {
     if (bind(ph->ptab->ports[port_idx].fd, (struct sockaddr *)&sad, sizeof (sad))<0)
@@ -961,7 +952,7 @@ static void start_anticascader()
 
   use_ac_log=1;
   set_signal_handler(SIGHUP, 1, ac_init_stat);
-  
+
   ac_init_stat(0);
   while(1)
   {
@@ -1153,7 +1144,7 @@ int cs_auth_client(struct s_auth *account, char *e_txt)
               else sprintf(t_msg[0], "au=%s", reader[client[cs_idx].au].label);
           }
         }
-      }  
+      }
       if(client[cs_idx].ncd_server)
       {
         cs_log("%s %s:%d-client %s%s (%s, %s)",
@@ -1161,14 +1152,14 @@ int cs_auth_client(struct s_auth *account, char *e_txt)
              e_txt ? e_txt : ph[client[cs_idx].ctyp].desc,
              cfg->ncd_ptab.ports[client[cs_idx].port_idx].s_port,
              client[cs_idx].ip ? cs_inet_ntoa(client[cs_idx].ip) : "",
-             client[cs_idx].ip ? t_grant : t_grant+1,   
+             client[cs_idx].ip ? t_grant : t_grant+1,
              username(cs_idx), t_msg[rc]);
       }
       else
       {
         cs_log("%s %s-client %s%s (%s, %s)",
              client[cs_idx].crypted ? t_crypt : t_plain,
-             e_txt ? e_txt : ph[client[cs_idx].ctyp].desc,          
+             e_txt ? e_txt : ph[client[cs_idx].ctyp].desc,
              client[cs_idx].ip ? cs_inet_ntoa(client[cs_idx].ip) : "",
              client[cs_idx].ip ? t_grant : t_grant+1,
              username(cs_idx), t_msg[rc]);
@@ -1341,7 +1332,7 @@ void logCWtoFile(ECM_REQUEST *er)
 {
     /* This function writes the current CW from ECM struct to a cwl file.
        The filename is re-calculated and file re-opened every time.
-       This will consume a bit cpu time, but nothing has to be stored between 
+       This will consume a bit cpu time, but nothing has to be stored between
        each call. If not file exists, a header is prepended */
 
     FILE *pfCWL;
@@ -1356,7 +1347,7 @@ void logCWtoFile(ECM_REQUEST *er)
 
     if (cfg->cwlogdir[0])     /* CWL logging only if cwlogdir is set in config */
     {
-        /* search service name for that id and change characters 
+        /* search service name for that id and change characters
            causing problems in file name */
         srvname[0] = 0;
         for (this=cfg->srvid; this; this=this->next) {
@@ -1388,14 +1379,14 @@ void logCWtoFile(ECM_REQUEST *er)
         if ((pfCWL=fopen(buf, "a+")) == NULL)
         {
             /* maybe this fails because the subdir does not exist. Is there a common function to create it? */
-            /* for the moment do not print to log on every ecm 
+            /* for the moment do not print to log on every ecm
                cs_log(""error opening cw logfile for writing: %s (errno %d)", buf, errno); */
             return;
         }
         if (writeheader)
         {
             /* no global macro for cardserver name :( */
-            fprintf(pfCWL, "# OSCam cardserver v%s - http://streamboard.gmc.to:8001/oscam/wiki\n", CS_VERSION_X); 
+            fprintf(pfCWL, "# OSCam cardserver v%s - http://streamboard.gmc.to:8001/oscam/wiki\n", CS_VERSION_X);
             fprintf(pfCWL, "# control word log file for use with tsdec offline decrypter\n");
             strftime(buf,sizeof(buf),"DATE %Y-%m-%d, TIME %H:%M:%S, TZ %Z\n",timeinfo);
             fprintf(pfCWL, "# %s",buf);
@@ -1434,8 +1425,8 @@ int write_ecm_answer(int fd, ECM_REQUEST *er)
   if (er->rc==1||(er->gbxRidx&&er->rc==0)){
     store_ecm(er);
     logCWtoFile(er);
-  }  
-  
+  }
+
   return(write_ecm_request(fd, er));
 }
 /*
@@ -1533,7 +1524,7 @@ int send_dcw(ECM_REQUEST *er)
     snprintf(erEx, sizeof(erEx)-1, "rejected %s%s", stxtWh[er->rcEx>>4],
              stxtEx[er->rcEx&0xf]);
   cs_log("%s (%04X&%06X/%04X/%02X:%04X): %s (%d ms)%s",
-         uname, er->caid, er->prid, er->srvid, er->l, lc, 
+         uname, er->caid, er->prid, er->srvid, er->l, lc,
          er->rcEx?erEx:stxt[er->rc],
          1000*(tpe.time-er->tps.time)+tpe.millitm-er->tps.millitm, sby);
 
@@ -1725,18 +1716,18 @@ void request_cw(ECM_REQUEST *er, int flag, int reader_types)
       {
           // network and local cards
           default:
-          case 0:  
+          case 0:
               if (er->reader[i]&flag)
                   write_ecm_request(reader[i].fd, er);
               break;
-              // only local cards  
-          case 1:  
+              // only local cards
+          case 1:
               if (!(reader[i].typ & R_IS_NETWORK))
                   if (er->reader[i]&flag)
                       write_ecm_request(reader[i].fd, er);
               break;
               // only network
-          case 2:  
+          case 2:
               if ((reader[i].typ & R_IS_NETWORK))
                   if (er->reader[i]&flag)
                       write_ecm_request(reader[i].fd, er);
@@ -1755,7 +1746,7 @@ void get_cw(ECM_REQUEST *er)
 //er->caid=0;
 
   client[cs_idx].lastecm=time((time_t)0);
-  
+
   if (!er->caid)
     guess_cardsystem(er);
 
@@ -1795,12 +1786,12 @@ void get_cw(ECM_REQUEST *er)
     client[cs_idx].last_caid=m;
 
     for (j=0; (j<6) && (er->rc>99); j++)
-      switch(j) 
+      switch(j)
       {
         case 0: if (client[cs_idx].dup)
                   er->rc=7; // fake
                 break;
-        case 1: if (!chk_bcaid(er, &client[cs_idx].ctab)) 
+        case 1: if (!chk_bcaid(er, &client[cs_idx].ctab))
                 {
 //                  cs_log("chk_bcaid failed");
                   er->rc=8; // invalid
@@ -1820,7 +1811,7 @@ void get_cw(ECM_REQUEST *er)
                 {
                   if (i>0)
                   {
-                    cs_debug("warning: ecm size adjusted from 0x%X to 0x%X", 
+                    cs_debug("warning: ecm size adjusted from 0x%X to 0x%X",
                       er->l, er->ecm[2]+3);
                     er->l=(er->ecm[2]+3);
                   }
@@ -1880,7 +1871,7 @@ void get_cw(ECM_REQUEST *er)
     switch(m)
     {
       case 0: er->rc=4;                         // no reader -> not found
-              if (!er->rcEx) er->rcEx=E2_GROUP; 
+              if (!er->rcEx) er->rcEx=E2_GROUP;
               break;
       case 2: for (i=0; i<CS_MAXREADER; i++)  // fallbacks only, switch them.
                 er->reader[i]>>=1;
@@ -1893,7 +1884,7 @@ void get_cw(ECM_REQUEST *er)
     return;
   }
 
-  er->rcEx=0; 
+  er->rcEx=0;
   request_cw(er, 0, cfg->preferlocalcards ? 1 : 0);
 }
 
@@ -2019,7 +2010,7 @@ struct timeval *chk_pending(struct timeb tp_ctimeout)
           {
               er->locals_done = 0;
               er->stage++;
-              request_cw(er, er->stage, cfg->preferlocalcards ? 1 : 0); 
+              request_cw(er, er->stage, cfg->preferlocalcards ? 1 : 0);
 
               tpc.millitm += (cfg->ctimeout-cfg->ftimeout);
               tpc.time += tpc.millitm / 1000;
@@ -2075,7 +2066,7 @@ int process_input(uchar *buf, int l, int timeout)
 
     rc=select(((pfd>fd_m2c)?pfd:fd_m2c)+1, &fds, 0, 0, chk_pending(tp));
     if (master_pid!=getppid()) cs_exit(0);
-    if (rc<0) 
+    if (rc<0)
     {
       if (errno==EINTR) continue;
       else return(0);
@@ -2152,7 +2143,7 @@ int main (int argc, char *argv[])
   //int      fd;                  /* socket descriptors */
   int      i, j, n;
   int      bg=0;
-  int      gfd; //nph, 
+  int      gfd; //nph,
   int      fdp[2];
   uchar    buf[2048];
   void (*mod_def[])(struct s_module *)=
@@ -2245,7 +2236,7 @@ int main (int argc, char *argv[])
 
   for (i=0; i<CS_MAX_MOD; i++)
     if( (ph[i].type & MOD_CONN_NET) && ph[i].ptab )
-      for(j=0; j<ph[i].ptab->nports; j++) 
+      for(j=0; j<ph[i].ptab->nports; j++)
       {
         start_listener(&ph[i], j);
         if( ph[i].ptab->ports[j].fd+1>gfd )
@@ -2256,7 +2247,7 @@ int main (int argc, char *argv[])
   init_service(97); // logger
   init_service(98); // resolver
   init_cardreader();
-  
+
   if (cfg->waitforcards)
   {
       int card_init_done;
@@ -2286,17 +2277,17 @@ int main (int argc, char *argv[])
 
           cs_sleepms(300);              // wait a little bit
 
-          alarm(cfg->cmaxidle + cfg->ctimeout / 1000 + 1); 
+          alarm(cfg->cmaxidle + cfg->ctimeout / 1000 + 1);
       }
 
       cs_log("Init for all local cards done !");
   }
-  
+
 
 #ifdef CS_ANTICASC
   if( !cfg->ac_enabled )
     cs_log("anti cascading disabled");
-  else 
+  else
   {
     init_ac();
     init_service(96);
@@ -2374,7 +2365,7 @@ int main (int argc, char *argv[])
                     pfd=fdp[0];
                     wait4master();
                     client[cs_idx].ctyp=i;
-                    client[cs_idx].port_idx=j; 
+                    client[cs_idx].port_idx=j;
                     client[cs_idx].udp_fd=ph[i].ptab->ports[j].fd;
                     client[cs_idx].udp_sa=cad;
                     if (ph[client[cs_idx].ctyp].watchdog)
@@ -2407,7 +2398,7 @@ int main (int argc, char *argv[])
                   wait4master();
                   client[cs_idx].ctyp=i;
                   client[cs_idx].udp_fd=pfd;
-                  client[cs_idx].port_idx=j; 
+                  client[cs_idx].port_idx=j;
                   if (ph[client[cs_idx].ctyp].watchdog)
                       alarm(cfg->cmaxidle + cfg->ctimeout / 1000 + 1);
                   ph[i].s_handler();

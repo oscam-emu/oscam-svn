@@ -414,7 +414,7 @@ struct s_reader
   int       tcp_ito;      // inactivity timeout
   int       tcp_rto;      // reconnect timeout
   time_t    last_g;       // get (if last_s-last_g>tcp_rto - reconnect )
-  time_t    last_s;       // send 
+  time_t    last_s;       // send
   uchar     show_cls;     // number of classes subscription showed on kill -31
   int       maxqlen;      // max queue length
   int       qlen;         // current queue length
@@ -568,7 +568,7 @@ struct s_config
   int       ac_samples;     // qty of samples
   int       ac_penalty;     // 0 - write to log
   int       ac_fakedelay;   // 100-1000 ms
-  int       ac_denysamples; 
+  int       ac_denysamples;
   char      ac_logfile[128];
   struct s_cpmap *cpmap;
 #endif
@@ -577,7 +577,7 @@ struct s_config
 
 typedef struct ecm_request_t
 {
-  
+
   uchar         ecm[256];
   uchar         cw[16];
   uchar         ecmd5[CS_ECMSTORESIZE];
@@ -602,7 +602,7 @@ typedef struct ecm_request_t
   ushort    gbxCWFrom;
   ushort    gbxFrom;
   ushort    gbxTo;
-  
+
   uchar       gbxForward[16];
   int     gbxRidx;
 } GCC_PACK      ECM_REQUEST;
@@ -678,7 +678,6 @@ extern char *cs_platform(char *);
 extern int recv_from_udpipe(uchar *, int);
 extern char* username(int);
 extern int idx_from_pid(pid_t);
-extern int idx_from_username(char *uname);
 extern int chk_bcaid(ECM_REQUEST *, CAIDTAB *);
 extern void cs_exit(int sig);
 extern int cs_fork(in_addr_t, in_port_t);
@@ -708,6 +707,7 @@ extern int chk_rsfilter(ECM_REQUEST *, int);
 extern int chk_avail_reader(ECM_REQUEST *, struct s_reader *);
 extern void set_signal_handler(int , int , void (*)(int));
 extern void cs_log_config(void);
+extern void cs_reinit_clients(void);
 
 #ifdef CS_ANTICASC
 //extern void start_anticascader(void);
@@ -731,6 +731,11 @@ extern int  init_srvid(void);
 extern int  search_boxkey(ushort, ulong, char *);
 extern void init_len4caid(void);
 extern int  init_irdeto_guess_tab(void);
+extern void chk_caidtab(char *caidasc, CAIDTAB *ctab);
+extern void chk_tuntab(char *tunasc, TUNTAB *ttab);
+extern void chk_services(char *labels, ulong *sidok, ulong *sidno);
+extern void chk_ftab(char *zFilterAsc, FTAB *ftab, const char *zType, const char *zName, const char *zFiltName);
+extern void chk_cltab(char *classasc, CLASSTAB *clstab);
 
 // oscam-reader
 extern int ridx, logfd;
@@ -799,7 +804,7 @@ extern int seca_card_init(uchar *, int);
 extern int seca_do_ecm(ECM_REQUEST *);
 extern int seca_do_emm(EMM_PACKET *);
 extern int seca_card_info(void);
- 
+
 // reader-nds
 extern int nds_card_init(uchar *, int);
 extern int nds_do_ecm(ECM_REQUEST *);
@@ -812,7 +817,7 @@ extern int nagra2_do_ecm(ECM_REQUEST *er);
 extern int nagra2_card_info(void);
 extern int nagra2_do_emm(EMM_PACKET *);
 extern void nagra2_post_process();
- 
+
 // protocol modules
 extern int  monitor_send_idx(int, char *);
 extern void module_monitor(struct s_module *);

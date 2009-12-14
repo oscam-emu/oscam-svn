@@ -35,7 +35,7 @@ typedef enum cs_proto_type
 #endif
 } cs_proto_type_t;
 
-static char *cctag[]={"global", "monitor", "camd33", "camd35", 
+static char *cctag[]={"global", "monitor", "camd33", "camd35",
                       "newcamd", "radegast", "serial", "cs357x", "cs378x", "gbox", "cccam",
 #ifdef CS_ANTICASC
                       "anticasc",
@@ -98,7 +98,7 @@ static void chk_iprange(char *value, struct s_ip **base)
   }
 }
 
-static void chk_caidtab(char *caidasc, CAIDTAB *ctab)
+void chk_caidtab(char *caidasc, CAIDTAB *ctab)
 {
   int i;
   char *ptr1, *ptr2, *ptr3;
@@ -124,7 +124,7 @@ static void chk_caidtab(char *caidasc, CAIDTAB *ctab)
   }
 }
 
-static void chk_tuntab(char *tunasc, TUNTAB *ttab)
+void chk_tuntab(char *tunasc, TUNTAB *ttab)
 {
   int i;
   char *ptr1, *ptr2, *ptr3;
@@ -150,7 +150,7 @@ static void chk_tuntab(char *tunasc, TUNTAB *ttab)
   }
 }
 
-static void chk_services(char *labels, ulong *sidok, ulong *sidno)
+void chk_services(char *labels, ulong *sidok, ulong *sidno)
 {
   int i;
   char *ptr;
@@ -164,20 +164,18 @@ static void chk_services(char *labels, ulong *sidok, ulong *sidno)
     }
 }
 
-static 
-void chk_ftab(char *zFilterAsc, FTAB *ftab, const char *zType, const char *zName,
-              const char *zFiltName)
+void chk_ftab(char *zFilterAsc, FTAB *ftab, const char *zType, const char *zName, const char *zFiltName)
 {
   int i,j;
   char *ptr1,*ptr2,*ptr3;
   char *ptr[CS_MAXFILTERS] = {0};
-  
+
   memset(ftab, 0, sizeof(FTAB));
   for( i=0, ptr1=strtok(zFilterAsc, ";"); (i<CS_MAXFILTERS) && (ptr1); ptr1=strtok(NULL, ";"), i++ )
   {
     //cs_log("ptr1=%s", ptr1);
     ptr[i] = ptr1;
-    if( (ptr2=strchr(trim(ptr1), ':')) ) 
+    if( (ptr2=strchr(trim(ptr1), ':')) )
     {
       //cs_log("ptr2=%s", ptr2);
       *ptr2++='\0';
@@ -195,7 +193,7 @@ void chk_ftab(char *zFilterAsc, FTAB *ftab, const char *zType, const char *zName
   }
 
   if( ftab->nfilts ) cs_debug("%s '%s' %s filter(s):", zType, zName, zFiltName);
-  for( i=0; i<ftab->nfilts; i++ ) 
+  for( i=0; i<ftab->nfilts; i++ )
   {
     cs_debug("CAID #%d: %04X", i, ftab->filts[i].caid);
     for( j=0, ptr3=strtok(ptr[i], ","); (j<CS_MAXPROV) && (ptr3); ptr3=strtok(NULL, ","), j++ )
@@ -208,7 +206,7 @@ void chk_ftab(char *zFilterAsc, FTAB *ftab, const char *zType, const char *zName
   //cs_log("exit chk_ftab");
 }
 
-static void chk_cltab(char *classasc, CLASSTAB *clstab)
+void chk_cltab(char *classasc, CLASSTAB *clstab)
 {
   int i;
   char *ptr1;
@@ -233,7 +231,7 @@ static void chk_port_tab(char *portasc, PTAB *ptab)
   for (nfilts=i=previous_nports, ptr1=strtok(portasc, ";"); (i<CS_MAXCAIDTAB) && (ptr1); ptr1=strtok(NULL, ";"), i++)
   {
     ptr[i] = ptr1;
-    if( (ptr2=strchr(trim(ptr1), '@')) ) 
+    if( (ptr2=strchr(trim(ptr1), '@')) )
     {
       *ptr2++='\0';
       ptab->ports[i].s_port = atoi(ptr1);
@@ -250,12 +248,12 @@ static void chk_port_tab(char *portasc, PTAB *ptab)
   }
 
   iport=ifilt = previous_nports;
-  for (i=previous_nports; i<nfilts; i++) 
+  for (i=previous_nports; i<nfilts; i++)
   {
     if( port[i]!=0 ) iport = i;
     for (j=0, ptr3=strtok(ptr[i], ","); (j<CS_MAXPROV) && (ptr3); ptr3=strtok(NULL, ","), j++)
     {
-      if( (ptr2=strchr(trim(ptr3), ':')) ) 
+      if( (ptr2=strchr(trim(ptr3), ':')) )
       {
         *ptr2++='\0';
         ptab->ports[iport].ftab.nfilts++;
@@ -287,14 +285,14 @@ static void chk_t_global(char *token, char *value)
   if (!strcmp(token, "pidfile")) { strncpy(cfg->pidfile, value, sizeof(cfg->pidfile)-1); return; }
   if (!strcmp(token, "usrfile")) { strncpy(cfg->usrfile, value, sizeof(cfg->usrfile)-1); return; }
   if (!strcmp(token, "cwlogdir")) { strncpy(cfg->cwlogdir, value, sizeof(cfg->cwlogdir)-1); return; }
-  if (!strcmp(token, "clienttimeout")) 
+  if (!strcmp(token, "clienttimeout"))
   {
       cfg->ctimeout = atoi(value);
       if (cfg->ctimeout < 100)
           cfg->ctimeout *= 1000;
       return;
   }
-  if (!strcmp(token, "fallbacktimeout")) 
+  if (!strcmp(token, "fallbacktimeout"))
   {
       cfg->ftimeout = atoi(value);
       if (cfg->ftimeout < 100)
@@ -316,7 +314,7 @@ static void chk_t_global(char *token, char *value)
     if (cfg->nice!=99) cs_setpriority(cfg->nice);  // ignore errors
     return;
   }
-  if (!strcmp(token, "serialreadertimeout")) 
+  if (!strcmp(token, "serialreadertimeout"))
   {
     if (cfg->srtimeout < 100)
       cfg->srtimeout = atoi(value) * 1000;
@@ -326,7 +324,7 @@ static void chk_t_global(char *token, char *value)
       cfg->srtimeout=1500;
     return;
   }
-  if (!strcmp(token, "maxlogsize")) 
+  if (!strcmp(token, "maxlogsize"))
   {
     cfg->max_log_size=atoi(value);
     if( cfg->max_log_size <=10 )
@@ -343,7 +341,7 @@ static void chk_t_global(char *token, char *value)
 #ifdef CS_ANTICASC
 static void chk_t_ac(char *token, char *value)
 {
-  if (!strcmp(token, "enabled")) 
+  if (!strcmp(token, "enabled"))
   {
     cfg->ac_enabled=atoi(value);
     if( cfg->ac_enabled<=0 ) cfg->ac_enabled=0;
@@ -351,25 +349,25 @@ static void chk_t_ac(char *token, char *value)
     return;
   }
 
-  if (!strcmp(token, "numusers")) 
+  if (!strcmp(token, "numusers"))
   {
     cfg->ac_users=atoi(value);
     if( cfg->ac_users<0 ) cfg->ac_users=0;
     return;
   }
-  if (!strcmp(token, "sampletime")) 
+  if (!strcmp(token, "sampletime"))
   {
     cfg->ac_stime=atoi(value);
     if( cfg->ac_stime<0 ) cfg->ac_stime=2;
     return;
   }
-  if (!strcmp(token, "samples")) 
+  if (!strcmp(token, "samples"))
   {
     cfg->ac_samples=atoi(value);
     if( cfg->ac_samples<2 || cfg->ac_samples>10) cfg->ac_samples=10;
     return;
   }
-  if (!strcmp(token, "penalty")) 
+  if (!strcmp(token, "penalty"))
   {
     cfg->ac_penalty=atoi(value);
     if( cfg->ac_penalty<0 ) cfg->ac_penalty=0;
@@ -525,7 +523,7 @@ static void chk_token(char *token, char *value, int tag)
     case TAG_GLOBAL  : chk_t_global(token, value); break;
     case TAG_MONITOR : chk_t_monitor(token, value); break;
     case TAG_CAMD33  : chk_t_camd33(token, value); break;
-    case TAG_CAMD35  : 
+    case TAG_CAMD35  :
     case TAG_CS357X  : chk_t_camd35(token, value); break;
     case TAG_NEWCAMD : chk_t_newcamd(token, value); break;
     case TAG_RADEGAST: chk_t_radegast(token, value); break;
@@ -735,7 +733,7 @@ static void chk_account(char *token, char *value, struct s_auth *account)
     account->ac_users = atoi(value);
     return;
   }
-  if( !strcmp(token, "penalty") ) 
+  if( !strcmp(token, "penalty") )
   {
     account->ac_penalty = atoi(value);
     return;
@@ -956,7 +954,7 @@ int init_srvid()
   sprintf(token, "%s%s", cs_confdir, cs_srid);
   if (!(fp=fopen(token, "r")))
   {
-    cs_log("can't open file \"%s\" (err=%d), no service-id's loaded", 
+    cs_log("can't open file \"%s\" (err=%d), no service-id's loaded",
            token, errno);
     return(0);
   }
@@ -1113,10 +1111,10 @@ static void chk_reader(char *token, char *value, struct s_reader *rdr)
       return;
     }
     if (!strcmp(value, "radegast")) {       rdr->typ=R_RADEGAST; return; }
-    if (!strcmp(value, "newcamd") || 
-        !strcmp(value, "newcamd525")) {rdr->typ=R_NEWCAMD; 
+    if (!strcmp(value, "newcamd") ||
+        !strcmp(value, "newcamd525")) {rdr->typ=R_NEWCAMD;
                                        rdr->ncd_proto=NCD_525; return; }
-    if (!strcmp(value, "newcamd524")) {rdr->typ=R_NEWCAMD; 
+    if (!strcmp(value, "newcamd524")) {rdr->typ=R_NEWCAMD;
                                        rdr->ncd_proto=NCD_524; return; }
     fprintf(stderr, "WARNING: value '%s' in protocol-line not recognized, assuming MOUSE\n",value);
     rdr->typ=R_MOUSE;
@@ -1226,7 +1224,7 @@ int init_readerdb()
       tag=(!strcmp("reader", strtolower(token+1)));
       if (reader[nr].label[0] && reader[nr].typ) nr++;
       memset(&reader[nr], 0, sizeof(struct s_reader));
-      reader[nr].tcp_rto = 30;      
+      reader[nr].tcp_rto = 30;
       reader[nr].show_cls = 10;
       reader[nr].maxqlen = CS_MAXQLEN;
       reader[nr].mhz = 357;
@@ -1260,7 +1258,7 @@ int init_irdeto_guess_tab()
   sprintf(token, "%s%s", cs_confdir, cs_ird);
   if (!(fp=fopen(token, "r")))
   {
-    cs_log("can't open file \"%s\" (errno=%d) irdeto guessing not loaded", 
+    cs_log("can't open file \"%s\" (errno=%d) irdeto guessing not loaded",
            token, errno);
     return(1);
   }
@@ -1279,15 +1277,15 @@ int init_irdeto_guess_tab()
         case 0: b3   = a2i(ptr, 2); break;
         case 1: b47  = a2i(ptr, 8); break;
         case 2: caid = a2i(ptr, 4); break;
-        case 3: 
+        case 3:
           for( j=0; j<4; j++ )
             zSid[j]=ptr[j];
           zSid[4]=0;
-          sid  = a2i(zSid, 4); 
+          sid  = a2i(zSid, 4);
           break;
       }
     }
-    if( !skip ) 
+    if( !skip )
     {
       if (!(ird_row=(struct s_irdeto_quess*)malloc(sizeof(struct s_irdeto_quess))))
       {
@@ -1337,7 +1335,7 @@ void init_ac()
   sprintf(token, "%s%s", cs_confdir, cs_ac);
   if (!(fp=fopen(token, "r")))
   {
-    cs_log("can't open file \"%s\" (errno=%d) anti-cascading table not loaded", 
+    cs_log("can't open file \"%s\" (errno=%d) anti-cascading table not loaded",
             token, errno);
     return;
   }
@@ -1369,7 +1367,7 @@ void init_ac()
         case 0:
           ptr1=ptr;
           break;
-        case 1: 
+        case 1:
           dwtime = atoi(ptr);
           break;
       }
@@ -1382,21 +1380,21 @@ void init_ac()
         trim(ptr);
         switch( i )
         {
-        case 0: 
+        case 0:
           if( *ptr=='*' ) caid = 0;
-          else caid = a2i(ptr, 4); 
+          else caid = a2i(ptr, 4);
           break;
-        case 1: 
+        case 1:
           if( *ptr=='*' ) provid = 0;
-          else provid = a2i(ptr, 6); 
+          else provid = a2i(ptr, 6);
           break;
-        case 2: 
+        case 2:
           if( *ptr=='*' ) sid = 0;
-          else sid = a2i(ptr, 4); 
+          else sid = a2i(ptr, 4);
           break;
-        case 3: 
+        case 3:
           if( *ptr=='*' ) chid = 0;
-          else chid = a2i(ptr, 4); 
+          else chid = a2i(ptr, 4);
           break;
         }
       }
@@ -1418,7 +1416,7 @@ void init_ac()
       cpmap->dwtime = dwtime;
       cpmap->next   = 0;
 
-      cs_debug("nr=%d, caid=%04X, provid=%06X, sid=%04X, chid=%04X, dwtime=%d", 
+      cs_debug("nr=%d, caid=%04X, provid=%06X, sid=%04X, chid=%04X, dwtime=%d",
                 nr, caid, provid, sid, chid, dwtime);
       nr++;
     }
