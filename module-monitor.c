@@ -275,7 +275,7 @@ static char *monitor_get_proto(int idx)
                   case R_RADEGAST: ctyp="radegast"; break;
                   case R_SERIAL  : ctyp="serial";   break;
                   case R_GBOX    : ctyp="gbox";     break;
-                  case R_PCSC    : ctyp="pcsc";     break;
+                  //case R_PCSC    : ctyp="pcsc";     break;
                   case R_CCCAM   : ctyp="cccam";    break;
                   case R_CS378X  : ctyp="cs378x";   break;
                   default        : ctyp="unknown";  break;
