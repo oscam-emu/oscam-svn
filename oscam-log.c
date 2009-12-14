@@ -35,13 +35,13 @@ static void switch_log(char* file, FILE **f, int (*pfinit)(char*))
       *f=(FILE *)0;
       rc=rename(file, prev_log);
       if( rc!=0 ) {
-        fprintf(stderr, "rename(%s, %s) failed (errno=%d)\n", 
+        fprintf(stderr, "rename(%s, %s) failed (errno=%d)\n",
                 file, prev_log, errno);
       }
-      else if( pfinit(file)) 
+      else if( pfinit(file))
         cs_exit(0);
 
-	
+
     }
   }
 }
@@ -65,7 +65,7 @@ void cs_write_log(char *txt)
   }
 }
 
-int cs_init_log(char *file) 
+int cs_init_log(char *file)
 {
   static char *head = ">> OSCam <<  cardserver started version " CS_VERSION ", build #" CS_SVN_VERSION " (" CS_OSTYPE ")";
 
@@ -123,7 +123,7 @@ static char *get_log_header(int m, char *txt)
                   break;
 #ifdef CS_ANTICASC
         case 'a':
-#endif        
+#endif
         case 'l':
         case 'n': sprintf(txt+7, "%c   "  , client[cs_idx].typ);
                   break;
@@ -149,14 +149,16 @@ static void write_to_log(int flag, char *txt)
   get_log_header(flag, sbuf);
   memcpy(txt, sbuf, 11);
 
+
+  time(&t);
+  lt=localtime(&t);
+  sprintf(buf, "[LOG000]%4d/%02d/%02d %2d:%02d:%02d %s\n",
+                lt->tm_year+1900, lt->tm_mon+1, lt->tm_mday,
+                lt->tm_hour, lt->tm_min, lt->tm_sec, txt);
+
   if (use_syslog && !use_ac_log)		// system-logfile
     syslog(LOG_INFO, "%s", txt);
   else {
-    time(&t);
-    lt=localtime(&t);
-    sprintf(buf, "[LOG000]%4d/%02d/%02d %2d:%02d:%02d %s\n",
-                 lt->tm_year+1900, lt->tm_mon+1, lt->tm_mday,
-                 lt->tm_hour, lt->tm_min, lt->tm_sec, txt);
 
 /*
   #ifdef CS_ANTICASC
@@ -204,7 +206,7 @@ void cs_log(char *fmt,...)
   write_to_log(1, txt);
 }
 
-void cs_close_log(void) 
+void cs_close_log(void)
 {
   if (use_stdout || use_syslog || !fp) return;
   fclose(fp);
@@ -216,7 +218,7 @@ void cs_debug(char *fmt,...)
   char txt[256];
 
 //  cs_log("cs_debug called, cs_ptyp=%d, cs_dblevel=%d, %d", cs_ptyp, client[cs_idx].dbglvl ,cs_ptyp & client[cs_idx].dbglvl);
-  
+
 //  if ((cs_ptyp & cs_dblevel)==cs_ptyp)
   if ((cs_ptyp & client[cs_idx].dbglvl)==cs_ptyp)
   {
@@ -269,7 +271,7 @@ void cs_ddump(uchar *buf, int n, char *fmt, ...)
   }
 }
 
-int cs_init_statistics(char *file) 
+int cs_init_statistics(char *file)
 {
   if ((!fps) && (file[0]))
   {
@@ -302,7 +304,7 @@ void cs_statistics(int idx)
     else
       cwps=0;
 
-    fprintf(fps, "%02d.%02d.%02d %02d:%02d:%02d %3.1f %s %s %d %d %d %d %ld %ld %s\n", 
+    fprintf(fps, "%02d.%02d.%02d %02d:%02d:%02d %3.1f %s %s %d %d %d %d %ld %ld %s\n",
                   lt->tm_mday, lt->tm_mon+1, lt->tm_year%100,
                   lt->tm_hour, lt->tm_min, lt->tm_sec, cwps,
                   client[idx].usr[0] ? client[idx].usr : "-",
