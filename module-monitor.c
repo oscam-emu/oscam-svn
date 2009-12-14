@@ -607,10 +607,114 @@ static void monitor_set_account(char *args)
    //cs_log("setuser %s done - param %s set to %s", argarray[0], argarray[1], argarray[2]);
 }
 
+static void monitor_set_server(char *args)
+{
+   char delimiter[] = "=";
+   char *ptr;
+   int argidx, i, found;
+   char *argarray[3];
+   char *token[]={"clienttimeout", "fallbacktimeout", "clientmaxidle", "cachedelay", "bindwait", "netprio", "resolvedelay", "sleep", "unlockparental", "serialreadertimeout", "maxlogsize", "showecmdw", "waitforcards", "preferlocalcards"};
+   char buf[256];
+
+   argidx=0;
+   found=0;
+
+   ptr = strtok(args, delimiter);
+
+   // resolve arguments
+   while(ptr != NULL) {
+      argarray[argidx]=trim(ptr);
+      ptr = strtok(NULL, delimiter);
+      argidx++;
+   }
+
+   if(argidx != 2) {
+      sprintf(buf, "[S-0000]setserver failed - wrong number of parameters (%d)\n", argidx);
+      monitor_send_info(buf, 1);
+      return;
+   }
+
+   trim(argarray[0]);
+   trim(argarray[1]);
+   strtolower(argarray[0]);
+
+   for (i=0; i<14; i++){
+      if (!strcmp(argarray[0], token[i])){
+         switch(i){
+            case  0: cfg->ctimeout = atoi(argarray[1]);  //clienttimeout
+                     if (cfg->ctimeout < 100)
+                        cfg->ctimeout *= 1000;
+                        break;
+            case  1: cfg->ftimeout = atoi(argarray[1]);  //fallbacktimeout
+                     if (cfg->ftimeout < 100)
+                        cfg->ftimeout *= 1000;
+                        break;
+            case  2: cfg->cmaxidle=atoi(argarray[1]);    //clientmaxidle
+                        break;
+            case  3: cfg->delay=atoi(argarray[1]);       //cachedelay
+                        break;
+            case  4: cfg->bindwait=atoi(argarray[1]);    //bindwait
+                        break;
+            case  5: cfg->netprio=atoi(argarray[1]);     //netprio
+                        break;
+            case  6: cfg->resolvedelay=atoi(argarray[1]);//resolvedelay
+                        break;
+            case  7: cfg->tosleep=atoi(argarray[1]);     //sleep
+                        break;
+            case  8: cfg->ulparent=atoi(argarray[1]);    //unlockparental
+                        break;
+            case  9: if (cfg->srtimeout < 100)
+                        cfg->srtimeout = atoi(argarray[1]) * 1000;   //serialreadertimeout
+                     else
+                        cfg->srtimeout = atoi(argarray[1]);
+                     if( cfg->srtimeout <=0 )
+                        cfg->srtimeout=1500;
+                        break;
+            case  10:cfg->max_log_size=atoi(argarray[1]); //maxlogsize
+                        if( cfg->max_log_size <=10 )
+                           cfg->max_log_size=10;
+                        break;
+            case  11:cfg->show_ecm_dw = atoi(argarray[1]);     //showecmdw
+                        break;
+            case  12:cfg->waitforcards = atoi(argarray[1]);    //waitforcards
+                        break;
+            case  13:cfg->preferlocalcards = atoi(argarray[1]);    //preferlocalcards
+                        break;
+
+            default: sprintf(buf, "[S-0000]setserver failed - parameter %s not exist", argarray[0]);
+                     monitor_send_info(buf, 1);
+                     return;
+         }
+      }
+   }
+
+   sprintf(buf, "[S-0000]setserver done - param %s set to %s\n", argarray[0], argarray[1]);
+   monitor_send_info(buf, 1);
+
+   if (cfg->ftimeout>=cfg->ctimeout) {
+      cfg->ftimeout = cfg->ctimeout - 100;
+      sprintf(buf, "[S-0000]setserver WARNING: fallbacktimeout adjusted to %lu ms", cfg->ftimeout);
+      monitor_send_info(buf, 1);
+   }
+   if(cfg->ftimeout < cfg->srtimeout) {
+      cfg->ftimeout = cfg->srtimeout + 100;
+      sprintf(buf, "[S-0000]setserver WARNING: fallbacktimeout adjusted to %lu ms", cfg->ftimeout);
+      monitor_send_info(buf, 1);
+   }
+   if(cfg->ctimeout < cfg->srtimeout) {
+      cfg->ctimeout = cfg->srtimeout + 100;
+      sprintf(buf, "[S-0000]setserver WARNING: clienttimeout adjusted to %lu ms", cfg->ctimeout);
+      monitor_send_info(buf, 1);
+   }
+
+   //kill(client[0].pid, SIGUSR1);
+
+}
+
 static int monitor_process_request(char *req)
 {
   int i, rc;
-  char *cmd[]={"login", "exit", "log", "status", "shutdown", "reload", "details", "version", "debug", "setuser"};
+  char *cmd[]={"login", "exit", "log", "status", "shutdown", "reload", "details", "version", "debug", "setuser", "setserver"};
   char *arg;
   if( (arg=strchr(req, ' ')) )
   {
@@ -620,35 +724,38 @@ static int monitor_process_request(char *req)
   trim(req);
   if ((!auth) && (strcmp(req, cmd[0])))
     monitor_login(NULL);
-  for (rc=1, i=0; i<10; i++)
+  for (rc=1, i=0; i<11; i++)
     if (!strcmp(req, cmd[i]))
     {
       switch(i)
       {
         case  0:  monitor_login(arg);
-                     break;                              // login
+                    break;                              // login
         case  1:  rc=0;
-                     break;                              // exit
+                    break;                              // exit
         case  2:  monitor_logsend(arg);
-                     break;                              // log
+                    break;                              // log
         case  3:  monitor_process_info();
-                     break;                              // status
+                    break;                              // status
         case  4:  if (client[cs_idx].monlvl>3)
-                     kill(client[0].pid, SIGQUIT);       // shutdown
-                        break;
+                    kill(client[0].pid, SIGQUIT);       // shutdown
+                      break;
         case  5:  if (client[cs_idx].monlvl>2)
-                     kill(client[0].pid, SIGHUP);        // reload
-                        break;
+                    kill(client[0].pid, SIGHUP);        // reload
+                      break;
         case  6:  monitor_process_details(arg);
-                     break;                              // details
+                    break;                              // details
         case  7:  monitor_send_details_version();
-                     break;                              // version
+                    break;                              // version
         case  8:  if (client[cs_idx].monlvl>3)
-                     monitor_set_debuglevel(arg);        // debuglevel
-                     break;
+                    monitor_set_debuglevel(arg);        // debuglevel
+                      break;
         case  9:  if (client[cs_idx].monlvl>3)
-                     monitor_set_account(arg);           // setuser
-                     break;
+                    monitor_set_account(arg);           // setuser
+                      break;
+        case  10: if (client[cs_idx].monlvl>3)
+                    monitor_set_server(arg);            // setserver
+                      break;
 
         default: continue;
       }
