@@ -159,6 +159,11 @@ static void write_to_log(int flag, char *txt)
   if (use_syslog && !use_ac_log)		// system-logfile
     syslog(LOG_INFO, "%s", txt);
   else {
+    time(&t);
+    lt=localtime(&t);
+    sprintf(buf, "[LOG000]%4d/%02d/%02d %2d:%02d:%02d %s\n",
+                 lt->tm_year+1900, lt->tm_mon+1, lt->tm_mday,
+                 lt->tm_hour, lt->tm_min, lt->tm_sec, txt);
 
 /*
   #ifdef CS_ANTICASC
