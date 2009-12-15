@@ -167,8 +167,17 @@ int ATR_InitFromArray (ATR * atr, BYTE atr_buffer[ATR_MAX_SIZE], unsigned length
 	atr->pn = pn + 1;
 	
 	/* Store historical bytes */
-	if (pointer + atr->hbn >= length)
-		return (ATR_MALFORMED);
+	if (pointer + atr->hbn >= length) {
+		cs_log("ATR is malformed, it reports %i historical bytes but there are only %i",atr->hbn, length-pointer-2);
+		if (length-pointer-2 >=0)
+			atr->hbn = length-pointer-2;
+		else {
+			atr->hbn = 0;
+			atr->length = pointer + 1;
+		  return (ATR_MALFORMED);
+		}
+
+	}
 	
 	memcpy (atr->hb, buffer + pointer + 1, atr->hbn);
 	pointer += (atr->hbn);
@@ -454,10 +463,9 @@ int ATR_GetParameter (ATR * atr, int name, double *parameter)
 	
 	if (name == ATR_PARAMETER_F)
 	{
-		if (ATR_GetIntegerValue (atr, ATR_INTEGER_VALUE_FI, &FI) == ATR_OK)
-			(*parameter) = (double) (atr_f_table[FI]);
-		else
-			(*parameter) = (double) ATR_DEFAULT_F;
+		if (ATR_GetIntegerValue (atr, ATR_INTEGER_VALUE_FI, &FI) != ATR_OK) 
+			FI = ATR_DEFAULT_FI;
+		(*parameter) = (double) (atr_f_table[FI]);
 		return (ATR_OK);
 	}
 	else if (name == ATR_PARAMETER_D)
