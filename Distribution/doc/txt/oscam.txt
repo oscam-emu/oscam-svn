@@ -70,10 +70,11 @@ OPTIONS
 
 SIGNALS
        SIGHUP
-	  reinit user db, clients and anti-cascading
+	  reinit user db, clients and anti-cascading, for newcamd connections:
+	  after reloading the ident, please restart newcamd client
 
        SIGUSR1
-	  switch debug level to 63 (debug all)/switch debug  level  to	0  (no
+	  switch  debug  level	to  63 (debug all)/switch debug level to 0 (no
 	  debugging)
 
        SIGUSR2
