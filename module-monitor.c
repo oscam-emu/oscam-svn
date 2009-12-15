@@ -709,7 +709,7 @@ static void monitor_set_server(char *args)
       monitor_send_info(buf, 1);
    }
 
-   //kill(client[0].pid, SIGUSR1);
+   kill(client[0].pid, SIGUSR1);
 
 }
 
