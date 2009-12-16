@@ -25,8 +25,8 @@ DESCRIPTIONS
 	  define Betacrypt tunneling (max.  see  CS_MAXTUNTAB  in  globals.h).
 	  The ServiceID can also be used for wildcarded CAIDs.
 
-	   example: betatunnel = 0100:0001:0200,0300.0004:0500
-		    betatunnel = 0600:FFFF:0700
+	   example: betatunnel = 0100.0001:0200,0300.0004:0500
+		    betatunnel = 0600.FFFF:0700
 
        uniq = 0|1|2
 	  unique level:
@@ -78,14 +78,8 @@ DESCRIPTIONS
 	   4 = complete access
 
        numusers = quantity
-	  anti-cascading:  user  per  account,	0  = anti-cascading permitted,
-	  default:none
-
-       penalty = 0|1|2
-	  anti-cascading: level of penalty:
-	   0 = only logging, default
-	   1 = send fake CWs
-	   2 = disbable user temporary
+	  anti-cascading:  user per account, 0 = anti-cascading not permitted,
+	  default:0
 
 EXAMPLES
 	[account]

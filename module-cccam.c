@@ -222,6 +222,9 @@ struct cc_data {
   uint16 cur_sid;
 
   int last_nok;
+  int processing;
+
+  pthread_mutex_t lock;
 };
 
 static unsigned int seed;
@@ -530,11 +533,23 @@ static int cc_send_ecm(ECM_REQUEST *er, uchar *buf)
   LLIST_ITR itr;
   ECM_REQUEST *cur_er;
 
-  if ((n = cc_get_nxt_ecm()) < 0) return 0;   // no queued ecms
-  cur_er = &ecmtask[n];
-  if (cur_er->rc == 99) return 0;   // ecm already sent
+  if (!cc) return 0;
 
-  memcpy(buf, cur_er->ecm, cur_er->l);
+  pthread_mutex_lock(&cc->lock);
+
+  //if (cc->processing) return 0;
+
+  if ((n = cc_get_nxt_ecm()) < 0) {
+    pthread_mutex_unlock(&cc->lock);
+    return 0;   // no queued ecms
+  }
+  cur_er = &ecmtask[n];
+  if (cur_er->rc == 99) {
+    pthread_mutex_unlock(&cc->lock);
+    return 0;   // ecm already sent
+  }
+
+  if (buf) memcpy(buf, cur_er->ecm, cur_er->l);
 
   cc->cur_card = NULL;
   cc->cur_sid = cur_er->srvid;
@@ -560,7 +575,7 @@ static int cc_send_ecm(ECM_REQUEST *er, uchar *buf)
       uint8 *prov = llist_itr_init(card->provs, &pitr);
       while (prov && !s) {
         if (b2i(3, prov) == cur_er->prid) {  // provid matches
-          if ((h < 0) || (card->hop < h)) {  // card is closer
+          if (((h < 0) || (card->hop < h)) && (card->hop <= reader[ridx].cc_maxhop - 1)) {  // card is closer and doesn't exceed max hop
             cc->cur_card = card;
             h = card->hop;  // card has been matched
           }
@@ -599,6 +614,7 @@ static int cc_send_ecm(ECM_REQUEST *er, uchar *buf)
     n = cc_cmd_send(ecmbuf, cur_er->l+13, MSG_ECM);      // send ecm
 
     X_FREE(ecmbuf);
+    cc->processing = 1;
   } else {
     n = -1;
     cs_log("cccam: no suitable card on server");
@@ -627,6 +643,7 @@ static int cc_send_ecm(ECM_REQUEST *er, uchar *buf)
       llist_itr_release(&itr);
   }
 
+  pthread_mutex_unlock(&cc->lock);
   return 0;
 }
 
@@ -643,7 +660,10 @@ static void cc_rebuild_caid_tab()
 
 static cc_msg_type_t cc_parse_msg(uint8 *buf, int l)
 {
+  int ret = buf[1];
   struct cc_data *cc = reader[ridx].cc;
+
+  pthread_mutex_lock(&cc->lock);
 
   switch (buf[1]) {
   case MSG_CLI_DATA:
@@ -655,7 +675,6 @@ static cc_msg_type_t cc_parse_msg(uint8 *buf, int l)
     break;
   case MSG_NEW_CARD:
     // find blank caid slot in tab and add caid
-
     {
       int i = 0;
       /*, p = 0;
@@ -722,6 +741,7 @@ static cc_msg_type_t cc_parse_msg(uint8 *buf, int l)
     break;
   case MSG_CW_NOK1:
   case MSG_CW_NOK2:
+    cc->processing = 0;
     cs_log("cccam: cw nok, sid = %x", cc->cur_sid);
 
     int f = 0;
@@ -744,14 +764,17 @@ static cc_msg_type_t cc_parse_msg(uint8 *buf, int l)
       cs_debug("   added sid block for card %08x", cc->cur_card->id);
     }
     bzero(cc->dcw, 16);
-    return 0;
+    cc_send_ecm(NULL, NULL);
+    ret = 0;
     break;
   case MSG_CW:
+    cc->processing = 0;
     cc_cw_decrypt(buf+4);
     memcpy(cc->dcw, buf+4, 16);
     cs_debug("cccam: cws: %s", cs_hexdump(0, cc->dcw, 16));
     cc_crypt(&cc->block[DECRYPT], buf+4, l-4, ENCRYPT); // additional crypto step
-    return 0;
+    cc_send_ecm(NULL, NULL);
+    ret = 0;
     break;
   case MSG_PING:
     cc_cmd_send(NULL, 0, MSG_PING);
@@ -760,7 +783,8 @@ static cc_msg_type_t cc_parse_msg(uint8 *buf, int l)
     break;
   }
 
-  return buf[1];
+  pthread_mutex_unlock(&cc->lock);
+  return ret;
 }
 
 static int cc_recv_chk(uchar *dcw, int *rc, uchar *buf, int n)
@@ -901,6 +925,10 @@ static int cc_cli_connect(void)
     cs_log("cccam: login failed, could not send client data");
     return -3;
   }
+
+  pthread_mutex_init(&cc->lock, NULL);
+  cc->processing = 0;
+
   return 0;
 }
 
@@ -959,10 +987,11 @@ int cc_cli_init(void)
     bcopy((char *)server->h_addr, (char *)&client[cs_idx].udp_sa.sin_addr.s_addr, server->h_length);
 
     reader[ridx].tcp_rto = 60 * 60 * 10;  // timeout to 10 hours
+    if (!reader[ridx].cc_maxhop) reader[ridx].cc_maxhop = 10; // default maxhop to 10 if not configured
 
-    cs_log("cccam: proxy %s:%d cccam v%s (%s) (fd=%d, ridx=%d)",
+    cs_log("cccam: proxy %s:%d cccam v%s (%s), maxhop = %d (fd=%d, ridx=%d)",
             reader[ridx].device, reader[ridx].r_port, reader[ridx].cc_version,
-            reader[ridx].cc_build, client[cs_idx].udp_fd, ridx);
+            reader[ridx].cc_build, reader[ridx].cc_maxhop, client[cs_idx].udp_fd, ridx);
 
     cc_cli_connect();
 
