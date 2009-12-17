@@ -12,8 +12,10 @@ SYNOPSIS
 
 DESCRIPTIONS
    The [reader] section
-       device = device|<ip|hostname>,<port>[,<lport>]
-	  define local or remote reader (lport: remapping to local port)
+       device = device|<ip|hostname>,<port>[,<lport>]|pcsc
+	  define local or remote reader
+	   lport: remapping to local port
+	   PCSC:  number of PCSC readers, starting with 0
 
        key = DES key
 	  key for newcamd remote reader encryption
@@ -40,7 +42,7 @@ DESCRIPTIONS
 	  TCP reconnect, if missing answers, default:none
 
        disableserverfilter = 0|1
-	  1 = ignore "caid" and "ident" settings of reader due faulty clients,
+	  1  =	ignore	caid  and ident settings of reader due faulty clients,
 	  default=0
 
        label = name
@@ -54,8 +56,11 @@ DESCRIPTIONS
 	  camd3  reader  logport,  camd3  UDP must be activated, only works if
 	  theres no camd3 cascading, 0=disabled, default=0
 
-       caid = CAID
-	  define CAID for reader
+       caid = CAID[&<mask>][,CAID[&<mask>]]...
+	  define CAID for  reader,  some  protocols  only  support  one  CAID,
+	  default:mask=FFFF
+
+	  example: CAID=0100,0200&FFDF
 
        boxid = NDS box ID
 	  NDS receiver box id
@@ -66,13 +71,13 @@ DESCRIPTIONS
        detect = CD|DSR|CTS|RING|NONE|gpio[2-7]
 	  status detect of card (NONE = no detection), default:CD
 
-       mhz = frequency
-	  set reader frequency in mhz, refer to OVERCLOCKING, default:357
+       cardmhz = mhz
+	  set  standard  SC frequency in units of 10 kHz, for Irdeto SC set to
+	  600, refer to OVERCLOCKING, default:357
 
-       customspeed = 0|1
-	  supported by the Videoguard 2 module only: 1 = calculate and	use  a
-	  custom  baudrate  to communicate with SC reader, fBcustomspeed over
-	  writes mhz and cardmhz, default:1
+       mhz = frequency
+	  set reader frequency in units of 10 kHz, if mhz > cardmhz you are in
+	  overclocking mode, refer to OVERCLOCKING, default:357
 
        protocol = reader protocol
 	  reader protocol, required:
@@ -87,12 +92,20 @@ DESCRIPTIONS
 	   newcamd524
 	   cccam
 	   radegast
-	   
-       version = CCcam version
-    define CCcam version to be identified as, e.g. 2.0.11
-    
-       build = CCcam build
-    define CCcam build number to be identified as, e.g. 2892
+	   pcsc
+
+       cccversion = <main version>.<version>.<sub version>
+	  define CCcam version, default:none
+
+	  exmaple: cccversion = 1.2.34
+
+       cccbuild = <4-digit number>
+	  define CCcam build, default:none
+
+	  exmaple: cccbuild = 5678
+
+       cccmaxhop = hops
+	  define CCcam maximum SC distance, default:10
 
        ident = <CAID>:<ident>[,ident]...[,<CAID>:<ident>[,ident]...]...
 	  define CAID and ident for reader
@@ -130,22 +143,22 @@ DESCRIPTIONS
 		      2 = log all EMMs
 
        blocknano = nano[,nano]...|all
-	  list	of  EMM-nanos  to block (in hex w/o 0x) or all EMM-nanos, only
+	  list of EMM-nanos to block (in hex w/o 0x) or  all  EMM-nanos,  only
 	  valid for physical readers, default:none
 
 	   example: blocknano = 45,93,7a,ff
 		    blocknano = all
 
        savenano = nano[,nano]....|all
-	  list of EMM-nanos to save (in hex w/o 0x)  or  all  EMM-nanos,  only
+	  list	of  EMM-nanos  to  save (in hex w/o 0x) or all EMM-nanos, only
 	  valid for physical readers, default:none
 
 	   example: savenano = 45,93,7a,ff
 		    savenano = all
 
        readnano = [path]filename
-	  write  file  (usually  a  copy  of a file saved by savenano) to your
-	  smartcard, if no path is specified, the specified file  is  searched
+	  write file (usually a copy of a file	saved  by  savenano)  to  your
+	  smartcard,  if  no path is specified, the specified file is searched
 	  for in the configuration directory, only valid for physical readers,
 	  default:none
 
@@ -158,20 +171,17 @@ DESCRIPTIONS
        n3_boxkey = box key
 	  box key for Nagravision SCs
 
-       cardmhz = mhz
-	  set standard frequency of SC, refer to OVERCLOCKING, default:357
-
 OVERCLOCKING
 	 Dreambox reader
 
-	  For SC overclocking set mhz to 600.  If mhz is  unset,  the  default
-	  value will be used and nothing will be happen.
+	  For  SC overclocking set to 600. If mhz is unset or any other value,
+	  the default value will be used and behaviour will be standard.
 
 	 Phoenix / Smartmouse reader
 
-	  Overclocking	does  not  work  with  Windows	and Mac OS X.  Set mhz
-	  equivalent to the frequency of the reader.  OSCam can  not  set  the
-	  frequency of the reader.  When using a Irdeto SC set cardmhz to 600.
+	  Overclocking does not work with Windows  and	Mac  OS  X.   Set  mhz
+	  equivalent  to  the  frequency of the reader.  OSCam can not set the
+	  frequency of the reader.
 
 	 Smargo Smartreader+
 
@@ -179,14 +189,15 @@ OVERCLOCKING
 	  (srp_tools).	Do not set mhz and cardmhz.
 
        OSCam  tries to set the baudrate automatically.	A standard serial port
-       has a fixed baudrate of 115200, so that SC overclocking does not  work.
-       When  using  a serial reader the best way is it to connect it to a FTDI
-       USB to serial port adapter for overclocking.  Verify the effective bau
-       drate in the logfile.
+       has limited baudrate settings, so SC overclocking might not work.  When
+       using a serial reader the best way for overclocking is connecting it to
+       a FTDI based USB to serial port adapter.
 
-       Often there is no one-to-one mapping between the requested baudrate and
-       the effective baudrate, but there is a small leeway.   The  higher  the
-       baudrate, the more accurate the effective baudrate can be.
+       If overclocking does not work, verify the  effective  baudrate  in  the
+       logfile.   If  it deviates too much from the requested baudrate, the SC
+       will not be recognized (no  ATR)  and  the  value  for  mhz  should  be
+       adjusted  again.  The higher the baudrate, the more accurate the effec
+       tive baudrate can be.
 
 EXAMPLES
 	 serial mouse compatible reader
@@ -229,6 +240,28 @@ EXAMPLES
 	   device   = 192.168.0.2,2345
 	   account  = user,password
 	   group    = 4
+
+	 CCcam reader
+
+	   [reader]
+	   label = mycccamreader
+	   protocol = cccam
+	   device = 192.168.0.3,3456
+	   account = user,password
+	   group = 5
+	   caid = 0300,0400,0500
+	   cccversion = 1.2.3
+	   cccbuild = 4567
+
+	 PCSC reader
+
+	   [reader]
+	   label    = mypcscreader
+	   protocol = pcsc
+	   device   = 0
+	   aeskey   = 0102030405060708090a0b0c0d0e0f10
+	   group    = 6
+	   caid     = 0600
 
 SEE ALSO
        oscam(1), oscam.conf(5), oscam.user(5), oscam.srvid(5), oscam.guess(5),

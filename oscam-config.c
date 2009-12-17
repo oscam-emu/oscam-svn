@@ -1062,6 +1062,7 @@ static void chk_reader(char *token, char *value, struct s_reader *rdr)
   }
   if (!strcmp(token, "n3_rsakey"))
   {
+    rdr->nagra_native=1;
     if (key_atob_l(value, rdr->rsa_mod, 128))
     {
       fprintf(stderr, "Configuration reader: Error in RSA Key\n");
@@ -1092,18 +1093,25 @@ static void chk_reader(char *token, char *value, struct s_reader *rdr)
   }
   if (!strcmp(token, "mhz")) { rdr->mhz=atoi(value); return; }
   if (!strcmp(token, "cardmhz")) { rdr->cardmhz=atoi(value); return; }
-  if (!strcmp(token, "customspeed")) { rdr->custom_speed=atoi(value); return; }
   if (!strcmp(token, "protocol"))
   {
     if (!strcmp(value, "mouse")) {      rdr->typ=R_MOUSE; return; }
     if (!strcmp(value, "smartreader")) {      rdr->typ=R_SMART; return; }
-    if (!strcmp(value, "internal")) {   rdr->typ=R_INTERN; return; }
+    if (!strcmp(value, "internal")) {   rdr->typ=R_INTERNAL; return; }
+#ifdef HAVE_PCSC
+    if (!strcmp(value, "pcsc")) {   rdr->typ=R_PCSC; return; }
+#endif
     if (!strcmp(value, "serial")) {     rdr->typ=R_SERIAL; return; }
     if (!strcmp(value, "camd35")) {     rdr->typ=R_CAMD35; return; }
     if (!strcmp(value, "cs378x")) {     rdr->typ=R_CS378X; return; }
     if (!strcmp(value, "cs357x")) {     rdr->typ=R_CAMD35; return; }
     if (!strcmp(value, "gbox")) {       rdr->typ=R_GBOX; return; }
-    if (!strcmp(value, "cccam")) {       rdr->typ=R_CCCAM; return; }
+    if (!strcmp(value, "cccam")) {
+      rdr->typ=R_CCCAM;
+     // strcpy(value, "1");
+     // chk_caidtab(value, &rdr->ctab); // this is a MAJOR hack for auto multiple caid support (not currently working due to ncd table issue)
+      return;
+    }
     if (!strcmp(value, "radegast")) {       rdr->typ=R_RADEGAST; return; }
     if (!strcmp(value, "newcamd") || 
         !strcmp(value, "newcamd525")) {rdr->typ=R_NEWCAMD; 
@@ -1173,7 +1181,7 @@ static void chk_reader(char *token, char *value, struct s_reader *rdr)
     rdr->b_nano[i]|= 0x02; //lsb+1 is set when to save nano to file
     return;
   }
-  if (!strcmp(token, "version")) {  // cccam version
+  if (!strcmp(token, "cccversion")) {  // cccam version
     if (strlen(value)>sizeof(rdr->cc_version)-1) {
       fprintf(stderr, "cccam config: version too long\n");
       exit(1);
@@ -1182,13 +1190,17 @@ static void chk_reader(char *token, char *value, struct s_reader *rdr)
     strncpy(rdr->cc_version, value, sizeof(rdr->cc_version)-1);
     return;
   }
-  if (!strcmp(token, "build")) {  // cccam build number
+  if (!strcmp(token, "cccbuild")) {  // cccam build number
     if (strlen(value)>sizeof(rdr->cc_build)-1) {
       fprintf(stderr, "cccam config build number too long\n");
       exit(1);
     }
     bzero(rdr->cc_build, sizeof(rdr->cc_build));
     strncpy(rdr->cc_build, value, sizeof(rdr->cc_build)-1);
+    return;
+  }
+  if (!strcmp(token, "cccmaxhop")) {  // cccam max card distance
+    rdr->cc_maxhop = atoi(value);
     return;
   }
   if (token[0] != '#')
@@ -1223,7 +1235,6 @@ int init_readerdb()
       reader[nr].maxqlen = CS_MAXQLEN;
       reader[nr].mhz = 357;
       reader[nr].cardmhz = 357;
-      reader[nr].custom_speed = 1;
       strcpy(reader[nr].pincode, "none");
       for (i=1; i<CS_MAXCAIDTAB; reader[nr].ctab.mask[i++]=0xffff);
       continue;

@@ -267,7 +267,7 @@ static char *monitor_get_proto(int idx)
                 switch(reader[i].typ)		// TODO like ph
                 {
                   case R_MOUSE   : ctyp="mouse";    break;
-                  case R_INTERN  : ctyp="intern";   break;
+                  case R_INTERNAL: ctyp="intern";   break;
                   case R_SMART   : ctyp="smartreader";    break;
                   case R_CAMD35  : ctyp="camd 3.5x";break;
                   case R_CAMD33  : ctyp="camd 3.3x";break;
@@ -296,9 +296,9 @@ static char *monitor_client_info(char id, int i)
     time_t now;
     struct tm *lt;
     now=time((time_t)0);
-   
-    if ((cfg->mon_hideclient_to <= 0) || 
-        (((now-client[i].lastecm)/60)<cfg->mon_hideclient_to) || 
+
+    if ((cfg->mon_hideclient_to <= 0) ||
+        (((now-client[i].lastecm)/60)<cfg->mon_hideclient_to) ||
         (((now-client[i].lastemm)/60)<cfg->mon_hideclient_to) ||
         (client[i].typ!='c'))
     {
@@ -342,11 +342,11 @@ static void monitor_process_info()
 {
   int i;
   time_t now;
-  
+
   now=time((time_t)0);
   for (i=0; i<CS_MAXPID; i++)
-    if ((cfg->mon_hideclient_to <= 0) || 
-        (((now-client[i].lastecm)/60)<cfg->mon_hideclient_to) || 
+    if ((cfg->mon_hideclient_to <= 0) ||
+        (((now-client[i].lastecm)/60)<cfg->mon_hideclient_to) ||
         (((now-client[i].lastemm)/60)<cfg->mon_hideclient_to) ||
         (client[i].typ!='c'))
       if (client[i].pid)
@@ -367,6 +367,13 @@ static void monitor_send_details(char *txt, int pid)
   char buf[256];
   snprintf(buf, 255, "[D-----]%d|%s\n", pid, txt);
   monitor_send_info(buf, 0);
+}
+
+static void monitor_send_details_version()
+{
+  char buf[256];
+  sprintf(buf, "[A-0000]version=%s, build=%s, system=%s%s", CS_VERSION_X, CS_SVN_VERSION, cs_platform(buf+100), buf+200);
+  monitor_send_info(buf, 1);
 }
 
 static void monitor_process_details_master(char *buf, int pid)
@@ -468,38 +475,46 @@ static void monitor_logsend(char *flag)
 #ifdef CS_LOGHISTORY
   int i;
 #endif
-  if (strcmp(flag, "on"))
-  {
-    client[cs_idx].log=0;
-    return;
+  if (strcmp(flag, "on")) {
+      if (strcmp(flag, "onwohist")) {
+          client[cs_idx].log=0;
+          return;
+      }
   }
+
   if (client[cs_idx].log)	// already on
     return;
 #ifdef CS_LOGHISTORY
-  for (i=(*loghistidx+3) % CS_MAXLOGHIST; i!=*loghistidx; i=(i+1) % CS_MAXLOGHIST)
-  {
-    char *p_usr, *p_txt;
-    p_usr=(char *)(loghist+(i*CS_LOGHISTSIZE));
-    p_txt=p_usr+32;
-    if ((p_txt[0]) &&
-       ((client[cs_idx].monlvl>1) || (!strcmp(p_usr, client[cs_idx].usr))))
-    {
-      char sbuf[8];
-      sprintf(sbuf, "%03d", client[cs_idx].logcounter);
-      client[cs_idx].logcounter=(client[cs_idx].logcounter+1) % 1000;
-      memcpy(p_txt+4, sbuf, 3);
-      monitor_send(p_txt);
-    }
-  }
+   if (!strcmp(flag, "on")){
+     for (i=(*loghistidx+3) % CS_MAXLOGHIST; i!=*loghistidx; i=(i+1) % CS_MAXLOGHIST)
+     {
+       char *p_usr, *p_txt;
+       p_usr=(char *)(loghist+(i*CS_LOGHISTSIZE));
+       p_txt=p_usr+32;
+       if ((p_txt[0]) &&
+          ((client[cs_idx].monlvl>1) || (!strcmp(p_usr, client[cs_idx].usr))))
+       {
+         char sbuf[8];
+         sprintf(sbuf, "%03d", client[cs_idx].logcounter);
+         client[cs_idx].logcounter=(client[cs_idx].logcounter+1) % 1000;
+         memcpy(p_txt+4, sbuf, 3);
+         monitor_send(p_txt);
+       }
+     }
+   }
 #endif
   client[cs_idx].log=1;
+}
+static void monitor_set_debuglevel(char *flag)
+{
+    cs_dblevel^=atoi(flag);
+    kill(client[0].pid, SIGUSR1);
 }
 
 static int monitor_process_request(char *req)
 {
   int i, rc;
-  char *cmd[]={"login", "exit", "log", "status", "shutdown", "reload", "details"};
-//  char *cmd[]={"login", "exit", "log", "status", "shutdown", "reload"};
+  char *cmd[]={"login", "exit", "log", "status", "shutdown", "reload", "details", "version", "debug"};
   char *arg;
   if( (arg=strchr(req, ' ')) )
   {
@@ -509,22 +524,26 @@ static int monitor_process_request(char *req)
   trim(req);
   if ((!auth) && (strcmp(req, cmd[0])))
     monitor_login(NULL);
-  for (rc=1, i=0; i<7; i++)
+  for (rc=1, i=0; i<9; i++)
     if (!strcmp(req, cmd[i]))
     {
       switch(i)
       {
-        case  0: monitor_login(arg); break;
-        case  1: rc=0; break;
-        case  2: monitor_logsend(arg); break;
-        case  3: monitor_process_info(); break;
+        case  0: monitor_login(arg); break;             // login
+        case  1: rc=0; break; // exit
+        case  2: monitor_logsend(arg); break;           // log
+        case  3: monitor_process_info(); break;         // status
         case  4: if (client[cs_idx].monlvl>3)
-                   kill(client[0].pid, SIGQUIT);
+                   kill(client[0].pid, SIGQUIT);        // shutdown
                  break;
         case  5: if (client[cs_idx].monlvl>2)
-                   kill(client[0].pid, SIGHUP);
+                   kill(client[0].pid, SIGHUP);         // reload
                  break;
-        case  6: monitor_process_details(arg); break;
+        case  6: monitor_process_details(arg); break;   // details
+        case  7: monitor_send_details_version(); break;
+	case  8: if (client[cs_idx].monlvl>3)
+		  monitor_set_debuglevel(arg);          // debuglevel
+		 break; 
         default: continue;
       }
       break;

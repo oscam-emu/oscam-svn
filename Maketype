@@ -15,11 +15,12 @@ LIBS		= $(DS_LIBS) $(OS_LIBS) $(OS_PTLI)
 export		CC AR STRIP RANLIB CFLAGS LDFLAGS ARFLAGS
 
 GENERAL		= Makefile Maketype globals.h oscam-config.h
+
 ifeq ($(wildcard csgbox), csgbox)
  VERX	= -gbx-$(subst ",,$(filter-out \#define GBXVERSION,$(shell grep GBXVERSION csgbox/gbox.h)))
 endif
-EXEFILE1	= Distribution/oscam-$(VER)$(VERX)-$(subst cygwin,cygwin.exe,$(TYP))
 
+EXEFILE1	= Distribution/oscam-$(VER)$(VERX)-$(subst cygwin,cygwin.exe,$(TYP))
 
 LIBDIR		= lib
 LIBFILE1	= $(LIBDIR)/libcs-$(TYP).a
@@ -32,6 +33,7 @@ OBJECTS1	= $(LIBFILE1)(oscam-simples.o) \
 		  $(LIBFILE1)(oscam-reader.o) \
 		  $(LIBFILE1)(reader-common.o) \
 		  $(LIBFILE1)(reader-irdeto.o) \
+		  $(LIBFILE1)(reader-pcsc.o) \
 		  $(LIBFILE1)(reader-viaccess.o) \
 		  $(LIBFILE1)(reader-videoguard2.o) \
 		  $(LIBFILE1)(reader-nds.o) \
@@ -39,12 +41,14 @@ OBJECTS1	= $(LIBFILE1)(oscam-simples.o) \
 		  $(LIBFILE1)(reader-cryptoworks.o) \
 		  $(LIBFILE1)(reader-conax.o) \
 		  $(LIBFILE1)(reader-dre.o) \
+		  $(LIBFILE1)(reader-nagra.o) \
 		  $(LIBFILE1)(module-camd33.o) \
 		  $(LIBFILE1)(module-camd35.o) \
 		  $(LIBFILE1)(module-radegast.o) \
 		  $(LIBFILE1)(module-serial.o) \
 		  $(LIBFILE1)(module-monitor.o) \
 		  $(LIBFILE1)(module-newcamd.o) \
+		  $(LIBFILE1)(module-cccam.o) \
 		  $(LIBFILE1)(oscam-nano.o) \
 		  $(LIBFILE1)(oscam-chk.o) \
 		  $(LIBFILE1)(oscam-ac.o)
@@ -63,10 +67,12 @@ prepare:
 		    printf("#define CS_OS_SYS \"%s\"\n", $$3);  \
 		  }' > oscam-ostype.h
 		@[ -d "$(LIBDIR)" ] || mkdir "$(LIBDIR)"
+
 ifeq ($(wildcard csgbox), csgbox)
 		@-echo "#define CS_WITH_GBOX 1" >> oscam-ostype.h
 		$(MAKE) -C csgbox
 endif
+
 		$(MAKE) -C cscrypt
 		$(MAKE) -C csctapi
 

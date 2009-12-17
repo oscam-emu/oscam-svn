@@ -83,19 +83,7 @@ char  cs_memfile[128]=CS_MMAPFILE;
 static  char  mloc[128]={0};
 static  int shmid=0;    // Shared Memory ID
 static  int cs_last_idx=0;    // client index of last fork (master only)
-static  char* credit[] = {
-    "dukat for the great MpCS piece of code",
-    "all members of streamboard.de.vu for testing",
-    "scotty and aroureos for the first softcam (no longer used)",
-    "John Moore for the hsic-client (humax 5400) and the arm-support",
-    "doz21 for the sio-routines and his support on camd3-protocol",
-    "kindzadza for his support on radegast-protocol",
-    "DS and ago for several modules in mpcs development",
-    "dingo35 for seca reader-support",
-    "dingo35 and okmikel for newcamd-support",
-    "hellmaster1024 for gb*x-support",
-    "the vdr-sc team for several good ideas :-)",
-    NULL };
+static char *logo = "  ___  ____   ___                \n / _ \\/ ___| / __|__ _ _ __ ___  \n| | | \\___ \\| |  / _` | '_ ` _ \\ \n| |_| |___) | |_| (_| | | | | | |\n \\___/|____/ \\___\\__,_|_| |_| |_|\n";
 
 static void cs_set_mloc(int ato, char *txt)
 {
@@ -130,8 +118,9 @@ char *cs_platform(char *buf)
 
 static void usage()
 {
-  int i;
-  fprintf(stderr, "\nOSCam cardserver v%s, build #%s (%s) - (w) 2009 by smurzch\n", CS_VERSION_X, CS_SVN_VERSION, CS_OSTYPE);
+  fprintf(stderr, "%s\n\n", logo);
+  fprintf(stderr, "OSCam cardserver v%s, build #%s (%s) - (w) 2009 streamboard SVN\n", CS_VERSION_X, CS_SVN_VERSION, CS_OSTYPE);
+  fprintf(stderr, "\tsee http://streamboard.gmc.to:8001/ for more details\n");
   fprintf(stderr, "\tbased on streamboard mp-cardserver v0.9d - (w) 2004-2007 by dukat\n\n");
   fprintf(stderr, "oscam [-b] [-c config-dir]");
 #ifdef CS_NOSHM
@@ -144,9 +133,6 @@ static void usage()
   fprintf(stderr, "\t-m <file>: use <file> as mmaped memory file\n");
   fprintf(stderr, "\t           default=%s\n", CS_MMAPFILE);
 #endif
-  fprintf(stderr, "\nthanks to ...\n");
-  for (i=0; credit[i]; i++)
-    fprintf(stderr, "\t%s\n", credit[i]);
   fprintf(stderr, "\n");
   exit(1);
 }
@@ -223,6 +209,15 @@ int idx_from_pid(pid_t pid)
   int i, idx;
   for (i=0, idx=(-1); (i<CS_MAXPID) && (idx<0); i++)
     if (client[i].pid==pid)
+      idx=i;
+  return(idx);
+}
+
+int idx_from_username(char *uname)
+{
+  int i, idx;
+  for (i=0, idx=(-1); (i<CS_MAXPID) && (idx<0); i++)
+    if (client[i].usr==uname)
       idx=i;
   return(idx);
 }
@@ -345,12 +340,13 @@ static void cs_reinit_clients()
       {
         client[i].grp     = account->grp;
         client[i].au      = account->au;
-  client[i].autoau  = account->autoau;
+        client[i].autoau  = account->autoau;
         client[i].tosleep = (60*account->tosleep);
         client[i].monlvl  = account->monlvl;
         client[i].fchid   = account->fchid;  // CHID filters
         client[i].cltab   = account->cltab;  // Class
-        client[i].ftab    = account->ftab;   // Ident
+        if(!client[i].ncd_server) // newcamd module dosent like ident reloading
+          client[i].ftab    = account->ftab;   // Ident
         client[i].sidtabok= account->sidtabok;   // services
         client[i].sidtabno= account->sidtabno;   // services
         memcpy(&client[i].ctab, &account->ctab, sizeof(client[i].ctab));
@@ -1103,7 +1099,7 @@ int cs_auth_client(struct s_auth *account, char *e_txt)
         {
           client[cs_idx].grp=account->grp;
           client[cs_idx].au=account->au;
-    client[cs_idx].autoau=account->autoau;
+          client[cs_idx].autoau=account->autoau;
           client[cs_idx].tosleep=(60*account->tosleep);
           memcpy(&client[cs_idx].ctab, &account->ctab, sizeof(client[cs_idx].ctab));
           if (account->uniq)
@@ -1132,32 +1128,32 @@ int cs_auth_client(struct s_auth *account, char *e_txt)
         else
         {
           if(client[cs_idx].autoau)
-        {
-          if(client[cs_idx].ncd_server)
           {
-            int r=0;
-            for(r=0;r<CS_MAXREADER;r++)
+            if(client[cs_idx].ncd_server)
             {
-              if((reader[r].typ==R_MOUSE || reader[ridx].typ==R_SMART) && reader[r].caid[0]==cfg->ncd_ptab.ports[client[cs_idx].port_idx].ftab.filts[0].caid)
+              int r=0;
+              for(r=0;r<CS_MAXREADER;r++)
               {
-                client[cs_idx].au=r;
-                break;
+                if(reader[r].caid[0]==cfg->ncd_ptab.ports[client[cs_idx].port_idx].ftab.filts[0].caid)
+                {
+                  client[cs_idx].au=r;
+                  break;
+                }
               }
+              if(client[cs_idx].au<0) sprintf(t_msg[0], "au(auto)=%d", client[cs_idx].au+1);
+                else sprintf(t_msg[0], "au(auto)=%s", reader[client[cs_idx].au].label);
+            }
+            else
+            {
+              sprintf(t_msg[0], "au=auto");
+            }
           }
-            if(client[cs_idx].au<0) sprintf(t_msg[0], "au(auto)=%d", client[cs_idx].au+1);
-              else sprintf(t_msg[0], "au(auto)=%s", reader[client[cs_idx].au].label);
-          }
-          else
-          {
-            sprintf(t_msg[0], "au=auto");
-          }
-        }
           else
           {
             if(client[cs_idx].au<0) sprintf(t_msg[0], "au=%d", client[cs_idx].au+1);
               else sprintf(t_msg[0], "au=%s", reader[client[cs_idx].au].label);
-                }
           }
+        }
       }  
       if(client[cs_idx].ncd_server)
       {
@@ -1511,8 +1507,8 @@ int send_dcw(ECM_REQUEST *er)
 {
   static char *stxt[]={"found", "cache1", "cache2", "emu",
                        "not found", "timeout", "sleeping",
-                       "fake", "invalid", "corrupt"};
-  static char *stxtEx[]={"", "group", "caid", "ident", "class", "chid", "queue"};
+                       "fake", "invalid", "corrupt", "no card"};
+  static char *stxtEx[]={"", "group", "caid", "ident", "class", "chid", "queue", "peer"};
   static char *stxtWh[]={"", "user ", "reader ", "server ", "lserver "};
   char sby[32]="";
   char erEx[32]="";
@@ -1544,42 +1540,28 @@ int send_dcw(ECM_REQUEST *er)
 
   if(!client[cs_idx].ncd_server && client[cs_idx].autoau && er->rcEx==0)
   {
-          int typ=reader[er->reader[0]].typ;
-          if(er->rc!=0) typ=0;
+    if(client[cs_idx].au>=0 && er->caid!=reader[client[cs_idx].au].caid[0])
+    {
+      client[cs_idx].au=(-1);
+    }
 
-          if(client[cs_idx].au>=0 && er->caid!=reader[client[cs_idx].au].caid[0])
-          {
-                        client[cs_idx].au=(-1);
-          }
-
-          switch(typ)
-          {
-                case R_MOUSE:
-                        client[cs_idx].au=er->reader[0];
-                        break;
-                case R_SMART:
-                        client[cs_idx].au=er->reader[0];
-                        break;
-                default:
-                        {
-                                if(client[cs_idx].au<0)
-                                {
-                                        int r=0;
-                                        for(r=0;r<CS_MAXREADER;r++)
-                                        {
-                                                if((reader[r].typ==R_MOUSE || reader[r].typ==R_SMART) && er->caid==reader[r].caid[0])
-                                                {
-                                                        client[cs_idx].au=r;
-                                                        break;
-                                                }
-                                        }
-                                        if(r==CS_MAXREADER)
-                                        {
-                                                client[cs_idx].au=(-1);
-                                        }
-                                }
-                        }
-          }
+    client[cs_idx].au=er->reader[0];
+    if(client[cs_idx].au<0)
+    {
+      int r=0;
+      for(r=0;r<CS_MAXREADER;r++)
+      {
+        if(er->caid==reader[r].caid[0])
+        {
+          client[cs_idx].au=r;
+          break;
+        }
+      }
+      if(r==CS_MAXREADER)
+      {
+        client[cs_idx].au=(-1);
+      }
+    }
   }
 
   er->caid=er->ocaid;

@@ -28,8 +28,8 @@ host from which user connection is allowed
 define Betacrypt tunneling (max. see CS_MAXTUNTAB in \fBglobals.h\fP).
 The ServiceID can also be used for wildcarded CAIDs.
 
- example: betatunnel = 0100:0001:0200,0300.0004:0500
-          betatunnel = 0600:FFFF:0700
+ example: betatunnel = 0100.0001:0200,0300.0004:0500
+          betatunnel = 0600.FFFF:0700
 .RE
 .PP
 \fBuniq\fP = \fB0\fP|\fB1\fP|\fB2\fP
@@ -48,7 +48,7 @@ time waiting for inactive user, default:none
 .PP
 \fBcaid\fP = \fB<CAID>[&<mask>][:<CAID>[&<mask>]...\fP
 .RS 3n
-limit CAIDs, default:all CAIDs
+limit CAIDs, default:all CAIDs, \fIrequired\fR
 
 example: caid = 0100&ffff:0200:0300&ff00
 .RE
@@ -90,17 +90,20 @@ user [de]assingment to classes, default=none
 user assingment to Irdeto ChID, default:none
 .RE
 .PP
-\fBnumusers\fP = \fBquantity\fP
+\fBmonlevel\fP = \fB0\fP|\fB1\fP|\fB2\fP|\fB3\fP|\fB4\fP
 .RS 3n
-anti-cascading: user per account, 0 = anti-cascading permitted, default:none
+monitor level:
+
+ 0 = no access to monitor
+ 1 = only server and own procs
+ 2 = all procs, but viewing only, default
+ 3 = all procs, reload of \fBoscam.user\fR possible
+ 4 = complete access
 .RE
 .PP
-\fBpenalty\fP = \fB0\fP|\fB1\fP|\fB2\fP
+\fBnumusers\fP = \fBquantity\fP
 .RS 3n
-anti-cascading: level of penalty:
- \fB0\fP = only logging, default
- \fB1\fP = send fake CWs
- \fB2\fP = disbable user temporary
+anti-cascading: user per account, 0 = anti-cascading not permitted, default:0
 .RE
 .SH EXAMPLES
  [account]

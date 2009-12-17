@@ -36,12 +36,25 @@
 #  define GCC_PACK
 #endif
 
+#if defined(WIN32) || defined(OS_CYGWIN32)
+#  define MSG_WAITALL 0
+#endif
+
 #include "oscam-config.h"
 #ifndef USE_CMAKE
 #  include "oscam-ostype.h"
 #endif
 #include "oscam-types.h"
 #include "cscrypt/cscrypt.h"
+
+#ifdef HAVE_PCSC
+#include <PCSC/pcsclite.h>
+#ifdef OS_MACOSX
+#include <PCSC/wintypes.h>
+#else
+#include <PCSC/reader.h>
+#endif
+#endif
 
 #ifndef CS_CONFDIR
 #define CS_CONFDIR    "/usr/local/etc"
@@ -113,7 +126,7 @@
 #define D_ALL_DUMP  63
 
 #define R_MOUSE     0x1 // Reader smartcard mouse
-#define R_INTERN    0x2 // Reader smartcard intern
+#define R_INTERNAL  0x2 // Reader smartcard intern
 #define R_SMART     0x5 // Smartreader+
 #define R_CAMD35    0x10  // Reader cascading camd 3.5x
 #define R_CAMD33    0x11  // Reader cascading camd 3.3x
@@ -125,6 +138,10 @@
 #define R_SERIAL    0x80  // Reader serial
 #define R_IS_NETWORK    0x70
 #define R_IS_CASCADING  0xF0
+
+#ifdef HAVE_PCSC
+	#define R_PCSC 			0x6 // PCSC
+#endif
 
 #define CS_MAX_MOD 8
 #define MOD_CONN_TCP    1
@@ -175,6 +192,9 @@ enum {E2_GLOBAL=0, E2_GROUP, E2_CAID, E2_IDENT, E2_CLASS, E2_CHID, E2_QUEUE,
 
 //typedef unsigned char uchar;
 //typedef unsigned long ulong;
+
+// constants
+#define CTA_RES_LEN 512
 
 typedef struct s_classtab
 {
@@ -350,10 +370,11 @@ struct s_reader
   int       card_system;
   char      label[32];
   char      device[128];
+  char      pcsc_name[128];
+  int       pcsc_has_card;
   int       detect;
-  int     mhz;      //actual clock rate of reader in 10khz steps
+  int       mhz;      //actual clock rate of reader in 10khz steps
   int	    cardmhz;	    //standard clock speed your card should have in 10khz steps; normally 357 but for Irdeto cards 600
-  int       custom_speed;   //request immediate baudrate adaption after ATR; no PTS/PPS will be executed
   int       r_port;
   char      r_usr[64];
   char      r_pwd[64];
@@ -363,6 +384,7 @@ struct s_reader
   CAIDTAB   ctab;
   ulong     boxid;
   uchar	    nagra_boxkey[8];
+  int       nagra_native;
   uchar     aes_key[16];
   uchar     rsa_mod[64]; //rsa modulus for nagra cards
   ulong     sidtabok;	// positiv services
@@ -390,6 +412,7 @@ struct s_reader
   int       ncd_proto;
   char      cc_version[7];  // cccam version
   char      cc_build[5];    // cccam build number
+  int       cc_maxhop;      // cccam max distance
   void      *cc;            // ptr to cccam internal data struct
   uchar     tcp_connected;
   int       tcp_ito;      // inactivity timeout
@@ -414,6 +437,12 @@ struct s_reader
   int       init_history_pos;
 #endif
   int       msg_idx;
+#ifdef HAVE_PCSC
+  SCARDCONTEXT hContext;
+  SCARDHANDLE hCard;
+  DWORD dwActiveProtocol;
+#endif
+
 };
 
 #ifdef CS_ANTICASC
@@ -653,6 +682,7 @@ extern char *cs_platform(char *);
 extern int recv_from_udpipe(uchar *, int);
 extern char* username(int);
 extern int idx_from_pid(pid_t);
+extern int idx_from_username(char *uname);
 extern int chk_bcaid(ECM_REQUEST *, CAIDTAB *);
 extern void cs_exit(int sig);
 extern int cs_fork(in_addr_t, in_port_t);
@@ -736,6 +766,14 @@ extern int reader_checkhealth(void);
 extern int reader_ecm(ECM_REQUEST *);
 extern int reader_emm(EMM_PACKET *);
 
+#ifdef HAVE_PCSC
+// reader-pcsc
+extern int pcsc_reader_do_api(struct s_reader *pcsc_reader, uchar *buf, uchar *cta_res, ushort *cta_lr,int l, int dbg);
+extern int pcsc_activate_card(struct s_reader *pcsc_reader, uchar *atr, ushort *atr_size);
+extern int pcsc_check_card_inserted(struct s_reader *pcsc_reader);
+extern int pcsc_reader_init(struct s_reader *pcsc_reader, char *device);
+#endif
+
 // reader-irdeto
 extern int irdeto_card_init(uchar *, int);
 extern int irdeto_do_ecm(ECM_REQUEST *);
@@ -776,6 +814,8 @@ extern int nds_card_info(void);
 extern int nagra2_card_init(uchar *, int);
 extern int nagra2_do_ecm(ECM_REQUEST *er);
 extern int nagra2_card_info(void);
+extern int nagra2_do_emm(EMM_PACKET *);
+extern void nagra2_post_process();
  
 // protocol modules
 extern int  monitor_send_idx(int, char *);

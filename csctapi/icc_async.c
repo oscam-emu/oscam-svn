@@ -68,8 +68,7 @@ int ICC_Async_Init (ICC_Async * icc, IFD * ifd)
 		return ICC_ASYNC_IFD_ERROR;
 	
 	/* Initialize Baudrate */
-//	if (IFD_Towitoko_SetBaudrate (ifd, ICC_ASYNC_BAUDRATE)!= IFD_TOWITOKO_OK)
-	if (IFD_Towitoko_SetBaudrate (ifd, 9600)!= IFD_TOWITOKO_OK)
+	if (IFD_Towitoko_SetBaudrate (ifd, ICC_ASYNC_BAUDRATE)!= IFD_TOWITOKO_OK)
 		return ICC_ASYNC_IFD_ERROR;
 	
 	/* Activate ICC */
@@ -100,13 +99,13 @@ int ICC_Async_Init (ICC_Async * icc, IFD * ifd)
 	* Get protocol offered by interface bytes T*2 if available, 
 	* (that is, if TD1 is available), * otherwise use default T=0
 	*/
-	if (np>1)
+/*	if (np>1)
 		ATR_GetProtocolType (icc->atr, 2, &(icc->protocol_type));
 	
 #ifdef DEBUG_ICC
 	printf("ICC: Detected %s convention processor card T=%d\n",(icc->convention == ATR_CONVENTION_DIRECT ? "direct" : "inverse"), icc->protocol_type);
 #endif
-	
+	*///really should let PPS handle this
 	/* LED Green */
 	if (IFD_Towitoko_SetLED (ifd, IFD_TOWITOKO_LED_GREEN) != IFD_TOWITOKO_OK)
 	{
@@ -151,7 +150,37 @@ int ICC_Async_SetTimings (ICC_Async * icc, ICC_Async_Timings * timings)
 	icc->timings.char_delay = timings->char_delay;
 	icc->timings.block_timeout = timings->block_timeout;
 	icc->timings.char_timeout = timings->char_timeout;
-	
+/*	if (icc->protocol_type == ATR_PROTOCOL_TYPE_T1)
+		cs_debug("SetTimings: T1: chardelay %d, chartimeout CWT %d, blockdelay BGT??? %d, blocktimeout BWT %d",timings->char_delay,timings->char_timeout, timings->block_delay, timings->block_timeout);
+	else
+		cs_debug("SetTimings: T0/T14: chardelay %d, chartimeout WWT %d, blockdelay %d, blocktimeout %d",timings->char_delay,timings->char_timeout, timings->block_delay, timings->block_timeout);*/
+
+#ifdef SCI_DEV
+#include <sys/ioctl.h>
+#include "sci_global.h"
+#include "sci_ioctl.h"
+	if (icc->ifd->io->com == RTYP_SCI) {
+		SCI_PARAMETERS params;
+		if (ioctl(icc->ifd->io->fd, IOCTL_GET_PARAMETERS, &params) < 0 )
+			return ICC_ASYNC_IFD_ERROR;
+		switch (icc->protocol_type) {
+			case ATR_PROTOCOL_TYPE_T1:
+				params.BWT = icc->timings.block_timeout;
+				params.CWT = icc->timings.char_timeout;
+				//params.BGT = icc->timings.block_delay; load into params.EGT??
+				break;
+			case ATR_PROTOCOL_TYPE_T0:
+			case ATR_PROTOCOL_TYPE_T14:
+			default:
+  			params.WWT = icc->timings.char_timeout;
+				break;
+		}
+		if (ioctl(icc->ifd->io->fd, IOCTL_SET_PARAMETERS, &params)!=0)
+			return ICC_ASYNC_IFD_ERROR;
+			
+		cs_debug("Set Timings: T=%d FI=%d ETU=%d WWT=%d CWT=%d BWT=%d EGT=%d clock=%d check=%d P=%d I=%d U=%d", (int)params.T,(int)params.FI, (int)params.ETU, (int)params.WWT, (int)params.CWT, (int)params.BWT, (int)params.EGT, (int)params.clock_stop_polarity, (int)params.check, (int)params.P, (int)params.I, (int)params.U);
+	}
+#endif
 	return ICC_ASYNC_OK;
 }
 
@@ -168,6 +197,8 @@ int ICC_Async_GetTimings (ICC_Async * icc, ICC_Async_Timings * timings)
 int ICC_Async_SetBaudrate (ICC_Async * icc, unsigned long baudrate)
 {
 	icc->baudrate = baudrate;
+	if (IFD_Towitoko_SetBaudrate (icc->ifd, baudrate) !=  IFD_TOWITOKO_OK)
+	  return ICC_ASYNC_IFD_ERROR;
 	
 	return ICC_ASYNC_OK;
 }
@@ -175,7 +206,6 @@ int ICC_Async_SetBaudrate (ICC_Async * icc, unsigned long baudrate)
 int ICC_Async_GetBaudrate (ICC_Async * icc, unsigned long * baudrate)
 {
 	(*baudrate) = icc->baudrate;
-	
 	return ICC_ASYNC_OK;  
 }
 
@@ -293,7 +323,15 @@ int ICC_Async_Close (ICC_Async * icc)
 
 unsigned long ICC_Async_GetClockRate (ICC_Async * icc)
 {
-	return IFD_Towitoko_GetClockRate(icc->ifd);
+	switch (icc->ifd->io->cardmhz) {
+		case 357:
+		case 358:
+	  	return (372L * 9600L);
+		case 368:
+	  	return (384L * 9600L);
+		default:
+ 	  	return icc->ifd->io->cardmhz * 10000L;
+	}
 }
 
 void ICC_Async_Delete (ICC_Async * icc)

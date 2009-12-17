@@ -4,7 +4,7 @@
 char oscam_device[128];
 int  oscam_card_detect;
 
-uchar cta_cmd[272], cta_res[260], atr[64];
+uchar cta_cmd[272], cta_res[CTA_RES_LEN], atr[64];
 ushort cta_lr, atr_size=0;
 static int cs_ptyp_orig; //reinit=1, 
 
@@ -48,7 +48,7 @@ static int reader_device_type(char *device, int typ)
       }
 #endif
       break;
-    case R_INTERN:
+    case R_INTERNAL:
       rc=PORT_SCI;
       break;
   }
@@ -68,6 +68,12 @@ static void reader_nullcard(void)
 
 int reader_doapi(uchar dad, uchar *buf, int l, int dbg)
 {
+#ifdef HAVE_PCSC
+	if (reader[ridx].typ == R_PCSC) {
+    	return pcsc_reader_do_api(&reader[ridx], buf, cta_res, &cta_lr,l,dbg);
+	}
+
+#endif
   int rc;
   uchar sad;
 
@@ -120,6 +126,12 @@ static int reader_activate_card()
 {
   int i;
   char ret;
+
+#ifdef HAVE_PCSC
+  if (reader[ridx].typ == R_PCSC) {
+        return (pcsc_activate_card(&reader[ridx], atr, &atr_size));
+  }
+#endif
 
   cta_cmd[0] = CTBCS_INS_RESET;
   cta_cmd[1] = CTBCS_P2_RESET_GET_ATR;
@@ -277,6 +289,13 @@ static int reader_reset(void)
 
 static int reader_card_inserted(void)
 {
+#ifdef HAVE_PCSC
+    if (reader[ridx].typ == R_PCSC) {
+    return(pcsc_check_card_inserted(&reader[ridx]));
+
+	}
+#endif
+
   cta_cmd[0]=CTBCS_CLA;
   cta_cmd[1]=CTBCS_INS_STATUS;
   cta_cmd[2]=CTBCS_P1_INTERFACE1;
@@ -288,6 +307,12 @@ static int reader_card_inserted(void)
 
 int reader_device_init(char *device, int typ)
 {
+#ifdef HAVE_PCSC
+	if (reader[ridx].typ == R_PCSC) {
+	   return (pcsc_reader_init(&reader[ridx], device));
+	}
+#endif
+ 
   int rc;
   oscam_card_detect=reader[ridx].detect;
   cs_ptyp_orig=cs_ptyp;
@@ -343,6 +368,18 @@ int reader_checkhealth(void)
     reader[ridx].online=0;
   }
   return reader[ridx].card_status==CARD_INSERTED;
+}
+
+void reader_post_process(void)
+{
+  // some systems eg. nagra2/3 needs post process after receiving cw from card
+  // To save ECM/CW time we added this function after writing ecm answer
+  switch(reader[ridx].card_system)
+    {
+      case SC_NAGRA:
+        nagra2_post_process(); break;
+      default: break;
+    }
 }
 
 int reader_ecm(ECM_REQUEST *er)
@@ -426,6 +463,8 @@ int reader_emm(EMM_PACKET *ep)
 
     switch(reader[ridx].card_system)
     {
+      case SC_NAGRA:
+        rc=nagra2_do_emm(ep); break;
       case SC_IRDETO:
         rc=irdeto_do_emm(ep); break;
       case SC_CRYPTOWORKS:
@@ -445,4 +484,3 @@ int reader_emm(EMM_PACKET *ep)
   }
   return(rc);
 }
-
