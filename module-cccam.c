@@ -676,10 +676,11 @@ static int cc_send_ecm(ECM_REQUEST *er, uchar *buf)
         card = llist_itr_next(&itr);
       }
       llist_itr_release(&itr);
+
+      pthread_mutex_unlock(&cc->ecm_busy);
   }
 
   cs_log("DEBUG12");
-  pthread_mutex_unlock(&cc->ecm_busy);
   return 0;
 }
 
