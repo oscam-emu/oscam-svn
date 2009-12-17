@@ -524,7 +524,7 @@ static int cc_get_nxt_ecm()
 
     if (ecmtask[i].rc >= 10) {  // stil active and waiting
       // search for the ecm with the lowest time, this should be the next to go
-      if ((!n || ecmtask[n].tps.time-ecmtask[i].tps.time < 0) && &ecmtask[n] != cc->found) n = i;
+      if ((!n || ecmtask[n].tps.time-ecmtask[i].tps.time < 0) && &ecmtask[n] != cc->c) n = i;
     }
   }
   return n;
@@ -545,7 +545,7 @@ static int cc_send_ecm(ECM_REQUEST *er, uchar *buf)
     return 0;
   }
 
-  cs_log("cccam: before ecm log.... %d", er->rc);
+  cs_log("cccam: before ecm lock.... %d", er->rc);
   pthread_mutex_lock(&cc->ecm_busy);
  /*( if (pthread_mutex_trylock(&cc->ecm_busy) == EBUSY) {
     cs_log("cccam: ecm trylock: failed to get lock");
@@ -572,6 +572,8 @@ static int cc_send_ecm(ECM_REQUEST *er, uchar *buf)
     pthread_mutex_unlock(&cc->lock);
     return 0;   // ecm already sent
   }
+
+  cc->found = cur_er;
 
   if (buf) memcpy(buf, cur_er->ecm, cur_er->l);
 
