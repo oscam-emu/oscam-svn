@@ -524,7 +524,7 @@ static int cc_get_nxt_ecm()
 
     if (ecmtask[i].rc >= 10) {  // stil active and waiting
       // search for the ecm with the lowest time, this should be the next to go
-      if ((!n || ecmtask[n].tps.time-ecmtask[i].tps.time < 0) && &ecmtask[n] != cc->c) n = i;
+      if ((!n || ecmtask[n].tps.time-ecmtask[i].tps.time < 0) && &ecmtask[n] != cc->found) n = i;
     }
   }
   return n;
