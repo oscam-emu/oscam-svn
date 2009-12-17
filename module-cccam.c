@@ -556,19 +556,16 @@ static int cc_send_ecm(ECM_REQUEST *er, uchar *buf)
     cs_log("cccam: ecm trylock: got lock");
   }
 //  pthread_mutex_lock(&cc->lock);
-  cs_log("DEBUG1");
+
   if ((n = cc_get_nxt_ecm()) < 0) {
     pthread_mutex_unlock(&cc->ecm_busy);
     pthread_mutex_unlock(&cc->lock);
     return 0;   // no queued ecms
   }
   cur_er = &ecmtask[n];
-  cs_log("DEBUG2");
 
   if (crc32(0, cur_er->ecm, cur_er->l) == cc->crc) cur_er->rc = 99;
-  cs_log("DEBUG3");
   cc->crc = crc32(0, cur_er->ecm, cur_er->l);
-  cs_log("DEBUG4");
 
   cs_log("cccam: ecm crc = 0x%lx", cc->crc);
 
@@ -582,12 +579,10 @@ static int cc_send_ecm(ECM_REQUEST *er, uchar *buf)
   //cc->found = cur_er;
 
   if (buf) memcpy(buf, cur_er->ecm, cur_er->l);
-  cs_log("DEBUG6");
 
   cc->cur_card = NULL;
   cc->cur_sid = cur_er->srvid;
 
-  cs_log("DEBUG7");
   card = llist_itr_init(cc->cards, &itr);
 
   while (card) {
@@ -622,7 +617,6 @@ static int cc_send_ecm(ECM_REQUEST *er, uchar *buf)
   }
   llist_itr_release(&itr);
 
-  cs_log("DEBUG8");
   if (cc->cur_card) {
     uint8 *ecmbuf = malloc(cur_er->l+13);
     bzero(ecmbuf, cur_er->l+13);
@@ -645,14 +639,11 @@ static int cc_send_ecm(ECM_REQUEST *er, uchar *buf)
 
     cc->count = cur_er->idx;
 
-    cs_log("DEBUG9");
     cs_log("cccam: sending ecm for sid %04x to card %08x, hop %d", cur_er->srvid, cc->cur_card->id, cc->cur_card->hop + 1);
     n = cc_cmd_send(ecmbuf, cur_er->l+13, MSG_ECM);      // send ecm
 
-    cs_log("DEBUG10");
     X_FREE(ecmbuf);
   } else {
-    cs_log("DEBUG11");
     n = -1;
     cs_log("cccam: no suitable card on server");
     cur_er->rc = 0;
@@ -682,7 +673,6 @@ static int cc_send_ecm(ECM_REQUEST *er, uchar *buf)
       pthread_mutex_unlock(&cc->ecm_busy);
   }
 
-  cs_log("DEBUG12");
   return 0;
 }
 
@@ -779,7 +769,6 @@ static cc_msg_type_t cc_parse_msg(uint8 *buf, int l)
     break;
   case MSG_CW_NOK1:
   case MSG_CW_NOK2:
-    cs_log("DEBUG d1");
     cs_log("cccam: cw nok, sid = %x", cc->cur_sid);
 
     int f = 0;
@@ -794,9 +783,7 @@ static cc_msg_type_t cc_parse_msg(uint8 *buf, int l)
     }
     llist_itr_release(&itr);
 
-    cs_log("DEBUG d3");
     if (!f) {
-      cs_log("DEBUG d3");
       sid = malloc(sizeof(uint16));
       *sid = cc->cur_sid;
 
@@ -804,27 +791,18 @@ static cc_msg_type_t cc_parse_msg(uint8 *buf, int l)
       cs_debug("   added sid block for card %08x", cc->cur_card->id);
     }
     bzero(cc->dcw, 16);
-    cs_log("DEBUG d4");
     pthread_mutex_unlock(&cc->ecm_busy);
-    //cc_send_ecm(NULL, NULL);
-    cs_log("DEBUG d5");
+    cc_send_ecm(NULL, NULL);
     ret = 0;
     break;
   case MSG_CW:
-    cs_log("DEBUG e1");
     cc_cw_decrypt(buf+4);
-    cs_log("DEBUG e2");
     memcpy(cc->dcw, buf+4, 16);
-    cs_log("DEBUG e3");
     cs_debug("cccam: cws: %s", cs_hexdump(0, cc->dcw, 16));
-    cs_log("DEBUG e4");
     cc_crypt(&cc->block[DECRYPT], buf+4, l-4, ENCRYPT); // additional crypto step
-    cs_log("DEBUG e5");
     pthread_mutex_unlock(&cc->ecm_busy);
     //cc_abort_user_ecms();
-    cs_log("DEBUG e6");
     cc_send_ecm(NULL, NULL);
-    cs_log("DEBUG e7");
     ret = 0;
     break;
   case MSG_PING:
