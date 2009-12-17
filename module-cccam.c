@@ -851,6 +851,7 @@ static int cc_recv_chk(uchar *dcw, int *rc, uchar *buf, int n)
 int cc_recv(uchar *buf, int l)
 {
   int n;
+  struct cc_data *cc = reader[ridx].cc;
   uchar *cbuf = malloc(l);
 
   memcpy(cbuf, buf, l);   // make a copy of buf
