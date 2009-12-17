@@ -777,6 +777,7 @@ static cc_msg_type_t cc_parse_msg(uint8 *buf, int l)
     break;
   case MSG_CW_NOK1:
   case MSG_CW_NOK2:
+    cs_log("DEBUG d1");
     cs_log("cccam: cw nok, sid = %x", cc->cur_sid);
 
     int f = 0;
@@ -791,7 +792,9 @@ static cc_msg_type_t cc_parse_msg(uint8 *buf, int l)
     }
     llist_itr_release(&itr);
 
+    cs_log("DEBUG d3");
     if (!f) {
+      cs_log("DEBUG d3");
       sid = malloc(sizeof(uint16));
       *sid = cc->cur_sid;
 
@@ -799,8 +802,10 @@ static cc_msg_type_t cc_parse_msg(uint8 *buf, int l)
       cs_debug("   added sid block for card %08x", cc->cur_card->id);
     }
     bzero(cc->dcw, 16);
+    cs_log("DEBUG d4");
     pthread_mutex_unlock(&cc->ecm_busy);
     //cc_send_ecm(NULL, NULL);
+    cs_log("DEBUG d5");
     ret = 0;
     break;
   case MSG_CW:
