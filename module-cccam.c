@@ -524,7 +524,7 @@ static int cc_get_nxt_ecm()
 
     if (ecmtask[i].rc >= 10) {  // stil active and waiting
       // search for the ecm with the lowest time, this should be the next to go
-      if ((!n || ecmtask[n].tps.time-ecmtask[i].tps.time < 0) && &ecmtask[n] != cc->found) n = i;
+      if ((!n || ecmtask[n].tps.time-ecmtask[i].tps.time < 0) && &ecmtask[n]) n = i;
     }
   }
   return n;
@@ -577,7 +577,7 @@ static int cc_send_ecm(ECM_REQUEST *er, uchar *buf)
   }
   cs_log("DEBUG5");
 
-  cc->found = cur_er;
+  //cc->found = cur_er;
 
   if (buf) memcpy(buf, cur_er->ecm, cur_er->l);
   cs_log("DEBUG6");
