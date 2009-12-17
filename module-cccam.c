@@ -547,13 +547,12 @@ static int cc_send_ecm(ECM_REQUEST *er, uchar *buf)
     return 0;
   }
 
-  cs_log("cccam: before ecm lock....");
 //  pthread_mutex_lock(&cc->ecm_busy);
   if (pthread_mutex_trylock(&cc->ecm_busy) == EBUSY) {
-    cs_log("cccam: ecm trylock: failed to get lock");
+    cs_debug("cccam: ecm trylock: failed to get lock");
     return 0;
   } else {
-    cs_log("cccam: ecm trylock: got lock");
+    cs_debug("cccam: ecm trylock: got lock");
   }
 //  pthread_mutex_lock(&cc->lock);
 
@@ -567,14 +566,13 @@ static int cc_send_ecm(ECM_REQUEST *er, uchar *buf)
   if (crc32(0, cur_er->ecm, cur_er->l) == cc->crc) cur_er->rc = 99;
   cc->crc = crc32(0, cur_er->ecm, cur_er->l);
 
-  cs_log("cccam: ecm crc = 0x%lx", cc->crc);
+  cs_debug("cccam: ecm crc = 0x%lx", cc->crc);
 
   if (cur_er->rc == 99) {
     pthread_mutex_unlock(&cc->ecm_busy);
     pthread_mutex_unlock(&cc->lock);
     return 0;   // ecm already sent
   }
-  cs_log("DEBUG5");
 
   //cc->found = cur_er;
 
