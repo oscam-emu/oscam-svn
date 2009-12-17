@@ -58,8 +58,6 @@ static int PPS_InitICC (PPS * pps, int protocol_selected);
 
 static int PPS_InitProtocol (PPS * pps, int protocol_selected);
 
-//static void PPS_SelectFirstProtocol (PPS * pps);
-
 static BYTE PPS_GetPCK (BYTE * block, unsigned length);
 
 /*
@@ -138,11 +136,14 @@ int PPS_Perform (PPS * pps, BYTE * params, unsigned *length)
 	atr = ICC_Async_GetAtr (pps->icc);
 	if ((*length) <= 0 || !PPS_success) // If not by command, or PPS Exchange by command failed: Try PPS Exchange by ATR or Get parameters from ATR
 	{
-		int numprot = atr->pn;
+		int numprot = atr->pn;//number of protocol lines in ATR
 		BYTE tx;
 	  cs_debug("ATR reports smartcard supports %i protocols:",numprot);
 		int i,point;
 		char txt[50];
+		bool OffersT[2]; //T14 stored as T2
+		for (i = 0; i <= 2; i++)
+			OffersT[i] = FALSE;
 		for (i=1; i<= numprot; i++) {
 			sprintf(txt,"Protocol %01i:  ",i);
 			point = 12;
@@ -161,29 +162,38 @@ int PPS_Perform (PPS * pps, BYTE * params, unsigned *length)
 			if (ATR_GetInterfaceByte (atr, i, ATR_INTERFACE_BYTE_TD, &tx) == ATR_OK) {
 			  sprintf((char *)txt+point,"TD%i=%02X ",i,tx);
 				point +=7;
-			  sprintf((char *)txt+point,"(T%i)",tx&0x0F);
+				tx &= 0X0F;
+			  sprintf((char *)txt+point,"(T%i)",tx);
+				if (tx == 14)
+					OffersT[2] = TRUE;
+				else
+					OffersT[tx] = TRUE;
 			}
-			else
+			else {
 				sprintf((char *)txt+point,"no TD%i means T0",i);
+				OffersT[0] = TRUE;
+			}
 			cs_debug("%s",txt);
 		}
+    
+		int numprottype = 0;
+		for (i = 0; i <= 2; i++)
+			if (OffersT[i])
+				numprottype ++;
+		cs_debug("%i protocol types detected. Historical bytes: %s",numprottype, cs_hexdump(1,atr->hb,atr->hbn));
 
 //If more than one protocol type and/or TA1 parameter values other than the default values and/or N equeal to 255 is/are indicated in the answer to reset, the card shall know unambiguously, after having sent the answer to reset, which protocol type or/and transmission parameter values (FI, D, N) will be used. Consequently a selection of the protocol type and/or the transmission parameters values shall be specified.
 		ATR_GetParameter (atr, ATR_PARAMETER_N, &(pps->parameters.n));
-		ATR_GetProtocolType(atr,2,&(pps->parameters.t)); //get protocol from TD1
-		if ((numprot > 1) && (pps->icc->ifd->io->com != RTYP_SCI) && (pps->parameters.t != 14) && ((atr->ib[0][ATR_INTERFACE_BYTE_TA].present == TRUE && atr->ib[0][ATR_INTERFACE_BYTE_TA].value != 0x11) || pps->parameters.n == 255)) {
+		ATR_GetProtocolType(atr,1,&(pps->parameters.t)); //get protocol from TD1
+		bool NeedsPTS = ((pps->parameters.t != 14) && (numprottype > 1 || (atr->ib[0][ATR_INTERFACE_BYTE_TA].present == TRUE && atr->ib[0][ATR_INTERFACE_BYTE_TA].value != 0x11) || pps->parameters.n == 255)); //needs PTS according to ISO 7816 , SCI gets stuck on our PTS
+		if (NeedsPTS && (pps->icc->ifd->io->com != RTYP_SCI)) {
 			//             PTSS  PTS0  PTS1  PTS2  PTS3  PCK
 			//             PTSS  PTS0  PTS1  PCK
 			BYTE req[] = { 0xFF, 0x10, 0x00, 0x00 }; //we currently do not support PTS2, standard guardtimes
 
 			int p; 
 			for (p=1; p<=numprot; p++) {
-				if (p == 1)
-					pps->parameters.t = 0; //default T0 protocol
-				else
-				  ATR_GetProtocolType(atr,p+1,&(pps->parameters.t)); //get protocol from TDi //FIXME p+1 is needed for flaw in atr.c
-				//if (pps->parameters.t == 14) 
-				//	continue; //skip T14!!!
+				ATR_GetProtocolType(atr,p,&(pps->parameters.t));
 				req[1]=0x10 | pps->parameters.t; //PTS0 always flags PTS1 to be sent always
 				if (ATR_GetInterfaceByte (atr, p, ATR_INTERFACE_BYTE_TA, &req[2]) != ATR_OK)  //PTS1 
 					req[2] = 0x11; //defaults FI and DI to 1
@@ -203,22 +213,69 @@ int PPS_Perform (PPS * pps, BYTE * params, unsigned *length)
 					cs_ddump(req,4,"PTS Failure for protocol %i, response:",p);
 			}
 		}
+
 		//FIXME Currently InitICC sets baudrate to 9600 for all T14 cards, which is the old behaviour...
 		if (!PPS_success) {//last PPS not succesfull
 			BYTE TA1;
-			if ((numprot > 1) && ATR_GetInterfaceByte (atr, 1 , ATR_INTERFACE_BYTE_TA, &TA1) == ATR_OK && pps->parameters.t != 14) { //do not obey TA1 if T14 and no PTS 
+			if (ATR_GetInterfaceByte (atr, 1 , ATR_INTERFACE_BYTE_TA, &TA1) == ATR_OK && pps->parameters.t != 14) {
 				pps->parameters.FI = TA1 >> 4;
 				ATR_GetParameter (atr, ATR_PARAMETER_D, &(pps->parameters.d));
 			}
-			else {
+			else { //do not obey TA1 if T14
 				pps->parameters.FI = ATR_DEFAULT_FI;
 				pps->parameters.d = ATR_DEFAULT_D;
 			}
 			// Get protocol offered by interface bytes T*2 if TD1 available,
 			// FIXME or would it be wiser to not switch anything and stick to 9600? 
-			ATR_GetProtocolType (atr, 2, &(pps->parameters.t));
+			ATR_GetProtocolType (atr, 1, &(pps->parameters.t));
 			protocol_selected = 1;
-			cs_debug("No PTS, selected protocol 1: T%i, F=%.0f, D=%.6f, N=%.0f\n", pps->parameters.t, (double) atr_f_table[pps->parameters.FI], pps->parameters.d, pps->parameters.n);
+
+			if (NeedsPTS) { //FIXME we MUST discover PTS routine for Dreambox reader, now all cards in DBreaders which need PTS come here!!!
+				if (OffersT[0]) {
+	//If the card is able to process more than one protocol type and if one of those protocol types is indicated as T=0, then the protocol type T=0 shall indicated in TD1 as the first offered protocol, and is assumed if no PTS is performed.
+					pps->parameters.t =  ATR_PROTOCOL_TYPE_T0;
+					pps->parameters.FI = ATR_DEFAULT_FI; //ignoring TA1 is necessary at least for all viaccess cards on dreambox readers
+					pps->parameters.d = ATR_DEFAULT_D;   //but perhaps it is the general thing to do...
+				}
+			}
+			/////Here all non-ISO behaviour
+			// Nagra HD+ 
+			// ATR: 3F FF 95 00 FF 91 81 71 FE 47 00 44 4E 41 53 50 31 34 32 20 52 65 76 47 43 34 63
+			// Protocol 1: TA1=95 TB1=00 TC1=FF TD1=91 (T1)
+			// Protocol 2: TA2=81 TD2=71 (T1)
+			// Protocol 3: TA3=FE TB3=47 TC3=00 no TD3 means T0
+			//
+			// Problem1: card somehow fails all PTS attempts; perhaps because N=255 and we try PTS without it?
+			// Problem2: card reports to support T0 but TA1=FE , which values are (still) undefined . On failure of PTS card reverts to TA=11 which 
+			// makes the card fail
+			// We know the card needs 115200 (with cardmhz = 368) after ATR
+			// Solution: longterm: implement PTS2 
+			// Solution: shorterm: this hardcoding
+			//
+			unsigned char nagra_hdplus[] = {0x44, 0x4E, 0x41, 0x53, 0x50}; //DNASP, not sure about timings of TIGER & others
+			if (atr->hbn >= sizeof(nagra_hdplus))
+				if (!memcmp(atr->hb, nagra_hdplus, sizeof(nagra_hdplus))) {
+					ATR_GetProtocolType (atr, 1, &(pps->parameters.t));
+					protocol_selected = 1;
+					if (ATR_GetInterfaceByte (atr, 1 , ATR_INTERFACE_BYTE_TA, &TA1) == ATR_OK) {
+						pps->parameters.FI = TA1 >> 4;
+						ATR_GetParameter (atr, ATR_PARAMETER_D, &(pps->parameters.d));
+					}
+				}
+			//
+			// 
+			/////End  all non-ISO behaviour
+		  if (pps->icc->ifd->io->com == RTYP_SCI) { 
+		  //// Here all fixes that are needed until PTS routine for Dreambox is found
+			//// End  all fixes that are needed until PTS routine for Dreambox is found
+				if (atr->hbn >=6)
+					if (!memcmp( atr->hb, "IRDETO", 6 )) { //IRDETO needs TA1 behaviour on /dev/sci  ; which other cards need ignore TA1 on T14?
+						pps->parameters.FI = TA1 >> 4;
+						ATR_GetParameter (atr, ATR_PARAMETER_D, &(pps->parameters.d));
+					}
+			}
+
+			cs_debug("No PTS %s, selected protocol 1: T%i, F=%.0f, D=%.6f, N=%.0f\n", NeedsPTS?"happened":"needed", pps->parameters.t, (double) atr_f_table[pps->parameters.FI], pps->parameters.d, pps->parameters.n);
 		}
 	}//end length<0
 		
@@ -373,11 +430,11 @@ static int PPS_InitICC (PPS * pps, int selected_protocol)
 		if (ioctl(pps->icc->ifd->io->fd, IOCTL_GET_PARAMETERS, &params) < 0 )
 			return PPS_ICC_ERROR;
 
-    		ATR *atr = ICC_Async_GetAtr (pps->icc);
+		ATR *atr = ICC_Async_GetAtr (pps->icc);
 
 		params.T = pps->parameters.t;
 
-    		BYTE oldFI = params.FI;
+		BYTE oldFI = params.FI;
 //		params.FI = pps->parameters.FI; //somehow setting this gets "card unsupported" 
 /*		if (pps->icc->ifd->io->mhz > 368) {
 			int number_of_overclock_steps = ((pps->icc->ifd->io->mhz)/200) - 2; //600 is 1 overclock, 800 2 overclocks etc.
@@ -392,9 +449,9 @@ static int PPS_InitICC (PPS * pps, int selected_protocol)
 			params.FI = 5; //routine above should be tested so hardcoding can get removed
 
 		if (oldFI != params.FI)
-		  cs_log("Forcing params.FI from %i to %i", oldFI, params.FI);
+			cs_log("Forcing params.FI from %i to %i", oldFI, params.FI);
 
-	  	double F =  (double) atr_f_table[pps->parameters.FI];
+		double F =  (double) atr_f_table[pps->parameters.FI];
 		params.ETU = F / pps->parameters.d;
 		if (pps->parameters.n == 255)
 			params.EGT = 0;
@@ -500,28 +557,7 @@ static int PPS_InitProtocol (PPS * pps, int selected_protocol)
 	
 	return PPS_PROTOCOL_ERROR;
 }
-/*
-static void PPS_SelectFirstProtocol (PPS * pps)
-{
-	ATR *atr = ICC_Async_GetAtr (pps->icc);
-	unsigned np;
-	
-	pps->parameters.t = ATR_PROTOCOL_TYPE_T0;
-	
-	ATR_GetNumberOfProtocols (atr, &np);
-	
-	 
-	// Get protocol offered by interface bytes T*2 if available, 
-	// (that is, if TD1 is available), * otherwise use default T=0
-	
-	if (np>1)
-		ATR_GetProtocolType (atr, 2, &(pps->parameters.t));
-	
-#ifdef DEBUG_PROTOCOL
-	printf ("PPS: Protocol T=%d selected\n", pps->parameters.t);
-#endif
-}
-*/
+
 static BYTE PPS_GetPCK (BYTE * block, unsigned length)
 {
 	BYTE pck;
