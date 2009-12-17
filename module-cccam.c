@@ -715,21 +715,8 @@ static cc_msg_type_t cc_parse_msg(uint8 *buf, int l)
     cs_log("cccam: srv %s running v%s (%s)", cs_hexdump(0, cc->server_node_id, 8), buf+12, buf+44);
     break;
   case MSG_NEW_CARD:
-    // find blank caid slot in tab and add caid
     {
       int i = 0;
-      /*, p = 0;
-      while(reader[ridx].ctab.caid[i]) {
-        if (reader[ridx].ctab.caid[i] == b2i(2, buf+12)) p = 1;
-        i++;
-      }
-    if (!p) {
-      reader[ridx].ctab.caid[i] = b2i(2, buf+12);
-    }
-    */
-
-   // if (b2i(2, buf+12) == reader[ridx].ctab.caid[0]) { // only add cards with relevant caid (for now)
-    //  int i;
       struct cc_card *card = malloc(sizeof(struct cc_card));
 
       bzero(card, sizeof(struct cc_card));
@@ -815,7 +802,7 @@ static cc_msg_type_t cc_parse_msg(uint8 *buf, int l)
     cc_crypt(&cc->block[DECRYPT], buf+4, l-4, ENCRYPT); // additional crypto step
     pthread_mutex_unlock(&cc->ecm_busy);
     //cc_abort_user_ecms();
-    cc_send_ecm(NULL, NULL);
+    //cc_send_ecm(NULL, NULL);
     ret = 0;
     break;
   case MSG_PING:
