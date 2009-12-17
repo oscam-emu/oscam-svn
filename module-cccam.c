@@ -539,6 +539,8 @@ static int cc_send_ecm(ECM_REQUEST *er, uchar *buf)
   ECM_REQUEST *cur_er;
 
   if (!cc || (pfd < 1)) {
+    cur_er->rc = 0;
+    cur_er->rcEx = 0x27;
     write_ecm_answer(fd_c2m, er);
     return 0;
   }
