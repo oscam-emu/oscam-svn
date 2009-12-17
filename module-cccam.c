@@ -540,6 +540,7 @@ static int cc_send_ecm(ECM_REQUEST *er, uchar *buf)
 
   if (!cc) return 0;
 
+  cs_log("cccam: before ecm log.... %d", er->rc);
   pthread_mutex_lock(&cc->ecm_busy);
  /*( if (pthread_mutex_trylock(&cc->ecm_busy) == EBUSY) {
     cs_log("cccam: ecm trylock: failed to get lock");
@@ -663,17 +664,6 @@ static int cc_send_ecm(ECM_REQUEST *er, uchar *buf)
   pthread_mutex_unlock(&cc->lock);
   return 0;
 }
-
-// this is a hack and it's baaaaaad. It's also not used yet!
-/*
-static void cc_rebuild_caid_tab()
-{
-  int zz;
-  for(zz = 0; zz < CS_MAXCAIDTAB; zz++) {
-    cs_log("caid %x", reader[ridx].ctab.caid[zz]);
-  }
-}
-*/
 
 static int cc_abort_user_ecms(){
   int n, i;
