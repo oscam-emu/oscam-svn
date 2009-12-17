@@ -539,13 +539,15 @@ static int cc_send_ecm(ECM_REQUEST *er, uchar *buf)
   ECM_REQUEST *cur_er;
 
   if (!cc || (pfd < 1)) {
-    er->rc = 0;
-    er->rcEx = 0x27;
- //   write_ecm_answer(fd_c2m, er);
+    if (er) {
+      er->rc = 0;
+      er->rcEx = 0x27;
+      write_ecm_answer(fd_c2m, er);
+    }
     return 0;
   }
 
-  cs_log("cccam: before ecm lock.... %d", er->rc);
+  cs_log("cccam: before ecm lock....");
 //  pthread_mutex_lock(&cc->ecm_busy);
   if (pthread_mutex_trylock(&cc->ecm_busy) == EBUSY) {
     cs_log("cccam: ecm trylock: failed to get lock");
