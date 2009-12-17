@@ -41,7 +41,7 @@ static unsigned atr_num_ib_table[16] = {0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3
 
 unsigned atr_f_table[16] = {0, 372, 558, 744, 1116, 1488, 1860, 0, 0, 512, 768, 1024, 1536, 2048, 0, 0};
 
-double atr_d_table[16] = {0, 1, 2, 4, 8, 16, 32, 0, 12, 20, 0.5, 0.25, 125, 0.0625, 0.03125, 0.015625};
+double atr_d_table[16] = {0, 1, 2, 4, 8, 16, 32, 0, 12, 20, 0.5, 0.25, 0.125, 0.0625, 0.03125, 0.015625};
 //old table has 0 for RFU:
 //double atr_d_table[16] = {0, 1, 2, 4, 8, 16, 0, 0, 0, 0, 0.5, 0.25, 125, 0.0625, 0.03125, 0.015625};
 
@@ -152,6 +152,8 @@ int ATR_InitFromArray (ATR * atr, BYTE atr_buffer[ATR_MAX_SIZE], unsigned length
 			TDi = atr->ib[pn][ATR_INTERFACE_BYTE_TD].value = buffer[pointer];
 			atr->ib[pn][ATR_INTERFACE_BYTE_TD].present = TRUE;
 			(atr->TCK).present = ((TDi & 0x0F) != ATR_PROTOCOL_TYPE_T0);
+			if ((TDi & 0xF0)  == 0) //last TDi byte
+				break;
 			if (pn >= ATR_MAX_PROTOCOLS)
 				return (ATR_MALFORMED);
 			pn++;
@@ -167,8 +169,17 @@ int ATR_InitFromArray (ATR * atr, BYTE atr_buffer[ATR_MAX_SIZE], unsigned length
 	atr->pn = pn + 1;
 	
 	/* Store historical bytes */
-	if (pointer + atr->hbn >= length)
-		return (ATR_MALFORMED);
+	if (pointer + atr->hbn >= length) {
+		cs_log("ATR is malformed, it reports %i historical bytes but there are only %i",atr->hbn, length-pointer-2);
+		if (length-pointer-2 >=0)
+			atr->hbn = length-pointer-2;
+		else {
+			atr->hbn = 0;
+			atr->length = pointer + 1;
+		  return (ATR_MALFORMED);
+		}
+
+	}
 	
 	memcpy (atr->hb, buffer + pointer + 1, atr->hbn);
 	pointer += (atr->hbn);
@@ -272,6 +283,8 @@ int ATR_InitFromStream (ATR * atr, IO_Serial * io, unsigned timeout)
 			TDi = atr->ib[pn][ATR_INTERFACE_BYTE_TD].value;
 			atr->ib[pn][ATR_INTERFACE_BYTE_TD].present = TRUE;
 			(atr->TCK).present = ((TDi & 0x0F) != ATR_PROTOCOL_TYPE_T0);
+			if ((TDi & 0xF0)  == 0) //last TDi byte
+				break;
 			if (pn >= ATR_MAX_PROTOCOLS)
 				return (ATR_MALFORMED);
 			pn++;
@@ -454,10 +467,9 @@ int ATR_GetParameter (ATR * atr, int name, double *parameter)
 	
 	if (name == ATR_PARAMETER_F)
 	{
-		if (ATR_GetIntegerValue (atr, ATR_INTEGER_VALUE_FI, &FI) == ATR_OK)
-			(*parameter) = (double) (atr_f_table[FI]);
-		else
-			(*parameter) = (double) ATR_DEFAULT_F;
+		if (ATR_GetIntegerValue (atr, ATR_INTEGER_VALUE_FI, &FI) != ATR_OK) 
+			FI = ATR_DEFAULT_FI;
+		(*parameter) = (double) (atr_f_table[FI]);
 		return (ATR_OK);
 	}
 	else if (name == ATR_PARAMETER_D)

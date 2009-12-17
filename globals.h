@@ -193,6 +193,9 @@ enum {E2_GLOBAL=0, E2_GROUP, E2_CAID, E2_IDENT, E2_CLASS, E2_CHID, E2_QUEUE,
 //typedef unsigned char uchar;
 //typedef unsigned long ulong;
 
+// constants
+#define CTA_RES_LEN 512
+
 typedef struct s_classtab
 {
   uchar an;
@@ -409,6 +412,7 @@ struct s_reader
   int       ncd_proto;
   char      cc_version[7];  // cccam version
   char      cc_build[5];    // cccam build number
+  int       cc_maxhop;      // cccam max distance
   void      *cc;            // ptr to cccam internal data struct
   uchar     tcp_connected;
   int       tcp_ito;      // inactivity timeout
