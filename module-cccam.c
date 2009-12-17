@@ -579,7 +579,7 @@ static int cc_send_ecm(ECM_REQUEST *er, uchar *buf)
 
   cc->found = cur_er;
 
-  //if (buf) memcpy(buf, cur_er->ecm, cur_er->l);
+  if (buf) memcpy(buf, cur_er->ecm, cur_er->l);
   cs_log("DEBUG6");
 
   cc->cur_card = NULL;
