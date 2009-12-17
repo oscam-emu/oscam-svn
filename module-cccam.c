@@ -802,7 +802,7 @@ static cc_msg_type_t cc_parse_msg(uint8 *buf, int l)
     cc_crypt(&cc->block[DECRYPT], buf+4, l-4, ENCRYPT); // additional crypto step
     pthread_mutex_unlock(&cc->ecm_busy);
     //cc_abort_user_ecms();
-    //cc_send_ecm(NULL, NULL);
+    cc_send_ecm(NULL, NULL);
     ret = 0;
     break;
   case MSG_PING:
