@@ -408,7 +408,6 @@ static int cc_msg_recv(uint8 *buf, int l)
 {
   int len, flags;
   uint8 netbuf[CC_MAXMSGSIZE];
-  cs_log("DEBUG a");
 
   struct cc_data *cc = reader[ridx].cc;
   int handle = client[cs_idx].udp_fd;
@@ -680,7 +679,7 @@ static int cc_send_ecm(ECM_REQUEST *er, uchar *buf)
   }
 
   cs_log("DEBUG12");
-  pthread_mutex_unlock(&cc->lock);
+  pthread_mutex_unlock(&cc->ecm_busy);
   return 0;
 }
 
