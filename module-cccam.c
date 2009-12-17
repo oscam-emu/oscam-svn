@@ -538,7 +538,7 @@ static int cc_send_ecm(ECM_REQUEST *er, uchar *buf)
   LLIST_ITR itr;
   ECM_REQUEST *cur_er;
 
-  if (!cc) return 0;
+  if (!cc || (pfd < 1)) return 0;
 
   cs_log("cccam: before ecm log.... %d", er->rc);
   pthread_mutex_lock(&cc->ecm_busy);
