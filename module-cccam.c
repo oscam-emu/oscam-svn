@@ -408,6 +408,7 @@ static int cc_msg_recv(uint8 *buf, int l)
 {
   int len, flags;
   uint8 netbuf[CC_MAXMSGSIZE];
+  cs_log("DEBUG a");
 
   struct cc_data *cc = reader[ridx].cc;
   int handle = client[cs_idx].udp_fd;
@@ -710,10 +711,12 @@ static int cc_abort_user_ecms(){
 
 static cc_msg_type_t cc_parse_msg(uint8 *buf, int l)
 {
+  cs_log("DEBUG b");
   int ret = buf[1];
   struct cc_data *cc = reader[ridx].cc;
 
   pthread_mutex_lock(&cc->lock);
+  cs_log("DEBUG c");
 
   switch (buf[1]) {
   case MSG_CLI_DATA:
@@ -805,6 +808,7 @@ static cc_msg_type_t cc_parse_msg(uint8 *buf, int l)
     ret = 0;
     break;
   case MSG_CW:
+    cs_log("DEBUG e");
     cc_cw_decrypt(buf+4);
     memcpy(cc->dcw, buf+4, 16);
     cs_debug("cccam: cws: %s", cs_hexdump(0, cc->dcw, 16));
@@ -821,6 +825,7 @@ static cc_msg_type_t cc_parse_msg(uint8 *buf, int l)
     break;
   }
 
+  cs_log("DEBUG d");
   pthread_mutex_unlock(&cc->lock);
   return ret;
 }
