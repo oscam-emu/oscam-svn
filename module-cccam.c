@@ -711,12 +711,8 @@ static int cc_abort_user_ecms(){
 
 static cc_msg_type_t cc_parse_msg(uint8 *buf, int l)
 {
-  cs_log("DEBUG b");
   int ret = buf[1];
   struct cc_data *cc = reader[ridx].cc;
-
-  pthread_mutex_lock(&cc->lock);
-  cs_log("DEBUG c");
 
   switch (buf[1]) {
   case MSG_CLI_DATA:
@@ -808,14 +804,20 @@ static cc_msg_type_t cc_parse_msg(uint8 *buf, int l)
     ret = 0;
     break;
   case MSG_CW:
-    cs_log("DEBUG e");
+    cs_log("DEBUG e1");
     cc_cw_decrypt(buf+4);
+    cs_log("DEBUG e2");
     memcpy(cc->dcw, buf+4, 16);
+    cs_log("DEBUG e3");
     cs_debug("cccam: cws: %s", cs_hexdump(0, cc->dcw, 16));
+    cs_log("DEBUG e4");
     cc_crypt(&cc->block[DECRYPT], buf+4, l-4, ENCRYPT); // additional crypto step
+    cs_log("DEBUG e5");
     pthread_mutex_unlock(&cc->ecm_busy);
     //cc_abort_user_ecms();
+    cs_log("DEBUG e6");
     cc_send_ecm(NULL, NULL);
+    cs_log("DEBUG e7");
     ret = 0;
     break;
   case MSG_PING:
@@ -825,8 +827,6 @@ static cc_msg_type_t cc_parse_msg(uint8 *buf, int l)
     break;
   }
 
-  cs_log("DEBUG d");
-  pthread_mutex_unlock(&cc->lock);
   return ret;
 }
 
@@ -855,6 +855,8 @@ int cc_recv(uchar *buf, int l)
 
   memcpy(cbuf, buf, l);   // make a copy of buf
 
+  pthread_mutex_lock(&cc->lock);
+
   if (!is_server) {
     if (!client[cs_idx].udp_fd) return(-1);
     n = cc_msg_recv(cbuf, l);  // recv and decrypt msg
@@ -878,6 +880,8 @@ int cc_recv(uchar *buf, int l)
   memcpy(buf, cbuf, l);
 
   X_FREE(cbuf);
+
+  pthread_mutex_unlock(&cc->lock);
 
   return(n);
 }
