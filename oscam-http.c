@@ -111,13 +111,17 @@ void send_oscam_entitlement(FILE *f)
   int ridx;
   char *p;
 
-  fprintf(f,"<br><br><b>ENTITLEMENT</b><br>\n");
+  fprintf(f,"<BR><BR><B>ENTITLEMENT</B><BR>\n");
 
   for (ridx=0; ridx<CS_MAXREADER; ridx++){
     if(!reader[ridx].device[0]) break;
-    fprintf(f,"<br><br><b>Reader: %s </b><br>\n",reader[ridx].label);
+    fprintf(f,"<BR><BR><B>Reader: %s </B><BR>\n",reader[ridx].label);
+#ifdef CS_RDR_INIT_HIST
     for (p=(char *)reader[ridx].init_history; *p; p+=strlen(p)+1)
-      fprintf(f,"%s<br>\n",p);
+      fprintf(f,"%s<BR>\n",p);
+#else
+		fprintf(f,"the flag CS_RDR_INIT_HIST is not set in your binary<BR>\n");
+#endif
   }
 }
 
@@ -182,6 +186,7 @@ void send_oscam_status(FILE *f){
 		}
 	fprintf(f,"</TABLE><BR>\n");
 
+#ifdef CS_LOGHISTORY
 	for (i=(*loghistidx+3) % CS_MAXLOGHIST; i!=*loghistidx; i=(i+1) % CS_MAXLOGHIST){
 		char *p_usr, *p_txt;
 		p_usr=(char *)(loghist+(i*CS_LOGHISTSIZE));
@@ -194,6 +199,9 @@ void send_oscam_status(FILE *f){
 			fprintf(f, "%s<BR>\n", p_txt);
 		}
 	}
+#else
+	fprintf(f,"the flag CS_LOGHISTORY is not set in your binary<BR>\n");
+#endif
 }
 
 int process_request(FILE *f)
