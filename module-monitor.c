@@ -229,7 +229,7 @@ static void monitor_send_info(char *txt, int last)
   btxt[0]=0;
 }
 
-static int cs_idx2ridx(int idx)
+int cs_idx2ridx(int idx)
 {
   int i;
   for (i=0; i<CS_MAXREADER; i++)
@@ -238,7 +238,7 @@ static int cs_idx2ridx(int idx)
   return(-1);
 }
 
-static char *monitor_get_srvname(int id)
+char *monitor_get_srvname(int id)
 {
   struct s_srvid *this=cfg->srvid;
   static char name[83];
@@ -250,7 +250,7 @@ static char *monitor_get_srvname(int id)
   return(name);
 }
 
-static char *monitor_get_proto(int idx)
+char *monitor_get_proto(int idx)
 {
   int i;
   char *ctyp;

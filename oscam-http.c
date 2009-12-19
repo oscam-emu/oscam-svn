@@ -16,7 +16,6 @@
 #define PROTOCOL "HTTP/1.1"
 #define RFC1123FMT "%a, %d %b %Y %H:%M:%S GMT"
 
-
 static  char*   css[] = {
                 "p {color: white; }",
                 "h2 {color: orange; font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 20px; line-height: 20px;}",
@@ -70,7 +69,7 @@ void send_footer(FILE *f)
 }
 void send_oscam_menu(FILE *f)
 {
-fprintf(f,"<TABLE border=0> <TR> <TD CLASS=\"menu\"><A HREF=\"./config.html\">CONFIGURATION</TD> <TD CLASS=\"menu\"><A HREF=\"./readers.html\">READERS</TD> <TD CLASS=\"menu\"><A HREF=\"./users.html\">USERS</TD> <TD CLASS=\"menu\"><A HREF=\"./entitlements.html\">ENTITLEMENTS</TD> </TR> </TABLE>");
+fprintf(f,"<TABLE border=0> <TR> <TD CLASS=\"menu\"><A HREF=\"./status.html\">STATUS</TD> <TD CLASS=\"menu\"><A HREF=\"./config.html\">CONFIGURATION</TD> <TD CLASS=\"menu\"><A HREF=\"./readers.html\">READERS</TD> <TD CLASS=\"menu\"><A HREF=\"./users.html\">USERS</TD> <TD CLASS=\"menu\"><A HREF=\"./entitlements.html\">ENTITLEMENTS</TD> </TR> </TABLE>");
 }
 
 //void send_error(FILE *f, int status, char *title, char *extra, char *text)
@@ -122,26 +121,99 @@ void send_oscam_entitlement(FILE *f)
   }
 }
 
+void monitor_client_status(FILE *f, char id, int i){
+
+  if (client[i].pid)
+  {
+    char ldate[16], ltime[16], *usr;
+    int lsec, isec, cnr, con, cau;
+    time_t now;
+    struct tm *lt;
+    now=time((time_t)0);
+
+    if ((cfg->mon_hideclient_to <= 0) ||
+        (((now-client[i].lastecm)/60)<cfg->mon_hideclient_to) ||
+        (((now-client[i].lastemm)/60)<cfg->mon_hideclient_to) ||
+        (client[i].typ!='c'))
+    {
+      lsec=now-client[i].login;
+      isec=now-client[i].last;
+      usr=client[i].usr;
+      if (((client[i].typ=='r') || (client[i].typ=='p')) &&
+          (con=cs_idx2ridx(i))>=0)
+        usr=reader[con].label;
+      if (client[i].dup)
+        con=2;
+      else
+        if ((client[i].tosleep) &&
+            (now-client[i].lastswitch>client[i].tosleep))
+          con=1;
+        else
+          con=0;
+      if (i-cdiff>0)
+        cnr=i-cdiff;
+      else
+        cnr=(i>1) ? i-1 : 0;
+      if( (cau=client[i].au+1) )
+        if ((now-client[i].lastemm)/60>cfg->mon_aulow)
+          cau=-cau;
+      lt=localtime(&client[i].login);
+      sprintf(ldate, "%2d.%02d.%02d",
+                     lt->tm_mday, lt->tm_mon+1, lt->tm_year % 100);
+      sprintf(ltime, "%2d:%02d:%02d",
+                     lt->tm_hour, lt->tm_min, lt->tm_sec);
+      fprintf(f, "<TD>%d</TD><TD>%c</TD><TD>%d</TD><TD>%s</TD><TD>%d</TD><TD>%d</TD><TD>%s</TD><TD>%d</TD><TD>%s</TD><TD>%s</TD><TD>%s</TD><TD>%d</TD><TD>%04X:%04X</TD><TD>%s</TD><TD>%d</TD><TD>%d</TD>\n",
+              client[i].pid, client[i].typ, cnr, usr, cau, client[i].crypted,
+              cs_inet_ntoa(client[i].ip), client[i].port, monitor_get_proto(i),
+              ldate, ltime, lsec, client[i].last_caid, client[i].last_srvid,
+              monitor_get_srvname(client[i].last_srvid), isec, con);
+    }
+  }
+}
+
+void send_oscam_status(FILE *f){
+	int i;
+	fprintf(f,"<BR><BR><TABLE WIDTH='100%'>\n");
+	for (i=0; i<CS_MAXPID; i++)
+		if (client[i].pid)  {
+			fprintf(f,"<TR>");
+			monitor_client_status(f, client[i].pid, i);
+			fprintf(f,"</TR>\n");
+		}
+	fprintf(f,"</TABLE><BR>\n");
+
+	for (i=(*loghistidx+3) % CS_MAXLOGHIST; i!=*loghistidx; i=(i+1) % CS_MAXLOGHIST){
+		char *p_usr, *p_txt;
+		p_usr=(char *)(loghist+(i*CS_LOGHISTSIZE));
+		p_txt=p_usr+32;
+		if (p_txt[0]){
+			char sbuf[8];
+			sprintf(sbuf, "%03d", client[cs_idx].logcounter);
+			client[cs_idx].logcounter=(client[cs_idx].logcounter+1) % 1000;
+			memcpy(p_txt+4, sbuf, 3);
+			fprintf(f, "%s<BR>\n", p_txt);
+		}
+	}
+}
+
 int process_request(FILE *f)
 {
   char buf[4096];
   char *method;
   char *path;
   char *protocol;
-  char *cmd[]={"/config.html", "/readers.html", "/users.html", "/entitlements.html"};
+  char *cmd[]={"/config.html", "/readers.html", "/users.html", "/entitlements.html", "/status.html"};
   int pgidx = -1;
   int i;
 
   while (fgets(buf, sizeof(buf), f))  {
-    //cs_debug("[http] buf: %s", buf);
-    //cs_debug("[http] buf: %s", cs_hexdump(1,buf,32));
 
     if ( buf[0] == 0x47 && buf[1] == 0x45 && buf[2] == 0x54 ) {
         method = strtok(buf, " ");
         path = strtok(NULL, " ");
         protocol = strtok(NULL, "\r");
 
-        for (i=0; i<4; i++)
+        for (i=0; i<5; i++)
           if (!strcmp(path, cmd[i]))
             pgidx = i;
 
@@ -164,7 +236,8 @@ int process_request(FILE *f)
     case  1: send_oscam_reader(f); break;
     case  2: send_oscam_user(f); break;
     case  3: send_oscam_entitlement(f); break;
-    default: send_oscam_config(f); break;
+    case  4: send_oscam_status(f); break;
+    default: send_oscam_status(f); break;
   }
 
   send_footer(f);

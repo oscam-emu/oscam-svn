@@ -835,4 +835,9 @@ extern void module_oscam_ser(struct s_module *);
 extern void module_gbox(struct s_module *);
 extern void module_cccam(struct s_module *);
 extern struct timeval *chk_pending(struct timeb tp_ctimeout);
+
+// module-monitor
+extern char *monitor_get_proto(int idx);
+extern char *monitor_get_srvname(int id);
+extern int cs_idx2ridx(int idx);
 #endif  // CS_GLOBALS
