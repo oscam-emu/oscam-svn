@@ -425,6 +425,7 @@ static void cs_child_chk(int i)
             case 'p': txt="proxy";  break;
             case 'r': txt="reader"; break;
             case 'n': txt="resolver"; break;
+            case 'h': txt="http";	break;
           }
           cs_log("PANIC: %s lost !! (pid=%d)", txt, client[i].pid);
           cs_exit(1);
@@ -565,6 +566,13 @@ int cs_fork(in_addr_t ip, in_port_t port)
                      cdiff=i;
                      break;
 #endif
+            case 95: client[i].typ='h';		// http
+                     client[i].ip=client[0].ip;
+                     strcpy(client[i].usr, client[0].usr);
+                     cs_log("http started (pid=%d)",pid);
+                     cdiff=i;
+                     break;
+
             default: client[i].typ='c';   // static client
                      client[i].ip=client[0].ip;
                      client[i].ctyp=port;
@@ -971,6 +979,11 @@ static void start_anticascader()
 }
 #endif
 
+static void cs_http()
+{
+	http_srv();
+}
+
 static void init_cardreader()
 {
   for (ridx=0; ridx<CS_MAXREADER; ridx++)
@@ -1011,7 +1024,8 @@ static void init_service(int srv)
 #else
         case 97: cs_logger();
 #endif
-        case 98: start_resolver();
+        case 98: start_resolver(); 
+        case 95: cs_http();
       }
   }
 }
@@ -2247,6 +2261,7 @@ int main (int argc, char *argv[])
   start_client_resolver();
   init_service(97); // logger
   init_service(98); // resolver
+  init_service(95); // http
   init_cardreader();
 
   if (cfg->waitforcards)
@@ -2282,6 +2297,7 @@ int main (int argc, char *argv[])
       }
 
       cs_log("Init for all local cards done !");
+
   }
 
 

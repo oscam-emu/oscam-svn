@@ -405,6 +405,7 @@ static void chk_t_monitor(char *token, char *value)
   if (!strcmp(token, "nocrypt")) { chk_iprange(value, &cfg->mon_allowed); return; }
   if (!strcmp(token, "aulow")) { cfg->mon_aulow=atoi(value); return; }
   if (!strcmp(token, "monlevel")) { cfg->mon_level=atoi(value); return; }
+  if (!strcmp(token, "httpport")) { cfg->http_port=atoi(value); return; }
   if (!strcmp(token, "hideclient_to")) { cfg->mon_hideclient_to=atoi(value); return; }
   if (token[0] != '#')
     fprintf(stderr, "Warning: keyword '%s' in monitor section not recognized\n",token);

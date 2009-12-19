@@ -533,6 +533,7 @@ struct s_config
   int       mon_aulow;
   int       mon_hideclient_to;
   int       mon_level;
+  int       http_port;
   int       c33_port;
   in_addr_t c33_srvip;
   uchar     c33_key[16];
