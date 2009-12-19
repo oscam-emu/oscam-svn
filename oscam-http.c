@@ -31,8 +31,6 @@ static  char*   css[] = {
 
 void send_headers(FILE *f, int status, char *title, char *extra, char *mime )
 {
-  cs_log("send header");
-  //int c;
   time_t now;
   char timebuf[128];
 
@@ -47,16 +45,11 @@ void send_headers(FILE *f, int status, char *title, char *extra, char *mime )
     fprintf(f, "Last-Modified: %s\r\n", timebuf);
   fprintf(f, "Connection: close\r\n");
   fprintf(f, "\r\n");
-
-  //printf("\nAusgabe der kompletten Datei : \n");
-  //while( (c=getc(f)) != EOF)
-  //putc(c,stdout);
 }
 
 
 void send_htmlhead(FILE *f)
 {
-  cs_log("send html header");
   int i;
         fprintf(f, "<HTML>\r\n<HEAD>\r\n<TITLE>OSCAM %s build #%s</TITLE>\r\n<STYLE type=\"text/css\">\r\n",CS_VERSION,CS_SVN_VERSION);
 	for (i=0; css[i]; i++)
@@ -67,7 +60,6 @@ void send_htmlhead(FILE *f)
 
 void send_footer(FILE *f)
 {
-  cs_log("send footer");
   time_t t;
   struct tm *lt;
 	time(&t);
@@ -78,7 +70,6 @@ void send_footer(FILE *f)
 }
 void send_oscam_menu(FILE *f)
 {
-  cs_log("send menu");
 fprintf(f,"<TABLE border=0> <TR> <TD CLASS=\"menu\"><A HREF=\"./config.html\">CONFIGURATION</TD> <TD CLASS=\"menu\"><A HREF=\"./readers.html\">READERS</TD> <TD CLASS=\"menu\"><A HREF=\"./users.html\">USERS</TD> <TD CLASS=\"menu\"><A HREF=\"./entitlements.html\">ENTITLEMENTS</TD> </TR> </TABLE>");
 }
 
@@ -98,8 +89,7 @@ void send_oscam_config(FILE *f)
 
 void send_oscam_reader(FILE *f)
 {
-  cs_log("reader request");
-    fprintf(f,"READER");
+  fprintf(f,"READER");
 }
 
 void send_oscam_user(FILE *f)
@@ -114,14 +104,22 @@ void send_oscam_user(FILE *f)
     fprintf(f,"Sleep: %d<br>\r\n", account->tosleep);
     fprintf(f,"Monlevel: %d<br>\r\n", account->monlvl);
     fprintf(f,"<br>\r\n");
-
   }
 }
 
 void send_oscam_entitlement(FILE *f)
 {
-    fprintf(f,"ENTITLEMENT");
-    cs_log("entitlement request");
+  int ridx;
+  char *p;
+
+  fprintf(f,"<br><br><b>ENTITLEMENT</b><br>\n");
+
+  for (ridx=0; ridx<CS_MAXREADER; ridx++){
+    if(!reader[ridx].device[0]) break;
+    fprintf(f,"<br><br><b>Reader: %s </b><br>\n",reader[ridx].label);
+    for (p=(char *)reader[ridx].init_history; *p; p+=strlen(p)+1)
+      fprintf(f,"%s<br>\n",p);
+  }
 }
 
 int process_request(FILE *f)
@@ -130,47 +128,49 @@ int process_request(FILE *f)
   char *method;
   char *path;
   char *protocol;
+  char *cmd[]={"/config.html", "/readers.html", "/users.html", "/entitlements.html"};
+  int pgidx = -1;
+  int i;
 
-  if (!fgets(buf, sizeof(buf), f)) return -1;
-  printf("URL: %s", buf);
+  while (fgets(buf, sizeof(buf), f))  {
+    //cs_debug("[http] buf: %s", buf);
+    //cs_debug("[http] buf: %s", cs_hexdump(1,buf,32));
 
-  method = strtok(buf, " ");
-  path = strtok(NULL, " ");
-  protocol = strtok(NULL, "\r");
+    if ( buf[0] == 0x47 && buf[1] == 0x45 && buf[2] == 0x54 ) {
+        method = strtok(buf, " ");
+        path = strtok(NULL, " ");
+        protocol = strtok(NULL, "\r");
 
-  if (!method || !path || !protocol) return -1;
+        for (i=0; i<4; i++)
+          if (!strcmp(path, cmd[i]))
+            pgidx = i;
+
+    }
+
+    if (buf[0] == 0x0D && buf[1] == 0x0A) break;
+    memset(buf, '\0', sizeof(buf));
+  }
 
   fseek(f, 0, SEEK_CUR); // Force change of stream direction
 
-    send_headers(f, 200, "OK", NULL, "text/html");
-    send_htmlhead(f);
-    send_oscam_menu(f);
+  if (!method || !path || !protocol) return -1;
 
-    if(!strcmp(strtolower(path),"/config.html")){
-        cs_log("config request");
-        send_oscam_config(f);
-    }
-    else if(!strcmp(strtolower(path),"/readers.html")){
-        cs_log("readers request");
-        send_oscam_reader(f);
-    }
-    else if(!strcmp(strtolower(path),"/users.html")){
-        cs_log("users request");
-        send_oscam_user(f);
-    }
-    else if(!strcmp(strtolower(path),"/entitlements.html")){
-        cs_log("entitlement request");
-        send_oscam_entitlement(f);
-    }
-    else {
-        cs_log("unknown request");
-        send_oscam_menu(f);
-    }
+  send_headers(f, 200, "OK", NULL, "text/html");
+  send_htmlhead(f);
+  send_oscam_menu(f);
 
-    send_footer(f);
-    fprintf(f, "</BODY></HTML>\r\n");
+  switch(pgidx){
+    case  0: send_oscam_config(f); break;
+    case  1: send_oscam_reader(f); break;
+    case  2: send_oscam_user(f); break;
+    case  3: send_oscam_entitlement(f); break;
+    default: send_oscam_config(f); break;
+  }
 
-    return 0;
+  send_footer(f);
+  fprintf(f, "</BODY></HTML>\r\n");
+
+  return 0;
 }
 
 void http_srv()
