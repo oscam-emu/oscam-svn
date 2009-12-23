@@ -17,16 +17,22 @@
 #define RFC1123FMT "%a, %d %b %Y %H:%M:%S GMT"
 
 static  char*   css[] = {
-		"p {color: white; }",
-		"h2 {color: orange; font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 20px; line-height: 20px;}",
-		"h4 {color: yellow; font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 12px; line-height: 12px; }",
-		"TD.menu {background-color: navy; font-family: Verdana, Arial, Helvetica, sans-serif; color: white; font-size: 16px; border: 1px solid green; padding: 5px}",
-		"body {background-color: black; font-family: Courier, \"Courier New\", monospace ; color: green; height:100%}",
-		"A:link {text-decoration: none; color:white}",
-		"A:visited {text-decoration: none; color:white}",
-		"A:active {text-decoration: none; color:white}",
-		"A:hover {text-decoration: none; color: red;}",
-		NULL };
+			"p {color: white; }",
+			"h2 {color: orange; font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 20px; line-height: 20px;}",
+			"h4 {color: black; font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 12px; line-height: 12px; }",
+			"TABLE{background-color:#66CCFF;}",
+			"TD {border:1px solid gray; font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 12px;padding:5px;background-color:#6666FF;}",
+			"TH {border:1px solid gray; font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 12px;padding:5px;background-color:#6699FF}",
+			"DIV.log{border:1px solid black;background-color: black; font-family: Courier, \"Courier New\", monospace ; color: white;}",
+			"TABLE.menu{background-color:gold;align:center;}",
+			"TABLE.status{background-color:#66CCFF;empty-cells:show;}",
+			"TD.menu {border:2px outset lightgrey;background-color:silver;font-color:black; font-family: Verdana, Arial, Helvetica, sans-serif;}",
+			"body {background-color: #FFFF66;font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 12px;}",
+			"A:link {text-decoration: none; color:blue}",
+			"A:visited {text-decoration: none; color:blue}",
+			"A:active {text-decoration: none; color:white}",
+			"A:hover {text-decoration: none; color: red;}",
+				NULL };
 
 int strtoken(char *str, char *separator, char *token[]){
   int i = 0;
@@ -122,7 +128,7 @@ void send_footer(FILE *f){
 	lt=localtime(&t);
 
 	fprintf(f, "<HR/>");
-	fprintf(f, "<H4>%02d.%02d.%02d %02d:%02d:%02d</H4>\r\n",
+	fprintf(f, "<H4>OSCAM Webinterface - %02d.%02d.%02d %02d:%02d:%02d</H4>\r\n",
 										lt->tm_mday, lt->tm_mon+1, lt->tm_year%100,
 										lt->tm_hour, lt->tm_min, lt->tm_sec);
 }
@@ -130,7 +136,7 @@ void send_footer(FILE *f){
 void send_oscam_menu(FILE *f){
 
 	/*create menue*/
-	fprintf(f, "<TABLE border=0>\n");
+	fprintf(f, "<TABLE border=0 class=\"menu\">\n");
 	fprintf(f, "	<TR>\n");
 	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./status.html\">STATUS</TD>\n");
 	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./config.html\">CONFIGURATION</TD>\n");
@@ -152,16 +158,11 @@ void send_oscam_menu(FILE *f){
 //}
 
 void send_oscam_config(FILE *f) {
-	//void send_oscam_config(FILE *f, char *parameter[], int paramlen) {
-	//int i;
-	fprintf(f,"<BR><H4>CONFIG</H4><BR>");
-	//for (i=0; i<paramlen; i++)
-	//	fprintf(f,"Parameter %d = %s<BR>",i , parameter[i]);
-
+	fprintf(f,"<BR><BR>Configuration not yet implemented<BR><BR>");
 }
 
 void send_oscam_reader(FILE *f) {
-	fprintf(f,"<BR><H4>READER</H4><BR>");
+	fprintf(f,"<BR><BR>Reader not yet implemented<BR><BR>");
 }
 
 void send_oscam_user(FILE *f) {
@@ -170,8 +171,8 @@ void send_oscam_user(FILE *f) {
 	char *status = "offline";
 	struct s_auth *account;
 
-	fprintf(f,"<BR><BR><TABLE cellpadding=\"10\">\r\n");
-
+	fprintf(f,"<BR><BR><TABLE cellspacing=\"0\" cellpadding=\"10\">\r\n");
+	fprintf(f,"<TR><TH>Label</TH><TH>Status (not exact)</TH><TH>Action</TH></TR>");
 	for (account=cfg->account; (account) ; account=account->next){
 		status="offline";
 		fprintf(f,"<TR>\r\n");
@@ -202,21 +203,27 @@ void send_oscam_user_config(FILE *f, char *uriparams[], char *urivalues[], int p
 		if(!strcmp(urivalues[i], account->usr))
 			break;
 	}
-	fprintf(f,"Edit User %s <BR>", account->usr);
+
 	fprintf(f,"<form action=\"/userconfig_do.html\" method=\"get\"><input name=\"user\" type=\"hidden\" value=\"%s\">\r\n", account->usr);
-	fprintf(f,"<p>Password:<br><input name=\"pwd\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"%s\"></p>\r\n", account->pwd);
-	fprintf(f,"<p>Group: <br><input name=\"grp\" type=\"text\" size=\"10\" maxlength=\"10\" value=\"");
+
+	fprintf(f,"<TABLE cellspacing=\"0\">");
+	fprintf(f,"<TH></TH><TH>Edit User %s </TH>", account->usr);
+	fprintf(f,"<TR><TD>Password:</TD><TD><input name=\"pwd\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"%s\"></TD></TR>\r\n", account->pwd);
+	fprintf(f,"<TR><TD>Group:</TD><TD><input name=\"grp\" type=\"text\" size=\"10\" maxlength=\"10\" value=\"");
 
 		/*restore the settings format of group */
 		if (account->grp > 0){
 			i = 0;
+			int dot=0; //flag for comma
 			long lgrp = account->grp;
 
 			while(lgrp != 0){
 
 				if((lgrp%2) == 1) {
-					if(i==0)
+					if(dot==0){
 						fprintf(f, "%d", i+1);
+						dot=1;
+					}
 					else
 						fprintf(f, ",%d", i+1);
 				}
@@ -224,36 +231,51 @@ void send_oscam_user_config(FILE *f, char *uriparams[], char *urivalues[], int p
 				i++;
 			}
 		}
-	fprintf(f,"\"></p>\r\n");
+
+	fprintf(f,"\"></TD></TR>\r\n");
 
 	if (strlen(account->dyndns)>0)
-		fprintf(f,"<p>Hostname:<br><input name=\"dyndns\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"%s\"></p>\r\n", account->dyndns);
+		fprintf(f,"<TR><TD>Hostname:</TD><TD><input name=\"dyndns\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"%s\"></TD></TR>\r\n", account->dyndns);
 	else
-		fprintf(f,"<p>Hostname:<br><input name=\"dyndns\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"\"></p>\r\n");
+		fprintf(f,"<TR><TD>Hostname:</TD><TD><input name=\"dyndns\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"\"></TD></TR>\r\n");
 
-	if (account->uniq > 0)
-		fprintf(f,"<p>Uniq:<br><input name=\"uniq\" type=\"checkbox\" checked></p>\r\n");
-	else
-		fprintf(f,"<p>Uniq:<br><input name=\"uniq\" type=\"checkbox\"></p>\r\n");
+
+	fprintf(f,"<TR><TD>Uniq:</TD><TD><select name=\"uniq\" >\r\n");
+		if (account->uniq == 0)
+			fprintf(f,"\t<OPTION value=\"0\" selected>(0) none</OPTION>\r\n");
+		else
+			fprintf(f,"\t<OPTION value=\"0\">(0) none</OPTION>\r\n");
+
+		if (account->uniq == 1)
+			fprintf(f,"\t<OPTION value=\"1\" selected>(1) strict</OPTION>\r\n");
+		else
+			fprintf(f,"\t<OPTION value=\"1\">(1) strict</OPTION>\r\n");
+
+		if (account->uniq == 2)
+			fprintf(f,"\t<OPTION value=\"2\" selected>(2) IP based</OPTION>\r\n");
+		else
+			fprintf(f,"\t<OPTION value=\"2\">(2) IP based</OPTION>\r\n");
+
+	fprintf(f,"</SELECT></TD></TR>\r\n");
 
 	if(!account->tosleep)
-		fprintf(f,"<p>Sleep:<br><input name=\"tosleep\" type=\"text\" size=\"4\" maxlength=\"4\" value=\"0\"></p>\r\n");
+		fprintf(f,"<TR><TD>Sleep:</TD><TD><input name=\"tosleep\" type=\"text\" size=\"4\" maxlength=\"4\" value=\"0\"></TD></TR>\r\n");
 	else
-		fprintf(f,"<p>Sleep:<br><input name=\"tosleep\" type=\"text\" size=\"4\" maxlength=\"4\" value=\"%d\"></p>\r\n", account->tosleep);
+		fprintf(f,"<TR><TD>Sleep:</TD><TD><input name=\"tosleep\" type=\"text\" size=\"4\" maxlength=\"4\" value=\"%d\"></TD></TR>\r\n", account->tosleep);
 
 	/*Monlevel selector*/
-	fprintf(f,"<p>Monlevel: <br><select name=\"monlevel\" >\r\n");
+	fprintf(f,"<TR><TD>Monlevel:</TD><TD><select name=\"monlevel\" >\r\n");
 	for(i=1;i<5;i++){
 		if(i==account->monlvl)
 			fprintf(f,"\t<option selected>%d</option>\r\n",i);
 		else
 			fprintf(f,"\t<option>%d</option>\r\n",i);
 	}
-	fprintf(f,"</select></p>\r\n");
+	fprintf(f,"</select></TD></TR>\r\n");
 
 
 	/*AU Selector*/
-	fprintf(f,"<p>AU: <br><select name=\"au\" >\r\n");
+	fprintf(f,"<TR><TD>AU:</TD><TD><select name=\"au\" >\r\n");
 
 	if (account->au > -1)
 		fprintf(f,"\t<option value=\"-1\" selected>none</option>\r\n");
@@ -269,10 +291,10 @@ void send_oscam_user_config(FILE *f, char *uriparams[], char *urivalues[], int p
 		else
 			fprintf(f,"\t<option value=\"%d\">%s</option>\r\n", ridx, reader[ridx].label);
 	}
-	fprintf(f,"</select></p>\r\n");
+	fprintf(f,"</select></TD></TR>\r\n");
 
 	/*CAID*/
-	fprintf(f,"<p>CAID:<br><input name=\"caid\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"");
+	fprintf(f,"<TR><TD>CAID:</TD><TD><input name=\"caid\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"");
 
 	/*make string from caidtab*/
 	i = 0;
@@ -294,11 +316,11 @@ void send_oscam_user_config(FILE *f, char *uriparams[], char *urivalues[], int p
 		}
 
 	}
-	fprintf(f,"\"></p>\r\n");
+	fprintf(f,"\"></TD></TR>\r\n");
 
 
 	/*Betatunnel*/
-	fprintf(f,"<p>Betatunnel:<br><input name=\"betatunnel\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"");
+	fprintf(f,"<TR><TD>Betatunnel:</TD><TD><input name=\"betatunnel\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"");
 
 	/*make string from Betatunneltab*/
 	i = 0;
@@ -323,8 +345,8 @@ void send_oscam_user_config(FILE *f, char *uriparams[], char *urivalues[], int p
 		}
 	}
 
-	fprintf(f,"\"></p>\r\n");
-
+	fprintf(f,"\"></TD></TR>\r\n");
+	fprintf(f,"</TABLE>\r\n");
 	fprintf(f,"<input type=\"submit\" value=\"OK\"></form>\r\n");
 }
 
@@ -366,7 +388,8 @@ void send_oscam_user_config_do(FILE *f, char *uriparams[], char *urivalues[], in
 		switch(paramidx){
 			case 0: strncpy((char *)account->pwd, urivalues[j], sizeof(account->pwd)-1);
 								break;
-			case 1: if (urivalues[j]){
+			case 1: account->grp = 0;
+							if (urivalues[j]){
 								for (ptr=strtok(urivalues[j], ","); ptr; ptr=strtok(NULL, ",")) {
 									int g;
 									g = atoi(ptr);
@@ -415,17 +438,49 @@ void send_oscam_user_config_do(FILE *f, char *uriparams[], char *urivalues[], in
 	send_oscam_user(f);
 }
 
-void send_oscam_entitlement(FILE *f) {
+void send_oscam_entitlement(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
 
   /*build entitlements from reader init history*/
-	int ridx;
-	char *p;
+	int i,ridx;
+	char *p, *ctyp;
 
-	fprintf(f, "<BR><H4>ENTITLEMENT</H4><BR>\n");
+	if(paramcount==0){
+		fprintf(f, "<BR><BR>\r\n");
+		fprintf(f,"<TABLE cellspacing=\"0\">");
+		fprintf(f,"<TR><TH>Reader</TH><TH>Protocol</TH><TH>&nbsp;</TH></TR>");
 
-	for (ridx=0; ridx<CS_MAXREADER; ridx++){
-		if(!reader[ridx].device[0]) break;
-		fprintf(f, "<BR><BR><B>Reader: %s </B><BR>\n", reader[ridx].label);
+		for (ridx=0; ridx<CS_MAXREADER; ridx++){
+
+			switch(reader[ridx].typ)		// TODO like ph
+			{
+				case R_MOUSE   : ctyp="mouse";    break;
+				case R_INTERNAL: ctyp="intern";   break;
+				case R_SMART   : ctyp="smartreader";    break;
+				case R_CAMD35  : ctyp="camd 3.5x";break;
+				case R_CAMD33  : ctyp="camd 3.3x";break;
+				case R_NEWCAMD : ctyp="newcamd";  break;
+				case R_RADEGAST: ctyp="radegast"; break;
+				case R_SERIAL  : ctyp="serial";   break;
+				case R_GBOX    : ctyp="gbox";     break;
+#ifdef HAVE_PCSC
+				case R_PCSC    : ctyp="pcsc";     break;
+#endif
+				case R_CCCAM   : ctyp="cccam";    break;
+				case R_CS378X  : ctyp="cs378x";   break;
+				default        : ctyp="unknown";  break;
+			}
+
+			if(!reader[ridx].device[0]) break;
+			fprintf(f, "\t<TR><TD>%s</TD><TD>%s</TD><TD><A HREF=\"/entitlements.html?user=%s\">Check</A></TD></TR>\r\n", reader[ridx].label, ctyp, reader[ridx].label);
+		}
+		fprintf(f, "</TABLE>\r\n");
+	}
+	else {
+		for(i=0;paramcount;i++)
+			if (!strcmp(uriparams[i], "user")) break;
+
+		for (ridx=0; ridx<CS_MAXREADER; ridx++)
+			if (!strcmp(urivalues[i], reader[ridx].label)) break;
 
 #ifdef CS_RDR_INIT_HIST
 
@@ -438,6 +493,7 @@ void send_oscam_entitlement(FILE *f) {
 
 #endif
 	}
+
 }
 
 void monitor_client_status(FILE *f, char id, int i){
@@ -493,7 +549,8 @@ void monitor_client_status(FILE *f, char id, int i){
 void send_oscam_status(FILE *f){
 	int i;
 
-	fprintf(f,"<BR><BR><TABLE WIDTH=\"100%\">\n");
+	fprintf(f,"<BR><BR><TABLE WIDTH=\"100%\" cellspacing=\"0\" class=\"status\">\n");
+	fprintf(f,"<TR><TH>PID</TH><TH>Typ</TH><TH>ID</TH><TH>Label</TH><TH>AU</TH><TH>0</TH><TH>Address</TH><TH>Port</TH><TH>Protocol</TH><TH>Login</TH><TH>Login</TH><TH>Time</TH><TH>caid:srvid</TH><TH>&nbsp;</TH><TH>Idle</TH><TH>0</TH>");
 
 	for (i=0; i<CS_MAXPID; i++)
 		if (client[i].pid)  {
@@ -503,7 +560,7 @@ void send_oscam_status(FILE *f){
 		}
 
 	fprintf(f,"</TABLE><BR>\n");
-
+	fprintf(f,"<DIV class=\"log\">");
 #ifdef CS_LOGHISTORY
 	for (i=(*loghistidx+3) % CS_MAXLOGHIST; i!=*loghistidx; i=(i+1) % CS_MAXLOGHIST){
 		char *p_usr, *p_txt;
@@ -520,6 +577,7 @@ void send_oscam_status(FILE *f){
 #else
 	fprintf(f,"the flag CS_LOGHISTORY is not set in your binary<BR>\n");
 #endif
+	fprintf(f,"</DIV>");
 }
 
 int process_request(FILE *f) {
@@ -614,10 +672,10 @@ int process_request(FILE *f) {
   send_oscam_menu(f);
 
   switch(pgidx){
-    case  0: /*send_oscam_config(f);*/ break;
+    case  0: send_oscam_config(f); break;
     case  1: send_oscam_reader(f); break;
     case  2: send_oscam_user(f); break;
-    case  3: send_oscam_entitlement(f); break;
+    case  3: send_oscam_entitlement(f, uriparams, urivalues, paramcount); break;
     case  4: send_oscam_status(f); break;
     case  5: send_oscam_user_config(f, uriparams, urivalues, paramcount); break;
     case  6: send_oscam_user_config_do(f, uriparams, urivalues, paramcount); break;
