@@ -40,6 +40,34 @@ int strtoken(char *str, char *separator, char *token[]){
   return ( i );
 }
 
+static int x2i(int i){
+	i=toupper(i);
+	i = i - '0';
+	if(i > 9) i = i - 'A' + '9' + 1;
+	return i;
+}
+
+void urldecode(char *s){
+	int c, c1, n;
+	char *s0,*t;
+	t = s0 = s;
+	n = strlen(s);
+	while(n >0){
+		c = *s++;
+              if(c == '+') c = ' ';
+		else if(c == '%' && n > 2){
+			c = *s++;
+			c1 = c;
+			c = *s++;
+			c = 16*x2i(c1) + x2i(c);
+			n -= 2;
+		}
+		*t++ = c;
+		n--;
+	}
+	*t = 0;
+}
+
 void send_headers(FILE *f, int status, char *title, char *extra, char *mime ){
 
   time_t now;
@@ -137,111 +165,254 @@ void send_oscam_reader(FILE *f) {
 }
 
 void send_oscam_user(FILE *f) {
-
 	/*list accounts*/
 	int i = 0;
-	int idx = 0;
+	char *status = "offline";
 	struct s_auth *account;
+
+	fprintf(f,"<BR><BR><TABLE cellpadding=\"10\">\r\n");
+
+	for (account=cfg->account; (account) ; account=account->next){
+		status="offline";
+		fprintf(f,"<TR>\r\n");
+		for (i=0; i<CS_MAXPID; i++)
+			if (!strcmp(client[i].usr, account->usr))
+				status="<b>online</b>";
+
+		fprintf(f,"<TD>%s</TD><TD>%s</TD><TD><A HREF=\"/userconfig.html?user=%s\">Edit Settings</A>",account->usr, status, account->usr);
+		fprintf(f,"</TR>\r\n");
+	}
+	fprintf(f,"</TABLE>\r\n");
+}
+
+void send_oscam_user_config(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
+
+	struct s_auth *account;
+	int i;
 	CAIDTAB *ctab;
 	TUNTAB *ttab;
 
 	fprintf(f,"<BR><BR>\r\n");
 
+	for(i=0;i<paramcount;i++)
+		if (!strcmp(uriparams[i], "user")) break;
+
+	/*identfy useraccount*/
 	for (account=cfg->account; (account) ; account=account->next){
-
-		fprintf(f,"[account]<BR>\r\n");
-		fprintf(f,"user= %s<BR>\r\n", account->usr);
-		fprintf(f,"pwd= %s<BR>\r\n", account->pwd);
-
-		if (account->grp > 0){
-			fprintf(f,"group= ");
-			i=0;
-			long dez = account->grp;
-
-			while(dez!=0){
-
-				if((dez%2)==1)
-					fprintf(f,"%d",i+1);
-
-				dez=dez/2;
-
-				if(dez!=0)
-					fprintf(f,",");
-				i++;
-			}
-			fprintf(f,"<BR>\r\n");
-		}
-
-		if (account->dyndns[0])
-			fprintf(f,"hostname= %s<BR>\r\n", account->dyndns);
-
-		if (account->uniq > 0)
-			fprintf(f,"uniq= %d<BR>\r\n", account->uniq);
-
-		if (account->tosleep > 0)
-			fprintf(f,"sleep= %d<BR>\r\n", account->tosleep);
-
-		if (account->monlvl > 0)
-			fprintf(f,"monlevel= %d<BR>\r\n", account->monlvl);
-
-		if (account->au > -1)
-			if (reader[account->au].label[0])
-				fprintf(f,"au= %s<BR>\r\n", reader[account->au].label);
-
-		/*make string from caidtab*/
-		i = 0;
-		ctab = &account->ctab;
-
-		if (ctab->caid[i]){
-
-			fprintf(f,"caid= ");
-
-			while(ctab->caid[i]) {
-
-				if (i==0)
-					fprintf(f, "%04X", ctab->caid[i]);
-				else
-					fprintf(f, ",%04X", ctab->caid[i]);
-
-				if(ctab->mask[i])
-					fprintf(f, "&%04X", ctab->mask[i]);
-
-				i++;
-			}
-			fprintf(f,"<BR>\r\n");
-		}
-
-		/*make string from Betatunneltab*/
-		i = 0;
-		ttab = &account->ttab;
-
-		if (ttab->bt_caidfrom[i]) {
-
-			fprintf(f,"betatunnel= ");
-
-			while(ttab->bt_caidfrom[i]) {
-
-				if (i==0)
-					fprintf(f, "%04X", ttab->bt_caidfrom[i]);
-				else
-					fprintf(f, ",%04X", ttab->bt_caidfrom[i]);
-
-				if(ttab->bt_caidto[i])
-					fprintf(f, ".%04X", ttab->bt_caidto[i]);
-
-				if(ttab->bt_srvid[i])
-					fprintf(f, ":%04X", ttab->bt_srvid[i]);
-
-				i++;
-			}
-			fprintf(f,"<BR>\r\n");
-		}
-
-
-		//Space line between users
-		fprintf(f,"<BR>\r\n");
-		idx++;
+		if(!strcmp(urivalues[i], account->usr))
+			break;
 	}
+	fprintf(f,"Edit User %s <BR>", account->usr);
+	fprintf(f,"<form action=\"/userconfig_do.html\" method=\"get\"><input name=\"user\" type=\"hidden\" value=\"%s\">\r\n", account->usr);
+	fprintf(f,"<p>Password:<br><input name=\"pwd\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"%s\"></p>\r\n", account->pwd);
+	fprintf(f,"<p>Group: <br><input name=\"grp\" type=\"text\" size=\"10\" maxlength=\"10\" value=\"");
+
+		/*restore the settings format of group */
+		if (account->grp > 0){
+			i = 0;
+			long lgrp = account->grp;
+
+			while(lgrp != 0){
+
+				if((lgrp%2) == 1) {
+					if(i==0)
+						fprintf(f, "%d", i+1);
+					else
+						fprintf(f, ",%d", i+1);
+				}
+				lgrp = lgrp/2;
+				i++;
+			}
+		}
+	fprintf(f,"\"></p>\r\n");
+
+	if (strlen(account->dyndns)>0)
+		fprintf(f,"<p>Hostname:<br><input name=\"dyndns\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"%s\"></p>\r\n", account->dyndns);
+	else
+		fprintf(f,"<p>Hostname:<br><input name=\"dyndns\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"\"></p>\r\n");
+
+	if (account->uniq > 0)
+		fprintf(f,"<p>Uniq:<br><input name=\"uniq\" type=\"checkbox\" checked></p>\r\n");
+	else
+		fprintf(f,"<p>Uniq:<br><input name=\"uniq\" type=\"checkbox\"></p>\r\n");
+
+	if(!account->tosleep)
+		fprintf(f,"<p>Sleep:<br><input name=\"tosleep\" type=\"text\" size=\"4\" maxlength=\"4\" value=\"0\"></p>\r\n");
+	else
+		fprintf(f,"<p>Sleep:<br><input name=\"tosleep\" type=\"text\" size=\"4\" maxlength=\"4\" value=\"%d\"></p>\r\n", account->tosleep);
+
+	/*Monlevel selector*/
+	fprintf(f,"<p>Monlevel: <br><select name=\"monlevel\" >\r\n");
+	for(i=1;i<5;i++){
+		if(i==account->monlvl)
+			fprintf(f,"\t<option selected>%d</option>\r\n",i);
+		else
+			fprintf(f,"\t<option>%d</option>\r\n",i);
+	}
+	fprintf(f,"</select></p>\r\n");
+
+
+	/*AU Selector*/
+	fprintf(f,"<p>AU: <br><select name=\"au\" >\r\n");
+
+	if (account->au > -1)
+		fprintf(f,"\t<option value=\"-1\" selected>none</option>\r\n");
+	else
+		fprintf(f,"\t<option value=\"-1\">none</option>\r\n");
+
+	int ridx;
+	for (ridx=0; ridx<CS_MAXREADER; ridx++){
+		if(!reader[ridx].device[0]) break;
+
+		if (account->au == ridx)
+			fprintf(f,"\t<option value=\"%d\" selected>%s</option>\r\n", ridx, reader[ridx].label);
+		else
+			fprintf(f,"\t<option value=\"%d\">%s</option>\r\n", ridx, reader[ridx].label);
+	}
+	fprintf(f,"</select></p>\r\n");
+
+	/*CAID*/
+	fprintf(f,"<p>CAID:<br><input name=\"caid\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"");
+
+	/*make string from caidtab*/
+	i = 0;
+	ctab = &account->ctab;
+
+	if (ctab->caid[i]){
+
+		while(ctab->caid[i]) {
+
+			if (i==0)
+				fprintf(f, "%04X", ctab->caid[i]);
+			else
+				fprintf(f, ",%04X", ctab->caid[i]);
+
+			if(ctab->mask[i])
+				fprintf(f, "&%04X", ctab->mask[i]);
+
+			i++;
+		}
+
+	}
+	fprintf(f,"\"></p>\r\n");
+
+
+	/*Betatunnel*/
+	fprintf(f,"<p>Betatunnel:<br><input name=\"betatunnel\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"");
+
+	/*make string from Betatunneltab*/
+	i = 0;
+	ttab = &account->ttab;
+
+	if (ttab->bt_caidfrom[i]) {
+
+		while(ttab->bt_caidfrom[i]) {
+
+			if (i==0)
+				fprintf(f, "%04X", ttab->bt_caidfrom[i]);
+			else
+				fprintf(f, ",%04X", ttab->bt_caidfrom[i]);
+
+			if(ttab->bt_caidto[i])
+				fprintf(f, ".%04X", ttab->bt_caidto[i]);
+
+			if(ttab->bt_srvid[i])
+				fprintf(f, ":%04X", ttab->bt_srvid[i]);
+
+			i++;
+		}
+	}
+
+	fprintf(f,"\"></p>\r\n");
+
+	fprintf(f,"<input type=\"submit\" value=\"OK\"></form>\r\n");
+}
+
+void send_oscam_user_config_do(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
+
+	struct s_auth *account;
+	int i,j;
+	int paramidx = -1;
+	char *ptr;
+
+	char *params[]={"pwd",
+									"grp",
+									"dyndns",
+									"uniq",
+									"tosleep",
+									"monlevel",
+									"au",
+									"caid",
+									"betatunnel"};
+
+	/* Calculate the amount of items in array */
+  int paramcnt = sizeof(params)/sizeof(char *);
+
+	for(i=0;paramcount;i++)
+		if (!strcmp(uriparams[i], "user")) break;
+
+	/*identfy useraccount*/
+	for (account=cfg->account; (account) ; account=account->next){
+		if(!strcmp(urivalues[i], account->usr))
+			break;
+	}
+
+	for(j=0; j<paramcount; j++){
+
+		/* Map page to our static page definitions */
+		for (i=0; i<paramcnt; i++)
+			if (!strcmp(uriparams[j], params[i])) paramidx = i;
+
+		switch(paramidx){
+			case 0: strncpy((char *)account->pwd, urivalues[j], sizeof(account->pwd)-1);
+								break;
+			case 1: if (urivalues[j]){
+								for (ptr=strtok(urivalues[j], ","); ptr; ptr=strtok(NULL, ",")) {
+									int g;
+									g = atoi(ptr);
+									if ((g>0) && (g<33)) account->grp|=(1<<(g-1));
+								}
+							}
+								break;
+			case 2: if (strlen(urivalues[j])>0)
+								strncpy((char *)account->dyndns, urivalues[j], sizeof(account->dyndns)-1);
+								break;
+			case 3: if (strlen(urivalues[j])>0)
+								account->uniq = atoi(urivalues[j]);
+								break;
+			case 4: if (strlen(urivalues[j])>0)
+								account->tosleep = atoi(urivalues[j]);
+								break;
+			case 5: if (strlen(urivalues[j])>0)
+								account->monlvl = atoi(urivalues[j]);
+								break;
+			case 6: if (strlen(urivalues[j])>0)
+								account->au = atoi(urivalues[j]);
+								break;
+			case 7: if (strlen(urivalues[j])>0)
+								chk_caidtab(urivalues[j], &account->ctab);
+								break;
+			case 8: if (strlen(urivalues[j])>0)
+								chk_tuntab(urivalues[j], &account->ttab);
+								break;
+			default: break;
+
+//			case  5: chk_services(argarray[2], &account->sidtabok, &account->sidtabno);
+//													break;                              //services
+//
+//			case  7: chk_ftab(argarray[2], &account->ftab, "user", account->usr, "provid");
+//													break;                              //ident
+//
+//			case  9: chk_ftab(argarray[2], &account->fchid, "user", account->usr, "chid");
+//													break;                              //chid
+//			case  10:chk_cltab(argarray[2], &account->cltab);
+//													break;                              //class
+//
+//			default: continue;
+		}
+	}
+	cs_reinit_clients();
+	send_oscam_user(f);
 }
 
 void send_oscam_entitlement(FILE *f) {
@@ -352,53 +523,92 @@ void send_oscam_status(FILE *f){
 }
 
 int process_request(FILE *f) {
+  int maxparams=100;
   char buf[4096];
-  char *method = NULL;
-  char *path = NULL;
-  char *protocol = NULL;
-  char *uriparams[2];
-  char *uriparam[5];
-  int paramlen = 0;
-  int i;
-  int pgidx = -1;
+  char tmp[4096];
 
+  char *method;
+  char *path;
+  char *protocol;
+  char *pch;
+  char *pch2;
+  char *uriparams[maxparams];
+  char *urivalues[maxparams];
   /*list of possible pages*/
   char *pages[]={	"/config.html",
-								"/readers.html",
-								"/users.html",
-								"/entitlements.html",
-								"/status.html"};
+			"/readers.html",
+			"/users.html",
+			"/entitlements.html",
+			"/status.html",
+			"/userconfig.html",
+			"/userconfig_do.html"};
 
-  while (fgets(buf, sizeof(buf), f)) {
+  /* Calculate the amount of items in array */
+  int pagescnt = sizeof(pages)/sizeof(char *);
+  int pgidx = -1;
+  int i;
+  int paramcount = 0;
+  int parsemode = 1;
 
-		/*search for GET in HTTP header*/
-    if ( buf[0] == 0x47 && buf[1] == 0x45 && buf[2] == 0x54 ) {
-        method = strtok(buf, " ");
-        path = strtok(NULL, " ");
-        protocol = strtok(NULL, "\r");
+  /* First line always includes the GET/POST request */
+  if (!fgets(buf, sizeof(buf), f)) return -1;
+  method = strtok(buf, " ");
+  path = strtok(NULL, " ");
+  protocol = strtok(NULL, "\r");
+  /* Throw away references to anchors (these are dealt with by the browser and not the server!) */
+  path = strtok(path, "#");
+  if(method == NULL || path == NULL || protocol == NULL) return -1;
 
-        //check for parameters in uri and split on ?
-        if (path && (strtoken(path, "?", uriparams) > 0))
-        {
-        	paramlen = strtoken(uriparams[1], "&", uriparam);
-        	path = uriparams[0];
-				}
-
-				//find requested page
-        for (i = 0; i < 5; i++)
-          if (!strcmp(path, pages[i]))
-            pgidx = i;
-
-    }
-
-    if (buf[0] == 0x0D && buf[1] == 0x0A) break;
-    memset(buf, '\0', sizeof(buf));
+  pch=path;
+  /* advance pointer to beginning of query string */
+  while(pch[0] != '?' && pch[0] != '\0') ++pch;
+  if(pch[0] == '?'){
+    pch[0] = '\0';
+    ++pch;
   }
+
+  /* Map page to our static page definitions */
+  for (i=0; i<pagescnt; i++){
+    if (!strcmp(path, pages[i])) pgidx = i;
+  }
+
+  /* Parse parameters; parsemode = 1 means parsing next param, parsemode = -1 parsing next
+     value; pch2 points to the beginning of the currently parsed string, pch is the current position */
+  pch2=pch;
+  while(pch[0] != '\0'){
+    if((parsemode == 1 && pch[0] == '=') || (parsemode == -1 && pch[0] == '&')){
+      pch[0] = '\0';
+      urldecode(pch2);
+      if(parsemode == 1) {
+        if(paramcount >= maxparams) break;
+        ++paramcount;
+        uriparams[paramcount-1] = pch2;
+      } else {
+        urivalues[paramcount-1] = pch2;
+      }
+      parsemode = -parsemode;
+      pch2 = pch + 1;
+    }
+    ++pch;
+  }
+  /* last value wasn't processed in the loop yet... */
+  if(parsemode == -1 && paramcount <= maxparams){
+      urivalues[paramcount-1] = pch2;
+  }
+
+	/* Read remaining request (we're not interested in the content) */
+  while (fgets(tmp, sizeof(tmp), f))  {
+    if (tmp[0] == '\r' && tmp[1] == '\n') break;
+  }
+
+
+  //printf("%s %d\n", path, pgidx);
+  //for(i=0; i < paramcount; ++i) printf("%s : %s\n", uriparams[i], urivalues[i]);
 
   fseek(f, 0, SEEK_CUR); // Force change of stream direction
 
-  if (!method || !path || !protocol) return -1;
 
+	/*build page*/
   send_headers(f, 200, "OK", NULL, "text/html");
   send_htmlhead(f);
   send_oscam_menu(f);
@@ -409,6 +619,8 @@ int process_request(FILE *f) {
     case  2: send_oscam_user(f); break;
     case  3: send_oscam_entitlement(f); break;
     case  4: send_oscam_status(f); break;
+    case  5: send_oscam_user_config(f, uriparams, urivalues, paramcount); break;
+    case  6: send_oscam_user_config_do(f, uriparams, urivalues, paramcount); break;
     default: send_oscam_status(f); break;
   }
 
