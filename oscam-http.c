@@ -476,12 +476,16 @@ void send_oscam_entitlement(FILE *f, char *uriparams[], char *urivalues[], int p
 		fprintf(f, "</TABLE>\r\n");
 	}
 	else {
+
 		for(i=0;paramcount;i++)
 			if (!strcmp(uriparams[i], "user")) break;
+
+		fprintf(f, "<BR><BR>Entitlement for %s<BR><BR>\r\n", urivalues[i]);
 
 		for (ridx=0; ridx<CS_MAXREADER; ridx++)
 			if (!strcmp(urivalues[i], reader[ridx].label)) break;
 
+		fprintf(f, "<DIV class=\"log\">");
 #ifdef CS_RDR_INIT_HIST
 
 		for (p=(char *)reader[ridx].init_history; *p; p+=strlen(p)+1)
@@ -492,6 +496,8 @@ void send_oscam_entitlement(FILE *f, char *uriparams[], char *urivalues[], int p
 		fprintf(f, "the flag CS_RDR_INIT_HIST is not set in your binary<BR>\n");
 
 #endif
+
+		fprintf(f, "</DIV>");
 	}
 
 }
