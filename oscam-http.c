@@ -143,6 +143,7 @@ void send_oscam_menu(FILE *f){
 	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./readers.html\">READERS</TD>\n");
 	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./users.html\">USERS</TD>\n");
 	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./entitlements.html\">ENTITLEMENTS</TD>\n");
+	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./services.html\">SERVICES</TD>\n");
 	fprintf(f, "	</TR>\n");
 	fprintf(f, "</TABLE>\n");
 
@@ -162,6 +163,104 @@ void send_oscam_config(FILE *f) {
 }
 
 void send_oscam_reader(FILE *f) {
+	int ridx;
+	char *ctyp;
+
+	fprintf(f,"<BR><BR><TABLE cellspacing=\"0\" cellpadding=\"10\">\r\n");
+	fprintf(f,"<TR><TH>Label</TH><TH>Protocol</TH><TH>Action</TH></TR>");
+
+	for(ridx=0;ridx<CS_MAXREADER;ridx++){
+		if(!reader[ridx].device[0]) break;
+
+		switch(reader[ridx].typ)		// TODO like ph
+			{
+				case R_MOUSE   : ctyp="mouse";    break;
+				case R_INTERNAL: ctyp="intern";   break;
+				case R_SMART   : ctyp="smartreader";    break;
+				case R_CAMD35  : ctyp="camd 3.5x";break;
+				case R_CAMD33  : ctyp="camd 3.3x";break;
+				case R_NEWCAMD : ctyp="newcamd";  break;
+				case R_RADEGAST: ctyp="radegast"; break;
+				case R_SERIAL  : ctyp="serial";   break;
+				case R_GBOX    : ctyp="gbox";     break;
+#ifdef HAVE_PCSC
+				case R_PCSC    : ctyp="pcsc";     break;
+#endif
+				case R_CCCAM   : ctyp="cccam";    break;
+				case R_CS378X  : ctyp="cs378x";   break;
+				default        : ctyp="unknown";  break;
+			}
+
+		fprintf(f,"\t<TR><TD>%s</TD><TD>%s</TD><TD><A HREF=\"/readerconfig.html?user=%s\">Edit Settings</A></TD></TR>",reader[ridx].label, ctyp, reader[ridx].label);
+	}
+	fprintf(f,"</TABLE>\r\n");
+	//kill(client[0].pid, SIGUSR1);
+}
+
+void send_oscam_reader_config(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
+	int i,ridx;
+
+	fprintf(f,"<BR><BR>\r\n");
+	for(i=0;i<paramcount;i++)
+		if (!strcmp(uriparams[i], "user")) break;
+
+	for(ridx=0;ridx<CS_MAXREADER;ridx++){
+		if (!reader[ridx].device[0]){
+			fprintf(f,"Reader %s not found", urivalues[i]);
+			return ;
+		}
+		if (!strcmp(urivalues[i],reader[ridx].label)) break;
+	}
+
+	/*build form head*/
+	fprintf(f,"<form action=\"/readerconfig_do.html\" method=\"get\"><input name=\"user\" type=\"hidden\" value=\"%s\">\r\n", reader[ridx].label);
+	fprintf(f,"<TABLE cellspacing=\"0\">");
+	fprintf(f,"<TH>&nbsp;</TH><TH>Edit Reader %s </TH>", reader[ridx].label);
+
+	/*build form fields*/
+	fprintf(f,"<TR><TD>Device:</TD><TD><input name=\"device\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"%s", reader[ridx].device);
+	if(reader[ridx].r_port) fprintf(f,",%d",reader[ridx].r_port);
+	if(reader[ridx].l_port) fprintf(f,",%d",reader[ridx].l_port);
+	fprintf(f,"\"></TD></TR>\r\n");
+
+	fprintf(f,"<TR><TD>Key:</TD><TD><input name=\"key\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"%s\"></TD></TR>\r\n", reader[ridx].ncd_key);
+	//fprintf(f,"<TR><TD>Password:</TD><TD><input name=\"password\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"%s\"></TD></TR>\r\n", reader[ridx].gbox_pwd);
+	fprintf(f,"<TR><TD>Pincode:</TD><TD><input name=\"pincode\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"%s\"></TD></TR>\r\n", reader[ridx].pincode);
+	fprintf(f,"<TR><TD>Readnano:</TD><TD><input name=\"readnano\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"%s\"></TD></TR>\r\n", reader[ridx].emmfile);
+	//fprintf(f,"<TR><TD>Services:</TD><TD><input name=\"services\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"%s\"></TD></TR>\r\n", reader[ridx].emmfile);
+	fprintf(f,"<TR><TD>Inactivitytimeout:</TD><TD><input name=\"inactivitytimeout\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"%d\"></TD></TR>\r\n", reader[ridx].tcp_ito);
+	fprintf(f,"<TR><TD>Reconnecttimeout:</TD><TD><input name=\"reconnecttimeout\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"%d\"></TD></TR>\r\n", reader[ridx].tcp_rto);
+	fprintf(f,"<TR><TD>Disableserverfilter:</TD><TD><input name=\"disableserverfilter\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"%d\"></TD></TR>\r\n", reader[ridx].ncd_disable_server_filt);
+	fprintf(f,"<TR><TD>Fallback:</TD><TD><input name=\"fallback\" type=\"text\" size=\"3\" maxlength=\"3\" value=\"%d\"></TD></TR>\r\n", reader[ridx].fallback);
+	fprintf(f,"<TR><TD>Logport:</TD><TD><input name=\"logport\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"%d\"></TD></TR>\r\n", reader[ridx].log_port);
+	//fprintf(f,"<TR><TD>Caid:</TD><TD><input name=\"caid\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"%s\"></TD></TR>\r\n", reader[ridx].log_port);
+	fprintf(f,"<TR><TD>Boxid:</TD><TD><input name=\"boxid\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"%ld\"></TD></TR>\r\n", reader[ridx].boxid);
+
+
+
+	/*build form foot*/
+	fprintf(f,"</TABLE>\r\n");
+	fprintf(f,"<input type=\"submit\" value=\"OK\"></form>\r\n");
+
+	fprintf(f,"<BR><BR>Reader not yet implemented - Nothing changes on click<BR><BR>");
+}
+
+void send_oscam_reader_config_do(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
+	int i,ridx;
+
+	fprintf(f,"<BR><BR>\r\n");
+	for(i=0;i<paramcount;i++)
+		if (!strcmp(uriparams[i], "user")) break;
+
+	for(ridx=0;ridx<CS_MAXREADER;ridx++){
+		if (!reader[ridx].device[0]){
+			fprintf(f,"Reader %s not found", urivalues[i]);
+			return ;
+		}
+		if (!strcmp(urivalues[i],reader[ridx].label)) break;
+	}
+
+	fprintf(f,"Reader: %s - Nothing changed", reader[ridx].label);
 	fprintf(f,"<BR><BR>Reader not yet implemented<BR><BR>");
 }
 
@@ -370,7 +469,7 @@ void send_oscam_user_config_do(FILE *f, char *uriparams[], char *urivalues[], in
 	/* Calculate the amount of items in array */
   int paramcnt = sizeof(params)/sizeof(char *);
 
-	for(i=0;paramcount;i++)
+	for(i=0;i<paramcount;i++)
 		if (!strcmp(uriparams[i], "user")) break;
 
 	/*identfy useraccount*/
@@ -477,7 +576,7 @@ void send_oscam_entitlement(FILE *f, char *uriparams[], char *urivalues[], int p
 	}
 	else {
 
-		for(i=0;paramcount;i++)
+		for(i=0;i<paramcount;i++)
 			if (!strcmp(uriparams[i], "user")) break;
 
 		fprintf(f, "<BR><BR>Entitlement for %s<BR><BR>\r\n", urivalues[i]);
@@ -586,6 +685,57 @@ void send_oscam_status(FILE *f){
 	fprintf(f,"</DIV>");
 }
 
+void send_oscam_sidtab(FILE *f)
+{
+  struct s_sidtab *sidtab = cfg->sidtab;
+
+	fprintf(f,"<BR><BR><DIV class=\"log\">");
+
+  for (; sidtab; sidtab=sidtab->next)
+  {
+    int i, comma;
+    char buf[1024];
+    fprintf(f,"label=%s<BR>\r\n", sidtab->label);
+    sprintf(buf, "caid(%d)=", sidtab->num_caid);
+    comma=0;
+    for (i=0; i<sidtab->num_caid; i++){
+			if (comma==0){
+				sprintf(buf+strlen(buf), "%04X",sidtab->caid[i]);
+				comma++;
+			}
+			else
+				sprintf(buf+strlen(buf), ",%04X",sidtab->caid[i]);
+    }
+
+    fprintf(f,"%s<BR>\r\n", buf);
+    sprintf(buf, "provider(%d)=", sidtab->num_provid);
+    comma=0;
+    for (i=0; i<sidtab->num_provid; i++){
+			if (comma==0){
+				sprintf(buf+strlen(buf), "%ld08X", sidtab->provid[i]);
+				comma++;
+			}
+			else
+				sprintf(buf+strlen(buf), ",%ld08X", sidtab->provid[i]);
+    }
+
+    fprintf(f,"%s<BR>\r\n", buf);
+    sprintf(buf, "services(%d)=", sidtab->num_srvid);
+    comma=0;
+    for (i=0; i<sidtab->num_srvid; i++){
+    	if (comma==0){
+				sprintf(buf+strlen(buf), "%04X", sidtab->srvid[i]);
+				comma++;
+			}
+			else
+				sprintf(buf+strlen(buf), ",%04X", sidtab->srvid[i]);
+		}
+    fprintf(f,"%s<BR><BR>\r\n", buf);
+  }
+  fprintf(f,"</DIV>");
+}
+
+
 int process_request(FILE *f) {
   int maxparams=100;
   char buf[4096];
@@ -605,7 +755,10 @@ int process_request(FILE *f) {
 			"/entitlements.html",
 			"/status.html",
 			"/userconfig.html",
-			"/userconfig_do.html"};
+			"/userconfig_do.html",
+			"/readerconfig.html",
+			"/readerconfig_do.html",
+			"/services.html"};
 
   /* Calculate the amount of items in array */
   int pagescnt = sizeof(pages)/sizeof(char *);
@@ -685,6 +838,9 @@ int process_request(FILE *f) {
     case  4: send_oscam_status(f); break;
     case  5: send_oscam_user_config(f, uriparams, urivalues, paramcount); break;
     case  6: send_oscam_user_config_do(f, uriparams, urivalues, paramcount); break;
+    case  7: send_oscam_reader_config(f, uriparams, urivalues, paramcount); break;
+    case  8: send_oscam_reader_config_do(f, uriparams, urivalues, paramcount); break;
+    case	9: send_oscam_sidtab(f); break;
     default: send_oscam_status(f); break;
   }
 
