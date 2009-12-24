@@ -392,7 +392,53 @@ void send_oscam_user_config(FILE *f, char *uriparams[], char *urivalues[], int p
 	}
 	fprintf(f,"</select></TD></TR>\r\n");
 
-	/*CAID*/
+	/*---------------------SERVICES-------------------------
+	-------------------------------------------------------*/
+	/*services - first we have to move the long sidtabok/sidtabno to a binary array*/
+	int pos;
+	char sidok[33];
+	for (pos=0;pos<32;pos++) sidok[pos]='0';
+
+	char sidno[33];
+	for (pos=0;pos<32;pos++) sidno[pos]='0';
+
+	pos=0;
+	long dezok = account->sidtabok;
+	while (dezok!=0){
+		sidok[pos]='0'+dezok % 2;
+		dezok=dezok / 2;
+		pos++;
+	}
+
+	pos=0;
+	long dezno = account->sidtabno;
+	while (dezno!=0){
+		sidno[pos]='0'+dezno % 2;
+		dezno=dezno / 2;
+		pos++;
+	}
+
+	struct s_sidtab *sidtab = cfg->sidtab;
+	fprintf(f,"<TR><TD>Services:</TD><TD><TABLE cellspacing=\"0\">");
+
+	pos=0;
+	for (; sidtab; sidtab=sidtab->next){
+		if(sidok[pos]=='1')
+			fprintf(f,"<TR><TD><INPUT NAME=\"services\" TYPE=\"CHECKBOX\" VALUE=\"%s\" checked> %s</TD>", sidtab->label, sidtab->label);
+		else
+			fprintf(f,"<TR><TD><INPUT NAME=\"services\" TYPE=\"CHECKBOX\" VALUE=\"%s\"> %s</TD>", sidtab->label, sidtab->label);
+
+		if(sidno[pos]=='1')
+			fprintf(f,"<TD><INPUT NAME=\"services\" TYPE=\"CHECKBOX\" VALUE=\"!%s\" checked> !%s</TD></TR>\r\n", sidtab->label, sidtab->label);
+		else
+			fprintf(f,"<TD><INPUT NAME=\"services\" TYPE=\"CHECKBOX\" VALUE=\"!%s\"> !%s</TD></TR>\r\n", sidtab->label, sidtab->label);
+
+		pos++;
+	}
+	fprintf(f,"</TD></TR></TABLE>\r\n");
+
+	/*---------------------CAID-----------------------------
+	-------------------------------------------------------*/
 	fprintf(f,"<TR><TD>CAID:</TD><TD><input name=\"caid\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"");
 
 	/*make string from caidtab*/
@@ -452,9 +498,10 @@ void send_oscam_user_config(FILE *f, char *uriparams[], char *urivalues[], int p
 void send_oscam_user_config_do(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
 
 	struct s_auth *account;
-	int i,j;
+	int i,j,updateservices;
 	int paramidx = -1;
 	char *ptr;
+	char servicelabels[255]="";
 
 	char *params[]={"pwd",
 									"grp",
@@ -464,7 +511,8 @@ void send_oscam_user_config_do(FILE *f, char *uriparams[], char *urivalues[], in
 									"monlevel",
 									"au",
 									"caid",
-									"betatunnel"};
+									"betatunnel",
+									"services"};
 
 	/* Calculate the amount of items in array */
   int paramcnt = sizeof(params)/sizeof(char *);
@@ -517,6 +565,9 @@ void send_oscam_user_config_do(FILE *f, char *uriparams[], char *urivalues[], in
 			case 8: if (strlen(urivalues[j])>0)
 								chk_tuntab(urivalues[j], &account->ttab);
 								break;
+			case 9: sprintf(servicelabels+strlen(servicelabels), "%s,", urivalues[j]);
+							updateservices=1;
+								break;
 			default: break;
 
 //			case  5: chk_services(argarray[2], &account->sidtabok, &account->sidtabno);
@@ -533,6 +584,9 @@ void send_oscam_user_config_do(FILE *f, char *uriparams[], char *urivalues[], in
 //			default: continue;
 		}
 	}
+	if (updateservices==1)
+		chk_services(servicelabels, &account->sidtabok, &account->sidtabno);
+
 	cs_reinit_clients();
 	send_oscam_user(f);
 }
