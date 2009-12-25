@@ -649,6 +649,9 @@ extern void cs_sleepms(int);
 extern int bytes_available(int);
 extern void cs_setpriority(int);
 extern struct s_auth *find_user(char *);
+extern int x2i(int i);
+extern void urldecode(char *s);
+extern void long2bitchar(long value, char *result);
 
 // oscam variables
 extern int pfd, rfd, fd_c2m, fd_m2c, cs_idx, *c_start, cs_ptyp, cs_dblevel, cs_hw;

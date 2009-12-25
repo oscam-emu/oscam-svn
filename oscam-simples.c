@@ -357,3 +357,48 @@ void cs_setpriority(int prio)
 #endif
 }
 #endif
+
+int x2i(int i){
+	i=toupper(i);
+	i = i - '0';
+	if(i > 9) i = i - 'A' + '9' + 1;
+	return i;
+}
+
+void urldecode(char *s){
+	int c, c1, n;
+	char *s0,*t;
+	t = s0 = s;
+	n = strlen(s);
+	while(n >0){
+		c = *s++;
+              if(c == '+') c = ' ';
+		else if(c == '%' && n > 2){
+			c = *s++;
+			c1 = c;
+			c = *s++;
+			c = 16*x2i(c1) + x2i(c);
+			n -= 2;
+		}
+		*t++ = c;
+		n--;
+	}
+	*t = 0;
+}
+
+/* Converts a long value to a char array in bitwise representation.
+   Note that the result array MUST be at least 33 bit large and that
+   this function assumes long values to hold only values up to 32bits and to be positive!*/
+void long2bitchar(long value, char *result){
+	int pos;
+	for (pos=0;pos<32;pos++) result[pos]='0';
+	result[pos] = '\0';
+
+	pos=0;
+	while (value > 0 && pos < 32){
+		if(value % 2 == 1) result[pos]='1';
+		else result[pos]='0';
+		value=value / 2;
+		pos++;
+	}
+}

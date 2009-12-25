@@ -26,6 +26,7 @@ static  char*   css[] = {
 			"DIV.log{border:1px solid black;background-color: black; font-family: Courier, \"Courier New\", monospace ; color: white;}",
 			"TABLE.menu{background-color:gold;align:center;}",
 			"TABLE.status{background-color:#66CCFF;empty-cells:show;}",
+			"TABLE.invisible TD {border:0px; font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 12px;padding:5px;background-color:#6666FF;}}",
 			"TD.menu {border:2px outset lightgrey;background-color:silver;font-color:black; font-family: Verdana, Arial, Helvetica, sans-serif;}",
 			"body {background-color: #FFFF66;font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 12px;}",
 			"A:link {text-decoration: none; color:blue}",
@@ -33,46 +34,6 @@ static  char*   css[] = {
 			"A:active {text-decoration: none; color:white}",
 			"A:hover {text-decoration: none; color: red;}",
 				NULL };
-
-int strtoken(char *str, char *separator, char *token[]){
-  int i = 0;
-
-  token[0] = strtok(str, separator);
-
-  while ( token[i] ) {
-    i++;
-    token[i] = strtok(NULL, separator);
-  }
-  return ( i );
-}
-
-static int x2i(int i){
-	i=toupper(i);
-	i = i - '0';
-	if(i > 9) i = i - 'A' + '9' + 1;
-	return i;
-}
-
-void urldecode(char *s){
-	int c, c1, n;
-	char *s0,*t;
-	t = s0 = s;
-	n = strlen(s);
-	while(n >0){
-		c = *s++;
-              if(c == '+') c = ' ';
-		else if(c == '%' && n > 2){
-			c = *s++;
-			c1 = c;
-			c = *s++;
-			c = 16*x2i(c1) + x2i(c);
-			n -= 2;
-		}
-		*t++ = c;
-		n--;
-	}
-	*t = 0;
-}
 
 void send_headers(FILE *f, int status, char *title, char *extra, char *mime ){
 
@@ -310,27 +271,20 @@ void send_oscam_user_config(FILE *f, char *uriparams[], char *urivalues[], int p
 	fprintf(f,"<TR><TD>Password:</TD><TD><input name=\"pwd\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"%s\"></TD></TR>\r\n", account->pwd);
 	fprintf(f,"<TR><TD>Group:</TD><TD><input name=\"grp\" type=\"text\" size=\"10\" maxlength=\"10\" value=\"");
 
-		/*restore the settings format of group */
-		if (account->grp > 0){
-			i = 0;
-			int dot=0; //flag for comma
-			long lgrp = account->grp;
-
-			while(lgrp != 0){
-
-				if((lgrp%2) == 1) {
-					if(dot==0){
-						fprintf(f, "%d", i+1);
-						dot=1;
-					}
-					else
-						fprintf(f, ",%d", i+1);
-				}
-				lgrp = lgrp/2;
-				i++;
+	/*restore the settings format of group from long over bitarray*/
+	int dot = 0; //flag for comma
+	char grpbit[33];
+	long2bitchar(account->grp, grpbit);
+	for(i = 0; i < 32; i++){
+		if (grpbit[i] == '1'){
+			if (dot == 0){
+				fprintf(f, "%d", i+1);
+				dot = 1;
 			}
+			else
+				fprintf(f, ",%d", i+1);
 		}
-
+	}
 	fprintf(f,"\"></TD></TR>\r\n");
 
 	if (strlen(account->dyndns)>0)
@@ -395,33 +349,17 @@ void send_oscam_user_config(FILE *f, char *uriparams[], char *urivalues[], int p
 	/*---------------------SERVICES-------------------------
 	-------------------------------------------------------*/
 	/*services - first we have to move the long sidtabok/sidtabno to a binary array*/
-	int pos;
+
 	char sidok[33];
-	for (pos=0;pos<32;pos++) sidok[pos]='0';
+	long2bitchar(account->sidtabok,sidok);
 
 	char sidno[33];
-	for (pos=0;pos<32;pos++) sidno[pos]='0';
-
-	pos=0;
-	long dezok = account->sidtabok;
-	while (dezok!=0){
-		sidok[pos]='0'+dezok % 2;
-		dezok=dezok / 2;
-		pos++;
-	}
-
-	pos=0;
-	long dezno = account->sidtabno;
-	while (dezno!=0){
-		sidno[pos]='0'+dezno % 2;
-		dezno=dezno / 2;
-		pos++;
-	}
+	long2bitchar(account->sidtabno,sidno);
 
 	struct s_sidtab *sidtab = cfg->sidtab;
-	fprintf(f,"<TR><TD>Services:</TD><TD><TABLE cellspacing=\"0\">");
+	fprintf(f,"<TR><TD>Services:</TD><TD><TABLE cellspacing=\"0\" class=\"invisible\">");
 
-	pos=0;
+	int pos=0;
 	for (; sidtab; sidtab=sidtab->next){
 		if(sidok[pos]=='1')
 			fprintf(f,"<TR><TD><INPUT NAME=\"services\" TYPE=\"CHECKBOX\" VALUE=\"%s\" checked> %s</TD>", sidtab->label, sidtab->label);
@@ -498,10 +436,12 @@ void send_oscam_user_config(FILE *f, char *uriparams[], char *urivalues[], int p
 void send_oscam_user_config_do(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
 
 	struct s_auth *account;
-	int i,j,updateservices;
+	int i,j;
+	int updateservices=0;
 	int paramidx = -1;
 	char *ptr;
 	char servicelabels[255]="";
+	int tabidx;
 
 	char *params[]={"pwd",
 									"grp",
@@ -544,29 +484,38 @@ void send_oscam_user_config_do(FILE *f, char *uriparams[], char *urivalues[], in
 								}
 							}
 								break;
-			case 2: if (strlen(urivalues[j])>0)
-								strncpy((char *)account->dyndns, urivalues[j], sizeof(account->dyndns)-1);
+			case 2: strncpy((char *)account->dyndns, urivalues[j], sizeof(account->dyndns)-1);
 								break;
 			case 3: if (strlen(urivalues[j])>0)
 								account->uniq = atoi(urivalues[j]);
 								break;
 			case 4: if (strlen(urivalues[j])>0)
 								account->tosleep = atoi(urivalues[j]);
+							else
+								account->tosleep = 0;
 								break;
 			case 5: if (strlen(urivalues[j])>0)
-								account->monlvl = atoi(urivalues[j]);
+								if (atoi(urivalues[j])>4)
+									account->monlvl = 4;
+								else
+									account->monlvl = atoi(urivalues[j]);
+							else
+								account->monlvl = 0;
+
 								break;
 			case 6: if (strlen(urivalues[j])>0)
 								account->au = atoi(urivalues[j]);
 								break;
-			case 7: if (strlen(urivalues[j])>0)
-								chk_caidtab(urivalues[j], &account->ctab);
+			case 7:	for (tabidx=0;tabidx<CS_MAXCAIDTAB;tabidx++)
+								account->ctab.caid[tabidx]=0;
+							chk_caidtab(urivalues[j], &account->ctab);
 								break;
-			case 8: if (strlen(urivalues[j])>0)
-								chk_tuntab(urivalues[j], &account->ttab);
+			case 8:	for (tabidx=0;tabidx<CS_MAXTUNTAB;tabidx++)
+								account->ttab.bt_caidfrom[tabidx]=0;
+							chk_tuntab(urivalues[j], &account->ttab);
 								break;
-			case 9: sprintf(servicelabels+strlen(servicelabels), "%s,", urivalues[j]);
-							updateservices=1;
+			case 9: sprintf(servicelabels + strlen(servicelabels), "%s,", urivalues[j]);
+							updateservices = 1;
 								break;
 			default: break;
 
@@ -708,7 +657,7 @@ void monitor_client_status(FILE *f, char id, int i){
 void send_oscam_status(FILE *f){
 	int i;
 
-	fprintf(f,"<BR><BR><TABLE WIDTH=\"100%\" cellspacing=\"0\" class=\"status\">\n");
+	fprintf(f,"<BR><BR><TABLE WIDTH=\"100%%\" cellspacing=\"0\" class=\"status\">\n");
 	fprintf(f,"<TR><TH>PID</TH><TH>Typ</TH><TH>ID</TH><TH>Label</TH><TH>AU</TH><TH>0</TH><TH>Address</TH><TH>Port</TH><TH>Protocol</TH><TH>Login</TH><TH>Login</TH><TH>Time</TH><TH>caid:srvid</TH><TH>&nbsp;</TH><TH>Idle</TH><TH>0</TH>");
 
 	for (i=0; i<CS_MAXPID; i++)
