@@ -388,7 +388,9 @@ void urldecode(char *s){
 
 /* Converts a long value to a char array in bitwise representation.
    Note that the result array MUST be at least 33 bit large and that
-   this function assumes long values to hold only values up to 32bits and to be positive!*/
+   this function assumes long values to hold only values up to 32bits and to be positive!
+   the result of e.g. long 7 is 11100000000000000000000000000000 this means the array
+   is reversed */
 void long2bitchar(long value, char *result){
 	int pos;
 	for (pos=0;pos<32;pos++) result[pos]='0';

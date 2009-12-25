@@ -11,6 +11,7 @@
 #include <time.h>
 #include <sys/stat.h>
 #include <dirent.h>
+#include <arpa/inet.h>
 
 #define SERVER "webserver/1.0"
 #define PROTOCOL "HTTP/1.1"
@@ -24,7 +25,8 @@ static  char*   css[] = {
 			"TD {border:1px solid gray; font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 12px;padding:5px;background-color:#6666FF;}",
 			"TH {border:1px solid gray; font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 12px;padding:5px;background-color:#6699FF}",
 			"DIV.log{border:1px solid black;background-color: black; font-family: Courier, \"Courier New\", monospace ; color: white;}",
-			"TABLE.menu{background-color:gold;align:center;}",
+			"TABLE.menu{background-color:black;align:center;}",
+			"TABLE.menu TD{border:2px outset lightgrey;background-color:silver;font-color:black; font-family: Verdana, Arial, Helvetica, sans-serif;}",
 			"TABLE.status{background-color:#66CCFF;empty-cells:show;}",
 			"TABLE.invisible TD {border:0px; font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 12px;padding:5px;background-color:#6666FF;}}",
 			"TD.menu {border:2px outset lightgrey;background-color:silver;font-color:black; font-family: Verdana, Arial, Helvetica, sans-serif;}",
@@ -119,8 +121,162 @@ void send_oscam_menu(FILE *f){
 //  fprintf(f, "</BODY></HTML>\r\n");
 //}
 
-void send_oscam_config(FILE *f) {
-	fprintf(f,"<BR><BR>Configuration not yet implemented<BR><BR>");
+void send_oscam_config_global_do(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
+	fprintf(f,"<BR><BR>Configuration Global Execute not yet implemented<BR><BR>");
+		int i;
+
+	if (paramcount>0){
+		for(i=0;i<paramcount;i++){
+			fprintf(f,"Parameter: %s  ->>> Value: %s<BR>\r\n",uriparams[i],urivalues[i]);
+		}
+	}
+}
+
+void send_oscam_config_global(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
+
+	int i;
+
+	if (paramcount>0){
+		for(i=0;i<paramcount;i++){
+			if (!strcmp(uriparams[i], "action") && (!strcmp(urivalues[i], "execute"))) {
+				send_oscam_config_global_do(f, uriparams, urivalues, paramcount);
+				return;
+			}
+		}
+	}
+
+	fprintf(f,"<BR><BR>");
+	fprintf(f,"<form action=\"/config.html\" method=\"get\">\r\n");
+	fprintf(f,"<input name=\"part\" type=\"hidden\" value=\"global\">\r\n");
+	fprintf(f,"<input name=\"action\" type=\"hidden\" value=\"execute\">\r\n");
+	fprintf(f,"<TABLE cellspacing=\"0\">");
+	fprintf(f,"\t<TH>&nbsp;</TH><TH>Edit Global Config </TH>");
+
+	//ServerIP
+	fprintf(f,"\t<TR><TD>Serverip:</TD><TD><input name=\"srvip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"%s\"></TD></TR>\r\n", inet_ntoa(*(struct in_addr *)&cfg->srvip));
+	//Logfile
+	fprintf(f,"\t<TR><TD>Logfile:</TD><TD><input name=\"logfile\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"%s\"></TD></TR>\r\n", logfile);
+	//PID File
+	fprintf(f,"\t<TR><TD>PID File:</TD><TD><input name=\"pidfile\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"%s\"></TD></TR>\r\n", cfg->pidfile);
+	//Userfile
+	fprintf(f,"\t<TR><TD>Usrfile:</TD><TD><input name=\"usrfile\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"%s\"></TD></TR>\r\n", cfg->usrfile);
+	//Logfile
+	fprintf(f,"\t<TR><TD>CWlogdir:</TD><TD><input name=\"cwlogdir\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"%s\"></TD></TR>\r\n", cfg->cwlogdir);
+	//Clienttimeout
+	fprintf(f,"\t<TR><TD>Clienttimeout:</TD><TD><input name=\"clienttimeout\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%ld\"></TD></TR>\r\n", cfg->ctimeout);
+	//fallbacktimeout
+	fprintf(f,"\t<TR><TD>Fallbacktimeout:</TD><TD><input name=\"fallbacktimeout\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%ld\"></TD></TR>\r\n", cfg->ftimeout);
+	//clientmaxidle
+	fprintf(f,"\t<TR><TD>Clientmaxidle:</TD><TD><input name=\"clientmaxidle\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->cmaxidle);
+	//cachedelay
+	fprintf(f,"\t<TR><TD>Cachedelay:</TD><TD><input name=\"cachedelay\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%ld\"></TD></TR>\r\n", cfg->delay);
+	//bindwait
+	fprintf(f,"\t<TR><TD>Bindwait:</TD><TD><input name=\"bindwait\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->bindwait);
+	//netprio
+	fprintf(f,"\t<TR><TD>Netprio:</TD><TD><input name=\"netprio\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%ld\"></TD></TR>\r\n", cfg->netprio);
+	//resolvedelay
+	fprintf(f,"\t<TR><TD>Resolvedelay:</TD><TD><input name=\"resolvedelay\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->resolvedelay);
+	//sleep
+	fprintf(f,"\t<TR><TD>Sleep:</TD><TD><input name=\"sleep\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->tosleep);
+	//unlockparental
+	fprintf(f,"\t<TR><TD>Unlockparental:</TD><TD><input name=\"unlockparental\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->ulparent);
+	//nice
+	fprintf(f,"\t<TR><TD>Nice:</TD><TD><input name=\"nice\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->nice);
+	//serialreadertimeout
+	fprintf(f,"\t<TR><TD>Serialreadertimeout:</TD><TD><input name=\"serialreadertimeout\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->srtimeout);
+	//maxlogsize
+	fprintf(f,"\t<TR><TD>Maxlogsize:</TD><TD><input name=\"maxlogsize\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->max_log_size);
+	//showecmdw
+	fprintf(f,"\t<TR><TD>Showecmdw:</TD><TD><input name=\"showecmdw\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->show_ecm_dw);
+	//waitforcards
+	fprintf(f,"\t<TR><TD>Waitforcards:</TD><TD><input name=\"waitforcards\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->waitforcards);
+	//preferlocalcards
+	fprintf(f,"\t<TR><TD>Preferlocalcards:</TD><TD><input name=\"preferlocalcards\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->preferlocalcards);
+
+	//Tablefoot and finish form
+	fprintf(f,"</TABLE>\r\n");
+	fprintf(f,"<input type=\"submit\" value=\"OK\"></form>\r\n");
+
+	//Disclaimer
+	fprintf(f,"<BR><BR>Configuration Global not yet implemented chengings havn't any effect<BR><BR>");
+
+}
+
+void send_oscam_config_camd33(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
+	fprintf(f,"<BR><BR>Configuration camd33 not yet implemented<BR><BR>");
+}
+
+void send_oscam_config_camd33_do(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
+	fprintf(f,"<BR><BR>Configuration camd33 Do not yet implemented<BR><BR>");
+}
+
+void send_oscam_config_camd35(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
+	fprintf(f,"<BR><BR>Configuration camd35 not yet implemented<BR><BR>");
+}
+
+void send_oscam_config_camd35_do(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
+	fprintf(f,"<BR><BR>Configuration camd35 Do not yet implemented<BR><BR>");
+}
+
+void send_oscam_config_newcamd(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
+	fprintf(f,"<BR><BR>Configuration newcamd not yet implemented<BR><BR>");
+}
+
+void send_oscam_config_newcamd_do(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
+	fprintf(f,"<BR><BR>Configuration newcamd Do not yet implemented<BR><BR>");
+}
+
+void send_oscam_config_anticasc(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
+	fprintf(f,"<BR><BR>Configuration anticasc not yet implemented<BR><BR>");
+}
+
+void send_oscam_config_anticasc_do(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
+	fprintf(f,"<BR><BR>Configuration anticasc Do not yet implemented<BR><BR>");
+}
+
+void send_oscam_config(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
+	fprintf(f,"<BR><BR>");
+
+	/*create submenue*/
+	fprintf(f, "<TABLE border=0 class=\"menu\">\n");
+	fprintf(f, "	<TR>\n");
+	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./config.html?part=global\">Global</TD>\n");
+	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./config.html?part=camd33\">Camd3.3</TD>\n");
+	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./config.html?part=camd35\">Camd3.5</TD>\n");
+	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./config.html?part=newcamd\">Newcamd</TD>\n");
+	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./config.html?part=anticasc\">Anticascading</TD>\n");
+	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./config.html?part=dummy\">Dummy</TD>\n");
+	fprintf(f, "	</TR>\n");
+	fprintf(f, "</TABLE>\n");
+
+	int paramfound=0;
+	int i;
+
+	if (paramcount==0)
+		send_oscam_config_global(f, uriparams, urivalues, paramcount);
+	else
+		for(i=0;i<paramcount;i++){
+			if (!strcmp(uriparams[i], "part")) {
+				paramfound=1;
+				break;
+			}
+		}
+	if (paramfound==1){
+		if (!strcmp(urivalues[i],"global"))
+			send_oscam_config_global(f, uriparams, urivalues, paramcount);
+		else if (!strcmp(urivalues[i],"camd33"))
+			send_oscam_config_camd33(f, uriparams, urivalues, paramcount);
+		else if (!strcmp(urivalues[i],"camd35"))
+			send_oscam_config_camd35(f, uriparams, urivalues, paramcount);
+		else if (!strcmp(urivalues[i],"newcamd"))
+			send_oscam_config_newcamd(f, uriparams, urivalues, paramcount);
+		else if (!strcmp(urivalues[i],"anticasc"))
+			send_oscam_config_anticasc(f, uriparams, urivalues, paramcount);
+		else if (!strcmp(urivalues[i],"dummy"))
+			printf("Value: %s\n", urivalues[i]);
+		else
+			send_oscam_config_global(f, uriparams, urivalues, paramcount);
+	}
 }
 
 void send_oscam_reader(FILE *f) {
@@ -267,7 +423,7 @@ void send_oscam_user_config(FILE *f, char *uriparams[], char *urivalues[], int p
 	fprintf(f,"<form action=\"/userconfig_do.html\" method=\"get\"><input name=\"user\" type=\"hidden\" value=\"%s\">\r\n", account->usr);
 
 	fprintf(f,"<TABLE cellspacing=\"0\">");
-	fprintf(f,"<TH></TH><TH>Edit User %s </TH>", account->usr);
+	fprintf(f,"<TH>&nbsp;</TH><TH>Edit User %s </TH>", account->usr);
 	fprintf(f,"<TR><TD>Password:</TD><TD><input name=\"pwd\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"%s\"></TD></TR>\r\n", account->pwd);
 	fprintf(f,"<TR><TD>Group:</TD><TD><input name=\"grp\" type=\"text\" size=\"10\" maxlength=\"10\" value=\"");
 
@@ -401,6 +557,12 @@ void send_oscam_user_config(FILE *f, char *uriparams[], char *urivalues[], int p
 	}
 	fprintf(f,"\"></TD></TR>\r\n");
 
+	/*IDENT*/
+//	fprintf(f,"<TR><TD>Ident:</TD><TD><input name=\"ident\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"");
+//	for (i=0;i<account->ftab.nfilts;i++){
+//		fprintf(f, "%04X;", account->ftab.filts[i].caid);
+//	}
+//	fprintf(f,"\"></TD></TR>\r\n");
 
 	/*Betatunnel*/
 	fprintf(f,"<TR><TD>Betatunnel:</TD><TD><input name=\"betatunnel\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"");
@@ -429,6 +591,12 @@ void send_oscam_user_config(FILE *f, char *uriparams[], char *urivalues[], int p
 	}
 
 	fprintf(f,"\"></TD></TR>\r\n");
+
+#ifdef CS_ANTICASC
+	fprintf(f,"<TR><TD>Anticascading numusers:</TD><TD><input name=\"numusers\" type=\"text\" size=\"3\" maxlength=\"3\" value=\"%d\"></TD></TR>\r\n", account->ac_users);
+	fprintf(f,"<TR><TD>Anticascading penalty:</TD><TD><input name=\"penalty\" type=\"text\" size=\"3\" maxlength=\"3\" value=\"%d\"></TD></TR>\r\n", account->ac_penalty);
+#endif
+
 	fprintf(f,"</TABLE>\r\n");
 	fprintf(f,"<input type=\"submit\" value=\"OK\"></form>\r\n");
 }
@@ -452,7 +620,12 @@ void send_oscam_user_config_do(FILE *f, char *uriparams[], char *urivalues[], in
 									"au",
 									"caid",
 									"betatunnel",
-									"services"};
+									"services"
+#ifdef CS_ANTICASC
+									,"numusers"
+									,"penalty"
+#endif
+									};
 
 	/* Calculate the amount of items in array */
   int paramcnt = sizeof(params)/sizeof(char *);
@@ -517,6 +690,12 @@ void send_oscam_user_config_do(FILE *f, char *uriparams[], char *urivalues[], in
 			case 9: sprintf(servicelabels + strlen(servicelabels), "%s,", urivalues[j]);
 							updateservices = 1;
 								break;
+#ifdef CS_ANTICASC
+			case 10:account->ac_users = atoi(urivalues[j]);
+								break;
+			case 11:account->ac_penalty = atoi(urivalues[j]);
+								break;
+#endif
 			default: break;
 
 //			case  5: chk_services(argarray[2], &account->sidtabok, &account->sidtabno);
@@ -654,7 +833,7 @@ void monitor_client_status(FILE *f, char id, int i){
   }
 }
 
-void send_oscam_status(FILE *f){
+void send_oscam_status(FILE *f) {
 	int i;
 
 	fprintf(f,"<BR><BR><TABLE WIDTH=\"100%%\" cellspacing=\"0\" class=\"status\">\n");
@@ -688,8 +867,7 @@ void send_oscam_status(FILE *f){
 	fprintf(f,"</DIV>");
 }
 
-void send_oscam_sidtab(FILE *f)
-{
+void send_oscam_sidtab(FILE *f) {
   struct s_sidtab *sidtab = cfg->sidtab;
 
 	fprintf(f,"<BR><BR><DIV class=\"log\">");
@@ -834,7 +1012,7 @@ int process_request(FILE *f) {
   send_oscam_menu(f);
 
   switch(pgidx){
-    case  0: send_oscam_config(f); break;
+    case  0: send_oscam_config(f, uriparams, urivalues, paramcount); break;
     case  1: send_oscam_reader(f); break;
     case  2: send_oscam_user(f); break;
     case  3: send_oscam_entitlement(f, uriparams, urivalues, paramcount); break;
