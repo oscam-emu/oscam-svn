@@ -16,6 +16,8 @@
 #define PROTOCOL "HTTP/1.1"
 #define RFC1123FMT "%a, %d %b %Y %H:%M:%S GMT"
 
+void send_oscam_user_config(FILE *f, char *uriparams[], char *urivalues[], int paramcount);
+
 static  char*   css[] = {
 			"p {color: white; }",
 			"h2 {color: orange; font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 20px; line-height: 20px;}",
@@ -103,7 +105,7 @@ void send_oscam_menu(FILE *f){
 	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./status.html\">STATUS</TD>\n");
 	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./config.html\">CONFIGURATION</TD>\n");
 	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./readers.html\">READERS</TD>\n");
-	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./users.html\">USERS</TD>\n");
+	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./userconfig.html\">USERS</TD>\n");
 	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./entitlements.html\">ENTITLEMENTS</TD>\n");
 	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./services.html\">SERVICES</TD>\n");
 	fprintf(f, "	</TR>\n");
@@ -229,15 +231,25 @@ void send_oscam_config_camd33(FILE *f, char *uriparams[], char *urivalues[], int
 	fprintf(f,"\t<TR><TD>Port:</TD><TD><input name=\"c33_port\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->c33_port);
 	//ServerIP
 	fprintf(f,"\t<TR><TD>Serverip:</TD><TD><input name=\"c33_srvip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"%s\"></TD></TR>\r\n", inet_ntoa(*(struct in_addr *)&cfg->c33_srvip));
-	//preferlocalcards
-	fprintf(f,"\t<TR><TD>Preferlocalcards:</TD><TD><input name=\"preferlocalcards\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->preferlocalcards);
-
-
-
-
-
-
-
+	//Key
+	int keysize =sizeof(cfg->c33_key);
+	fprintf(f,"\t<TR><TD>Key:</TD><TD><input name=\"c33_key\" type=\"text\" size=\"35\" maxlength=\"28\" value=\"");
+	for (i=0;i<keysize;i++)
+		fprintf(f,"%02X",cfg->c33_key[i]);
+	fprintf(f,"\"></TD></TR>\r\n");
+	//Passive
+	fprintf(f,"\t<TR><TD>Passive:</TD><TD><input name=\"passive\" type=\"text\" size=\"3\" maxlength=\"1\" value=\"%d\"></TD></TR>\r\n", cfg->c33_passive);
+	//Nocrypt
+	fprintf(f,"\t<TR><TD>Nocrypt:</TD><TD><input name=\"nocrypt\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"");
+  struct s_ip *cip;
+  char *dot="";
+  for (cip=cfg->c33_plain; cip; cip=cip->next){
+  	if (!(cip->ip[0] == cip->ip[1]))
+			fprintf(f,"%s%s-%s", dot, inet_ntoa(*(struct in_addr *)&cip->ip[0]), inet_ntoa(*(struct in_addr *)&cip->ip[1]));
+  	else
+			fprintf(f,"%s%s", dot, inet_ntoa(*(struct in_addr *)&cip->ip[0]));
+  }
+	fprintf(f,"\">wrong, see Ticket #265</TD></TR>\r\n");
 
 	//Tablefoot and finish form
 	fprintf(f,"</TABLE>\r\n");
@@ -247,31 +259,213 @@ void send_oscam_config_camd33(FILE *f, char *uriparams[], char *urivalues[], int
 	fprintf(f,"<BR><BR>Configuration camd33 not yet implemented<BR><BR>");
 }
 
+void send_oscam_config_camd35_do(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
+	fprintf(f,"<BR><BR>");
+	int i;
 
-
-void send_oscam_config_camd35(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
+	if (paramcount>0){
+		for(i=0;i<paramcount;i++){
+			fprintf(f,"Parameter: %s  ->>> Value: %s<BR>\r\n",uriparams[i],urivalues[i]);
+		}
+	}
+	//Disclaimer
 	fprintf(f,"<BR><BR>Configuration camd35 not yet implemented<BR><BR>");
 }
 
-void send_oscam_config_camd35_do(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
-	fprintf(f,"<BR><BR>Configuration camd35 Do not yet implemented<BR><BR>");
-}
+void send_oscam_config_camd35(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
+	int i;
 
-void send_oscam_config_newcamd(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
-	fprintf(f,"<BR><BR>Configuration newcamd not yet implemented<BR><BR>");
+	if (paramcount>0){
+		for(i=0;i<paramcount;i++){
+			if (!strcmp(uriparams[i], "action") && (!strcmp(urivalues[i], "execute"))) {
+				send_oscam_config_camd35_do(f, uriparams, urivalues, paramcount);
+				return;
+			}
+		}
+	}
+
+	fprintf(f,"<BR><BR>");
+	fprintf(f,"<form action=\"/config.html\" method=\"get\">\r\n");
+	fprintf(f,"<input name=\"part\" type=\"hidden\" value=\"camd35\">\r\n");
+	fprintf(f,"<input name=\"action\" type=\"hidden\" value=\"execute\">\r\n");
+	fprintf(f,"<TABLE cellspacing=\"0\">");
+	fprintf(f,"\t<TH>&nbsp;</TH><TH>Edit Camd35 Config </TH>");
+
+	//Port
+	fprintf(f,"\t<TR><TD>Port:</TD><TD><input name=\"c35_port\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->c33_port);
+	//ServerIP
+	fprintf(f,"\t<TR><TD>Serverip:</TD><TD><input name=\"c35_tcp_srvip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"%s\"></TD></TR>\r\n", inet_ntoa(*(struct in_addr *)&cfg->c35_tcp_srvip));
+
+	//Tablefoot and finish form
+	fprintf(f,"</TABLE>\r\n");
+	fprintf(f,"<input type=\"submit\" value=\"OK\"></form>\r\n");
+
+	//Disclaimer
+	fprintf(f,"<BR><BR>Configuration camd35 not yet implemented<BR><BR>");
 }
 
 void send_oscam_config_newcamd_do(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
+	fprintf(f,"<BR><BR>");
+	int i;
+
+	if (paramcount>0){
+		for(i=0;i<paramcount;i++){
+			fprintf(f,"Parameter: %s  ->>> Value: %s<BR>\r\n",uriparams[i],urivalues[i]);
+		}
+	}
+
+	//Disclaimer
 	fprintf(f,"<BR><BR>Configuration newcamd Do not yet implemented<BR><BR>");
 }
 
-void send_oscam_config_anticasc(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
-	fprintf(f,"<BR><BR>Configuration anticasc not yet implemented<BR><BR>");
+void send_oscam_config_newcamd(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
+	int i;
+
+	if (paramcount>0){
+		for(i=0;i<paramcount;i++){
+			if (!strcmp(uriparams[i], "action") && (!strcmp(urivalues[i], "execute"))) {
+				send_oscam_config_camd35_do(f, uriparams, urivalues, paramcount);
+				return;
+			}
+		}
+	}
+
+	fprintf(f,"<BR><BR>");
+	fprintf(f,"<form action=\"/config.html\" method=\"get\">\r\n");
+	fprintf(f,"<input name=\"part\" type=\"hidden\" value=\"newcamd\">\r\n");
+	fprintf(f,"<input name=\"action\" type=\"hidden\" value=\"execute\">\r\n");
+	fprintf(f,"<TABLE cellspacing=\"0\">");
+	fprintf(f,"\t<TH>&nbsp;</TH><TH>Edit Newcamd Config </TH>");
+
+	//Port
+	fprintf(f,"\t<TR><TD>Port:</TD><TD><input name=\"ncd_ptab\" type=\"text\" size=\"80\" maxlength=\"200\" value=\"");
+	int j;
+	char *dot1, *dot2;
+	if (cfg->ncd_ptab.nports>0){
+		dot1 = "";
+		for(i=0;i<cfg->ncd_ptab.nports;i++){
+			dot2 = "";
+			fprintf(f, "%s%d", dot1, cfg->ncd_ptab.ports[i].s_port);
+			fprintf(f, "@%04X", cfg->ncd_ptab.ports[i].ftab.filts[0].caid);
+			if (cfg->ncd_ptab.ports[i].ftab.filts[0].nprids > 0){
+				fprintf(f, ":");
+				for (j = 0; j < cfg->ncd_ptab.ports[i].ftab.filts[0].nprids; j++){
+					fprintf(f,"%s%lX", dot2, cfg->ncd_ptab.ports[i].ftab.filts[0].prids[j]);
+					dot2 = ",";
+				}
+			}
+			dot1=";";
+		}
+	}
+
+	fprintf(f,"\"></TD></TR>\r\n");
+
+	//ServerIP
+	fprintf(f,"\t<TR><TD>Serverip:</TD><TD><input name=\"ncd_srvip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"%s\"></TD></TR>\r\n", inet_ntoa(*(struct in_addr *)&cfg->ncd_srvip));
+	//Key
+	fprintf(f,"\t<TR><TD>Key:</TD><TD><input name=\"ncd_key\" type=\"text\" size=\"35\" maxlength=\"28\" value=\"");
+
+	for (i=0;i<14;i++)
+		fprintf(f,"%02X",cfg->ncd_key[i]);
+
+	fprintf(f,"\"></TD></TR>\r\n");
+	//Tablefoot and finish form
+	fprintf(f,"</TABLE>\r\n");
+	fprintf(f,"<input type=\"submit\" value=\"OK\"></form>\r\n");
+
+	//Disclaimer
+	fprintf(f,"<BR><BR>Configuration newcamd not yet implemented<BR><BR>");
 }
 
-void send_oscam_config_anticasc_do(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
-	fprintf(f,"<BR><BR>Configuration anticasc Do not yet implemented<BR><BR>");
+void send_oscam_config_monitor_do(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
+	fprintf(f,"<BR><BR>");
+	int i;
+
+	if (paramcount>0){
+		for(i=0;i<paramcount;i++){
+			fprintf(f,"Parameter: %s  ->>> Value: %s<BR>\r\n",uriparams[i],urivalues[i]);
+		}
+	}
+
+	//Disclaimer
+	fprintf(f,"<BR><BR>Configuration Monitor Do not yet implemented<BR><BR>");
 }
+
+void send_oscam_config_monitor(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
+	int i;
+
+	if (paramcount>0){
+		for(i=0;i<paramcount;i++){
+			if (!strcmp(uriparams[i], "action") && (!strcmp(urivalues[i], "execute"))) {
+				send_oscam_config_monitor_do(f, uriparams, urivalues, paramcount);
+				return;
+			}
+		}
+	}
+
+	//Table & form head
+	fprintf(f,"<BR><BR>");
+	fprintf(f,"<form action=\"/config.html\" method=\"get\">\r\n");
+	fprintf(f,"<input name=\"part\" type=\"hidden\" value=\"monitor\">\r\n");
+	fprintf(f,"<input name=\"action\" type=\"hidden\" value=\"execute\">\r\n");
+	fprintf(f,"<TABLE cellspacing=\"0\">");
+	fprintf(f,"\t<TH>&nbsp;</TH><TH>Edit Monitor Config </TH>");
+
+
+	//Tablefoot and finish form
+	fprintf(f,"</TABLE>\r\n");
+	fprintf(f,"<input type=\"submit\" value=\"OK\"></form>\r\n");
+
+	//Disclaimer
+	fprintf(f,"<BR><BR>Configuration Monitor not yet implemented<BR><BR>");
+}
+
+#ifdef CS_ANTICASC
+
+void send_oscam_config_anticasc_do(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
+	fprintf(f,"<BR><BR>");
+	int i;
+
+	if (paramcount>0){
+		for(i=0;i<paramcount;i++){
+			fprintf(f,"Parameter: %s  ->>> Value: %s<BR>\r\n",uriparams[i],urivalues[i]);
+		}
+	}
+
+	//Disclaimer
+	fprintf(f,"<BR><BR>Configuration Anticascading Do not yet implemented<BR><BR>");
+}
+
+void send_oscam_config_anticasc(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
+	int i;
+
+	if (paramcount>0){
+		for(i=0;i<paramcount;i++){
+			if (!strcmp(uriparams[i], "action") && (!strcmp(urivalues[i], "execute"))) {
+				send_oscam_config_anticasc_do(f, uriparams, urivalues, paramcount);
+				return;
+			}
+		}
+	}
+
+	//Table & form head
+	fprintf(f,"<BR><BR>");
+	fprintf(f,"<form action=\"/config.html\" method=\"get\">\r\n");
+	fprintf(f,"<input name=\"part\" type=\"hidden\" value=\"anticasc\">\r\n");
+	fprintf(f,"<input name=\"action\" type=\"hidden\" value=\"execute\">\r\n");
+	fprintf(f,"<TABLE cellspacing=\"0\">");
+	fprintf(f,"\t<TH>&nbsp;</TH><TH>Edit Anticascading Config </TH>");
+
+
+	//Tablefoot and finish form
+	fprintf(f,"</TABLE>\r\n");
+	fprintf(f,"<input type=\"submit\" value=\"OK\"></form>\r\n");
+
+	//Disclaimer
+	fprintf(f,"<BR><BR>Configuration Anticascading not yet implemented<BR><BR>");
+}
+
+#endif
 
 void send_oscam_config(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
 	fprintf(f,"<BR><BR>");
@@ -283,8 +477,10 @@ void send_oscam_config(FILE *f, char *uriparams[], char *urivalues[], int paramc
 	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./config.html?part=camd33\">Camd3.3</TD>\n");
 	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./config.html?part=camd35\">Camd3.5</TD>\n");
 	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./config.html?part=newcamd\">Newcamd</TD>\n");
+#ifdef CS_ANTICASC
 	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./config.html?part=anticasc\">Anticascading</TD>\n");
-	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./config.html?part=dummy\">Dummy</TD>\n");
+#endif
+	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./config.html?part=monitor\">Monitor</TD>\n");
 	fprintf(f, "	</TR>\n");
 	fprintf(f, "</TABLE>\n");
 
@@ -309,10 +505,12 @@ void send_oscam_config(FILE *f, char *uriparams[], char *urivalues[], int paramc
 			send_oscam_config_camd35(f, uriparams, urivalues, paramcount);
 		else if (!strcmp(urivalues[i],"newcamd"))
 			send_oscam_config_newcamd(f, uriparams, urivalues, paramcount);
+#ifdef CS_ANTICASC
 		else if (!strcmp(urivalues[i],"anticasc"))
 			send_oscam_config_anticasc(f, uriparams, urivalues, paramcount);
-		else if (!strcmp(urivalues[i],"dummy"))
-			printf("Value: %s\n", urivalues[i]);
+#endif
+		else if (!strcmp(urivalues[i],"monitor"))
+			send_oscam_config_monitor(f, uriparams, urivalues, paramcount);
 		else
 			send_oscam_config_global(f, uriparams, urivalues, paramcount);
 	}
@@ -383,7 +581,29 @@ void send_oscam_reader_config(FILE *f, char *uriparams[], char *urivalues[], int
 	//fprintf(f,"<TR><TD>Password:</TD><TD><input name=\"password\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"%s\"></TD></TR>\r\n", reader[ridx].gbox_pwd);
 	fprintf(f,"<TR><TD>Pincode:</TD><TD><input name=\"pincode\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"%s\"></TD></TR>\r\n", reader[ridx].pincode);
 	fprintf(f,"<TR><TD>Readnano:</TD><TD><input name=\"readnano\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"%s\"></TD></TR>\r\n", reader[ridx].emmfile);
-	//fprintf(f,"<TR><TD>Services:</TD><TD><input name=\"services\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"%s\"></TD></TR>\r\n", reader[ridx].emmfile);
+
+	//services
+	char sidok[33];
+	long2bitchar(reader[ridx].sidtabok, sidok);
+	char sidno[33];
+	long2bitchar(reader[ridx].sidtabno,sidno);
+	struct s_sidtab *sidtab = cfg->sidtab;
+	fprintf(f,"<TR><TD>Services:</TD><TD><TABLE cellspacing=\"0\" class=\"invisible\">");
+	int pos=0;
+	char *chk;
+	//build matrix
+	for (; sidtab; sidtab=sidtab->next){
+		chk="";
+		if(sidok[pos]=='1') chk="checked";
+		fprintf(f,"<TR><TD><INPUT NAME=\"services\" TYPE=\"CHECKBOX\" VALUE=\"%s\" %s> %s</TD>", sidtab->label, chk, sidtab->label);
+		chk="";
+		if(sidno[pos]=='1') chk="checked";
+		fprintf(f,"<TD><INPUT NAME=\"services\" TYPE=\"CHECKBOX\" VALUE=\"!%s\" %s> !%s</TD></TR>\r\n", sidtab->label, chk, sidtab->label);
+		pos++;
+	}
+	fprintf(f,"</TD></TR></TABLE>\r\n");
+
+
 	fprintf(f,"<TR><TD>Inactivitytimeout:</TD><TD><input name=\"inactivitytimeout\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"%d\"></TD></TR>\r\n", reader[ridx].tcp_ito);
 	fprintf(f,"<TR><TD>Reconnecttimeout:</TD><TD><input name=\"reconnecttimeout\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"%d\"></TD></TR>\r\n", reader[ridx].tcp_rto);
 	fprintf(f,"<TR><TD>Disableserverfilter:</TD><TD><input name=\"disableserverfilter\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"%d\"></TD></TR>\r\n", reader[ridx].ncd_disable_server_filt);
@@ -418,226 +638,6 @@ void send_oscam_reader_config_do(FILE *f, char *uriparams[], char *urivalues[], 
 
 	fprintf(f,"Reader: %s - Nothing changed", reader[ridx].label);
 	fprintf(f,"<BR><BR>Reader not yet implemented<BR><BR>");
-}
-
-void send_oscam_user(FILE *f) {
-	/*list accounts*/
-	int i = 0;
-	char *status = "offline";
-	struct s_auth *account;
-
-	fprintf(f,"<BR><BR><TABLE cellspacing=\"0\" cellpadding=\"10\">\r\n");
-	fprintf(f,"<TR><TH>Label</TH><TH>Status (not exact)</TH><TH>Action</TH></TR>");
-	for (account=cfg->account; (account) ; account=account->next){
-		status="offline";
-		fprintf(f,"<TR>\r\n");
-		for (i=0; i<CS_MAXPID; i++)
-			if (!strcmp(client[i].usr, account->usr))
-				status="<b>online</b>";
-
-		fprintf(f,"<TD>%s</TD><TD>%s</TD><TD><A HREF=\"/userconfig.html?user=%s\">Edit Settings</A>",account->usr, status, account->usr);
-		fprintf(f,"</TR>\r\n");
-	}
-	fprintf(f,"</TABLE>\r\n");
-}
-
-void send_oscam_user_config(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
-
-	struct s_auth *account;
-	int i;
-	CAIDTAB *ctab;
-	TUNTAB *ttab;
-
-	fprintf(f,"<BR><BR>\r\n");
-
-	for(i=0;i<paramcount;i++)
-		if (!strcmp(uriparams[i], "user")) break;
-
-	/*identfy useraccount*/
-	for (account=cfg->account; (account) ; account=account->next){
-		if(!strcmp(urivalues[i], account->usr))
-			break;
-	}
-
-	fprintf(f,"<form action=\"/userconfig_do.html\" method=\"get\"><input name=\"user\" type=\"hidden\" value=\"%s\">\r\n", account->usr);
-
-	fprintf(f,"<TABLE cellspacing=\"0\">");
-	fprintf(f,"<TH>&nbsp;</TH><TH>Edit User %s </TH>", account->usr);
-	fprintf(f,"<TR><TD>Password:</TD><TD><input name=\"pwd\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"%s\"></TD></TR>\r\n", account->pwd);
-	fprintf(f,"<TR><TD>Group:</TD><TD><input name=\"grp\" type=\"text\" size=\"10\" maxlength=\"10\" value=\"");
-
-	/*restore the settings format of group from long over bitarray*/
-	int dot = 0; //flag for comma
-	char grpbit[33];
-	long2bitchar(account->grp, grpbit);
-	for(i = 0; i < 32; i++){
-		if (grpbit[i] == '1'){
-			if (dot == 0){
-				fprintf(f, "%d", i+1);
-				dot = 1;
-			}
-			else
-				fprintf(f, ",%d", i+1);
-		}
-	}
-	fprintf(f,"\"></TD></TR>\r\n");
-
-	if (strlen(account->dyndns)>0)
-		fprintf(f,"<TR><TD>Hostname:</TD><TD><input name=\"dyndns\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"%s\"></TD></TR>\r\n", account->dyndns);
-	else
-		fprintf(f,"<TR><TD>Hostname:</TD><TD><input name=\"dyndns\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"\"></TD></TR>\r\n");
-
-
-	fprintf(f,"<TR><TD>Uniq:</TD><TD><select name=\"uniq\" >\r\n");
-		if (account->uniq == 0)
-			fprintf(f,"\t<OPTION value=\"0\" selected>(0) none</OPTION>\r\n");
-		else
-			fprintf(f,"\t<OPTION value=\"0\">(0) none</OPTION>\r\n");
-
-		if (account->uniq == 1)
-			fprintf(f,"\t<OPTION value=\"1\" selected>(1) strict</OPTION>\r\n");
-		else
-			fprintf(f,"\t<OPTION value=\"1\">(1) strict</OPTION>\r\n");
-
-		if (account->uniq == 2)
-			fprintf(f,"\t<OPTION value=\"2\" selected>(2) IP based</OPTION>\r\n");
-		else
-			fprintf(f,"\t<OPTION value=\"2\">(2) IP based</OPTION>\r\n");
-
-	fprintf(f,"</SELECT></TD></TR>\r\n");
-
-	if(!account->tosleep)
-		fprintf(f,"<TR><TD>Sleep:</TD><TD><input name=\"tosleep\" type=\"text\" size=\"4\" maxlength=\"4\" value=\"0\"></TD></TR>\r\n");
-	else
-		fprintf(f,"<TR><TD>Sleep:</TD><TD><input name=\"tosleep\" type=\"text\" size=\"4\" maxlength=\"4\" value=\"%d\"></TD></TR>\r\n", account->tosleep);
-
-	/*Monlevel selector*/
-	fprintf(f,"<TR><TD>Monlevel:</TD><TD><select name=\"monlevel\" >\r\n");
-	for(i=1;i<5;i++){
-		if(i==account->monlvl)
-			fprintf(f,"\t<option selected>%d</option>\r\n",i);
-		else
-			fprintf(f,"\t<option>%d</option>\r\n",i);
-	}
-	fprintf(f,"</select></TD></TR>\r\n");
-
-
-	/*AU Selector*/
-	fprintf(f,"<TR><TD>AU:</TD><TD><select name=\"au\" >\r\n");
-
-	if (account->au > -1)
-		fprintf(f,"\t<option value=\"-1\" selected>none</option>\r\n");
-	else
-		fprintf(f,"\t<option value=\"-1\">none</option>\r\n");
-
-	int ridx;
-	for (ridx=0; ridx<CS_MAXREADER; ridx++){
-		if(!reader[ridx].device[0]) break;
-
-		if (account->au == ridx)
-			fprintf(f,"\t<option value=\"%d\" selected>%s</option>\r\n", ridx, reader[ridx].label);
-		else
-			fprintf(f,"\t<option value=\"%d\">%s</option>\r\n", ridx, reader[ridx].label);
-	}
-	fprintf(f,"</select></TD></TR>\r\n");
-
-	/*---------------------SERVICES-------------------------
-	-------------------------------------------------------*/
-	/*services - first we have to move the long sidtabok/sidtabno to a binary array*/
-
-	char sidok[33];
-	long2bitchar(account->sidtabok,sidok);
-
-	char sidno[33];
-	long2bitchar(account->sidtabno,sidno);
-
-	struct s_sidtab *sidtab = cfg->sidtab;
-	fprintf(f,"<TR><TD>Services:</TD><TD><TABLE cellspacing=\"0\" class=\"invisible\">");
-
-	int pos=0;
-	for (; sidtab; sidtab=sidtab->next){
-		if(sidok[pos]=='1')
-			fprintf(f,"<TR><TD><INPUT NAME=\"services\" TYPE=\"CHECKBOX\" VALUE=\"%s\" checked> %s</TD>", sidtab->label, sidtab->label);
-		else
-			fprintf(f,"<TR><TD><INPUT NAME=\"services\" TYPE=\"CHECKBOX\" VALUE=\"%s\"> %s</TD>", sidtab->label, sidtab->label);
-
-		if(sidno[pos]=='1')
-			fprintf(f,"<TD><INPUT NAME=\"services\" TYPE=\"CHECKBOX\" VALUE=\"!%s\" checked> !%s</TD></TR>\r\n", sidtab->label, sidtab->label);
-		else
-			fprintf(f,"<TD><INPUT NAME=\"services\" TYPE=\"CHECKBOX\" VALUE=\"!%s\"> !%s</TD></TR>\r\n", sidtab->label, sidtab->label);
-
-		pos++;
-	}
-	fprintf(f,"</TD></TR></TABLE>\r\n");
-
-	/*---------------------CAID-----------------------------
-	-------------------------------------------------------*/
-	fprintf(f,"<TR><TD>CAID:</TD><TD><input name=\"caid\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"");
-
-	/*make string from caidtab*/
-	i = 0;
-	ctab = &account->ctab;
-
-	if (ctab->caid[i]){
-
-		while(ctab->caid[i]) {
-
-			if (i==0)
-				fprintf(f, "%04X", ctab->caid[i]);
-			else
-				fprintf(f, ",%04X", ctab->caid[i]);
-
-			if(ctab->mask[i])
-				fprintf(f, "&%04X", ctab->mask[i]);
-
-			i++;
-		}
-
-	}
-	fprintf(f,"\"></TD></TR>\r\n");
-
-	/*IDENT*/
-//	fprintf(f,"<TR><TD>Ident:</TD><TD><input name=\"ident\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"");
-//	for (i=0;i<account->ftab.nfilts;i++){
-//		fprintf(f, "%04X;", account->ftab.filts[i].caid);
-//	}
-//	fprintf(f,"\"></TD></TR>\r\n");
-
-	/*Betatunnel*/
-	fprintf(f,"<TR><TD>Betatunnel:</TD><TD><input name=\"betatunnel\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"");
-
-	/*make string from Betatunneltab*/
-	i = 0;
-	ttab = &account->ttab;
-
-	if (ttab->bt_caidfrom[i]) {
-
-		while(ttab->bt_caidfrom[i]) {
-
-			if (i==0)
-				fprintf(f, "%04X", ttab->bt_caidfrom[i]);
-			else
-				fprintf(f, ",%04X", ttab->bt_caidfrom[i]);
-
-			if(ttab->bt_caidto[i])
-				fprintf(f, ".%04X", ttab->bt_caidto[i]);
-
-			if(ttab->bt_srvid[i])
-				fprintf(f, ":%04X", ttab->bt_srvid[i]);
-
-			i++;
-		}
-	}
-
-	fprintf(f,"\"></TD></TR>\r\n");
-
-#ifdef CS_ANTICASC
-	fprintf(f,"<TR><TD>Anticascading numusers:</TD><TD><input name=\"numusers\" type=\"text\" size=\"3\" maxlength=\"3\" value=\"%d\"></TD></TR>\r\n", account->ac_users);
-	fprintf(f,"<TR><TD>Anticascading penalty:</TD><TD><input name=\"penalty\" type=\"text\" size=\"3\" maxlength=\"3\" value=\"%d\"></TD></TR>\r\n", account->ac_penalty);
-#endif
-
-	fprintf(f,"</TABLE>\r\n");
-	fprintf(f,"<input type=\"submit\" value=\"OK\"></form>\r\n");
 }
 
 void send_oscam_user_config_do(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
@@ -755,7 +755,207 @@ void send_oscam_user_config_do(FILE *f, char *uriparams[], char *urivalues[], in
 		chk_services(servicelabels, &account->sidtabok, &account->sidtabno);
 
 	cs_reinit_clients();
-	send_oscam_user(f);
+	send_oscam_user_config(f, uriparams, urivalues, 0);
+}
+
+void send_oscam_user_config(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
+
+	int i;
+	struct s_auth *account;
+
+	if (paramcount>0){
+		for(i=0;i<paramcount;i++){
+			if (!strcmp(uriparams[i], "action") && (!strcmp(urivalues[i], "execute"))) {
+				send_oscam_user_config_do(f, uriparams, urivalues, paramcount);
+				return;
+			}
+		}
+	}
+	else {
+		/* No Parameters given --> list accounts*/
+		char *status = "offline";
+
+		fprintf(f,"<BR><BR><TABLE cellspacing=\"0\" cellpadding=\"10\">\r\n");
+		fprintf(f,"<TR><TH>Label</TH><TH>Status (not exact)</TH><TH>Action</TH></TR>");
+		for (account=cfg->account; (account) ; account=account->next){
+			status="offline";
+			fprintf(f,"<TR>\r\n");
+			for (i=0; i<CS_MAXPID; i++)
+				if (!strcmp(client[i].usr, account->usr))
+					status="<b>online</b>";
+
+			fprintf(f,"<TD>%s</TD><TD>%s</TD><TD><A HREF=\"/userconfig.html?user=%s\">Edit Settings</A>",account->usr, status, account->usr);
+			fprintf(f,"</TR>\r\n");
+		}
+		fprintf(f,"</TABLE>\r\n");
+		return;
+	}
+
+	fprintf(f,"<BR><BR>\r\n");
+
+	for(i=0;i<paramcount;i++)
+		if (!strcmp(uriparams[i], "user")) break;
+
+	/*identfy useraccount*/
+	for (account=cfg->account; (account) ; account=account->next){
+		if(!strcmp(urivalues[i], account->usr))
+			break;
+	}
+
+	fprintf(f,"<form action=\"/userconfig.html\" method=\"get\">");
+	fprintf(f,"<input name=\"user\" type=\"hidden\" value=\"%s\">\r\n", account->usr);
+	fprintf(f,"<input name=\"action\" type=\"hidden\" value=\"execute\">\r\n");
+	fprintf(f,"<TABLE cellspacing=\"0\">");
+	fprintf(f,"<TH>&nbsp;</TH><TH>Edit User %s </TH>", account->usr);
+	fprintf(f,"<TR><TD>Password:</TD><TD><input name=\"pwd\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"%s\"></TD></TR>\r\n", account->pwd);
+	fprintf(f,"<TR><TD>Group:</TD><TD><input name=\"grp\" type=\"text\" size=\"10\" maxlength=\"10\" value=\"");
+
+	/*restore the settings format of group from long over bitarray*/
+	int dot = 0; //flag for comma
+	char grpbit[33];
+	long2bitchar(account->grp, grpbit);
+	for(i = 0; i < 32; i++){
+		if (grpbit[i] == '1'){
+			if (dot == 0){
+				fprintf(f, "%d", i+1);
+				dot = 1;
+			}
+			else
+				fprintf(f, ",%d", i+1);
+		}
+	}
+	fprintf(f,"\"></TD></TR>\r\n");
+
+	if (strlen(account->dyndns)>0)
+		fprintf(f,"<TR><TD>Hostname:</TD><TD><input name=\"dyndns\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"%s\"></TD></TR>\r\n", account->dyndns);
+	else
+		fprintf(f,"<TR><TD>Hostname:</TD><TD><input name=\"dyndns\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"\"></TD></TR>\r\n");
+
+
+	fprintf(f,"<TR><TD>Uniq:</TD><TD><select name=\"uniq\" >\r\n");
+		if (account->uniq == 0)
+			fprintf(f,"\t<OPTION value=\"0\" selected>(0) none</OPTION>\r\n");
+		else
+			fprintf(f,"\t<OPTION value=\"0\">(0) none</OPTION>\r\n");
+
+		if (account->uniq == 1)
+			fprintf(f,"\t<OPTION value=\"1\" selected>(1) strict</OPTION>\r\n");
+		else
+			fprintf(f,"\t<OPTION value=\"1\">(1) strict</OPTION>\r\n");
+
+		if (account->uniq == 2)
+			fprintf(f,"\t<OPTION value=\"2\" selected>(2) IP based</OPTION>\r\n");
+		else
+			fprintf(f,"\t<OPTION value=\"2\">(2) IP based</OPTION>\r\n");
+
+	fprintf(f,"</SELECT></TD></TR>\r\n");
+
+	if(!account->tosleep)
+		fprintf(f,"<TR><TD>Sleep:</TD><TD><input name=\"tosleep\" type=\"text\" size=\"4\" maxlength=\"4\" value=\"0\"></TD></TR>\r\n");
+	else
+		fprintf(f,"<TR><TD>Sleep:</TD><TD><input name=\"tosleep\" type=\"text\" size=\"4\" maxlength=\"4\" value=\"%d\"></TD></TR>\r\n", account->tosleep);
+
+	/*Monlevel selector*/
+	fprintf(f,"<TR><TD>Monlevel:</TD><TD><select name=\"monlevel\" >\r\n");
+	for(i=1;i<5;i++){
+		if(i==account->monlvl)
+			fprintf(f,"\t<option selected>%d</option>\r\n",i);
+		else
+			fprintf(f,"\t<option>%d</option>\r\n",i);
+	}
+	fprintf(f,"</select></TD></TR>\r\n");
+
+
+	/*AU Selector*/
+	fprintf(f,"<TR><TD>AU:</TD><TD><select name=\"au\" >\r\n");
+
+	if (account->au > -1)
+		fprintf(f,"\t<option value=\"-1\" selected>none</option>\r\n");
+	else
+		fprintf(f,"\t<option value=\"-1\">none</option>\r\n");
+
+	int ridx;
+	for (ridx=0; ridx<CS_MAXREADER; ridx++){
+		if(!reader[ridx].device[0]) break;
+
+		if (account->au == ridx)
+			fprintf(f,"\t<option value=\"%d\" selected>%s</option>\r\n", ridx, reader[ridx].label);
+		else
+			fprintf(f,"\t<option value=\"%d\">%s</option>\r\n", ridx, reader[ridx].label);
+	}
+	fprintf(f,"</select></TD></TR>\r\n");
+
+	/*---------------------SERVICES-------------------------
+	-------------------------------------------------------*/
+	//services - first we have to move the long sidtabok/sidtabno to a binary array
+	char sidok[33];
+	long2bitchar(account->sidtabok,sidok);
+	char sidno[33];
+	long2bitchar(account->sidtabno,sidno);
+	struct s_sidtab *sidtab = cfg->sidtab;
+	fprintf(f,"<TR><TD>Services:</TD><TD><TABLE cellspacing=\"0\" class=\"invisible\">");
+	int pos=0;
+	char *chk;
+	//build matrix
+	for (; sidtab; sidtab=sidtab->next){
+		chk="";
+		if(sidok[pos]=='1') chk="checked";
+		fprintf(f,"<TR><TD><INPUT NAME=\"services\" TYPE=\"CHECKBOX\" VALUE=\"%s\" %s> %s</TD>", sidtab->label, chk, sidtab->label);
+		chk="";
+		if(sidno[pos]=='1') chk="checked";
+		fprintf(f,"<TD><INPUT NAME=\"services\" TYPE=\"CHECKBOX\" VALUE=\"!%s\" %s> !%s</TD></TR>\r\n", sidtab->label, chk, sidtab->label);
+		pos++;
+	}
+	fprintf(f,"</TD></TR></TABLE>\r\n");
+
+	/*---------------------CAID-----------------------------
+	-------------------------------------------------------*/
+	i = 0;
+	CAIDTAB *ctab = &account->ctab;
+
+	fprintf(f,"<TR><TD>CAID:</TD><TD><input name=\"caid\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"");
+	/*make string from caidtab*/
+	if (ctab->caid[i]){
+		while(ctab->caid[i]) {
+			if (i==0)	fprintf(f, "%04X", ctab->caid[i]);
+			else fprintf(f, ",%04X", ctab->caid[i]);
+			if(ctab->mask[i])	fprintf(f, "&%04X", ctab->mask[i]);
+			i++;
+		}
+	}
+	fprintf(f,"\"></TD></TR>\r\n");
+
+	/*IDENT*/
+//	fprintf(f,"<TR><TD>Ident:</TD><TD><input name=\"ident\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"");
+//	for (i=0;i<account->ftab.nfilts;i++){
+//		fprintf(f, "%04X;", account->ftab.filts[i].caid);
+//	}
+//	fprintf(f,"\"></TD></TR>\r\n");
+
+	/*Betatunnel*/
+	i = 0;
+	TUNTAB *ttab = &account->ttab;
+
+	fprintf(f,"<TR><TD>Betatunnel:</TD><TD><input name=\"betatunnel\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"");
+	/*make string from Betatunneltab*/
+	if (ttab->bt_caidfrom[i]) {
+		while(ttab->bt_caidfrom[i]) {
+			if (i==0)	fprintf(f, "%04X", ttab->bt_caidfrom[i]);
+			else fprintf(f, ",%04X", ttab->bt_caidfrom[i]);
+			if(ttab->bt_caidto[i]) fprintf(f, ".%04X", ttab->bt_caidto[i]);
+			if(ttab->bt_srvid[i])	fprintf(f, ":%04X", ttab->bt_srvid[i]);
+			i++;
+		}
+	}
+	fprintf(f,"\"></TD></TR>\r\n");
+
+#ifdef CS_ANTICASC
+	fprintf(f,"<TR><TD>Anticascading numusers:</TD><TD><input name=\"numusers\" type=\"text\" size=\"3\" maxlength=\"3\" value=\"%d\"></TD></TR>\r\n", account->ac_users);
+	fprintf(f,"<TR><TD>Anticascading penalty:</TD><TD><input name=\"penalty\" type=\"text\" size=\"3\" maxlength=\"3\" value=\"%d\"></TD></TR>\r\n", account->ac_penalty);
+#endif
+
+	fprintf(f,"</TABLE>\r\n");
+	fprintf(f,"<input type=\"submit\" value=\"OK\"></form>\r\n");
 }
 
 void send_oscam_entitlement(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
@@ -971,11 +1171,9 @@ int process_request(FILE *f) {
   /*list of possible pages*/
   char *pages[]={	"/config.html",
 			"/readers.html",
-			"/users.html",
 			"/entitlements.html",
 			"/status.html",
 			"/userconfig.html",
-			"/userconfig_do.html",
 			"/readerconfig.html",
 			"/readerconfig_do.html",
 			"/services.html"};
@@ -1053,14 +1251,12 @@ int process_request(FILE *f) {
   switch(pgidx){
     case  0: send_oscam_config(f, uriparams, urivalues, paramcount); break;
     case  1: send_oscam_reader(f); break;
-    case  2: send_oscam_user(f); break;
-    case  3: send_oscam_entitlement(f, uriparams, urivalues, paramcount); break;
-    case  4: send_oscam_status(f); break;
-    case  5: send_oscam_user_config(f, uriparams, urivalues, paramcount); break;
-    case  6: send_oscam_user_config_do(f, uriparams, urivalues, paramcount); break;
-    case  7: send_oscam_reader_config(f, uriparams, urivalues, paramcount); break;
-    case  8: send_oscam_reader_config_do(f, uriparams, urivalues, paramcount); break;
-    case	9: send_oscam_sidtab(f); break;
+    case  2: send_oscam_entitlement(f, uriparams, urivalues, paramcount); break;
+    case  3: send_oscam_status(f); break;
+    case  4: send_oscam_user_config(f, uriparams, urivalues, paramcount); break;
+    case  5: send_oscam_reader_config(f, uriparams, urivalues, paramcount); break;
+    case  6: send_oscam_reader_config_do(f, uriparams, urivalues, paramcount); break;
+    case	7: send_oscam_sidtab(f); break;
     default: send_oscam_status(f); break;
   }
 
