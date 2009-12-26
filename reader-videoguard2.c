@@ -51,7 +51,7 @@ void postprocess_cw(unsigned char *cw)
 {
 
   if (!cw_is_valid(cw)) //if cw is all zero, keep it that way
-    return; 
+    return;
 #if __BYTE_ORDER == __BIG_ENDIAN
   static unsigned char Tb1[0xC]={0x01,0x23,0x45,0x67,0x89,0xAB,0xCD,0xEF,0xF8,0x61,0xCB,0x52};
   static unsigned char Tb2[0x40]= {
@@ -151,7 +151,7 @@ static void swap_lb (unsigned char *buff, int len)
     tmp = (unsigned short *) buff + i;
     *tmp = ((*tmp << 8) & 0xff00) | ((*tmp >> 8) & 0x00ff);
   }
-} 
+}
 
 static inline void __xxor(unsigned char *data, int len, const unsigned char *v1, const unsigned char *v2)
 {
@@ -243,7 +243,7 @@ static void cCamCryptVG2_Process_D0(const unsigned char *ins, unsigned char *dat
       swap_lb (data, 64);
       memcpy(cardkeys[0],data,sizeof(cardkeys[0]));
       break;
-    case 0xbc: 
+    case 0xbc:
       {
       swap_lb (data, 64);
       unsigned short *idata=(unsigned short *)data;
@@ -406,7 +406,7 @@ static void cCamCryptVG2_PartialMod(unsigned short val, unsigned int count, unsi
     if((val>mult) || (mod<mult)) mult-=mod;
     outkey[count]=(outkey[count]*mult)%mod;
     }
-  else 
+  else
     outkey[0]=val;
 }
 
@@ -494,17 +494,17 @@ static int status_ok(const unsigned char *status){
 #define write_cmd(cmd, data) (card_write(cmd, data) == 0)
 #define read_cmd(cmd, data) (card_write(cmd, NULL) == 0)
 
-static int read_cmd_len(const unsigned char *cmd) 
-{ 
-  unsigned char cmd2[5]; 
-  memcpy(cmd2,cmd,5); 
-  cmd2[3]=0x80; 
-  cmd2[4]=1; 
-  if(!read_cmd(cmd2,NULL) || cta_res[1] != 0x90 || cta_res[2] != 0x00) { 
-    cs_debug("failed to read %02x%02x cmd length (%02x %02x)",cmd[1],cmd[2],cta_res[1],cta_res[2]); 
+static int read_cmd_len(const unsigned char *cmd)
+{
+  unsigned char cmd2[5];
+  memcpy(cmd2,cmd,5);
+  cmd2[3]=0x80;
+  cmd2[4]=1;
+  if(!read_cmd(cmd2,NULL) || cta_res[1] != 0x90 || cta_res[2] != 0x00) {
+    cs_debug("failed to read %02x%02x cmd length (%02x %02x)",cmd[1],cmd[2],cta_res[1],cta_res[2]);
     return -1;
-    } 
-  return cta_res[0];   
+    }
+  return cta_res[0];
 }
 
 static int do_cmd(const unsigned char *ins, const unsigned char *txbuff, unsigned char *rxbuff)
@@ -578,6 +578,7 @@ static void read_tiers(void)
     int y,m,d,H,M,S;
     rev_date_calc(&cta_res[4],&y,&m,&d,&H,&M,&S);
     cs_log("Tier: %02x%02x, expiry date: %04d/%02d/%02d-%02d:%02d:%02d",cta_res[2],cta_res[3],y,m,d,H,M,S);
+    cs_ri_log("Tier: %02x%02x, expiry date: %04d/%02d/%02d-%02d:%02d:%02d",cta_res[2],cta_res[3],y,m,d,H,M,S);
     }
 }
 
@@ -634,9 +635,9 @@ int videoguard_card_init(uchar *atr, int atrsize)
     }
 /*    else
     {
-        // not a known videoguard 
+        // not a known videoguard
         return (0);
-    }*/ 
+    }*/
     //a non videoguard2/NDS card will fail on read_cmd_len(ins7401)
     //this way also unknown videoguard2/NDS cards will work
 
@@ -918,7 +919,7 @@ int videoguard_do_emm(EMM_PACKET *ep)
       }
 
     }
- 
+
   return(rc);
 }
 

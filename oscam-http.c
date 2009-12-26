@@ -11,7 +11,6 @@
 #include <time.h>
 #include <sys/stat.h>
 #include <dirent.h>
-#include <arpa/inet.h>
 
 #define SERVER "webserver/1.0"
 #define PROTOCOL "HTTP/1.1"
@@ -202,13 +201,53 @@ void send_oscam_config_global(FILE *f, char *uriparams[], char *urivalues[], int
 
 }
 
-void send_oscam_config_camd33(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
-	fprintf(f,"<BR><BR>Configuration camd33 not yet implemented<BR><BR>");
-}
-
 void send_oscam_config_camd33_do(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
 	fprintf(f,"<BR><BR>Configuration camd33 Do not yet implemented<BR><BR>");
 }
+
+void send_oscam_config_camd33(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
+
+	int i;
+
+	if (paramcount>0){
+		for(i=0;i<paramcount;i++){
+			if (!strcmp(uriparams[i], "action") && (!strcmp(urivalues[i], "execute"))) {
+				send_oscam_config_camd33_do(f, uriparams, urivalues, paramcount);
+				return;
+			}
+		}
+	}
+
+	fprintf(f,"<BR><BR>");
+	fprintf(f,"<form action=\"/config.html\" method=\"get\">\r\n");
+	fprintf(f,"<input name=\"part\" type=\"hidden\" value=\"camd33\">\r\n");
+	fprintf(f,"<input name=\"action\" type=\"hidden\" value=\"execute\">\r\n");
+	fprintf(f,"<TABLE cellspacing=\"0\">");
+	fprintf(f,"\t<TH>&nbsp;</TH><TH>Edit Camd33 Config </TH>");
+
+	//Port
+	fprintf(f,"\t<TR><TD>Port:</TD><TD><input name=\"c33_port\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->c33_port);
+	//ServerIP
+	fprintf(f,"\t<TR><TD>Serverip:</TD><TD><input name=\"c33_srvip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"%s\"></TD></TR>\r\n", inet_ntoa(*(struct in_addr *)&cfg->c33_srvip));
+	//preferlocalcards
+	fprintf(f,"\t<TR><TD>Preferlocalcards:</TD><TD><input name=\"preferlocalcards\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->preferlocalcards);
+
+
+
+
+
+
+
+
+	//Tablefoot and finish form
+	fprintf(f,"</TABLE>\r\n");
+	fprintf(f,"<input type=\"submit\" value=\"OK\"></form>\r\n");
+
+	//Disclaimer
+	fprintf(f,"<BR><BR>Configuration camd33 not yet implemented<BR><BR>");
+}
+
+
 
 void send_oscam_config_camd35(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
 	fprintf(f,"<BR><BR>Configuration camd35 not yet implemented<BR><BR>");
