@@ -492,6 +492,92 @@ void send_oscam_config_newcamd(FILE *f, char *uriparams[], char *urivalues[], in
 	fprintf(f,"<BR><BR>Configuration newcamd not yet implemented<BR><BR>");
 }
 
+void send_oscam_config_radegast_do(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
+	fprintf(f,"<BR><BR>");
+	int i;
+
+	if (paramcount>0){
+		for(i=0;i<paramcount;i++){
+			fprintf(f,"Parameter: %s  ->>> Value: %s<BR>\r\n",uriparams[i],urivalues[i]);
+		}
+	}
+
+	//Disclaimer
+	fprintf(f,"<BR><BR>Configuration Radegast Do not yet implemented<BR><BR>");
+}
+
+void send_oscam_config_radegast(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
+	int i;
+
+	if (paramcount>0){
+		for(i=0;i<paramcount;i++){
+			if (!strcmp(uriparams[i], "action") && (!strcmp(urivalues[i], "execute"))) {
+				send_oscam_config_radegast_do(f, uriparams, urivalues, paramcount);
+				return;
+			}
+		}
+	}
+
+	//Table & form head
+	fprintf(f,"<BR><BR>");
+	fprintf(f,"<form action=\"/config.html\" method=\"get\">\r\n");
+	fprintf(f,"<input name=\"part\" type=\"hidden\" value=\"radegast\">\r\n");
+	fprintf(f,"<input name=\"action\" type=\"hidden\" value=\"execute\">\r\n");
+	fprintf(f,"<TABLE cellspacing=\"0\">");
+	fprintf(f,"\t<TH>&nbsp;</TH><TH>Edit Radegast Config </TH>");
+
+
+	//Tablefoot and finish form
+	fprintf(f,"</TABLE>\r\n");
+	fprintf(f,"<input type=\"submit\" value=\"OK\"></form>\r\n");
+
+	//Disclaimer
+	fprintf(f,"<BR><BR>Configuration Radegast not yet implemented<BR><BR>");
+}
+
+void send_oscam_config_cccam_do(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
+	fprintf(f,"<BR><BR>");
+	int i;
+
+	if (paramcount>0){
+		for(i=0;i<paramcount;i++){
+			fprintf(f,"Parameter: %s  ->>> Value: %s<BR>\r\n",uriparams[i],urivalues[i]);
+		}
+	}
+
+	//Disclaimer
+	fprintf(f,"<BR><BR>Configuration Cccam Do not yet implemented<BR><BR>");
+}
+
+void send_oscam_config_cccam(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
+	int i;
+
+	if (paramcount>0){
+		for(i=0;i<paramcount;i++){
+			if (!strcmp(uriparams[i], "action") && (!strcmp(urivalues[i], "execute"))) {
+				send_oscam_config_cccam_do(f, uriparams, urivalues, paramcount);
+				return;
+			}
+		}
+	}
+
+	//Table & form head
+	fprintf(f,"<BR><BR>");
+	fprintf(f,"<form action=\"/config.html\" method=\"get\">\r\n");
+	fprintf(f,"<input name=\"part\" type=\"hidden\" value=\"cccam\">\r\n");
+	fprintf(f,"<input name=\"action\" type=\"hidden\" value=\"execute\">\r\n");
+	fprintf(f,"<TABLE cellspacing=\"0\">");
+	fprintf(f,"\t<TH>&nbsp;</TH><TH>Edit Cccam Config </TH>");
+
+
+	//Tablefoot and finish form
+	fprintf(f,"</TABLE>\r\n");
+	fprintf(f,"<input type=\"submit\" value=\"OK\"></form>\r\n");
+
+	//Disclaimer
+	fprintf(f,"<BR><BR>Configuration Cccam not yet implemented<BR><BR>");
+}
+
 void send_oscam_config_monitor_do(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
 	fprintf(f,"<BR><BR>");
 	int i;
@@ -582,6 +668,7 @@ void send_oscam_config_anticasc(FILE *f, char *uriparams[], char *urivalues[], i
 
 #endif
 
+
 void send_oscam_config(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
 	fprintf(f,"<BR><BR>");
 
@@ -592,6 +679,8 @@ void send_oscam_config(FILE *f, char *uriparams[], char *urivalues[], int paramc
 	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./config.html?part=camd33\">Camd3.3</TD>\n");
 	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./config.html?part=camd35\">Camd3.5</TD>\n");
 	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./config.html?part=newcamd\">Newcamd</TD>\n");
+	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./config.html?part=radegast\">Radegast</TD>\n");
+	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./config.html?part=cccam\">Cccam</TD>\n");
 #ifdef CS_ANTICASC
 	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./config.html?part=anticasc\">Anticascading</TD>\n");
 #endif
@@ -620,6 +709,10 @@ void send_oscam_config(FILE *f, char *uriparams[], char *urivalues[], int paramc
 			send_oscam_config_camd35(f, uriparams, urivalues, paramcount);
 		else if (!strcmp(urivalues[i],"newcamd"))
 			send_oscam_config_newcamd(f, uriparams, urivalues, paramcount);
+		else if (!strcmp(urivalues[i],"radegast"))
+			send_oscam_config_radegast(f, uriparams, urivalues, paramcount);
+		else if (!strcmp(urivalues[i],"cccam"))
+			send_oscam_config_cccam(f, uriparams, urivalues, paramcount);
 #ifdef CS_ANTICASC
 		else if (!strcmp(urivalues[i],"anticasc"))
 			send_oscam_config_anticasc(f, uriparams, urivalues, paramcount);
@@ -1276,7 +1369,7 @@ int process_request(FILE *f) {
   char tmp[4096];
 
   int authok = 0;
-  char authbuf[4096];
+  char authbuf[512];
   char expectednonce[64];
 
   char *method;
