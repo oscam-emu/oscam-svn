@@ -782,14 +782,16 @@ void send_oscam_config_monitor(FILE *f, char *uriparams[], char *urivalues[], in
 	fprintf(f,"</select></TD></TR>\r\n");
 	//HTTPport
 	fprintf(f,"\t<TR><TD>Port:</TD><TD><input name=\"httpport\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->http_port);
+	//hideclient_to
+	fprintf(f,"\t<TR><TD>Hideclientto:</TD><TD><input name=\"hideclient_to\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->mon_hideclient_to);
 	//HTTPuser
 	fprintf(f,"<TR><TD>Httpuser:</TD><TD><input name=\"httpuser\" type=\"text\" size=\"20\" maxlength=\"20\" value=\"%s\"></TD></TR>\r\n", cfg->http_user);
 	//HTTPpassword
 	fprintf(f,"<TR><TD>Httppwd:</TD><TD><input name=\"httppwd\" type=\"text\" size=\"20\" maxlength=\"20\" value=\"%s\"></TD></TR>\r\n", cfg->http_pwd);
 	//HTTPcss
 	fprintf(f,"<TR><TD>Httpcss:</TD><TD><input name=\"httpcss\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"%s\"></TD></TR>\r\n", cfg->http_css);
-	//hideclient_to
-	fprintf(f,"\t<TR><TD>Port:</TD><TD><input name=\"hideclient_to\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->mon_hideclient_to);
+	//HTTPrefresh
+	fprintf(f,"\t<TR><TD>Httprefresh:</TD><TD><input name=\"httprefresh\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->http_refresh);
 
 	//Tablefoot and finish form
 	fprintf(f,"</TABLE>\r\n");
@@ -1728,6 +1730,8 @@ void http_srv() {
 		process_request(f);
 		fflush(f);
 		fclose(f);
+		shutdown(s, 2);
+		close(s);
   }
   close(sock);
 }
