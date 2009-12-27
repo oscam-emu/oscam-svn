@@ -406,6 +406,8 @@ static void chk_t_monitor(char *token, char *value)
   if (!strcmp(token, "aulow")) { cfg->mon_aulow=atoi(value); return; }
   if (!strcmp(token, "monlevel")) { cfg->mon_level=atoi(value); return; }
   if (!strcmp(token, "httpport")) { cfg->http_port=atoi(value); return; }
+  if (!strcmp(token, "httpuser")) { strncpy(cfg->http_user, value, sizeof(cfg->http_user)-1); cfg->http_user[sizeof(cfg->http_user)-1] = '\0'; return; }
+  if (!strcmp(token, "httppwd")) { strncpy(cfg->http_pwd, value, sizeof(cfg->http_pwd)-1); cfg->http_pwd[sizeof(cfg->http_pwd)-1] = '\0'; return; }
   if (!strcmp(token, "hideclient_to")) { cfg->mon_hideclient_to=atoi(value); return; }
   if (token[0] != '#')
     fprintf(stderr, "Warning: keyword '%s' in monitor section not recognized\n",token);
@@ -630,6 +632,8 @@ int init_config()
   cfg->mon_hideclient_to=0;
   cfg->srtimeout=1500;
   cfg->ulparent=0;
+  strcpy(cfg->http_user, "");
+  strcpy(cfg->http_pwd, "");
 #ifdef CS_ANTICASC
   cfg->ac_enabled=0;
   cfg->ac_users=0;

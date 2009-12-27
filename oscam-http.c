@@ -2,10 +2,9 @@
 //
 // webserver.c
 //
-// Simple HTTP server sample for sanos
+// Simple HTTP server
 //
 
-//#include <os.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
@@ -13,8 +12,9 @@
 #include <dirent.h>
 
 #define SERVER "webserver/1.0"
-#define PROTOCOL "HTTP/1.1"
+#define PROTOCOL "HTTP/1.0"
 #define RFC1123FMT "%a, %d %b %Y %H:%M:%S GMT"
+#define AUTHREALM "OScam"
 
 void send_oscam_user_config(FILE *f, char *uriparams[], char *urivalues[], int paramcount);
 
@@ -37,6 +37,112 @@ static  char*   css[] = {
 			"A:active {text-decoration: none; color:white}",
 			"A:hover {text-decoration: none; color: red;}",
 				NULL };
+
+static char** hex2ascii;
+static char noncekey[33];
+
+/* Parses a value in an authentication string by removing all quotes/whitespace and copying it to dest.*/
+void parse_auth_value(char *value, char *dest, int destsize){
+	char *pch;
+	value=strstr(value, "=");
+	if(value != NULL){
+		do{
+			++value;
+		} while (value[0] == ' ' || value[0] == '"');
+		strncpy(dest, value, destsize - 1);
+		dest[destsize - 1] = '\0';
+		for(pch = dest + strlen(dest) - 1; pch > dest && (pch[0] == ' ' || pch[0] == '"' || pch[0] == '\r' || pch[0] == '\n'); --pch) pch[0] = '\0';
+	}
+}
+
+/* Calculates the currently valid nonce value and copies it to result*/
+void calculate_nonce(char *result, int resultlen){
+	char *expectednonce, *noncetmp;
+  noncetmp = (char*) malloc (128*sizeof(char));
+  sprintf(noncetmp, "%d", (int)time(NULL)/5);
+  strcat(noncetmp, ":");
+  strcat(noncetmp, noncekey);
+  fflush(stdout);
+  expectednonce =char_to_hex(MD5((unsigned char*)noncetmp, strlen(noncetmp), NULL), MD5_DIGEST_LENGTH, hex2ascii);
+  strncpy(result, expectednonce, resultlen);
+  result[resultlen - 1] = '\0';
+  free(noncetmp);
+	free(expectednonce);
+}
+
+/* Checks if authentication is correct. Returns 0 if not correct, 1 if correct and 1 if nonce isn't valid anymore */
+int check_auth(char *authstring, char *method, char *path, char *expectednonce){
+	int authok = 0;
+	char authnonce[65];
+	char authnc[65];
+	char authcnonce[65];
+	char uri[512];
+	char authresponse[MD5_DIGEST_LENGTH*2 + 1];
+	char *A1tmp, *A2tmp, *A3tmp;
+	char *A1, *A2, *A3;
+  char *pch, *pch2;
+
+	authnonce[0] = '\0';
+	authnc[0] = '\0';
+	authcnonce[0] = '\0';
+	authresponse[0] = '\0';
+	uri[0] = '\0';
+	pch = authstring + 22;
+	pch = strtok (pch,",");
+	while (pch != NULL){
+		pch2 = pch;
+	  while(pch2[0] == ' ' && pch2[0] != '\0') ++pch2;
+	  if(strncmp(pch2, "nonce", 5) == 0){
+	  	parse_auth_value(pch2, authnonce, (sizeof(authnonce)/sizeof(char)));
+	  } else if (strncmp(pch2, "nc", 2) == 0){
+	  	parse_auth_value(pch2, authnc, (sizeof(authnc)/sizeof(char)));
+	  } else if (strncmp(pch2, "cnonce", 6) == 0){
+	  	parse_auth_value(pch2, authcnonce, (sizeof(authcnonce)/sizeof(char)));
+	  } else if (strncmp(pch2, "response", 8) == 0){
+	  	parse_auth_value(pch2, authresponse, (sizeof(authresponse)/sizeof(char)));
+	  } else if (strncmp(pch2, "uri", 3) == 0){
+	  	parse_auth_value(pch2, uri, (sizeof(uri)/sizeof(char)));
+	  }
+	  pch = strtok (NULL, ",");
+	}
+	if(strncmp(uri, path, strlen(path)) == 0){
+		A1tmp = (char*) malloc ((3 + strlen(cfg->http_user) + strlen(AUTHREALM) + strlen(cfg->http_pwd))*sizeof(char));
+		strcpy(A1tmp, cfg->http_user);
+		strcat(A1tmp, ":");
+		strcat(A1tmp, AUTHREALM);
+		strcat(A1tmp, ":");
+		strcat(A1tmp, cfg->http_pwd);
+		A2tmp = (char*) malloc ((2 + strlen(method) + strlen(uri))*sizeof(char));
+		strcpy(A2tmp, method);
+		strcat(A2tmp, ":");
+		strcat(A2tmp, uri);
+		A1=char_to_hex(MD5((unsigned char*)A1tmp, strlen(A1tmp), NULL), MD5_DIGEST_LENGTH, hex2ascii);
+		A2=char_to_hex(MD5((unsigned char*)A2tmp, strlen(A2tmp), NULL), MD5_DIGEST_LENGTH, hex2ascii);
+		A3tmp = (char*) malloc ((10 + strlen(A1) + strlen(A2) + strlen(authnonce) + strlen(authnc) + strlen(authcnonce))*sizeof(char));
+		strcpy(A3tmp, A1);
+		strcat(A3tmp, ":");
+		strcat(A3tmp, authnonce);
+		strcat(A3tmp, ":");
+		strcat(A3tmp, authnc);
+		strcat(A3tmp, ":");
+		strcat(A3tmp, authcnonce);
+		strcat(A3tmp, ":auth:");
+		strcat(A3tmp, A2);
+		A3=char_to_hex(MD5((unsigned char*)A3tmp, strlen(A3tmp), NULL), MD5_DIGEST_LENGTH, hex2ascii);
+		if(strcmp(A3, authresponse) == 0) {
+			if(strcmp(expectednonce, authnonce) == 0) authok = 1;
+			else authok = 2;
+		}
+		free(A1tmp);
+		free(A2tmp);
+		free(A3tmp);
+		free(A1);
+		free(A2);
+		free(A3);
+	}
+	return authok;
+}
+
 
 void send_headers(FILE *f, int status, char *title, char *extra, char *mime ){
 
@@ -204,7 +310,16 @@ void send_oscam_config_global(FILE *f, char *uriparams[], char *urivalues[], int
 }
 
 void send_oscam_config_camd33_do(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
-	fprintf(f,"<BR><BR>Configuration camd33 Do not yet implemented<BR><BR>");
+	fprintf(f,"<BR><BR>");
+	int i;
+
+	if (paramcount>0){
+		for(i=0;i<paramcount;i++){
+			fprintf(f,"Parameter: %s  ->>> Value: %s<BR>\r\n",uriparams[i],urivalues[i]);
+		}
+	}
+	//Disclaimer
+	fprintf(f,"<BR><BR>Configuration camd33 not yet implemented<BR><BR>");
 }
 
 void send_oscam_config_camd33(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
@@ -1155,11 +1270,14 @@ void send_oscam_sidtab(FILE *f) {
   fprintf(f,"</DIV>");
 }
 
-
 int process_request(FILE *f) {
   int maxparams=100;
   char buf[4096];
   char tmp[4096];
+
+  int authok = 0;
+  char authbuf[4096];
+  char expectednonce[64];
 
   char *method;
   char *path;
@@ -1231,17 +1349,36 @@ int process_request(FILE *f) {
       urivalues[paramcount-1] = pch2;
   }
 
-	/* Read remaining request (we're not interested in the content) */
+  authbuf[0] = '\0';
+	/* Read remaining request (we're not only interested in auth header) */
   while (fgets(tmp, sizeof(tmp), f))  {
     if (tmp[0] == '\r' && tmp[1] == '\n') break;
+    else if(strlen(tmp) > 50 && strncmp(tmp, "Authorization: Digest ", 22) == 0) {
+    	strncpy(authbuf, tmp, sizeof(authbuf)/sizeof(char)-1);
+    	authbuf[sizeof(authbuf)/sizeof(char)-1] = '\0';
+    }
   }
 
-
+	if(strlen(cfg->http_user) == 0 || strlen(cfg->http_pwd) == 0) authok = 1;
+	else if(strlen(authbuf) > 0){
+		calculate_nonce(expectednonce, sizeof(expectednonce)/sizeof(char));
+		authok = check_auth(authbuf, method, path, expectednonce);
+	}
   //printf("%s %d\n", path, pgidx);
   //for(i=0; i < paramcount; ++i) printf("%s : %s\n", uriparams[i], urivalues[i]);
 
   fseek(f, 0, SEEK_CUR); // Force change of stream direction
 
+  if(authok != 1){
+  	strcpy(tmp, "WWW-Authenticate: Digest algorithm=\"MD5\", realm=\"");
+  	strcat(tmp, AUTHREALM);
+  	strcat(tmp, "\", qop=\"auth\", opaque=\"\", nonce=\"");
+  	strcat(tmp, expectednonce);
+  	strcat(tmp, "\"");
+  	if(authok == 2) strcat(tmp, ", stale=true");
+	  send_headers(f, 401, "Unauthorized", tmp, "text/html");
+	  return -1;
+	}
 
 	/*build page*/
   send_headers(f, 200, "OK", NULL, "text/html");
@@ -1267,8 +1404,23 @@ int process_request(FILE *f) {
 }
 
 void http_srv() {
-	int sock;
+	int i,sock;
 	struct sockaddr_in sin;
+	char *tmp;
+
+	/* Prepare lookup array for conversion between ascii and hex */
+	hex2ascii = malloc(256*sizeof(char*));
+	tmp = malloc(3*sizeof(char));
+  for(i=0; i<256; i++) {
+    snprintf(tmp, 3,"%02x", i);
+    hex2ascii[i] = malloc(3*sizeof(char));
+    memcpy(hex2ascii[i], tmp, 2);
+  }
+  /* Create random string for nonce value generation */
+  srand(time(NULL));
+  create_rand_str(noncekey,32);
+
+	/* Startup server */
 	sock = socket(AF_INET, SOCK_STREAM, 0);
 	sin.sin_family = AF_INET;
 	sin.sin_addr.s_addr = INADDR_ANY;
@@ -1280,12 +1432,12 @@ void http_srv() {
 	{
 		int s;
 		FILE *f;
-
 		s = accept(sock, NULL, NULL);
 		if (s < 0) break;
 
 		f = fdopen(s, "r+");
 		process_request(f);
+		fflush(f);
 		fclose(f);
   }
   close(sock);

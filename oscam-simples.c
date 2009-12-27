@@ -358,6 +358,7 @@ void cs_setpriority(int prio)
 }
 #endif
 
+/* Helper function for urldecode.*/
 int x2i(int i){
 	i=toupper(i);
 	i = i - '0';
@@ -365,6 +366,7 @@ int x2i(int i){
 	return i;
 }
 
+/* Decodes values in a http url */
 void urldecode(char *s){
 	int c, c1, n;
 	char *s0,*t;
@@ -372,7 +374,7 @@ void urldecode(char *s){
 	n = strlen(s);
 	while(n >0){
 		c = *s++;
-              if(c == '+') c = ' ';
+		if(c == '+') c = ' ';
 		else if(c == '%' && n > 2){
 			c = *s++;
 			c1 = c;
@@ -403,4 +405,30 @@ void long2bitchar(long value, char *result){
 		value=value / 2;
 		pos++;
 	}
+}
+
+/* Converts a char array to a char array with hex values (needed for example for md5). The hex2ascii
+   array is a lookup table with the corresponding hex string on the array position of the integer representation 
+   of the ascii value. Note that you need to "free" the resulting array after usage or you'll get a memory leak!*/
+char *char_to_hex(const unsigned char* p_array, unsigned int p_array_len, char** hex2ascii) {
+	unsigned char* str = (unsigned char*)malloc(p_array_len*2+1);
+	str[p_array_len*2] = '\0';
+	const unsigned char* p_end = p_array + p_array_len;
+	size_t pos=0;
+	const unsigned char* p;
+	for( p = p_array; p != p_end; p++, pos+=2 ) {
+		str[pos] = hex2ascii[*p][0];
+		str[pos+1] = hex2ascii[*p][1];
+	}
+	return (char*)str;
+}
+
+/* Creates a random string with specified length. Note that dst must be one larger than size to hold the trailing \0*/
+void create_rand_str(char *dst, int size){
+	static const char text[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+	int i;
+	for (i = 0; i < size; ++i){
+		dst[i] = text[rand() % (sizeof(text) - 1)];
+	}
+	dst[i] = '\0';
 }
