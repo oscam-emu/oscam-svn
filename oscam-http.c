@@ -41,6 +41,20 @@ static  char*   css[] = {
 			"A:hover {text-decoration: none; color: red;}",
 				NULL };
 
+static char* monlevel[] = {
+			"0 = no access to monitor",
+			"1 = only server and own procs",
+			"2 = all procs, but viewing only, default",
+			"3 = all procs, reload of oscam.user possible",
+			"4 = complete access",
+			NULL };
+
+static char* uniq[] = {
+			"0 = none",
+			"1 = strict",
+			"2 = per IP",
+			NULL };
+
 static char hex2ascii[256][2];
 static char noncekey[33];
 
@@ -198,13 +212,15 @@ void send_headers(FILE *f, int status, char *title, char *extra, char *mime ){
   fprintf(f, "\r\n");
 }
 
-void send_htmlhead(FILE *f){
+void send_htmlhead(FILE *f, int refresh){
 
 	/*build HTML head*/
 	fprintf(f, "<HTML>\n");
 	fprintf(f, "<HEAD>\n");
 	fprintf(f, "<TITLE>OSCAM %s build #%s</TITLE>\n", CS_VERSION, CS_SVN_VERSION);
 	fprintf(f, "<link rel=\"stylesheet\" type=\"text/css\" href=\"site.css\">\n");
+	if (refresh > 0)
+		fprintf(f, "<meta http-equiv=\"refresh\" content=\"%d; URL=/status.html\" />", refresh);
 	fprintf(f, "</HEAD>\n");
 	fprintf(f, "<BODY>");
 	fprintf(f, "<H2>OSCAM %s build #%s</H2>", CS_VERSION, CS_SVN_VERSION);
@@ -757,11 +773,11 @@ void send_oscam_config_monitor(FILE *f, char *uriparams[], char *urivalues[], in
 	fprintf(f,"\t<TR><TD>Aulow:</TD><TD><input name=\"aulow\" type=\"text\" size=\"5\" maxlength=\"1\" value=\"%d\"></TD></TR>\r\n", cfg->mon_aulow);
 	//Monlevel
 	fprintf(f,"<TR><TD>Monlevel:</TD><TD><select name=\"monlevel\" >\r\n");
-		for(i = 1; i < 5; i++){
+		for(i = 0; i < 5; i++){
 			if(i == cfg->mon_level)
-				fprintf(f,"\t<option selected>%d</option>\r\n", i);
+				fprintf(f,"\t<option value=\"%d\" selected>%s</option>\r\n", i, monlevel[i]);
 			else
-				fprintf(f,"\t<option>%d</option>\r\n", i);
+				fprintf(f,"\t<option value=\"%d\">%s</option>\r\n", i, monlevel[i]);
 	}
 	fprintf(f,"</select></TD></TR>\r\n");
 	//HTTPport
@@ -831,7 +847,6 @@ void send_oscam_config_anticasc(FILE *f, char *uriparams[], char *urivalues[], i
 }
 
 #endif
-
 
 void send_oscam_config(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
 	fprintf(f,"<BR><BR>");
@@ -951,7 +966,19 @@ void send_oscam_reader_config(FILE *f, char *uriparams[], char *urivalues[], int
 	if(reader[ridx].r_port) fprintf(f,",%d",reader[ridx].r_port);
 	if(reader[ridx].l_port) fprintf(f,",%d",reader[ridx].l_port);
 	fprintf(f,"\"></TD></TR>\r\n");
-
+	//Group
+	fprintf(f,"<TR><TD>Group:</TD><TD><input name=\"grp\" type=\"text\" size=\"10\" maxlength=\"10\" value=\"");
+	/*restore the settings format of group from long over bitarray*/
+	char *dot = ""; //flag for comma
+	char grpbit[33];
+	long2bitchar(reader[ridx].grp, grpbit);
+	for(i = 0; i < 32; i++){
+		if (grpbit[i] == '1'){
+				fprintf(f, "%s%d", dot, i+1);
+				dot = ",";
+			}
+		}
+	fprintf(f,"\"></TD></TR>\r\n");
 	fprintf(f,"<TR><TD>Key:</TD><TD><input name=\"key\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"%s\"></TD></TR>\r\n", reader[ridx].ncd_key);
 	//fprintf(f,"<TR><TD>Password:</TD><TD><input name=\"password\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"%s\"></TD></TR>\r\n", reader[ridx].gbox_pwd);
 	fprintf(f,"<TR><TD>Pincode:</TD><TD><input name=\"pincode\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"%s\"></TD></TR>\r\n", reader[ridx].pincode);
@@ -983,8 +1010,26 @@ void send_oscam_reader_config(FILE *f, char *uriparams[], char *urivalues[], int
 	fprintf(f,"<TR><TD>Reconnecttimeout:</TD><TD><input name=\"reconnecttimeout\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"%d\"></TD></TR>\r\n", reader[ridx].tcp_rto);
 	fprintf(f,"<TR><TD>Disableserverfilter:</TD><TD><input name=\"disableserverfilter\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"%d\"></TD></TR>\r\n", reader[ridx].ncd_disable_server_filt);
 	fprintf(f,"<TR><TD>Fallback:</TD><TD><input name=\"fallback\" type=\"text\" size=\"3\" maxlength=\"3\" value=\"%d\"></TD></TR>\r\n", reader[ridx].fallback);
-	fprintf(f,"<TR><TD>Logport:</TD><TD><input name=\"logport\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"%d\"></TD></TR>\r\n", reader[ridx].log_port);
+	//fprintf(f,"<TR><TD>Logport:</TD><TD><input name=\"logport\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"%d\"></TD></TR>\r\n", reader[ridx].log_port);
 	//fprintf(f,"<TR><TD>Caid:</TD><TD><input name=\"caid\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"%s\"></TD></TR>\r\n", reader[ridx].log_port);
+	/*---------------------CAID-----------------------------
+	-------------------------------------------------------*/
+	i = 0;
+	CAIDTAB *ctab = &reader[ridx].ctab;
+
+	fprintf(f,"<TR><TD>CAID:</TD><TD><input name=\"caid\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"");
+	/*make string from caidtab*/
+	if (ctab->caid[i]){
+		while(ctab->caid[i]) {
+			if (i==0)	fprintf(f, "%04X", ctab->caid[i]);
+			else fprintf(f, ",%04X", ctab->caid[i]);
+			if(ctab->mask[i])	fprintf(f, "&%04X", ctab->mask[i]);
+			i++;
+		}
+	}
+	fprintf(f,"\"></TD></TR>\r\n");
+
+
 	fprintf(f,"<TR><TD>Boxid:</TD><TD><input name=\"boxid\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"%ld\"></TD></TR>\r\n", reader[ridx].boxid);
 
 
@@ -1187,66 +1232,47 @@ void send_oscam_user_config(FILE *f, char *uriparams[], char *urivalues[], int p
 	fprintf(f,"<TR><TD>Password:</TD><TD><input name=\"pwd\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"%s\"></TD></TR>\r\n", account->pwd);
 	//Group
 	fprintf(f,"<TR><TD>Group:</TD><TD><input name=\"grp\" type=\"text\" size=\"10\" maxlength=\"10\" value=\"");
-
 	/*restore the settings format of group from long over bitarray*/
-	int dot = 0; //flag for comma
+	char *dot = ""; //flag for comma
 	char grpbit[33];
 	long2bitchar(account->grp, grpbit);
 	for(i = 0; i < 32; i++){
 		if (grpbit[i] == '1'){
-			if (dot == 0){
-				fprintf(f, "%d", i+1);
-				dot = 1;
+				fprintf(f, "%s%d", dot, i+1);
+				dot = ",";
 			}
-			else
-				fprintf(f, ",%d", i+1);
 		}
-	}
 	fprintf(f,"\"></TD></TR>\r\n");
-
+	//Hostname
 	if (strlen((char *)account->dyndns)>0)
 		fprintf(f,"<TR><TD>Hostname:</TD><TD><input name=\"dyndns\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"%s\"></TD></TR>\r\n", account->dyndns);
 	else
 		fprintf(f,"<TR><TD>Hostname:</TD><TD><input name=\"dyndns\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"\"></TD></TR>\r\n");
-
-
+	//Uniq
 	fprintf(f,"<TR><TD>Uniq:</TD><TD><select name=\"uniq\" >\r\n");
-		if (account->uniq == 0)
-			fprintf(f,"\t<OPTION value=\"0\" selected>(0) none</OPTION>\r\n");
+		for(i = 0; i < 3; i++){
+		if(i == account->uniq)
+			fprintf(f,"\t<option value=\"%d\" selected>%s</option>\r\n", i, uniq[i]);
 		else
-			fprintf(f,"\t<OPTION value=\"0\">(0) none</OPTION>\r\n");
-
-		if (account->uniq == 1)
-			fprintf(f,"\t<OPTION value=\"1\" selected>(1) strict</OPTION>\r\n");
-		else
-			fprintf(f,"\t<OPTION value=\"1\">(1) strict</OPTION>\r\n");
-
-		if (account->uniq == 2)
-			fprintf(f,"\t<OPTION value=\"2\" selected>(2) IP based</OPTION>\r\n");
-		else
-			fprintf(f,"\t<OPTION value=\"2\">(2) IP based</OPTION>\r\n");
-
+			fprintf(f,"\t<option value=\"%d\">%s</option>\r\n", i, uniq[i]);
+		}
 	fprintf(f,"</SELECT></TD></TR>\r\n");
-
+	//Sleep
 	if(!account->tosleep)
 		fprintf(f,"<TR><TD>Sleep:</TD><TD><input name=\"tosleep\" type=\"text\" size=\"4\" maxlength=\"4\" value=\"0\"></TD></TR>\r\n");
 	else
 		fprintf(f,"<TR><TD>Sleep:</TD><TD><input name=\"tosleep\" type=\"text\" size=\"4\" maxlength=\"4\" value=\"%d\"></TD></TR>\r\n", account->tosleep);
-
-	/*Monlevel selector*/
+	//Monlevel selector
 	fprintf(f,"<TR><TD>Monlevel:</TD><TD><select name=\"monlevel\" >\r\n");
-	for(i=1;i<5;i++){
-		if(i==account->monlvl)
-			fprintf(f,"\t<option selected>%d</option>\r\n",i);
+	for(i = 0; i < 5; i++){
+		if(i == account->monlvl)
+			fprintf(f,"\t<option value=\"%d\" selected>%s</option>\r\n", i, monlevel[i]);
 		else
-			fprintf(f,"\t<option>%d</option>\r\n",i);
+			fprintf(f,"\t<option value=\"%d\">%s</option>\r\n", i, monlevel[i]);
 	}
 	fprintf(f,"</select></TD></TR>\r\n");
-
-
-	/*AU Selector*/
+	//AU Selector
 	fprintf(f,"<TR><TD>AU:</TD><TD><select name=\"au\" >\r\n");
-
 	if (account->au > -1)
 		fprintf(f,"\t<option value=\"-1\" selected>none</option>\r\n");
 	else
@@ -1643,7 +1669,10 @@ int process_request(FILE *f) {
   send_headers(f, 200, "OK", NULL, "text/html");
   if(pgidx == 8) send_css(f);
 	else {
-  send_htmlhead(f);
+
+		if (pgidx == 3)	send_htmlhead(f, cfg->http_refresh); //status
+		else send_htmlhead(f,0);
+
   send_oscam_menu(f);
   switch(pgidx){
     case  0: send_oscam_config(f, uriparams, urivalues, paramcount); break;

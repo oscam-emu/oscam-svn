@@ -537,6 +537,7 @@ struct s_config
   char      http_user[65];
   char      http_pwd[65];
   char      http_css[128];
+  int				http_refresh;
   int       c33_port;
   in_addr_t c33_srvip;
   uchar     c33_key[16];
