@@ -753,6 +753,22 @@ extern void chk_tuntab(char *tunasc, TUNTAB *ttab);
 extern void chk_services(char *labels, ulong *sidok, ulong *sidno);
 extern void chk_ftab(char *zFilterAsc, FTAB *ftab, const char *zType, const char *zName, const char *zFiltName);
 extern void chk_cltab(char *classasc, CLASSTAB *clstab);
+extern void chk_iprange(char *value, struct s_ip **base);
+void chk_port_tab(char *portasc, PTAB *ptab);
+#ifdef CS_ANTICASC
+void chk_t_ac(char *token, char *value);
+#endif
+void chk_t_camd33(char *token, char *value);
+void chk_t_camd35(char *token, char *value);
+void chk_t_camd35_tcp(char *token, char *value);
+void chk_t_newcamd(char *token, char *value);
+void chk_t_radegast(char *token, char *value);
+void chk_t_serial(char *token, char *value);
+void chk_t_gbox(char *token, char *value);
+void chk_t_cccam(char *token, char *value);
+void chk_t_global(char *token, char *value);
+void chk_t_monitor(char *token, char *value);
+void chk_account(char *token, char *value, struct s_auth *account);
 
 // oscam-reader
 extern int ridx, logfd;

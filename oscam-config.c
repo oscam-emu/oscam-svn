@@ -66,7 +66,7 @@ static void show_sidtab(struct s_sidtab *sidtab)
 }
 #endif
 
-static void chk_iprange(char *value, struct s_ip **base)
+void chk_iprange(char *value, struct s_ip **base)
 {
   //int i;
   char *ptr1, *ptr2;
@@ -220,7 +220,7 @@ void chk_cltab(char *classasc, CLASSTAB *clstab)
   }
 }
 
-static void chk_port_tab(char *portasc, PTAB *ptab)
+void chk_port_tab(char *portasc, PTAB *ptab)
 {
   int i,j,nfilts,ifilt,iport;
   char *ptr1,*ptr2,*ptr3;
@@ -278,7 +278,7 @@ static void chk_srvip(char *value, in_addr_t *ip)
 }
 #endif
 
-static void chk_t_global(char *token, char *value)
+void chk_t_global(char *token, char *value)
 {
   if (!strcmp(token, "serverip")) { cfg->srvip=inet_addr(value); return; }
   if (!strcmp(token, "logfile")) { strncpy(logfile, value, sizeof(logfile)-1); return; }
@@ -339,7 +339,7 @@ static void chk_t_global(char *token, char *value)
 }
 
 #ifdef CS_ANTICASC
-static void chk_t_ac(char *token, char *value)
+void chk_t_ac(char *token, char *value)
 {
   if (!strcmp(token, "enabled"))
   {
@@ -398,7 +398,7 @@ static void chk_t_ac(char *token, char *value)
 }
 #endif
 
-static void chk_t_monitor(char *token, char *value)
+void chk_t_monitor(char *token, char *value)
 {
   if (!strcmp(token, "port")) { cfg->mon_port=atoi(value); return; }
   if (!strcmp(token, "serverip")) { cfg->mon_srvip=inet_addr(value); return; }
@@ -415,7 +415,7 @@ static void chk_t_monitor(char *token, char *value)
     fprintf(stderr, "Warning: keyword '%s' in monitor section not recognized\n",token);
 }
 
-static void chk_t_camd33(char *token, char *value)
+void chk_t_camd33(char *token, char *value)
 {
   if (!strcmp(token, "port")) { cfg->c33_port=atoi(value); return; }
   if (!strcmp(token, "serverip")) { cfg->c33_srvip=inet_addr(value); return; }
@@ -435,7 +435,7 @@ static void chk_t_camd33(char *token, char *value)
     fprintf(stderr, "Warning: keyword '%s' in camd33 section not recognized\n",token);
 }
 
-static void chk_t_camd35(char *token, char *value)
+void chk_t_camd35(char *token, char *value)
 {
   if (!strcmp(token, "port")) { cfg->c35_port=atoi(value); return; }
   if (!strcmp(token, "serverip")) { cfg->c35_tcp_srvip=inet_addr(value); return; }
@@ -443,7 +443,7 @@ static void chk_t_camd35(char *token, char *value)
     fprintf(stderr, "Warning: keyword '%s' in camd35 section not recognized\n",token);
 }
 
-static void chk_t_camd35_tcp(char *token, char *value)
+void chk_t_camd35_tcp(char *token, char *value)
 {
   if (!strcmp(token, "port")) { chk_port_tab(value, &cfg->c35_tcp_ptab); return; }
   if (!strcmp(token, "serverip")) { cfg->c35_tcp_srvip=inet_addr(value); return; }
@@ -451,7 +451,7 @@ static void chk_t_camd35_tcp(char *token, char *value)
     fprintf(stderr, "Warning: keyword '%s' in camd35 tcp section not recognized\n",token);
 }
 
-static void chk_t_newcamd(char *token, char *value)
+void chk_t_newcamd(char *token, char *value)
 {
   if (!strcmp(token, "port")) { chk_port_tab(value, &cfg->ncd_ptab); return; }
   if (!strcmp(token, "serverip")) { cfg->ncd_srvip=inet_addr(value); return; }
@@ -468,7 +468,7 @@ static void chk_t_newcamd(char *token, char *value)
     fprintf(stderr, "Warning: keyword '%s' in newcamd section not recognized\n",token);
 }
 
-static void chk_t_radegast(char *token, char *value)
+void chk_t_radegast(char *token, char *value)
 {
   if (!strcmp(token, "port")) { cfg->rad_port=atoi(value); return; }
   if (!strcmp(token, "serverip")) { cfg->rad_srvip=inet_addr(value); return; }
@@ -478,7 +478,7 @@ static void chk_t_radegast(char *token, char *value)
     fprintf(stderr, "Warning: keyword '%s' in radegast section not recognized\n",token);
 }
 
-static void chk_t_serial(char *token, char *value)
+void chk_t_serial(char *token, char *value)
 {
   if (!strcmp(token, "device"))
   {
@@ -492,7 +492,7 @@ static void chk_t_serial(char *token, char *value)
     fprintf(stderr, "Warning: keyword '%s' in serial section not recognized\n",token);
 }
 
-static void chk_t_gbox(char *token, char *value)
+void chk_t_gbox(char *token, char *value)
 {
 //  if (!strcmp(token, "password")) strncpy(cfg->gbox_pwd, i2b(4, a2i(value, 4)), 4);
   if (!strcmp(token, "password")) { cs_atob(cfg->gbox_pwd, value, 4); return; }
@@ -516,7 +516,7 @@ static void chk_t_gbox(char *token, char *value)
     fprintf(stderr, "Warning: keyword '%s' in gbox section not recognized\n",token);
 }
 
-static void chk_t_cccam(char *token, char *value)
+void chk_t_cccam(char *token, char *value)
 {
   // placeholder for ccam server support
 }
@@ -696,7 +696,7 @@ int init_config()
   return 0;
 }
 
-static void chk_account(char *token, char *value, struct s_auth *account)
+void chk_account(char *token, char *value, struct s_auth *account)
 {
   int i;
   char *ptr1;//, *ptr2;
