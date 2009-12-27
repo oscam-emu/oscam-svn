@@ -410,7 +410,7 @@ void long2bitchar(long value, char *result){
 /* Converts a char array to a char array with hex values (needed for example for md5). The hex2ascii
    array is a lookup table with the corresponding hex string on the array position of the integer representation 
    of the ascii value. Note that you need to "free" the resulting array after usage or you'll get a memory leak!*/
-char *char_to_hex(const unsigned char* p_array, unsigned int p_array_len, char** hex2ascii) {
+char *char_to_hex(const unsigned char* p_array, unsigned int p_array_len, char hex2ascii[256][2]) {
 	unsigned char* str = (unsigned char*)malloc(p_array_len*2+1);
 	str[p_array_len*2] = '\0';
 	const unsigned char* p_end = p_array + p_array_len;
@@ -432,3 +432,14 @@ void create_rand_str(char *dst, int size){
 	}
 	dst[i] = '\0';
 }
+
+/* Return 1 if the file exists, else 0 */
+int file_exists(const char * filename){
+	FILE *file;
+	if (file = fopen(filename, "r")){
+		fclose(file);
+		return 1;
+	}
+	return 0;
+}
+

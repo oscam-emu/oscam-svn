@@ -15,8 +15,11 @@
 #define PROTOCOL "HTTP/1.0"
 #define RFC1123FMT "%a, %d %b %Y %H:%M:%S GMT"
 #define AUTHREALM "OScam"
+#define AUTHNONCEVALIDSECS 5
 
 void send_oscam_user_config(FILE *f, char *uriparams[], char *urivalues[], int paramcount);
+
+enum refreshtypes {REFR_ACCOUNTS, REFR_READERS, REFR_SERVER, REFR_ANTICASC};
 
 static  char*   css[] = {
 			"p {color: white; }",
@@ -38,28 +41,29 @@ static  char*   css[] = {
 			"A:hover {text-decoration: none; color: red;}",
 				NULL };
 
-static char** hex2ascii;
+static char hex2ascii[256][2];
 static char noncekey[33];
 
-/* Parses a value in an authentication string by removing all quotes/whitespace and copying it to dest.*/
-void parse_auth_value(char *value, char *dest, int destsize){
-	char *pch;
-	value=strstr(value, "=");
+/* Parses a value in an authentication string by removing all quotes/whitespace. Note that the original array is modified*/
+char *parse_auth_value(char *value){
+	char *pch = value;
+	char *pch2;
+	value = strstr(value, "=");
 	if(value != NULL){
 		do{
 			++value;
 		} while (value[0] == ' ' || value[0] == '"');
-		strncpy(dest, value, destsize - 1);
-		dest[destsize - 1] = '\0';
-		for(pch = dest + strlen(dest) - 1; pch > dest && (pch[0] == ' ' || pch[0] == '"' || pch[0] == '\r' || pch[0] == '\n'); --pch) pch[0] = '\0';
+		pch = value;
+		for(pch2 = value + strlen(value) - 1; pch2 >= value && (pch2[0] == ' ' || pch2[0] == '"' || pch2[0] == '\r' || pch2[0] == '\n'); --pch2) pch2[0] = '\0';
 	}
+	return pch;
 }
 
 /* Calculates the currently valid nonce value and copies it to result*/
 void calculate_nonce(char *result, int resultlen){
 	char *expectednonce, *noncetmp;
   noncetmp = (char*) malloc (128*sizeof(char));
-  sprintf(noncetmp, "%d", (int)time(NULL)/5);
+  sprintf(noncetmp, "%d", (int)time(NULL)/AUTHNONCEVALIDSECS);
   strcat(noncetmp, ":");
   strcat(noncetmp, noncekey);
   fflush(stdout);
@@ -70,38 +74,39 @@ void calculate_nonce(char *result, int resultlen){
 	free(expectednonce);
 }
 
-/* Checks if authentication is correct. Returns 0 if not correct, 1 if correct and 1 if nonce isn't valid anymore */
+/* Checks if authentication is correct. Returns -1 if not correct, 1 if correct and 2 if nonce isn't valid anymore */
 int check_auth(char *authstring, char *method, char *path, char *expectednonce){
 	int authok = 0;
-	char authnonce[65];
-	char authnc[65];
-	char authcnonce[65];
-	char uri[512];
-	char authresponse[MD5_DIGEST_LENGTH*2 + 1];
+	char emptystr[]="";
+	char *authnonce;
+	char *authnc;
+	char *authcnonce;
+	char *uri;
+	char *authresponse;
 	char *A1tmp, *A2tmp, *A3tmp;
 	char *A1, *A2, *A3;
   char *pch, *pch2;
 
-	authnonce[0] = '\0';
-	authnc[0] = '\0';
-	authcnonce[0] = '\0';
-	authresponse[0] = '\0';
-	uri[0] = '\0';
+	authnonce = emptystr;
+	authnc = emptystr;
+	authcnonce = emptystr;
+	authresponse = emptystr;
+	uri = emptystr;
 	pch = authstring + 22;
 	pch = strtok (pch,",");
 	while (pch != NULL){
 		pch2 = pch;
 	  while(pch2[0] == ' ' && pch2[0] != '\0') ++pch2;
 	  if(strncmp(pch2, "nonce", 5) == 0){
-	  	parse_auth_value(pch2, authnonce, (sizeof(authnonce)/sizeof(char)));
+	  	authnonce=parse_auth_value(pch2);
 	  } else if (strncmp(pch2, "nc", 2) == 0){
-	  	parse_auth_value(pch2, authnc, (sizeof(authnc)/sizeof(char)));
+	  	authnc=parse_auth_value(pch2);
 	  } else if (strncmp(pch2, "cnonce", 6) == 0){
-	  	parse_auth_value(pch2, authcnonce, (sizeof(authcnonce)/sizeof(char)));
+	  	authcnonce=parse_auth_value(pch2);
 	  } else if (strncmp(pch2, "response", 8) == 0){
-	  	parse_auth_value(pch2, authresponse, (sizeof(authresponse)/sizeof(char)));
+	  	authresponse=parse_auth_value(pch2);
 	  } else if (strncmp(pch2, "uri", 3) == 0){
-	  	parse_auth_value(pch2, uri, (sizeof(uri)/sizeof(char)));
+	  	uri=parse_auth_value(pch2);
 	  }
 	  pch = strtok (NULL, ",");
 	}
@@ -143,6 +148,31 @@ int check_auth(char *authstring, char *method, char *path, char *expectednonce){
 	return authok;
 }
 
+void refresh_oscam(enum refreshtypes refreshtype){
+
+	switch (refreshtype){
+		case REFR_ACCOUNTS:
+			cs_reinit_clients();
+			cs_log("Refresh Accounts");
+			break;
+
+		case REFR_READERS:
+			cs_log("Refresh Reader");
+			//todo how I can refresh the readers
+			break;
+
+		case REFR_SERVER:
+			cs_log("Refresh Server");
+			//todo how I can refresh the server after global settings
+			break;
+#ifdef CS_ANTICASC
+		case REFR_ANTICASC:
+			cs_log("Refresh Anticascading");
+			//todo how I can refresh the server after Anticascading settings
+			break;
+#endif
+	}
+}
 
 void send_headers(FILE *f, int status, char *title, char *extra, char *mime ){
 
@@ -170,22 +200,30 @@ void send_headers(FILE *f, int status, char *title, char *extra, char *mime ){
 
 void send_htmlhead(FILE *f){
 
-	/*build HTML head and CSS definitions*/
-	int i;
-
+	/*build HTML head*/
 	fprintf(f, "<HTML>\n");
 	fprintf(f, "<HEAD>\n");
 	fprintf(f, "<TITLE>OSCAM %s build #%s</TITLE>\n", CS_VERSION, CS_SVN_VERSION);
-	fprintf(f, "<STYLE type=\"text/css\">\n");
-
-	for (i=0; css[i]; i++)
-		fprintf(f, "\t%s\n", css[i]);
-
-	fprintf(f, "</STYLE>\n");
+	fprintf(f, "<link rel=\"stylesheet\" type=\"text/css\" href=\"site.css\">\n");
 	fprintf(f, "</HEAD>\n");
 	fprintf(f, "<BODY>");
 	fprintf(f, "<H2>OSCAM %s build #%s</H2>", CS_VERSION, CS_SVN_VERSION);
 
+}
+
+void send_css(FILE *f){
+	if(strlen(cfg->http_css) > 0 && file_exists(cfg->http_css) == 1){
+		FILE *fp;
+		char buffer[1024];
+		int read;
+
+		if((fp = fopen(cfg->http_css,"r"))==NULL) return;
+		while((read = fread(&buffer,sizeof(char),1024,fp)) > 0) fwrite(&buffer, sizeof(char), read, f);
+		fclose (fp);
+	} else {
+		int i;
+		for (i=0; css[i]; i++) fprintf(f, "\t%s\n", css[i]);
+	}
 }
 
 void send_footer(FILE *f){
@@ -229,14 +267,16 @@ void send_oscam_menu(FILE *f){
 //}
 
 void send_oscam_config_global_do(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
-	fprintf(f,"<BR><BR>Configuration Global Execute not yet implemented<BR><BR>");
-		int i;
+	fprintf(f,"<BR><BR>");
+	int i;
 
 	if (paramcount>0){
 		for(i=0;i<paramcount;i++){
 			fprintf(f,"Parameter: %s  ->>> Value: %s<BR>\r\n",uriparams[i],urivalues[i]);
 		}
 	}
+	fprintf(f,"<BR><BR>Configuration Global not yet implemented<BR><BR>");
+	refresh_oscam(REFR_SERVER);
 }
 
 void send_oscam_config_global(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
@@ -320,6 +360,7 @@ void send_oscam_config_camd33_do(FILE *f, char *uriparams[], char *urivalues[], 
 	}
 	//Disclaimer
 	fprintf(f,"<BR><BR>Configuration camd33 not yet implemented<BR><BR>");
+	refresh_oscam(REFR_SERVER);
 }
 
 void send_oscam_config_camd33(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
@@ -385,6 +426,7 @@ void send_oscam_config_camd35_do(FILE *f, char *uriparams[], char *urivalues[], 
 	}
 	//Disclaimer
 	fprintf(f,"<BR><BR>Configuration camd35 not yet implemented<BR><BR>");
+	refresh_oscam(REFR_SERVER);
 }
 
 void send_oscam_config_camd35(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
@@ -431,6 +473,7 @@ void send_oscam_config_newcamd_do(FILE *f, char *uriparams[], char *urivalues[],
 
 	//Disclaimer
 	fprintf(f,"<BR><BR>Configuration newcamd Do not yet implemented<BR><BR>");
+	refresh_oscam(REFR_SERVER);
 }
 
 void send_oscam_config_newcamd(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
@@ -504,6 +547,7 @@ void send_oscam_config_radegast_do(FILE *f, char *uriparams[], char *urivalues[]
 
 	//Disclaimer
 	fprintf(f,"<BR><BR>Configuration Radegast Do not yet implemented<BR><BR>");
+	refresh_oscam(REFR_SERVER);
 }
 
 void send_oscam_config_radegast(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
@@ -526,6 +570,21 @@ void send_oscam_config_radegast(FILE *f, char *uriparams[], char *urivalues[], i
 	fprintf(f,"<TABLE cellspacing=\"0\">");
 	fprintf(f,"\t<TH>&nbsp;</TH><TH>Edit Radegast Config </TH>");
 
+	//Port
+	fprintf(f,"\t<TR><TD>Port:</TD><TD><input name=\"rad_port\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->rad_port);
+	//ServerIP
+	fprintf(f,"\t<TR><TD>Serverip:</TD><TD><input name=\"rad_srvip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"%s\"></TD></TR>\r\n", inet_ntoa(*(struct in_addr *)&cfg->rad_srvip));
+	//Allowed
+	fprintf(f,"\t<TR><TD>Allowed:</TD><TD><input name=\"rad_allowed\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"");
+  struct s_ip *cip;
+  char *dot="";
+  for (cip=cfg->rad_allowed; cip; cip=cip->next){
+  	if (!(cip->ip[0] == cip->ip[1]))
+			fprintf(f,"%s%s-%s", dot, inet_ntoa(*(struct in_addr *)&cip->ip[0]), inet_ntoa(*(struct in_addr *)&cip->ip[1]));
+  	else
+			fprintf(f,"%s%s", dot, inet_ntoa(*(struct in_addr *)&cip->ip[0]));
+  }
+	fprintf(f,"\">wrong, see Ticket #265</TD></TR>\r\n");
 
 	//Tablefoot and finish form
 	fprintf(f,"</TABLE>\r\n");
@@ -547,6 +606,7 @@ void send_oscam_config_cccam_do(FILE *f, char *uriparams[], char *urivalues[], i
 
 	//Disclaimer
 	fprintf(f,"<BR><BR>Configuration Cccam Do not yet implemented<BR><BR>");
+	refresh_oscam(REFR_SERVER);
 }
 
 void send_oscam_config_cccam(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
@@ -578,6 +638,71 @@ void send_oscam_config_cccam(FILE *f, char *uriparams[], char *urivalues[], int 
 	fprintf(f,"<BR><BR>Configuration Cccam not yet implemented<BR><BR>");
 }
 
+void send_oscam_config_gbox_do(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
+	fprintf(f,"<BR><BR>");
+	int i;
+
+	if (paramcount>0){
+		for(i=0;i<paramcount;i++){
+			fprintf(f,"Parameter: %s  ->>> Value: %s<BR>\r\n",uriparams[i],urivalues[i]);
+		}
+	}
+
+	//Disclaimer
+	fprintf(f,"<BR><BR>Configuration Gbox Do not yet implemented<BR><BR>");
+	refresh_oscam(REFR_SERVER);
+}
+
+void send_oscam_config_gbox(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
+	int i;
+
+	if (paramcount>0){
+		for(i=0;i<paramcount;i++){
+			if (!strcmp(uriparams[i], "action") && (!strcmp(urivalues[i], "execute"))) {
+				send_oscam_config_cccam_do(f, uriparams, urivalues, paramcount);
+				return;
+			}
+		}
+	}
+
+	//Table & form head
+	fprintf(f,"<BR><BR>");
+	fprintf(f,"<form action=\"/config.html\" method=\"get\">\r\n");
+	fprintf(f,"<input name=\"part\" type=\"hidden\" value=\"gbox\">\r\n");
+	fprintf(f,"<input name=\"action\" type=\"hidden\" value=\"execute\">\r\n");
+	fprintf(f,"<TABLE cellspacing=\"0\">");
+	fprintf(f,"\t<TH>&nbsp;</TH><TH>Edit Gbox Config </TH>");
+
+	//Password
+	fprintf(f,"\t<TR><TD>Password:</TD><TD><input name=\"password\" type=\"text\" size=\"10\" maxlength=\"8\" value=\"");
+	for (i=0;i<4;i++)
+		fprintf(f,"%02X",cfg->gbox_pwd[i]);
+	fprintf(f,"\"></TD></TR>\r\n");
+	//Maxdist
+	fprintf(f,"\t<TR><TD>Maxdist:</TD><TD><input name=\"maxdist\" type=\"text\" size=\"5\" maxlength=\"2\" value=\"%d\"></TD></TR>\r\n", cfg->maxdist);
+	//ignorelist
+	fprintf(f,"\t<TR><TD>Ignorelist:</TD><TD><input name=\"ignorelist\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"%s\"></TD></TR>\r\n", cfg->ignorefile);
+	//onlineinfos
+	fprintf(f,"\t<TR><TD>Onlineinfos:</TD><TD><input name=\"onlineinfos\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"%s\"></TD></TR>\r\n", cfg->gbxShareOnl);
+	//cardinfos
+	fprintf(f,"\t<TR><TD>Cardinfos:</TD><TD><input name=\"cardinfos\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"%s\"></TD></TR>\r\n", cfg->cardfile);
+	//locals
+	fprintf(f,"\t<TR><TD>Locals:</TD><TD><input name=\"locals\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"");
+	char *dot = "";
+	for (i = 0; i < cfg->num_locals; i++){
+		fprintf(f,"%s%08X", dot, cfg->locals[i]);
+		dot=";";
+	}
+	fprintf(f,"\"></TD></TR>\r\n");
+
+	//Tablefoot and finish form
+	fprintf(f,"</TABLE>\r\n");
+	fprintf(f,"<input type=\"submit\" value=\"OK\"></form>\r\n");
+
+	//Disclaimer
+	fprintf(f,"<BR><BR>Configuration Gbox not yet implemented<BR><BR>");
+}
+
 void send_oscam_config_monitor_do(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
 	fprintf(f,"<BR><BR>");
 	int i;
@@ -590,6 +715,7 @@ void send_oscam_config_monitor_do(FILE *f, char *uriparams[], char *urivalues[],
 
 	//Disclaimer
 	fprintf(f,"<BR><BR>Configuration Monitor Do not yet implemented<BR><BR>");
+	refresh_oscam(REFR_SERVER);
 }
 
 void send_oscam_config_monitor(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
@@ -612,6 +738,42 @@ void send_oscam_config_monitor(FILE *f, char *uriparams[], char *urivalues[], in
 	fprintf(f,"<TABLE cellspacing=\"0\">");
 	fprintf(f,"\t<TH>&nbsp;</TH><TH>Edit Monitor Config </TH>");
 
+	//Port
+	fprintf(f,"\t<TR><TD>Port:</TD><TD><input name=\"port\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->mon_port);
+	//ServerIP
+	fprintf(f,"\t<TR><TD>Serverip:</TD><TD><input name=\"serverip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"%s\"></TD></TR>\r\n", inet_ntoa(*(struct in_addr *)&cfg->mon_srvip));
+	//Nocrypt
+	fprintf(f,"\t<TR><TD>Nocrypt:</TD><TD><input name=\"nocrypt\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"");
+  struct s_ip *cip;
+  char *dot="";
+  for (cip=cfg->mon_allowed; cip; cip=cip->next){
+  	if (!(cip->ip[0] == cip->ip[1]))
+			fprintf(f,"%s%s-%s", dot, inet_ntoa(*(struct in_addr *)&cip->ip[0]), inet_ntoa(*(struct in_addr *)&cip->ip[1]));
+  	else
+			fprintf(f,"%s%s", dot, inet_ntoa(*(struct in_addr *)&cip->ip[0]));
+  }
+	fprintf(f,"\">wrong, see Ticket #265</TD></TR>\r\n");
+	//aulow
+	fprintf(f,"\t<TR><TD>Aulow:</TD><TD><input name=\"aulow\" type=\"text\" size=\"5\" maxlength=\"1\" value=\"%d\"></TD></TR>\r\n", cfg->mon_aulow);
+	//Monlevel
+	fprintf(f,"<TR><TD>Monlevel:</TD><TD><select name=\"monlevel\" >\r\n");
+		for(i = 1; i < 5; i++){
+			if(i == cfg->mon_level)
+				fprintf(f,"\t<option selected>%d</option>\r\n", i);
+			else
+				fprintf(f,"\t<option>%d</option>\r\n", i);
+	}
+	fprintf(f,"</select></TD></TR>\r\n");
+	//HTTPport
+	fprintf(f,"\t<TR><TD>Port:</TD><TD><input name=\"httpport\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->http_port);
+	//HTTPuser
+	fprintf(f,"<TR><TD>Httpuser:</TD><TD><input name=\"httpuser\" type=\"text\" size=\"20\" maxlength=\"20\" value=\"%s\"></TD></TR>\r\n", cfg->http_user);
+	//HTTPpassword
+	fprintf(f,"<TR><TD>Httppwd:</TD><TD><input name=\"httppwd\" type=\"text\" size=\"20\" maxlength=\"20\" value=\"%s\"></TD></TR>\r\n", cfg->http_pwd);
+	//HTTPcss
+	fprintf(f,"<TR><TD>Httpcss:</TD><TD><input name=\"httpcss\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"%s\"></TD></TR>\r\n", cfg->http_css);
+	//hideclient_to
+	fprintf(f,"\t<TR><TD>Port:</TD><TD><input name=\"hideclient_to\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->mon_hideclient_to);
 
 	//Tablefoot and finish form
 	fprintf(f,"</TABLE>\r\n");
@@ -635,6 +797,7 @@ void send_oscam_config_anticasc_do(FILE *f, char *uriparams[], char *urivalues[]
 
 	//Disclaimer
 	fprintf(f,"<BR><BR>Configuration Anticascading Do not yet implemented<BR><BR>");
+	refresh_oscam(REFR_ANTICASC);
 }
 
 void send_oscam_config_anticasc(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
@@ -656,6 +819,7 @@ void send_oscam_config_anticasc(FILE *f, char *uriparams[], char *urivalues[], i
 	fprintf(f,"<input name=\"action\" type=\"hidden\" value=\"execute\">\r\n");
 	fprintf(f,"<TABLE cellspacing=\"0\">");
 	fprintf(f,"\t<TH>&nbsp;</TH><TH>Edit Anticascading Config </TH>");
+
 
 
 	//Tablefoot and finish form
@@ -681,6 +845,7 @@ void send_oscam_config(FILE *f, char *uriparams[], char *urivalues[], int paramc
 	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./config.html?part=newcamd\">Newcamd</TD>\n");
 	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./config.html?part=radegast\">Radegast</TD>\n");
 	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./config.html?part=cccam\">Cccam</TD>\n");
+	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./config.html?part=gbox\">Gbox</TD>\n");
 #ifdef CS_ANTICASC
 	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./config.html?part=anticasc\">Anticascading</TD>\n");
 #endif
@@ -713,6 +878,8 @@ void send_oscam_config(FILE *f, char *uriparams[], char *urivalues[], int paramc
 			send_oscam_config_radegast(f, uriparams, urivalues, paramcount);
 		else if (!strcmp(urivalues[i],"cccam"))
 			send_oscam_config_cccam(f, uriparams, urivalues, paramcount);
+		else if (!strcmp(urivalues[i],"gbox"))
+			send_oscam_config_gbox(f, uriparams, urivalues, paramcount);
 #ifdef CS_ANTICASC
 		else if (!strcmp(urivalues[i],"anticasc"))
 			send_oscam_config_anticasc(f, uriparams, urivalues, paramcount);
@@ -846,6 +1013,7 @@ void send_oscam_reader_config_do(FILE *f, char *uriparams[], char *urivalues[], 
 
 	fprintf(f,"Reader: %s - Nothing changed", reader[ridx].label);
 	fprintf(f,"<BR><BR>Reader not yet implemented<BR><BR>");
+	refresh_oscam(REFR_READERS);
 }
 
 void send_oscam_user_config_do(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
@@ -962,7 +1130,7 @@ void send_oscam_user_config_do(FILE *f, char *uriparams[], char *urivalues[], in
 	if (updateservices==1)
 		chk_services(servicelabels, &account->sidtabok, &account->sidtabno);
 
-	cs_reinit_clients();
+	refresh_oscam(REFR_ACCOUNTS);
 	send_oscam_user_config(f, uriparams, urivalues, 0);
 }
 
@@ -1015,7 +1183,9 @@ void send_oscam_user_config(FILE *f, char *uriparams[], char *urivalues[], int p
 	fprintf(f,"<input name=\"action\" type=\"hidden\" value=\"execute\">\r\n");
 	fprintf(f,"<TABLE cellspacing=\"0\">");
 	fprintf(f,"<TH>&nbsp;</TH><TH>Edit User %s </TH>", account->usr);
+	//Password
 	fprintf(f,"<TR><TD>Password:</TD><TD><input name=\"pwd\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"%s\"></TD></TR>\r\n", account->pwd);
+	//Group
 	fprintf(f,"<TR><TD>Group:</TD><TD><input name=\"grp\" type=\"text\" size=\"10\" maxlength=\"10\" value=\"");
 
 	/*restore the settings format of group from long over bitarray*/
@@ -1034,7 +1204,7 @@ void send_oscam_user_config(FILE *f, char *uriparams[], char *urivalues[], int p
 	}
 	fprintf(f,"\"></TD></TR>\r\n");
 
-	if (strlen(account->dyndns)>0)
+	if (strlen((char *)account->dyndns)>0)
 		fprintf(f,"<TR><TD>Hostname:</TD><TD><input name=\"dyndns\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"%s\"></TD></TR>\r\n", account->dyndns);
 	else
 		fprintf(f,"<TR><TD>Hostname:</TD><TD><input name=\"dyndns\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"\"></TD></TR>\r\n");
@@ -1369,7 +1539,6 @@ int process_request(FILE *f) {
   char tmp[4096];
 
   int authok = 0;
-  char authbuf[512];
   char expectednonce[64];
 
   char *method;
@@ -1387,7 +1556,8 @@ int process_request(FILE *f) {
 			"/userconfig.html",
 			"/readerconfig.html",
 			"/readerconfig_do.html",
-			"/services.html"};
+			"/services.html",
+			"/site.css"};
 
   /* Calculate the amount of items in array */
   int pagescnt = sizeof(pages)/sizeof(char *);
@@ -1418,7 +1588,7 @@ int process_request(FILE *f) {
     if (!strcmp(path, pages[i])) pgidx = i;
   }
 
-  /* Parse parameters; parsemode = 1 means parsing next param, parsemode = -1 parsing next
+  /* Parse url parameters; parsemode = 1 means parsing next param, parsemode = -1 parsing next
      value; pch2 points to the beginning of the currently parsed string, pch is the current position */
   pch2=pch;
   while(pch[0] != '\0'){
@@ -1442,21 +1612,17 @@ int process_request(FILE *f) {
       urivalues[paramcount-1] = pch2;
   }
 
-  authbuf[0] = '\0';
-	/* Read remaining request (we're not only interested in auth header) */
+	if(strlen(cfg->http_user) == 0 || strlen(cfg->http_pwd) == 0) authok = 1;
+	else calculate_nonce(expectednonce, sizeof(expectednonce)/sizeof(char));
+
+	/* Read remaining request (we're only interested in auth header) */
   while (fgets(tmp, sizeof(tmp), f))  {
     if (tmp[0] == '\r' && tmp[1] == '\n') break;
-    else if(strlen(tmp) > 50 && strncmp(tmp, "Authorization: Digest ", 22) == 0) {
-    	strncpy(authbuf, tmp, sizeof(authbuf)/sizeof(char)-1);
-    	authbuf[sizeof(authbuf)/sizeof(char)-1] = '\0';
+    else if(authok == 0 && strlen(tmp) > 50 && strncmp(tmp, "Authorization: Digest ", 22) == 0) {
+    	authok = check_auth(tmp, method, path, expectednonce);
     }
   }
 
-	if(strlen(cfg->http_user) == 0 || strlen(cfg->http_pwd) == 0) authok = 1;
-	else if(strlen(authbuf) > 0){
-		calculate_nonce(expectednonce, sizeof(expectednonce)/sizeof(char));
-		authok = check_auth(authbuf, method, path, expectednonce);
-	}
   //printf("%s %d\n", path, pgidx);
   //for(i=0; i < paramcount; ++i) printf("%s : %s\n", uriparams[i], urivalues[i]);
 
@@ -1475,9 +1641,10 @@ int process_request(FILE *f) {
 
 	/*build page*/
   send_headers(f, 200, "OK", NULL, "text/html");
+  if(pgidx == 8) send_css(f);
+	else {
   send_htmlhead(f);
   send_oscam_menu(f);
-
   switch(pgidx){
     case  0: send_oscam_config(f, uriparams, urivalues, paramcount); break;
     case  1: send_oscam_reader(f); break;
@@ -1492,6 +1659,7 @@ int process_request(FILE *f) {
 
   send_footer(f);
   fprintf(f, "</BODY></HTML>\r\n");
+		}
 
   return 0;
 }
@@ -1502,13 +1670,12 @@ void http_srv() {
 	char *tmp;
 
 	/* Prepare lookup array for conversion between ascii and hex */
-	hex2ascii = malloc(256*sizeof(char*));
 	tmp = malloc(3*sizeof(char));
   for(i=0; i<256; i++) {
     snprintf(tmp, 3,"%02x", i);
-    hex2ascii[i] = malloc(3*sizeof(char));
     memcpy(hex2ascii[i], tmp, 2);
   }
+	free(tmp);
   /* Create random string for nonce value generation */
   srand(time(NULL));
   create_rand_str(noncekey,32);

@@ -536,6 +536,7 @@ struct s_config
   int       http_port;
   char      http_user[65];
   char      http_pwd[65];
+  char      http_css[128];
   int       c33_port;
   in_addr_t c33_srvip;
   uchar     c33_key[16];
@@ -654,8 +655,9 @@ extern struct s_auth *find_user(char *);
 extern int x2i(int i);
 extern void urldecode(char *s);
 extern void long2bitchar(long value, char *result);
-extern char *char_to_hex(const unsigned char* p_array, unsigned int p_array_len, char** hex2ascii);
+extern char *char_to_hex(const unsigned char* p_array, unsigned int p_array_len, char hex2ascii[256][2]);
 void create_rand_str(char *dst, int size);
+int file_exists(const char * filename);
 
 // oscam variables
 extern int pfd, rfd, fd_c2m, fd_m2c, cs_idx, *c_start, cs_ptyp, cs_dblevel, cs_hw;
