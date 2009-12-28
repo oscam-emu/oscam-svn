@@ -59,6 +59,7 @@ typedef struct {
 	int N;
 	int T;
 	int inv;
+	int init_done;
 } SR_Config;
 
 /* IO_Serial exported datatype */
