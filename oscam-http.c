@@ -1115,6 +1115,49 @@ void send_oscam_reader_config_do(FILE *f, char *uriparams[], char *urivalues[], 
 	refresh_oscam(REFR_READERS);
 }
 
+void send_oscam_user_config_add(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
+		struct s_auth *ptr;
+		struct s_auth *account;
+		int i, accidx=0;
+
+		for(i=0;i<paramcount;i++)
+			if (!strcmp(uriparams[i], "user")) break;
+
+		if (urivalues[i]) {
+
+			for (account=cfg->account; (account) ; account=account->next){
+				if(!account->next) break;
+				accidx++;
+			}
+
+      if (!(ptr=malloc(sizeof(struct s_auth))))
+      {
+        cs_log("Error allocating memory (errno=%d)", errno);
+        return;
+      }
+      if (account)
+        account->next=ptr;
+      else
+        cfg->account=ptr;
+      account=ptr;
+      memset(account, 0, sizeof(struct s_auth));
+      strncpy((char *)account->usr, urivalues[i], sizeof(account->usr)-1);
+      account->au=(-1);
+      account->monlvl=cfg->mon_level;
+      account->tosleep=cfg->tosleep;
+      for (i=1; i<CS_MAXCAIDTAB; account->ctab.mask[i++]=0xffff);
+      for (i=1; i<CS_MAXTUNTAB; account->ttab.bt_srvid[i++]=0x0000);
+			accidx++;
+#ifdef CS_ANTICASC
+      account->ac_users=cfg->ac_users;
+      account->ac_penalty=cfg->ac_penalty;
+      account->ac_idx = accidx;
+#endif
+    }
+	send_oscam_user_config(f, uriparams, urivalues, 0);
+
+}
+
 void send_oscam_user_config_do(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
 
 	struct s_auth *account;
@@ -1168,6 +1211,10 @@ void send_oscam_user_config(FILE *f, char *uriparams[], char *urivalues[], int p
 				send_oscam_user_config_do(f, uriparams, urivalues, paramcount);
 				return;
 			}
+			else if (!strcmp(uriparams[i], "action") && (!strcmp(urivalues[i], "adduser"))) {
+				send_oscam_user_config_add(f, uriparams, urivalues, paramcount);
+				return;
+			}
 		}
 	}
 	else {
@@ -1186,6 +1233,12 @@ void send_oscam_user_config(FILE *f, char *uriparams[], char *urivalues[], int p
 			fprintf(f,"<TD>%s</TD><TD>%s</TD><TD><A HREF=\"/userconfig.html?user=%s\">Edit Settings</A>",account->usr, status, account->usr);
 			fprintf(f,"</TR>\r\n");
 		}
+		fprintf(f,"<TR>\r\n");
+		fprintf(f,"<FORM >\r\n");
+		fprintf(f,"<TD>New User:</TD>\r\n");
+		fprintf(f,"<TD><input name=\"user\" type=\"text\"></TD>\r\n");
+		fprintf(f,"<input name=\"action\" type=\"hidden\" value=\"adduser\">\r\n");
+		fprintf(f,"<TD><input type=\"submit\" value=\"OK\"></TD></form>\r\n");
 		fprintf(f,"</TABLE>\r\n");
 		return;
 	}
