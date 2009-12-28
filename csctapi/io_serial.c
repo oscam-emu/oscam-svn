@@ -316,7 +316,7 @@ bool IO_Serial_GetProperties (IO_Serial * io)
 bool IO_Serial_SetProperties (IO_Serial * io)
 {
 	struct termios newtio;
-		
+
 #ifdef SCI_DEV
 	if(io->com==RTYP_SCI)
 		return FALSE;
@@ -423,7 +423,7 @@ bool IO_Serial_SetProperties (IO_Serial * io)
 //	if (tcsetattr (io->fd, TCSAFLUSH, &newtio) < 0)
 //		return FALSE;
 
-	if(io->reader_type==RTYP_SMART)
+	if(io->reader_type==RTYP_SMART && !io->SmartReaderConf->init_done)
 	{
 #ifdef DEBUG_IO
       printf("IO: SMARTREADER .. switching %s to %2.2fMHz\n", io->filename,(float)(io->mhz)/100.0);
@@ -1090,7 +1090,7 @@ static bool IO_Serial_Set_Smartreader_Config(IO_Serial * io)
 #ifdef DEBUG_IO
 		printf("IO: SmartReader+ : Reseting the card\n");
 #endif
-/*	
+/*
 	// reset the card
 	IO_Serial_Ioctl_Lock(io, 1);
 
