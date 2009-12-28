@@ -453,37 +453,38 @@ void send_oscam_config_camd33(FILE *f, char *uriparams[], char *urivalues[], int
 	fprintf(f,"<BR><BR>Configuration camd33 not yet implemented<BR><BR>");
 }
 
-void send_oscam_config_camd35_do(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
-	fprintf(f,"<BR><BR>");
-	int i;
-
-	if (paramcount>0){
-		for(i=0;i<paramcount;i++){
-
-			if ((strcmp(uriparams[i], "part")) && (strcmp(uriparams[i], "action"))){
-				fprintf(f,"Parameter: %s set to Value: %s<BR>\r\n", uriparams[i], urivalues[i]);
-				chk_t_camd35(uriparams[i], urivalues[i]);
-			}
-		}
-	}
-	//Disclaimer
-	fprintf(f,"<BR><BR><B>Configuration camd35 *DONE*</B><BR><BR>");
-	refresh_oscam(REFR_SERVER);
-}
-
 void send_oscam_config_camd35(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
 	int i;
+	int found=0;
+
+	fprintf(f,"<BR><BR>");
 
 	if (paramcount>0){
 		for(i=0;i<paramcount;i++){
+			//check the params for execute flag
 			if (!strcmp(uriparams[i], "action") && (!strcmp(urivalues[i], "execute"))) {
-				send_oscam_config_camd35_do(f, uriparams, urivalues, paramcount);
-				return;
+				found=1;
+				break;
 			}
+		}
+		if (found==1){
+			//we found the execute flag
+			for(i=0;i<paramcount;i++){
+				if ((strcmp(uriparams[i], "part")) && (strcmp(uriparams[i], "action"))){
+					fprintf(f,"Parameter: %s set to Value: %s<BR>\r\n", uriparams[i], urivalues[i]);
+					//we use the same function as used for parsing the config tokens
+					chk_t_camd35(uriparams[i], urivalues[i]);
+				}
+			}
+
+			//Disclaimer
+			fprintf(f,"<BR><BR><B>Configuration camd35 *DONE*</B><BR><BR>");
+			refresh_oscam(REFR_SERVER);
+			return;
 		}
 	}
 
-	fprintf(f,"<BR><BR>");
+	//if nothing above matches we show the form
 	fprintf(f,"<form action=\"/config.html\" method=\"get\">\r\n");
 	fprintf(f,"<input name=\"part\" type=\"hidden\" value=\"camd35\">\r\n");
 	fprintf(f,"<input name=\"action\" type=\"hidden\" value=\"execute\">\r\n");
@@ -491,7 +492,7 @@ void send_oscam_config_camd35(FILE *f, char *uriparams[], char *urivalues[], int
 	fprintf(f,"\t<TH>&nbsp;</TH><TH>Edit Camd35 Config </TH>");
 
 	//Port
-	fprintf(f,"\t<TR><TD>Port:</TD><TD><input name=\"port\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->c33_port);
+	fprintf(f,"\t<TR><TD>Port:</TD><TD><input name=\"port\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->c35_port);
 	//ServerIP
 	fprintf(f,"\t<TR><TD>Serverip:</TD><TD><input name=\"serverip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"%s\"></TD></TR>\r\n", inet_ntoa(*(struct in_addr *)&cfg->c35_tcp_srvip));
 
@@ -840,43 +841,38 @@ void send_oscam_config_monitor(FILE *f, char *uriparams[], char *urivalues[], in
 
 #ifdef CS_ANTICASC
 
-void send_oscam_config_anticasc_do(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
-	fprintf(f,"<BR><BR>");
-	int i;
-
-	if (paramcount>0){
-
-		//set to 0 because an empty checkbox gives no parameter
-		cfg->ac_enabled = 0;
-
-		for(i=0;i<paramcount;i++){
-
-			if ((strcmp(uriparams[i], "part")) && (strcmp(uriparams[i], "action"))){
-				fprintf(f,"Parameter: %s set to Value: %s<BR>\r\n", uriparams[i], urivalues[i]);
-				chk_t_ac(uriparams[i], urivalues[i]);
-			}
-		}
-	}
-
-	//Disclaimer
-	fprintf(f,"<BR><BR><B>Configuration Anticascading *DONE*</B><BR><BR>");
-	refresh_oscam(REFR_ANTICASC);
-}
-
 void send_oscam_config_anticasc(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
 	int i;
+	int found=0;
+
+	fprintf(f,"<BR><BR>");
 
 	if (paramcount>0){
 		for(i=0;i<paramcount;i++){
+			//check the params for execute flag
 			if (!strcmp(uriparams[i], "action") && (!strcmp(urivalues[i], "execute"))) {
-				send_oscam_config_anticasc_do(f, uriparams, urivalues, paramcount);
-				return;
+				found=1;
+				break;
 			}
+		}
+		if (found==1){
+			//we found the execute flag
+			for(i=0;i<paramcount;i++){
+				if ((strcmp(uriparams[i], "part")) && (strcmp(uriparams[i], "action"))){
+					fprintf(f,"Parameter: %s set to Value: %s<BR>\r\n", uriparams[i], urivalues[i]);
+					//we use the same function as used for parsing the config tokens
+					chk_t_ac(uriparams[i], urivalues[i]);
+				}
+			}
+
+			//Disclaimer
+			fprintf(f,"<BR><BR><B>Configuration Anticascading *DONE*</B><BR><BR>");
+			refresh_oscam(REFR_ANTICASC);
+			return;
 		}
 	}
 
-	//Table & form head
-	fprintf(f,"<BR><BR>");
+	//if nothing above matches we show the form
 	fprintf(f,"<form action=\"/config.html\" method=\"get\">\r\n");
 	fprintf(f,"<input name=\"part\" type=\"hidden\" value=\"anticasc\">\r\n");
 	fprintf(f,"<input name=\"action\" type=\"hidden\" value=\"execute\">\r\n");
@@ -1138,14 +1134,18 @@ void send_oscam_user_config_do(FILE *f, char *uriparams[], char *urivalues[], in
 			break;
 	}
 
+	fprintf(f,"<BR><BR>\r\n");
+
 	for(i=0;i<paramcount;i++){
 		if ((strcmp(uriparams[i], "action")) && (strcmp(uriparams[i], "user"))){
-			fprintf(f,"Parameter: %s set to Value: %s<BR>\r\n", uriparams[i], urivalues[i]);
+			fprintf(f,"%s = %s<BR>\r\n", uriparams[i], urivalues[i]);
 			if (!strcmp(uriparams[i], "services"))
 				sprintf(servicelabels + strlen(servicelabels), "%s,", urivalues[i]);
 			else
 				chk_account(uriparams[i], urivalues[i], account);
 		}
+		else if (!strcmp(uriparams[i], "user"))
+			fprintf(f,"<B>User %s is reconfigured as follow</B><BR><BR>\r\n", urivalues[i]);
 	}
 
 	chk_account("services", servicelabels, account);
