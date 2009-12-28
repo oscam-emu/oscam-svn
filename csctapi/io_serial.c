@@ -588,8 +588,10 @@ bool IO_Serial_Write (IO_Serial * io, unsigned delay, unsigned size, BYTE * data
             }
             unsigned int u = write (io->fd, data_w, (1+io_serial_need_dummy_char)*to_send);
 			// once the smargo is in native smartreader mode we don't get the echo of the sent data.
-		   if(io->reader_type==RTYP_SMART)
+		   if(io->reader_type==RTYP_SMART) {
+		      if(io->SmartReaderConf->init_done)
 	            _in_echo_read = 0;
+	       }
 		   else
 	            _in_echo_read = 1;
             if (u != (1+io_serial_need_dummy_char)*to_send)
@@ -907,6 +909,7 @@ static void IO_SR_Clear (SR_Config * srConfig)
 	srConfig->N=0;
 	srConfig->T=0;
 	srConfig->inv=0;
+	srConfig->init_done=0;
 
 #  ifdef DEBUG_IO
 	printf("IO: Smartreader+ default parameter set to F=%d D=%f fs=%dKHz N=%d T=%d inv=%d\n",
@@ -1090,6 +1093,7 @@ static bool IO_Serial_Set_Smartreader_Config(IO_Serial * io)
 #endif
 	IO_Serial_RTS_Clr(io);
 	IO_Serial_Ioctl_Lock(io, 0);
+	srConfig->init_done=1;
 	return TRUE;
 }
 
