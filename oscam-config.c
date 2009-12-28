@@ -794,11 +794,16 @@ int write_userdb()
 	FILE *f;
 	struct s_auth *account;
 	char *dot = ""; //flag for comma
+	char tmpfile[256];
+	char destfile[256];
+	char bakfile[256];
 
-	sprintf(token, "%s%s", cs_confdir, cs_user);
-  if (!(f=fopen(token, "w")))
-  {
-    cs_log("Cannot open file \"%s\" (errno=%d)", token, errno);
+	snprintf(destfile, 255,"%s%s", cs_confdir, cs_user);
+	snprintf(tmpfile, 255, "%s%s.tmp", cs_confdir, cs_user);
+	snprintf(bakfile, 255,"%s%s.bak", cs_confdir, cs_user);
+
+  if (!(f=fopen(tmpfile, "w"))){
+    cs_log("Cannot open file \"%s\" (errno=%d)", tmpfile, errno);
     return(1);
   }
   fprintf(f,"#oscam.user generated automatically\n\n");
@@ -808,6 +813,13 @@ int write_userdb()
 		fprintf(f,"[account]\n");
 		fprintf(f,"user          = %s\n", account->usr);
 		fprintf(f,"pwd           = %s\n", account->pwd);
+		struct tm * timeinfo = localtime (&account->expirationdate);
+		char buf [80];
+		strftime (buf,80,"%Y-%m-%d",timeinfo);
+		if(strcmp(buf,"1970-01-01"))
+			fprintf(f,"expdate       = %s\n", buf);
+		else
+			fprintf(f,"expdate       = \n");
 		fprintf(f,"group         = ");
 		char grpbit[33];
 		long2bitchar(account->grp, grpbit);
@@ -880,6 +892,24 @@ int write_userdb()
 		fprintf(f,"\n");
 	}
   fclose(f);
+
+  if(file_exists(bakfile)){
+  	if(remove(destfile) < 0) {
+  		cs_log("Error removing original conf file %s (errno=%d). Will maintain original one!", destfile, errno);
+  		if(remove(tmpfile) < 0) cs_log("Error removing temp conf file %s (errno=%d).!", tmpfile, errno);
+  		return(1);
+  	}
+  } else {
+  	if(rename(destfile, bakfile) < 0){
+  		cs_log("Error renaming original conf file %s to %s (errno=%d). Will maintain original one!", destfile, bakfile, errno);
+  		if(remove(tmpfile) < 0) cs_log("Error removing temp conf file %s (errno=%d).!", tmpfile, errno);
+  		return(1);
+  	}
+  }
+  if(rename(tmpfile, destfile) < 0){
+  	cs_log("Error renaming new conf file %s to %s (errno=%d). The config will be missing upon next startup as this is non-recoverable!", tmpfile, destfile, errno);
+  	return(1);
+  }
   return(0);
 }
 

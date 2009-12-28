@@ -1208,6 +1208,14 @@ void send_oscam_user_config(FILE *f, char *uriparams[], char *urivalues[], int p
 	fprintf(f,"<TH>&nbsp;</TH><TH>Edit User %s </TH>", account->usr);
 	//Password
 	fprintf(f,"<TR><TD>Password:</TD><TD><input name=\"pwd\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"%s\"></TD></TR>\r\n", account->pwd);
+	//Expirationdate
+	struct tm * timeinfo = localtime (&account->expirationdate);
+	char buf [80];
+	strftime (buf,80,"%Y-%m-%d",timeinfo);
+	if(strcmp(buf,"1970-01-01"))
+		fprintf(f,"<TR><TD>Exp. Date:</TD><TD><input name=\"expdate\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"%s\"></TD></TR>\r\n",buf);
+	else
+		fprintf(f,"<TR><TD>Exp. Date:</TD><TD><input name=\"expdate\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"\"></TD></TR>\r\n");
 	//Group
 	fprintf(f,"<TR><TD>Group:</TD><TD><input name=\"group\" type=\"text\" size=\"10\" maxlength=\"10\" value=\"");
 	/*restore the settings format of group from long over bitarray*/
@@ -1460,7 +1468,7 @@ void send_oscam_status(FILE *f) {
 
 	for (i=0; i<CS_MAXPID; i++)
 		if (client[i].pid)  {
-			fprintf(f,"<TR>");
+			fprintf(f,"<TR class=\"%c\">", client[i].typ);
 			monitor_client_status(f, client[i].pid, i);
 			fprintf(f,"</TR>\n");
 		}
