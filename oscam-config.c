@@ -748,7 +748,7 @@ void chk_account(char *token, char *value, struct s_auth *account)
         case 1: cstime.tm_mon =atoi(ptr1)-1;    break;
         case 2: cstime.tm_mday=atoi(ptr1);      break;
       }
-    }	
+    }
     account->expirationdate=mktime(&cstime);
     return;
   }
@@ -786,6 +786,101 @@ void chk_account(char *token, char *value, struct s_auth *account)
 //        cs_log("WARNING: wrong CAID in %s -> ignored", cs_user);
 //    }
 //  }
+}
+
+int write_userdb()
+{
+	int i;
+	FILE *f;
+	struct s_auth *account;
+	char *dot = ""; //flag for comma
+
+	sprintf(token, "%s%s", cs_confdir, cs_user);
+  if (!(f=fopen(token, "w")))
+  {
+    cs_log("Cannot open file \"%s\" (errno=%d)", token, errno);
+    return(1);
+  }
+  fprintf(f,"#oscam.user generated automatically\n\n");
+
+  //each account
+	for (account=cfg->account; (account) ; account=account->next){
+		fprintf(f,"[account]\n");
+		fprintf(f,"user          = %s\n", account->usr);
+		fprintf(f,"pwd           = %s\n", account->pwd);
+		fprintf(f,"group         = ");
+		char grpbit[33];
+		long2bitchar(account->grp, grpbit);
+		dot = "";
+		for(i = 0; i < 32; i++){
+			if (grpbit[i] == '1'){
+					fprintf(f, "%s%d", dot, i+1);
+					dot = ",";
+				}
+		}
+		fprintf(f,"\n");
+		fprintf(f,"hostname      = %s\n", account->dyndns);
+		fprintf(f,"uniq          = %d\n", account->uniq);
+		fprintf(f,"sleep         = %d\n", account->tosleep);
+		fprintf(f,"monlevel      = %d\n", account->monlvl);
+		fprintf(f,"au            = ");
+		for (i=0; i<CS_MAXREADER; i++){
+			if(!reader[i].device[0]) {
+				fprintf(f,"-1");
+				break;
+			}
+			if (account->au == i){
+				fprintf(f,"%s", reader[i].label);
+				break;
+			}
+		}
+		fprintf(f,"\n");
+
+		fprintf(f,"services      = ");
+		char sidok[33]; long2bitchar(account->sidtabok,sidok);
+		char sidno[33];	long2bitchar(account->sidtabno,sidno);
+		struct s_sidtab *sidtab = cfg->sidtab;
+		i=0; dot = "";
+		for (; sidtab; sidtab=sidtab->next){
+			if(sidok[i]=='1')	fprintf(f,"%s%s", dot, sidtab->label);
+			if(sidno[i]=='1') fprintf(f,"%s!%s", dot, sidtab->label);
+			i++; dot = ",";
+		}
+		fprintf(f,"\n");
+
+		fprintf(f,"caid          = ");
+		CAIDTAB *ctab = &account->ctab;
+		i = 0; dot = "";
+		if (ctab->caid[i]){
+			while(ctab->caid[i]) {
+				fprintf(f, "%s%04X", dot, ctab->caid[i]);
+					if(ctab->mask[i])	fprintf(f, "&%04X", ctab->mask[i]);
+				i++; dot = ",";
+			}
+		}
+		fprintf(f,"\n");
+
+		fprintf(f,"betatunnel    = ");
+		TUNTAB *ttab = &account->ttab;
+		i = 0; dot = "";
+		if (ttab->bt_caidfrom[i]) {
+			while(ttab->bt_caidfrom[i]) {
+				fprintf(f, "%s%04X", dot, ttab->bt_caidfrom[i]);
+				if(ttab->bt_caidto[i]) fprintf(f, ".%04X", ttab->bt_caidto[i]);
+				if(ttab->bt_srvid[i])	fprintf(f, ":%04X", ttab->bt_srvid[i]);
+				i++; dot = ",";
+			}
+		}
+		fprintf(f,"\n");
+
+#ifdef CS_ANTICASC
+		fprintf(f,"numusers      = %d\n", account->ac_users);
+		fprintf(f,"penalty       = %d\n", account->ac_penalty);
+#endif
+		fprintf(f,"\n");
+	}
+  fclose(f);
+  return(0);
 }
 
 int init_userdb()

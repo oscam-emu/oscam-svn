@@ -167,7 +167,7 @@ int i;
 	switch (refreshtype){
 		case REFR_ACCOUNTS:
 				cs_log("Refresh Accounts requested by WebIF");
-			  //init_userdb();
+			  init_userdb();
 				cs_reinit_clients();
 #ifdef CS_ANTICASC
 				for (i=0; i<CS_MAXPID; i++)
@@ -1131,6 +1131,9 @@ void send_oscam_user_config_do(FILE *f, char *uriparams[], char *urivalues[], in
 			break;
 	}
 
+	//clear group
+	account->grp = 0;
+
 	fprintf(f,"<BR><BR>\r\n");
 
 	for(i=0;i<paramcount;i++){
@@ -1147,7 +1150,10 @@ void send_oscam_user_config_do(FILE *f, char *uriparams[], char *urivalues[], in
 
 	chk_account("services", servicelabels, account);
 
-	refresh_oscam(REFR_ACCOUNTS);
+	if (write_userdb()==0)
+		refresh_oscam(REFR_ACCOUNTS);
+	else
+		fprintf(f,"<B>Write Config failed</B><BR><BR>\r\n");
 	send_oscam_user_config(f, uriparams, urivalues, 0);
 }
 
@@ -1213,7 +1219,7 @@ void send_oscam_user_config(FILE *f, char *uriparams[], char *urivalues[], int p
 				fprintf(f, "%s%d", dot, i+1);
 				dot = ",";
 			}
-		}
+	}
 	fprintf(f,"\"></TD></TR>\r\n");
 	//Hostname
 	if (strlen((char *)account->dyndns)>0)
