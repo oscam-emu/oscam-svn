@@ -296,37 +296,38 @@ void send_oscam_menu(FILE *f){
 //  fprintf(f, "</BODY></HTML>\r\n");
 //}
 
-void send_oscam_config_global_do(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
-	fprintf(f,"<BR><BR>");
-	int i;
-
-	if (paramcount>0){
-		for(i=0;i<paramcount;i++){
-
-			if ((strcmp(uriparams[i], "part")) && (strcmp(uriparams[i], "action"))){
-				fprintf(f,"Parameter: %s set to Value: %s<BR>\r\n", uriparams[i], urivalues[i]);
-				chk_t_global(uriparams[i], urivalues[i]);
-			}
-		}
-	}
-	fprintf(f,"<BR><BR>Configuration Global not yet implemented<BR><BR>");
-	refresh_oscam(REFR_SERVER);
-}
-
 void send_oscam_config_global(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
-
 	int i;
+	int found=0;
+
+	fprintf(f,"<BR><BR>");
 
 	if (paramcount>0){
 		for(i=0;i<paramcount;i++){
+			//check the params for execute flag
 			if (!strcmp(uriparams[i], "action") && (!strcmp(urivalues[i], "execute"))) {
-				send_oscam_config_global_do(f, uriparams, urivalues, paramcount);
-				return;
+				found=1;
+				break;
 			}
+		}
+		if (found==1){
+			//we found the execute flag
+			for(i=0;i<paramcount;i++){
+				if ((strcmp(uriparams[i], "part")) && (strcmp(uriparams[i], "action"))){
+					fprintf(f,"Parameter: %s set to Value: %s<BR>\r\n", uriparams[i], urivalues[i]);
+					//we use the same function as used for parsing the config tokens
+					chk_t_global(uriparams[i], urivalues[i]);
+				}
+			}
+
+			//Disclaimer
+			fprintf(f,"<BR><BR><B>Configuration Global *DONE*</B><BR><BR>");
+			refresh_oscam(REFR_SERVER);
+			return;
 		}
 	}
 
-	fprintf(f,"<BR><BR>");
+	//if nothing above matches we show the form
 	fprintf(f,"<form action=\"/config.html\" method=\"get\">\r\n");
 	fprintf(f,"<input name=\"part\" type=\"hidden\" value=\"global\">\r\n");
 	fprintf(f,"<input name=\"action\" type=\"hidden\" value=\"execute\">\r\n");
@@ -383,38 +384,38 @@ void send_oscam_config_global(FILE *f, char *uriparams[], char *urivalues[], int
 
 }
 
-void send_oscam_config_camd33_do(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
-	fprintf(f,"<BR><BR>");
-	int i;
-
-	if (paramcount>0){
-		for(i=0;i<paramcount;i++){
-
-			if ((strcmp(uriparams[i], "part")) && (strcmp(uriparams[i], "action"))){
-				fprintf(f,"Parameter: %s set to Value: %s<BR>\r\n", uriparams[i], urivalues[i]);
-				chk_t_camd33(uriparams[i], urivalues[i]);
-			}
-		}
-	}
-	//Disclaimer
-	fprintf(f,"<BR><BR><B>Configuration camd33 *DONE*</B><BR><BR>");
-	refresh_oscam(REFR_SERVER);
-}
-
 void send_oscam_config_camd33(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
-
 	int i;
+	int found=0;
+
+	fprintf(f,"<BR><BR>");
 
 	if (paramcount>0){
 		for(i=0;i<paramcount;i++){
+			//check the params for execute flag
 			if (!strcmp(uriparams[i], "action") && (!strcmp(urivalues[i], "execute"))) {
-				send_oscam_config_camd33_do(f, uriparams, urivalues, paramcount);
-				return;
+				found=1;
+				break;
 			}
+		}
+		if (found==1){
+			//we found the execute flag
+			for(i=0;i<paramcount;i++){
+				if ((strcmp(uriparams[i], "part")) && (strcmp(uriparams[i], "action"))){
+					fprintf(f,"Parameter: %s set to Value: %s<BR>\r\n", uriparams[i], urivalues[i]);
+					//we use the same function as used for parsing the config tokens
+					chk_t_camd33(uriparams[i], urivalues[i]);
+				}
+			}
+
+			//Disclaimer
+			fprintf(f,"<BR><BR><B>Configuration camd33 *DONE*</B><BR><BR>");
+			refresh_oscam(REFR_SERVER);
+			return;
 		}
 	}
 
-	fprintf(f,"<BR><BR>");
+	//if nothing above matches we show the form
 	fprintf(f,"<form action=\"/config.html\" method=\"get\">\r\n");
 	fprintf(f,"<input name=\"part\" type=\"hidden\" value=\"camd33\">\r\n");
 	fprintf(f,"<input name=\"action\" type=\"hidden\" value=\"execute\">\r\n");
@@ -504,38 +505,38 @@ void send_oscam_config_camd35(FILE *f, char *uriparams[], char *urivalues[], int
 	fprintf(f,"<BR><BR>Configuration camd35 not yet implemented<BR><BR>");
 }
 
-void send_oscam_config_newcamd_do(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
-	fprintf(f,"<BR><BR>");
-	int i;
-
-	if (paramcount>0){
-		for(i=0;i<paramcount;i++){
-
-			if ((strcmp(uriparams[i], "part")) && (strcmp(uriparams[i], "action"))){
-				fprintf(f,"Parameter: %s set to Value: %s<BR>\r\n", uriparams[i], urivalues[i]);
-				chk_t_newcamd(uriparams[i], urivalues[i]);
-			}
-		}
-	}
-
-	//Disclaimer
-	fprintf(f,"<BR><BR><B>Configuration newcamd *DONE*</B><BR><BR>");
-	refresh_oscam(REFR_SERVER);
-}
-
 void send_oscam_config_newcamd(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
 	int i;
+	int found=0;
+
+	fprintf(f,"<BR><BR>");
 
 	if (paramcount>0){
 		for(i=0;i<paramcount;i++){
+			//check the params for execute flag
 			if (!strcmp(uriparams[i], "action") && (!strcmp(urivalues[i], "execute"))) {
-				send_oscam_config_newcamd_do(f, uriparams, urivalues, paramcount);
-				return;
+				found=1;
+				break;
 			}
+		}
+		if (found==1){
+			//we found the execute flag
+			for(i=0;i<paramcount;i++){
+				if ((strcmp(uriparams[i], "part")) && (strcmp(uriparams[i], "action"))){
+					fprintf(f,"Parameter: %s set to Value: %s<BR>\r\n", uriparams[i], urivalues[i]);
+					//we use the same function as used for parsing the config tokens
+					chk_t_newcamd(uriparams[i], urivalues[i]);
+				}
+			}
+
+			//Disclaimer
+			fprintf(f,"<BR><BR><B>Configuration newcamd *DONE*</B><BR><BR>");
+			refresh_oscam(REFR_SERVER);
+			return;
 		}
 	}
 
-	fprintf(f,"<BR><BR>");
+	//if nothing above matches we show the form
 	fprintf(f,"<form action=\"/config.html\" method=\"get\">\r\n");
 	fprintf(f,"<input name=\"part\" type=\"hidden\" value=\"newcamd\">\r\n");
 	fprintf(f,"<input name=\"action\" type=\"hidden\" value=\"execute\">\r\n");
@@ -579,39 +580,38 @@ void send_oscam_config_newcamd(FILE *f, char *uriparams[], char *urivalues[], in
 	fprintf(f,"<input type=\"submit\" value=\"OK\"></form>\r\n");
 }
 
-void send_oscam_config_radegast_do(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
-	fprintf(f,"<BR><BR>");
-	int i;
-
-	if (paramcount>0){
-		for(i=0;i<paramcount;i++){
-
-			if ((strcmp(uriparams[i], "part")) && (strcmp(uriparams[i], "action"))){
-				fprintf(f,"Parameter: %s set to Value: %s<BR>\r\n", uriparams[i], urivalues[i]);
-				chk_t_radegast(uriparams[i], urivalues[i]);
-			}
-		}
-	}
-
-	//Disclaimer
-	fprintf(f,"<BR><BR><B>Configuration Radegast *DONE*</B><BR><BR>");
-	refresh_oscam(REFR_SERVER);
-}
-
 void send_oscam_config_radegast(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
 	int i;
+	int found=0;
+
+	fprintf(f,"<BR><BR>");
 
 	if (paramcount>0){
 		for(i=0;i<paramcount;i++){
+			//check the params for execute flag
 			if (!strcmp(uriparams[i], "action") && (!strcmp(urivalues[i], "execute"))) {
-				send_oscam_config_radegast_do(f, uriparams, urivalues, paramcount);
-				return;
+				found=1;
+				break;
 			}
+		}
+		if (found==1){
+			//we found the execute flag
+			for(i=0;i<paramcount;i++){
+				if ((strcmp(uriparams[i], "part")) && (strcmp(uriparams[i], "action"))){
+					fprintf(f,"Parameter: %s set to Value: %s<BR>\r\n", uriparams[i], urivalues[i]);
+					//we use the same function as used for parsing the config tokens
+					chk_t_radegast(uriparams[i], urivalues[i]);
+				}
+			}
+
+			//Disclaimer
+			fprintf(f,"<BR><BR><B>Configuration Radegast *DONE*</B><BR><BR>");
+			refresh_oscam(REFR_SERVER);
+			return;
 		}
 	}
 
-	//Table & form head
-	fprintf(f,"<BR><BR>");
+	//if nothing above matches we show the form
 	fprintf(f,"<form action=\"/config.html\" method=\"get\">\r\n");
 	fprintf(f,"<input name=\"part\" type=\"hidden\" value=\"radegast\">\r\n");
 	fprintf(f,"<input name=\"action\" type=\"hidden\" value=\"execute\">\r\n");
@@ -641,39 +641,38 @@ void send_oscam_config_radegast(FILE *f, char *uriparams[], char *urivalues[], i
 	fprintf(f,"<input type=\"submit\" value=\"OK\"></form>\r\n");
 }
 
-void send_oscam_config_cccam_do(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
-	fprintf(f,"<BR><BR>");
-	int i;
-
-	if (paramcount>0){
-		for(i=0;i<paramcount;i++){
-
-			if ((strcmp(uriparams[i], "part")) && (strcmp(uriparams[i], "action"))){
-				fprintf(f,"Parameter: %s set to Value: %s<BR>\r\n", uriparams[i], urivalues[i]);
-				chk_t_cccam(uriparams[i], urivalues[i]);
-			}
-		}
-	}
-
-	//Disclaimer
-	fprintf(f,"<BR><BR>Configuration Cccam Do not yet implemented<BR><BR>");
-	refresh_oscam(REFR_SERVER);
-}
-
 void send_oscam_config_cccam(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
 	int i;
+	int found=0;
+
+	fprintf(f,"<BR><BR>");
 
 	if (paramcount>0){
 		for(i=0;i<paramcount;i++){
+			//check the params for execute flag
 			if (!strcmp(uriparams[i], "action") && (!strcmp(urivalues[i], "execute"))) {
-				send_oscam_config_cccam_do(f, uriparams, urivalues, paramcount);
-				return;
+				found=1;
+				break;
 			}
+		}
+		if (found==1){
+			//we found the execute flag
+			for(i=0;i<paramcount;i++){
+				if ((strcmp(uriparams[i], "part")) && (strcmp(uriparams[i], "action"))){
+					fprintf(f,"Parameter: %s set to Value: %s<BR>\r\n", uriparams[i], urivalues[i]);
+					//we use the same function as used for parsing the config tokens
+					chk_t_cccam(uriparams[i], urivalues[i]);
+				}
+			}
+
+			//Disclaimer
+			fprintf(f,"<BR><BR>Configuration Cccam Do not yet implemented<BR><BR>");
+			refresh_oscam(REFR_SERVER);
+			return;
 		}
 	}
 
-	//Table & form head
-	fprintf(f,"<BR><BR>");
+	//if nothing above matches we show the form
 	fprintf(f,"<form action=\"/config.html\" method=\"get\">\r\n");
 	fprintf(f,"<input name=\"part\" type=\"hidden\" value=\"cccam\">\r\n");
 	fprintf(f,"<input name=\"action\" type=\"hidden\" value=\"execute\">\r\n");
@@ -689,39 +688,38 @@ void send_oscam_config_cccam(FILE *f, char *uriparams[], char *urivalues[], int 
 	fprintf(f,"<BR><BR>Configuration Cccam not yet implemented<BR><BR>");
 }
 
-void send_oscam_config_gbox_do(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
-	fprintf(f,"<BR><BR>");
-	int i;
-
-	if (paramcount>0){
-		for(i=0;i<paramcount;i++){
-
-			if ((strcmp(uriparams[i], "part")) && (strcmp(uriparams[i], "action"))){
-				fprintf(f,"Parameter: %s set to Value: %s<BR>\r\n", uriparams[i], urivalues[i]);
-				chk_t_gbox(uriparams[i], urivalues[i]);
-			}
-		}
-	}
-
-	//Disclaimer
-	fprintf(f,"<BR><BR><B>Configuration Gbox *DONE*</B><BR><BR>");
-	refresh_oscam(REFR_SERVER);
-}
-
 void send_oscam_config_gbox(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
 	int i;
+	int found=0;
+
+	fprintf(f,"<BR><BR>");
 
 	if (paramcount>0){
 		for(i=0;i<paramcount;i++){
+			//check the params for execute flag
 			if (!strcmp(uriparams[i], "action") && (!strcmp(urivalues[i], "execute"))) {
-				send_oscam_config_gbox_do(f, uriparams, urivalues, paramcount);
-				return;
+				found=1;
+				break;
 			}
+		}
+		if (found==1){
+			//we found the execute flag
+			for(i=0;i<paramcount;i++){
+				if ((strcmp(uriparams[i], "part")) && (strcmp(uriparams[i], "action"))){
+					fprintf(f,"Parameter: %s set to Value: %s<BR>\r\n", uriparams[i], urivalues[i]);
+					//we use the same function as used for parsing the config tokens
+					chk_t_gbox(uriparams[i], urivalues[i]);
+				}
+			}
+
+			//Disclaimer
+			fprintf(f,"<BR><BR><B>Configuration Gbox *DONE*</B><BR><BR>");
+			refresh_oscam(REFR_SERVER);
+			return;
 		}
 	}
 
-	//Table & form head
-	fprintf(f,"<BR><BR>");
+	//if nothing above matches we show the form
 	fprintf(f,"<form action=\"/config.html\" method=\"get\">\r\n");
 	fprintf(f,"<input name=\"part\" type=\"hidden\" value=\"gbox\">\r\n");
 	fprintf(f,"<input name=\"action\" type=\"hidden\" value=\"execute\">\r\n");
@@ -755,39 +753,38 @@ void send_oscam_config_gbox(FILE *f, char *uriparams[], char *urivalues[], int p
 	fprintf(f,"<input type=\"submit\" value=\"OK\"></form>\r\n");
 }
 
-void send_oscam_config_monitor_do(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
-	fprintf(f,"<BR><BR>");
-	int i;
-
-	if (paramcount>0){
-		for(i=0;i<paramcount;i++){
-
-			if ((strcmp(uriparams[i], "part")) && (strcmp(uriparams[i], "action"))){
-				fprintf(f,"Parameter: %s set to Value: %s<BR>\r\n", uriparams[i], urivalues[i]);
-				chk_t_monitor(uriparams[i], urivalues[i]);
-			}
-		}
-	}
-
-	//Disclaimer
-	fprintf(f,"<BR><BR><B>Configuration Monitor *DONE*</B><BR><BR>");
-	refresh_oscam(REFR_SERVER);
-}
-
 void send_oscam_config_monitor(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
 	int i;
+	int found=0;
+
+	fprintf(f,"<BR><BR>");
 
 	if (paramcount>0){
 		for(i=0;i<paramcount;i++){
+			//check the params for execute flag
 			if (!strcmp(uriparams[i], "action") && (!strcmp(urivalues[i], "execute"))) {
-				send_oscam_config_monitor_do(f, uriparams, urivalues, paramcount);
-				return;
+				found=1;
+				break;
 			}
+		}
+		if (found==1){
+			//we found the execute flag
+			for(i=0;i<paramcount;i++){
+				if ((strcmp(uriparams[i], "part")) && (strcmp(uriparams[i], "action"))){
+					fprintf(f,"Parameter: %s set to Value: %s<BR>\r\n", uriparams[i], urivalues[i]);
+					//we use the same function as used for parsing the config tokens
+					chk_t_monitor(uriparams[i], urivalues[i]);
+				}
+			}
+
+			//Disclaimer
+			fprintf(f,"<BR><BR><B>Configuration Monitor *DONE*</B><BR><BR>");
+			refresh_oscam(REFR_SERVER);
+			return;
 		}
 	}
 
-	//Table & form head
-	fprintf(f,"<BR><BR>");
+	//if nothing above matches we show the form
 	fprintf(f,"<form action=\"/config.html\" method=\"get\">\r\n");
 	fprintf(f,"<input name=\"part\" type=\"hidden\" value=\"monitor\">\r\n");
 	fprintf(f,"<input name=\"action\" type=\"hidden\" value=\"execute\">\r\n");
