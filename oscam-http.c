@@ -1467,11 +1467,11 @@ void send_oscam_status(FILE *f) {
 		p_usr=(char *)(loghist+(i*CS_LOGHISTSIZE));
 		p_txt=p_usr+32;
 		if (p_txt[0]){
-			char sbuf[8];
-			sprintf(sbuf, "%03d", client[cs_idx].logcounter);
-			client[cs_idx].logcounter=(client[cs_idx].logcounter+1) % 1000;
-			memcpy(p_txt+4, sbuf, 3);
-			fprintf(f, "%s<BR>\n", p_txt);
+//			char sbuf[8];
+//			sprintf(sbuf, "%03d", client[cs_idx].logcounter);
+//			client[cs_idx].logcounter=(client[cs_idx].logcounter+1) % 1000;
+//			memcpy(p_txt+4, sbuf, 3);
+			fprintf(f, "%s<BR>\n", p_txt+8);
 		}
 	}
 #else
@@ -1670,29 +1670,42 @@ void http_srv() {
 
 	/* Prepare lookup array for conversion between ascii and hex */
 	tmp = malloc(3*sizeof(char));
-  for(i=0; i<256; i++) {
-    snprintf(tmp, 3,"%02x", i);
-    memcpy(hex2ascii[i], tmp, 2);
-  }
+	for(i=0; i<256; i++) {
+		snprintf(tmp, 3,"%02x", i);
+		memcpy(hex2ascii[i], tmp, 2);
+	}
 	free(tmp);
-  /* Create random string for nonce value generation */
-  srand(time(NULL));
-  create_rand_str(noncekey,32);
+	/* Create random string for nonce value generation */
+	srand(time(NULL));
+	create_rand_str(noncekey,32);
 
 	/* Startup server */
-	sock = socket(AF_INET, SOCK_STREAM, 0);
+	if((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0){
+		cs_log("HTTP Server: Creating socket failed! (errno=%d)", errno);
+		return;
+	}
 	sin.sin_family = AF_INET;
 	sin.sin_addr.s_addr = INADDR_ANY;
 	sin.sin_port = htons(cfg->http_port);
-	bind(sock, (struct sockaddr *) &sin, sizeof(sin));
-	listen(sock, 5);
+	if((bind(sock, (struct sockaddr *) &sin, sizeof(sin))) < 0) {
+		cs_log("HTTP Server couldn't bind on port %d (errno=%d). Not starting HTTP!", cfg->http_port, errno);
+		close(sock);
+		return;
+	}
+	if (listen(sock, 5) < 0){
+		cs_log("HTTP Server: Call to listen() failed! (errno=%d)", errno);
+		close(sock);
+		return;
+	}
 	cs_log("HTTP Server listening on port %d", cfg->http_port);
 	while (1)
 	{
 		int s;
 		FILE *f;
-		s = accept(sock, NULL, NULL);
-		if (s < 0) break;
+		if((s = accept(sock, NULL, NULL)) < 0){
+			cs_log("HTTP Server: Error calling accept() (errno=%d).", errno);
+			break;
+		}
 
 		f = fdopen(s, "r+");
 		process_request(f);
