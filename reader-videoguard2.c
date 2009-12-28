@@ -577,7 +577,7 @@ static void read_tiers(void)
     if(cta_res[2]==0 && cta_res[3]==0) break;
     int y,m,d,H,M,S;
     rev_date_calc(&cta_res[4],&y,&m,&d,&H,&M,&S);
-    cs_log("Tier: %02x%02x, expiry date: %04d/%02d/%02d-%02d:%02d:%02d",cta_res[2],cta_res[3],y,m,d,H,M,S);
+    //cs_log("Tier: %02x%02x, expiry date: %04d/%02d/%02d-%02d:%02d:%02d",cta_res[2],cta_res[3],y,m,d,H,M,S);
     cs_ri_log("Tier: %02x%02x, expiry date: %04d/%02d/%02d-%02d:%02d:%02d",cta_res[2],cta_res[3],y,m,d,H,M,S);
     }
 }
