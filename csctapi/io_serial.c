@@ -947,14 +947,14 @@ static bool IO_Serial_InitPnP (IO_Serial * io)
 	// set smartreader+ default values
 	// use the frequency to get F for the smartreader
 	// to make sure the ATR is sent at 9600.
-	if(io->SmartReaderConf)
-	{
-		io->SmartReaderConf->F=(int)ceil((float)(io->mhz)*10000.0/9600);
-		io->SmartReaderConf->D=1.0;
-		io->SmartReaderConf->fs=(io->mhz)*10000; // freq in Hz
-		io->SmartReaderConf->N=0;
-		io->SmartReaderConf->T=0;
-		io->SmartReaderConf->inv=0;
+	if(io->SmartReaderConf) {
+        // io->SmartReaderConf->F=(int)ceil((float)(io->mhz)*10000.0/9600);
+        io->SmartReaderConf->F=372;
+        io->SmartReaderConf->D=1.0;
+        io->SmartReaderConf->fs=(io->mhz)*10000; // freq in Hz
+        io->SmartReaderConf->N=0;
+        io->SmartReaderConf->T=0;
+        io->SmartReaderConf->inv=0;
 	}
 	
 	if (!IO_Serial_SetProperties (io))
@@ -975,8 +975,8 @@ static bool IO_Serial_Set_Smartreader_Config(IO_Serial * io)
 	BYTE cmd[16];
 	int fs;
 	struct timespec req_ts;
-	// int i;
-	
+	int i;
+
 	req_ts.tv_sec = 0;
 	req_ts.tv_nsec = 50000000;
 
@@ -1006,15 +1006,21 @@ static bool IO_Serial_Set_Smartreader_Config(IO_Serial * io)
 		return FALSE;
 		}
 
+	//cfsetispeed(&term,B4800);
+	//cfsetospeed(&term,B4800);
+    
 	term.c_cflag&=~CSIZE;
 	term.c_cflag|=CS5;
-	if(tcsetattr(io->fd,TCSADRAIN,&term)==-1)
+	if(tcsetattr(io->fd,TCSANOW,&term)==-1)
 		{
 #  ifdef DEBUG_IO
 		printf("%s: tcsetattr failed: %s",io->filename,strerror(errno));
 #endif
 		return FALSE;
 		}
+
+	//for (i=0; i<3; i++)
+    //    tcsendbreak(io->fd,0);
 	// Write SmartReader+ configuration commands.
 
 	// how is (BYTE)D supposed to work for fractional values e.g. 0.125 ??
@@ -1046,32 +1052,35 @@ static bool IO_Serial_Set_Smartreader_Config(IO_Serial * io)
 	if(!IO_Serial_Write(io, 0, 2, cmd))
 		return FALSE;
 
-	// Send zero bits for 0.25 - 0.5 seconds.
-	if(tcsendbreak(io->fd,0)==-1)
-		{
-#  ifdef DEBUG_IO
-		printf("%s: tcsendbreak failed: %s\n",io->filename,strerror(errno));
-#endif
-		return FALSE;
-		}
 	
 	// We're entering SmartReader+ mode; speed up serial communication.
-	cfsetispeed(&term,B115200);
-	cfsetospeed(&term,B115200);
-	io->input_bitrate=115200;
-	io->output_bitrate=115200;
+	cfsetispeed(&term,B230400);
+	cfsetospeed(&term,B230400);
+	io->input_bitrate=230400;
+	io->output_bitrate=230400;
 
 	// Set SmartReader+ in DATA mode.
 	term.c_cflag&=~CSIZE;
 	term.c_cflag|=CS8;
-	//for (i=0; i<3; i++)
-	if(tcsetattr(io->fd,TCSADRAIN,&term)==-1)
+	io->bits=8;
+	
+	if(tcsetattr(io->fd,TCSANOW,&term)==-1)
 		{
 #  ifdef DEBUG_IO
 		printf("%s: tcsetattr failed: %s\n",io->filename,strerror(errno));
 #endif
 		return FALSE;
 		}
+
+	// Send zero bits for 0.25 - 0.5 seconds.
+	for (i=0; i<1; i++)
+        if(tcsendbreak(io->fd,0)==-1)
+            {
+#  ifdef DEBUG_IO
+            printf("%s: tcsendbreak failed: %s\n",io->filename,strerror(errno));
+#endif
+            return FALSE;
+            }
 
 #ifdef DEBUG_IO
 		printf("IO: Setting SmartReader+ config done\n");
@@ -1081,7 +1090,7 @@ static bool IO_Serial_Set_Smartreader_Config(IO_Serial * io)
 #ifdef DEBUG_IO
 		printf("IO: SmartReader+ : Reseting the card\n");
 #endif
-	
+/*	
 	// reset the card
 	IO_Serial_Ioctl_Lock(io, 1);
 
@@ -1092,7 +1101,8 @@ static bool IO_Serial_Set_Smartreader_Config(IO_Serial * io)
 	usleep (50000L);
 #endif
 	IO_Serial_RTS_Clr(io);
-	IO_Serial_Ioctl_Lock(io, 0);
+*/
+
 	srConfig->init_done=1;
 	return TRUE;
 }
