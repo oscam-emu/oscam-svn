@@ -467,7 +467,7 @@ void send_oscam_config_camd35_do(FILE *f, char *uriparams[], char *urivalues[], 
 		}
 	}
 	//Disclaimer
-	fprintf(f,"<BR><BR>Configuration camd35 not yet implemented<BR><BR>");
+	fprintf(f,"<BR><BR><B>Configuration camd35 *DONE*</B><BR><BR>");
 	refresh_oscam(REFR_SERVER);
 }
 
