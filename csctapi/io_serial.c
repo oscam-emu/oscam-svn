@@ -915,7 +915,7 @@ static void IO_SR_Clear (SR_Config * srConfig)
 	printf("IO: Smartreader+ default parameter set to F=%d D=%f fs=%dKHz N=%d T=%d inv=%d\n",
 			srConfig->F,
 			srConfig->D,
-			srConfig->fs,
+			srConfig->fs/1000,
 			srConfig->N,
 			srConfig->T,
 			srConfig->inv);
@@ -974,11 +974,8 @@ static bool IO_Serial_Set_Smartreader_Config(IO_Serial * io)
 	struct termios term;
 	BYTE cmd[16];
 	int fs;
-	struct timespec req_ts;
 	int i;
 
-	req_ts.tv_sec = 0;
-	req_ts.tv_nsec = 50000000;
 
 	srConfig=io->SmartReaderConf;
 	if(srConfig==NULL)
@@ -1006,9 +1003,6 @@ static bool IO_Serial_Set_Smartreader_Config(IO_Serial * io)
 		return FALSE;
 		}
 
-	//cfsetispeed(&term,B4800);
-	//cfsetospeed(&term,B4800);
-    
 	term.c_cflag&=~CSIZE;
 	term.c_cflag|=CS5;
 	if(tcsetattr(io->fd,TCSANOW,&term)==-1)
@@ -1019,8 +1013,6 @@ static bool IO_Serial_Set_Smartreader_Config(IO_Serial * io)
 		return FALSE;
 		}
 
-	//for (i=0; i<3; i++)
-    //    tcsendbreak(io->fd,0);
 	// Write SmartReader+ configuration commands.
 
 	// how is (BYTE)D supposed to work for fractional values e.g. 0.125 ??
@@ -1054,10 +1046,10 @@ static bool IO_Serial_Set_Smartreader_Config(IO_Serial * io)
 
 	
 	// We're entering SmartReader+ mode; speed up serial communication.
-	cfsetispeed(&term,B230400);
-	cfsetospeed(&term,B230400);
-	io->input_bitrate=230400;
-	io->output_bitrate=230400;
+	// cfsetispeed(&term,B115200);
+	// cfsetospeed(&term,B115200);
+	// io->input_bitrate=115200;
+	// io->output_bitrate=115200;
 
 	// Set SmartReader+ in DATA mode.
 	term.c_cflag&=~CSIZE;
@@ -1072,15 +1064,9 @@ static bool IO_Serial_Set_Smartreader_Config(IO_Serial * io)
 		return FALSE;
 		}
 
+
 	// Send zero bits for 0.25 - 0.5 seconds.
-	for (i=0; i<1; i++)
-        if(tcsendbreak(io->fd,0)==-1)
-            {
-#  ifdef DEBUG_IO
-            printf("%s: tcsendbreak failed: %s\n",io->filename,strerror(errno));
-#endif
-            return FALSE;
-            }
+    tcsendbreak(io->fd,0);
 
 #ifdef DEBUG_IO
 		printf("IO: Setting SmartReader+ config done\n");
@@ -1090,18 +1076,6 @@ static bool IO_Serial_Set_Smartreader_Config(IO_Serial * io)
 #ifdef DEBUG_IO
 		printf("IO: SmartReader+ : Reseting the card\n");
 #endif
-/*
-	// reset the card
-	IO_Serial_Ioctl_Lock(io, 1);
-
-	IO_Serial_RTS_Set(io);
-#ifdef HAVE_NANOSLEEP
-	nanosleep (&req_ts, NULL);
-#else
-	usleep (50000L);
-#endif
-	IO_Serial_RTS_Clr(io);
-*/
 
 	srConfig->init_done=1;
 	return TRUE;
