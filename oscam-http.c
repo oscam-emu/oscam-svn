@@ -1129,6 +1129,14 @@ void send_oscam_user_config_add(FILE *f, char *uriparams[], char *urivalues[], i
 		if (urivalues[i]) {
 
 			for (account=cfg->account; (account) ; account=account->next){
+				//account already exist - show config for this account
+				if(!strcmp(urivalues[i], account->usr)){
+					uriparams[0] = "user";
+					urivalues[0] = newuser;
+					send_oscam_user_config(f, uriparams, urivalues, 1);
+					return;
+				}
+
 				if(!account->next) break;
 				accidx++;
 			}
