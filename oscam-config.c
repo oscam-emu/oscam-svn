@@ -738,6 +738,7 @@ void chk_account(char *token, char *value, struct s_auth *account)
 
   if (!strcmp(token, "expdate"))
   {
+  	if (!value[0]) return;
     struct tm cstime;
     memset(&cstime,0,sizeof(cstime));
     for (i=0, ptr1=strtok(value, "-/"); (i<3)&&(ptr1); ptr1=strtok(NULL, "-/"), i++)

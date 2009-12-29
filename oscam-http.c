@@ -1136,7 +1136,7 @@ void send_oscam_user_config_add(FILE *f, char *uriparams[], char *urivalues[], i
 					send_oscam_user_config(f, uriparams, urivalues, 1);
 					return;
 				}
-
+				//last account reached
 				if(!account->next) break;
 				accidx++;
 			}
@@ -1172,19 +1172,37 @@ void send_oscam_user_config_add(FILE *f, char *uriparams[], char *urivalues[], i
 }
 
 void send_oscam_user_config_delete(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
-	struct s_auth *account;
-	int i;
 
-	for(i=0;i<paramcount;i++)
-		if (!strcmp(uriparams[i], "user")) break;
+	int i, found = 0;
+	struct s_auth *account, *account2;
 
-	//identfy useraccount
-	for (account=cfg->account; (account) ; account=account->next){
-		if(!strcmp(urivalues[i], account->usr))
-			break;
+	for(i=0;i<paramcount;i++) if (!strcmp(uriparams[i], "user")) break;
+
+	account=cfg->account;
+	if(strcmp(account->usr, urivalues[i]) == 0){
+		cfg->account = account->next;
+		free(account);
+		found = 1;
+	} else if (account->next != NULL){
+		do{
+			if(strcmp(account->next->usr, urivalues[i]) == 0){
+				account2 = account->next;
+				account->next = account2->next;
+				free(account2);
+				found = 1;
+				break;
+			}
+		} while ((account = account->next) && (account->next != NULL));
 	}
 
-	/*TODO How to delete an account*/
+	if (found>0){
+		if (write_userdb()==0)
+			refresh_oscam(REFR_ACCOUNTS);
+		else
+			fprintf(f,"<B>Write Config failed</B><BR><BR>\r\n");
+	}
+	else
+		fprintf(f,"<B>User not found</B><BR><BR>\r\n");
 
 	send_oscam_user_config(f, uriparams, urivalues, 0);
 }
