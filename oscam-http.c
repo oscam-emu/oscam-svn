@@ -970,7 +970,7 @@ void send_oscam_reader(FILE *f) {
 	for(ridx=0;ridx<CS_MAXREADER;ridx++){
 		if(!reader[ridx].device[0]) break;
 
-		switch(reader[ridx].typ)		// TODO like ph
+		switch(reader[ridx].typ)
 			{
 				case R_MOUSE   : ctyp="mouse";    break;
 				case R_INTERNAL: ctyp="intern";   break;
@@ -1119,9 +1119,12 @@ void send_oscam_user_config_add(FILE *f, char *uriparams[], char *urivalues[], i
 		struct s_auth *ptr;
 		struct s_auth *account;
 		int i, accidx=0;
+		char *newuser;
 
 		for(i=0;i<paramcount;i++)
 			if (!strcmp(uriparams[i], "user")) break;
+
+		newuser = urivalues[i];
 
 		if (urivalues[i]) {
 
@@ -1154,8 +1157,28 @@ void send_oscam_user_config_add(FILE *f, char *uriparams[], char *urivalues[], i
       account->ac_idx = accidx;
 #endif
     }
-	send_oscam_user_config(f, uriparams, urivalues, 0);
+	uriparams[0] = "user";
+	urivalues[0] = newuser;
+	send_oscam_user_config(f, uriparams, urivalues, 1);
 
+}
+
+void send_oscam_user_config_delete(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
+	struct s_auth *account;
+	int i;
+
+	for(i=0;i<paramcount;i++)
+		if (!strcmp(uriparams[i], "user")) break;
+
+	//identfy useraccount
+	for (account=cfg->account; (account) ; account=account->next){
+		if(!strcmp(urivalues[i], account->usr))
+			break;
+	}
+
+	/*TODO How to delete an account*/
+
+	send_oscam_user_config(f, uriparams, urivalues, 0);
 }
 
 void send_oscam_user_config_do(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
@@ -1215,6 +1238,10 @@ void send_oscam_user_config(FILE *f, char *uriparams[], char *urivalues[], int p
 				send_oscam_user_config_add(f, uriparams, urivalues, paramcount);
 				return;
 			}
+			else if (!strcmp(uriparams[i], "action") && (!strcmp(urivalues[i], "delete"))) {
+				send_oscam_user_config_delete(f, uriparams, urivalues, paramcount);
+				return;
+			}
 		}
 	}
 	else {
@@ -1222,7 +1249,7 @@ void send_oscam_user_config(FILE *f, char *uriparams[], char *urivalues[], int p
 		char *status = "offline";
 
 		fprintf(f,"<BR><BR><TABLE cellspacing=\"0\" cellpadding=\"10\">\r\n");
-		fprintf(f,"<TR><TH>Label</TH><TH>Status (not exact)</TH><TH>Action</TH></TR>");
+		fprintf(f,"<TR><TH>Label</TH><TH>Status (not exact)</TH><TH colspan=\"2\" align=\"center\">Action</TH></TR>");
 		for (account=cfg->account; (account) ; account=account->next){
 			status="offline";
 			fprintf(f,"<TR>\r\n");
@@ -1230,7 +1257,8 @@ void send_oscam_user_config(FILE *f, char *uriparams[], char *urivalues[], int p
 				if (!strcmp(client[i].usr, account->usr))
 					status="<b>online</b>";
 
-			fprintf(f,"<TD>%s</TD><TD>%s</TD><TD><A HREF=\"/userconfig.html?user=%s\">Edit Settings</A>",account->usr, status, account->usr);
+			fprintf(f,"<TD>%s</TD><TD>%s</TD><TD><A HREF=\"/userconfig.html?user=%s\">Edit Settings</A></TD>",account->usr, status, account->usr);
+			fprintf(f,"<TD><A HREF=\"/userconfig.html?user=%s&action=delete\">Delete User</A></TD>",account->usr);
 			fprintf(f,"</TR>\r\n");
 		}
 		fprintf(f,"<TR>\r\n");
@@ -1238,7 +1266,7 @@ void send_oscam_user_config(FILE *f, char *uriparams[], char *urivalues[], int p
 		fprintf(f,"<TD>New User:</TD>\r\n");
 		fprintf(f,"<TD><input name=\"user\" type=\"text\"></TD>\r\n");
 		fprintf(f,"<input name=\"action\" type=\"hidden\" value=\"adduser\">\r\n");
-		fprintf(f,"<TD><input type=\"submit\" value=\"OK\"></TD></form>\r\n");
+		fprintf(f,"<TD colspan=\"2\" align=\"center\"><input type=\"submit\" value=\"Add User\"></TD></form>\r\n");
 		fprintf(f,"</TABLE>\r\n");
 		return;
 	}
@@ -1412,7 +1440,7 @@ void send_oscam_entitlement(FILE *f, char *uriparams[], char *urivalues[], int p
 
 		for (ridx=0; ridx<CS_MAXREADER; ridx++){
 
-			switch(reader[ridx].typ)		// TODO like ph
+			switch(reader[ridx].typ)
 			{
 				case R_MOUSE   : ctyp="mouse";    break;
 				case R_INTERNAL: ctyp="intern";   break;
