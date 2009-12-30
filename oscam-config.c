@@ -102,6 +102,14 @@ void chk_caidtab(char *caidasc, CAIDTAB *ctab)
 {
   int i;
   char *ptr1, *ptr2, *ptr3;
+
+  //reset caid tab needed for usage while runtime from webif
+  for (i=0;i<CS_MAXCAIDTAB;i++){
+  	ctab->caid[i]=0;
+		ctab->mask[i]=0;
+		ctab->cmap[i++]=0;
+  }
+
   for (i=0, ptr1=strtok(caidasc, ","); (i<CS_MAXCAIDTAB) && (ptr1); ptr1=strtok(NULL, ","))
   {
     ulong caid, mask, cmap;
@@ -128,7 +136,15 @@ void chk_tuntab(char *tunasc, TUNTAB *ttab)
 {
   int i;
   char *ptr1, *ptr2, *ptr3;
-  for (i=0, ptr1=strtok(tunasc, ","); (i<CS_MAXTUNTAB) && (ptr1); ptr1=strtok(NULL, ","))
+
+  //reset tuntab for usage during runtime from WebIf
+  for (i=0;i<CS_MAXTUNTAB;i++) {
+		ttab->bt_caidfrom[i]=0;
+		ttab->bt_caidto[i]=0;
+		ttab->bt_srvid[i++]=0;
+  }
+
+	for (i=0, ptr1=strtok(tunasc, ","); (i<CS_MAXTUNTAB) && (ptr1); ptr1=strtok(NULL, ","))
   {
     ulong bt_caidfrom, bt_caidto, bt_srvid;
     if( (ptr3=strchr(trim(ptr1), ':')) )
@@ -714,6 +730,10 @@ void chk_account(char *token, char *value, struct s_auth *account)
   strtolower(value);
   if (!strcmp(token, "au"))
   {
+  	//set default values for usage during runtime from Webif
+  	account->au=-1;
+  	account->autoau=0;
+
     if(value && value[0]=='1') account->autoau=1;
     for (i=0; i<CS_MAXREADER; i++)
       if ((reader[i].label[0]) &&
@@ -836,18 +856,11 @@ int write_userdb()
 		fprintf(f,"uniq          = %d\n", account->uniq);
 		fprintf(f,"sleep         = %d\n", account->tosleep);
 		fprintf(f,"monlevel      = %d\n", account->monlvl);
-		fprintf(f,"au            = ");
-		for (i=0; i<CS_MAXREADER; i++){
-			if(!reader[i].device[0]) {
-				fprintf(f,"-1");
-				break;
-			}
-			if (account->au == i){
-				fprintf(f,"%s", reader[i].label);
-				break;
-			}
-		}
-		fprintf(f,"\n");
+
+		if (account->au > -1)
+			if (account->au < CS_MAXREADER)
+				fprintf(f,"au            = %s\n", reader[account->au].label);
+		if (account->autoau == 1) fprintf(f,"au            = 1\n");
 
 		fprintf(f,"services      = ");
 		char sidok[33]; long2bitchar(account->sidtabok,sidok);
@@ -855,9 +868,9 @@ int write_userdb()
 		struct s_sidtab *sidtab = cfg->sidtab;
 		i=0; dot = "";
 		for (; sidtab; sidtab=sidtab->next){
-			if(sidok[i]=='1')	fprintf(f,"%s%s", dot, sidtab->label);
-			if(sidno[i]=='1') fprintf(f,"%s!%s", dot, sidtab->label);
-			i++; dot = ",";
+			if(sidok[i]=='1')	{fprintf(f,"%s%s", dot, sidtab->label); dot = ",";}
+			if(sidno[i]=='1') {fprintf(f,"%s!%s", dot, sidtab->label); dot = ",";}
+			i++;
 		}
 		fprintf(f,"\n");
 
@@ -883,6 +896,18 @@ int write_userdb()
 				if(ttab->bt_srvid[i])	fprintf(f, ":%04X", ttab->bt_srvid[i]);
 				i++; dot = ",";
 			}
+		}
+		fprintf(f,"\n");
+
+		fprintf(f,"ident         = ");
+		int j;
+		dot="";
+		FTAB *ftab = &account->ftab;
+		for (i=0;i<ftab->nfilts;i++){
+			fprintf(f, "%s%04X", dot, ftab->filts[i].caid);
+			for (j=0;j<ftab->filts[i].nprids;j++)
+				fprintf(f, ":%06lX", ftab->filts[i].prids[j]);
+			dot=";";
 		}
 		fprintf(f,"\n");
 

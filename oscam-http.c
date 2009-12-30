@@ -23,18 +23,24 @@ enum refreshtypes {REFR_ACCOUNTS, REFR_READERS, REFR_SERVER, REFR_ANTICASC};
 
 static  char*   css[] = {
 			"p {color: white; }",
-			"h2 {color: orange; font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 20px; line-height: 20px;}",
-			"h4 {color: black; font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 12px; line-height: 12px; }",
+			"h2 {color: orange; font-family: Arial; font-size: 14px; line-height: 12px;}",
+			"h4 {color: black; font-family: Arial; font-size: 12px; line-height: 9px; }",
 			"TABLE{background-color:#66CCFF;}",
-			"TD {border:1px solid gray; font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 12px;padding:5px;background-color:#6666FF;}",
-			"TH {border:1px solid gray; font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 12px;padding:5px;background-color:#6699FF}",
-			"DIV.log{border:1px solid black;background-color: black; font-family: Courier, \"Courier New\", monospace ; color: white;}",
-			"TABLE.menu{background-color:black;align:center;}",
-			"TABLE.menu TD{border:2px outset lightgrey;background-color:silver;font-color:black; font-family: Verdana, Arial, Helvetica, sans-serif;}",
+			"TD{height:10px; border:1px solid gray; font-family: Arial; font-size: 11px; padding:5px; background-color:#6666FF;}",
+			"TH{height:10px; border:1px solid gray; font-family: Arial; font-size: 12px; padding:5px; background-color:#330033;color:#FFFF00;}",
+			"TR.s TD{background-color:#6666FF;}",
+			"TR.r TD{background-color:orange;}",
+			"TR.p TD{background-color:yellow;}",
+			"TR.c TD{background-color:green;}",
+			"TR.online TD{background-color:#009900;}",
+			"TR.expired TD{background-color:orange;}",
+			"DIV.log{border:1px solid black;background-color: black; font-family: \"Courier New\", monospace ; color:yellow; font-size: 11px;}",
+			"TABLE.menu{background-color:black; align:center; font-size: 10px;}",
+			"TABLE.menu TD{border:2px outset lightgrey; background-color:silver; font-color:black; font-family: Arial;}",
 			"TABLE.status{background-color:#66CCFF;empty-cells:show;}",
-			"TABLE.invisible TD {border:0px; font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 12px;padding:5px;background-color:#6666FF;}}",
-			"TD.menu {border:2px outset lightgrey;background-color:silver;font-color:black; font-family: Verdana, Arial, Helvetica, sans-serif;}",
-			"body {background-color: #FFFF66;font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 12px;}",
+			"TABLE.invisible TD {border:0px; font-family: Arial; font-size: 12px; padding:5px; background-color:#6666FF;}}",
+			"TD.menu {border:2px outset lightgrey; background-color:silver; font-color:black; font-family: Arial; font-size:11px;}",
+			"body {background-color: grey; font-family: Arial; font-size: 12px;}",
 			"A:link {text-decoration: none; color:blue}",
 			"A:visited {text-decoration: none; color:blue}",
 			"A:active {text-decoration: none; color:white}",
@@ -237,7 +243,7 @@ void send_htmlhead(FILE *f, int refresh){
 		fprintf(f, "<meta http-equiv=\"refresh\" content=\"%d; URL=/status.html\" />", refresh);
 	fprintf(f, "</HEAD>\n");
 	fprintf(f, "<BODY>");
-	fprintf(f, "<H2>OSCAM %s build #%s</H2>", CS_VERSION, CS_SVN_VERSION);
+	fprintf(f, "<H2>OSCAM %s build #%s</H2>\r\n", CS_VERSION, CS_SVN_VERSION);
 
 }
 
@@ -274,16 +280,16 @@ void send_footer(FILE *f){
 void send_oscam_menu(FILE *f){
 
 	/*create menue*/
-	fprintf(f, "<TABLE border=0 class=\"menu\">\n");
-	fprintf(f, "	<TR>\n");
-	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./status.html\">STATUS</TD>\n");
-	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./config.html\">CONFIGURATION</TD>\n");
-	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./readers.html\">READERS</TD>\n");
-	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./userconfig.html\">USERS</TD>\n");
-	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./entitlements.html\">ENTITLEMENTS</TD>\n");
-	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./services.html\">SERVICES</TD>\n");
-	fprintf(f, "	</TR>\n");
-	fprintf(f, "</TABLE>\n");
+	fprintf(f, "<TABLE border=0 class=\"menu\">\r\n");
+	fprintf(f, "	<TR>\r\n");
+	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./status.html\">STATUS</TD>\r\n");
+	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./config.html\">CONFIGURATION</TD>\r\n");
+	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./readers.html\">READERS</TD>\r\n");
+	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./userconfig.html\">USERS</TD>\r\n");
+	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./entitlements.html\">ENTITLEMENTS</TD>\r\n");
+	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./services.html\">SERVICES</TD>\r\n");
+	fprintf(f, "	</TR>\r\n");
+	fprintf(f, "</TABLE>\r\n");
 
 }
 
@@ -743,7 +749,7 @@ void send_oscam_config_gbox(FILE *f, char *uriparams[], char *urivalues[], int p
 	fprintf(f,"\t<TR><TD>Locals:</TD><TD><input name=\"locals\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"");
 	char *dot = "";
 	for (i = 0; i < cfg->num_locals; i++){
-		fprintf(f,"%s%08X", dot, cfg->locals[i]);
+		fprintf(f,"%s%06lX", dot, cfg->locals[i]);
 		dot=";";
 	}
 	fprintf(f,"\"></TD></TR>\r\n");
@@ -1226,18 +1232,18 @@ void send_oscam_user_config_do(FILE *f, char *uriparams[], char *urivalues[], in
 	//clear group
 	account->grp = 0;
 
-	fprintf(f,"<BR><BR>\r\n");
+	//fprintf(f,"<BR><BR>\r\n");
 
 	for(i=0;i<paramcount;i++){
 		if ((strcmp(uriparams[i], "action")) && (strcmp(uriparams[i], "user"))){
-			fprintf(f,"%s = %s<BR>\r\n", uriparams[i], urivalues[i]);
+			//fprintf(f,"%s = %s<BR>\r\n", uriparams[i], urivalues[i]);
 			if (!strcmp(uriparams[i], "services"))
 				sprintf(servicelabels + strlen(servicelabels), "%s,", urivalues[i]);
 			else
 				chk_account(uriparams[i], urivalues[i], account);
 		}
-		else if (!strcmp(uriparams[i], "user"))
-			fprintf(f,"<B>User %s is reconfigured as follow</B><BR><BR>\r\n", urivalues[i]);
+	//	else if (!strcmp(uriparams[i], "user"))
+	//		fprintf(f,"<B>User %s is reconfigured as follow</B><BR><BR>\r\n", urivalues[i]);
 	}
 
 	chk_account("services", servicelabels, account);
@@ -1273,27 +1279,49 @@ void send_oscam_user_config(FILE *f, char *uriparams[], char *urivalues[], int p
 	else {
 		/* No Parameters given --> list accounts*/
 		char *status = "offline";
+		char *expired = "";
+		char *classname="offline";
+		char *lastchan="&nbsp;";
+		time_t now = time((time_t)0);
+		int isec=0;
 
 		fprintf(f,"<BR><BR><TABLE cellspacing=\"0\" cellpadding=\"10\">\r\n");
-		fprintf(f,"<TR><TH>Label</TH><TH>Status (not exact)</TH><TH colspan=\"2\" align=\"center\">Action</TH></TR>");
+		fprintf(f,"<TR><TH>Label</TH>\r\n\t<TH>Status</TH>\r\n\t<TH>Last Channel</TH>\r\n\t<TH>Idle (Sec)</TH>\r\n\t<TH colspan=\"2\" align=\"center\">Action</TH>\r\n</TR>");
 		for (account=cfg->account; (account) ; account=account->next){
+			expired = ""; classname="offline";
+			if(account->expirationdate && account->expirationdate<time(NULL)){
+				expired = " (expired)";
+				classname = "expired";
+			}
 			status="offline";
-			fprintf(f,"<TR>\r\n");
-			for (i=0; i<CS_MAXPID; i++)
-				if (!strcmp(client[i].usr, account->usr))
-					status="<b>online</b>";
 
-			fprintf(f,"<TD>%s</TD><TD>%s</TD><TD><A HREF=\"/userconfig.html?user=%s\">Edit Settings</A></TD>",account->usr, status, account->usr);
-			fprintf(f,"<TD><A HREF=\"/userconfig.html?user=%s&action=delete\">Delete User</A></TD>",account->usr);
+			//search account in active clients
+			for (i=0; i<CS_MAXPID; i++)
+				if (!strcmp(client[i].usr, account->usr)){
+					//30 secs without ecm is offline
+					if ((now - client[i].lastecm) < 30){
+						status = "<b>online</b>";classname="online";
+						lastchan = monitor_get_srvname(client[i].last_srvid);
+						isec = now - client[i].last;
+					}
+				}
+			fprintf(f,"<TR class=\"%s\">\r\n", classname);
+			fprintf(f,"\t<TD>%s</TD>\r\n\t<TD>%s%s</TD>\r\n\t<TD>%s</TD>\r\n\t<TD>%d</TD>\r\n\t<TD><A HREF=\"/userconfig.html?user=%s\">Edit Settings</A></TD>\r\n",account->usr, status, expired, lastchan, isec, account->usr);
+			fprintf(f,"\t<TD><A HREF=\"/userconfig.html?user=%s&action=delete\">Delete User</A></TD>\r\n",account->usr);
 			fprintf(f,"</TR>\r\n");
+			isec = 0;
+			lastchan = "&nbsp;";
 		}
 		fprintf(f,"<TR>\r\n");
-		fprintf(f,"<FORM >\r\n");
-		fprintf(f,"<TD>New User:</TD>\r\n");
-		fprintf(f,"<TD><input name=\"user\" type=\"text\"></TD>\r\n");
-		fprintf(f,"<input name=\"action\" type=\"hidden\" value=\"adduser\">\r\n");
-		fprintf(f,"<TD colspan=\"2\" align=\"center\"><input type=\"submit\" value=\"Add User\"></TD></form>\r\n");
+		fprintf(f,"\t<FORM action=\"/userconfig.html\" method=\"get\">\r\n");
+		fprintf(f,"\t<TD>New User:</TD>\r\n");
+		fprintf(f,"\t<TD colspan=\"2\"><input name=\"user\" type=\"text\"></TD>\r\n");
+		fprintf(f,"\t<input name=\"action\" type=\"hidden\" value=\"adduser\">\r\n");
+		fprintf(f,"\t<TD colspan=\"3\" align=\"center\"><input type=\"submit\" value=\"Add User\"></TD>\r\n");
+		fprintf(f,"\t</FORM>\r\n");
+		fprintf(f,"<TR>\r\n");
 		fprintf(f,"</TABLE>\r\n");
+
 		return;
 	}
 
@@ -1364,19 +1392,24 @@ void send_oscam_user_config(FILE *f, char *uriparams[], char *urivalues[], int p
 	fprintf(f,"</select></TD></TR>\r\n");
 	//AU Selector
 	fprintf(f,"<TR><TD>AU:</TD><TD><select name=\"au\" >\r\n");
-	if (account->au > -1)
-		fprintf(f,"\t<option value=\"-1\" selected>none</option>\r\n");
+	if (!account->au)
+		fprintf(f,"\t<option value=\" \" selected>none</option>\r\n");
 	else
-		fprintf(f,"\t<option value=\"-1\">none</option>\r\n");
+		fprintf(f,"\t<option value=\" \">none</option>\r\n");
+
+	if (account->autoau == 1)
+		fprintf(f,"\t<option value=\"1\" selected>auto</option>\r\n");
+	else
+		fprintf(f,"\t<option value=\"1\">auto</option>\r\n");
 
 	int ridx;
 	for (ridx=0; ridx<CS_MAXREADER; ridx++){
 		if(!reader[ridx].device[0]) break;
 
 		if (account->au == ridx)
-			fprintf(f,"\t<option value=\"%d\" selected>%s</option>\r\n", ridx, reader[ridx].label);
+			fprintf(f,"\t<option value=\"%s\" selected>%s</option>\r\n", reader[ridx].label, reader[ridx].label);
 		else
-			fprintf(f,"\t<option value=\"%d\">%s</option>\r\n", ridx, reader[ridx].label);
+			fprintf(f,"\t<option value=\"%s\">%s</option>\r\n", reader[ridx].label, reader[ridx].label);
 	}
 	fprintf(f,"</select></TD></TR>\r\n");
 
@@ -1421,11 +1454,20 @@ void send_oscam_user_config(FILE *f, char *uriparams[], char *urivalues[], int p
 	fprintf(f,"\"></TD></TR>\r\n");
 
 	/*IDENT*/
-//	fprintf(f,"<TR><TD>Ident:</TD><TD><input name=\"ident\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"");
-//	for (i=0;i<account->ftab.nfilts;i++){
-//		fprintf(f, "%04X;", account->ftab.filts[i].caid);
-//	}
-//	fprintf(f,"\"></TD></TR>\r\n");
+	fprintf(f,"<TR><TD>Ident:</TD><TD><input name=\"ident\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"");
+
+	int j;
+	dot="";
+	FTAB *ftab = &account->ftab;
+	for (i=0;i<ftab->nfilts;i++){
+		fprintf(f, "%s%04X", dot, ftab->filts[i].caid);
+
+		for (j=0;j<ftab->filts[i].nprids;j++)
+			fprintf(f, ":%06lX", ftab->filts[i].prids[j]);
+
+		dot=";";
+	}
+	fprintf(f,"\"></TD></TR>\r\n");
 
 	/*Betatunnel*/
 	i = 0;
@@ -1448,9 +1490,9 @@ void send_oscam_user_config(FILE *f, char *uriparams[], char *urivalues[], int p
 	fprintf(f,"<TR><TD>Anticascading numusers:</TD><TD><input name=\"numusers\" type=\"text\" size=\"3\" maxlength=\"3\" value=\"%d\"></TD></TR>\r\n", account->ac_users);
 	fprintf(f,"<TR><TD>Anticascading penalty:</TD><TD><input name=\"penalty\" type=\"text\" size=\"3\" maxlength=\"3\" value=\"%d\"></TD></TR>\r\n", account->ac_penalty);
 #endif
-
+	fprintf(f,"<TR><TD>&nbsp;</TD><TD align=\"right\"><input type=\"submit\" value=\"Save Settings\" title=\"Save settings and reload users\"></TD></TR>\r\n");
 	fprintf(f,"</TABLE>\r\n");
-	fprintf(f,"<input type=\"submit\" value=\"OK\"></form>\r\n");
+	fprintf(f,"</form>\r\n");
 }
 
 void send_oscam_entitlement(FILE *f, char *uriparams[], char *urivalues[], int paramcount) {
@@ -1571,7 +1613,7 @@ void send_oscam_status(FILE *f) {
 	int i;
 
 	fprintf(f,"<BR><BR><TABLE WIDTH=\"100%%\" cellspacing=\"0\" class=\"status\">\n");
-	fprintf(f,"<TR><TH>PID</TH><TH>Typ</TH><TH>ID</TH><TH>Label</TH><TH>AU</TH><TH>0</TH><TH>Address</TH><TH>Port</TH><TH>Protocol</TH><TH>Login</TH><TH>Login</TH><TH>Time</TH><TH>caid:srvid</TH><TH>&nbsp;</TH><TH>Idle</TH><TH>0</TH>");
+	fprintf(f,"<TR><TH>PID</TH><TH>Typ</TH><TH>ID</TH><TH>Label</TH><TH>AU</TH><TH>0</TH><TH>Address</TH><TH>Port</TH><TH>Protocol</TH><TH>Login</TH><TH>Login</TH><TH>Time</TH><TH>caid:srvid</TH><TH>Last Channel</TH><TH>Idle</TH><TH>0</TH>");
 
 	for (i=0; i<CS_MAXPID; i++)
 		if (client[i].pid)  {
