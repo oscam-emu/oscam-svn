@@ -1593,7 +1593,7 @@ int send_dcw(ECM_REQUEST *er)
   return 0;
 }
 
-static void chk_dcw(int fd)
+void chk_dcw(int fd)
 {
   ECM_REQUEST *er, *ert;
   if (read_from_pipe(fd, (uchar **)&er, 0)!=PIP_ID_ECM)
@@ -2178,6 +2178,9 @@ int main (int argc, char *argv[])
 #endif
            module_radegast,
            module_oscam_ser,
+#ifdef HAVE_DVBAPI_3
+	   module_dvbapi,
+#endif
            0
   };
 
