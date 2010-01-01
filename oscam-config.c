@@ -881,6 +881,7 @@ int write_userdb()
 			while(ctab->caid[i]) {
 				fprintf(f, "%s%04X", dot, ctab->caid[i]);
 					if(ctab->mask[i])	fprintf(f, "&%04X", ctab->mask[i]);
+				if(ctab->cmap[i])	fprintf(f, ":%04X", ctab->cmap[i]);
 				i++; dot = ",";
 			}
 		}
@@ -892,8 +893,8 @@ int write_userdb()
 		if (ttab->bt_caidfrom[i]) {
 			while(ttab->bt_caidfrom[i]) {
 				fprintf(f, "%s%04X", dot, ttab->bt_caidfrom[i]);
-				if(ttab->bt_caidto[i]) fprintf(f, ".%04X", ttab->bt_caidto[i]);
-				if(ttab->bt_srvid[i])	fprintf(f, ":%04X", ttab->bt_srvid[i]);
+				if(ttab->bt_caidto[i]) fprintf(f, ".%04X", ttab->bt_srvid[i]);
+				if(ttab->bt_srvid[i])	fprintf(f, ":%04X", ttab->bt_caidto[i]);
 				i++; dot = ",";
 			}
 		}
@@ -905,8 +906,11 @@ int write_userdb()
 		FTAB *ftab = &account->ftab;
 		for (i=0;i<ftab->nfilts;i++){
 			fprintf(f, "%s%04X", dot, ftab->filts[i].caid);
-			for (j=0;j<ftab->filts[i].nprids;j++)
-				fprintf(f, ":%06lX", ftab->filts[i].prids[j]);
+			dot=":";
+			for (j=0;j<ftab->filts[i].nprids;j++){
+				fprintf(f, "%s%06lX", dot, ftab->filts[i].prids[j]);
+				dot=",";
+			}
 			dot=";";
 		}
 		fprintf(f,"\n");

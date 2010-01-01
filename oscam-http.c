@@ -13,13 +13,8 @@ static char* monlevel[] = {
 			"1 = only server and own procs",
 			"2 = all procs, but viewing only, default",
 			"3 = all procs, reload of oscam.user possible",
-			"4 = complete access"};
-
-static char* uniq[] = {
-			"0 = none",
-			"1 = strict",
-			"2 = per IP"};
-
+			"4 = complete access"
+			};
 
 void refresh_oscam(enum refreshtypes refreshtype){
 int i;
@@ -622,18 +617,13 @@ void send_oscam_config(FILE *f, struct uriparams *params) {
 	}
 }
 
-void send_oscam_reader(FILE *f) {
+void send_oscam_reader(struct templatevars *vars, FILE *f) {
 	int ridx;
 	char *ctyp;
 
-	fprintf(f,"<BR><BR><TABLE cellspacing=\"0\" cellpadding=\"10\">\r\n");
-	fprintf(f,"<TR><TH>Label</TH><TH>Protocol</TH><TH>Action</TH></TR>");
-
 	for(ridx=0;ridx<CS_MAXREADER;ridx++){
 		if(!reader[ridx].device[0]) break;
-
-		switch(reader[ridx].typ)
-			{
+		switch(reader[ridx].typ){
 				case R_MOUSE   : ctyp="mouse";    break;
 				case R_INTERNAL: ctyp="intern";   break;
 				case R_SMART   : ctyp="smartreader";    break;
@@ -650,54 +640,52 @@ void send_oscam_reader(FILE *f) {
 				case R_CS378X  : ctyp="cs378x";   break;
 				default        : ctyp="unknown";  break;
 			}
-
-		fprintf(f,"\t<TR><TD>%s</TD><TD>%s</TD><TD><A HREF=\"readerconfig.html?user=%s\">Edit Settings</A></TD></TR>",reader[ridx].label, ctyp, reader[ridx].label);
+		tpl_addVar(vars, 0, "CTYP", ctyp);
+		tpl_addVar(vars, 0, "READERNAME", reader[ridx].label);
+		tpl_addVar(vars, 0, "READERNAMEENC", tpl_addTmp(vars, urlencode(reader[ridx].label)));
+		tpl_addVar(vars, 1, "READERLIST", tpl_getTpl(vars, "READERSBIT"));
 	}
-	fprintf(f,"</TABLE>\r\n");
-	//kill(client[0].pid, SIGUSR1);
+	fputs(tpl_getTpl(vars, "READERS"), f);
 }
 
-void send_oscam_reader_config(FILE *f, struct uriparams *params) {
-	int i,ridx;
-
-	fprintf(f,"<BR><BR>\r\n");
+void send_oscam_reader_config(struct templatevars *vars, FILE *f, struct uriparams *params) {
+	int ridx;
 	char *reader_ = getParam(params, "reader");
-
-	for(ridx=0;ridx<CS_MAXREADER;ridx++){
-		if (!reader[ridx].device[0]){
-			fprintf(f,"Reader %s not found", reader_);
-			return ;
-		}
-		if (!strcmp(reader_,reader[ridx].label)) break;
+	for(ridx = 0; ridx < CS_MAXREADER && strcmp(reader_, reader[ridx].label) != 0; ++ridx);
+	if(ridx == CS_MAXREADER){
+		tpl_addVar(vars, 0, "MESSAGE", "<BR><BR>Reader not found<BR><BR>");
+	} else if(strcmp(getParam(params, "action"), "execute") == 0){
+		tpl_addVar(vars, 0, "MESSAGE", "<BR><BR>Saving not yet implemented<BR><BR>");
+		refresh_oscam(REFR_READERS);
 	}
+	int i;
+	tpl_addVar(vars, 0, "READERNAME", reader[ridx].label);
+	tpl_addVar(vars, 0, "DEVICE", reader[ridx].device);
+	tpl_addVar(vars, 0, "NCD_KEY", (char *)reader[ridx].ncd_key);
+	tpl_addVar(vars, 0, "PINCODE", reader[ridx].pincode);
+	tpl_addVar(vars, 0, "EMMFILE", (char *)reader[ridx].emmfile);
+	tpl_addVar(vars, 0, "GBOXPWD", (char *)reader[ridx].gbox_pwd);
+	tpl_printf(vars, 0, "INACTIVITYTIMEOUT", "%d", reader[ridx].tcp_ito);
+	tpl_printf(vars, 0, "RECEIVETIMEOUT", "%d", reader[ridx].tcp_rto);
+	tpl_printf(vars, 0, "DISABLESERVERFILTER", "%d", reader[ridx].ncd_disable_server_filt);
+	tpl_printf(vars, 0, "FALLBACK", "%d", reader[ridx].fallback);
+	tpl_printf(vars, 0, "LOGPORT", "%d", reader[ridx].log_port);
+	tpl_printf(vars, 0, "BOXID", "%ld", reader[ridx].boxid);
 
-	/*build form head*/
-	fprintf(f,"<form action=\"/readerconfig_do.html\" method=\"get\"><input name=\"reader\" type=\"hidden\" value=\"%s\">\r\n", reader[ridx].label);
-	fprintf(f,"<TABLE cellspacing=\"0\">");
-	fprintf(f,"<TH>&nbsp;</TH><TH>Edit Reader %s </TH>", reader[ridx].label);
+	if(reader[ridx].r_port) tpl_printf(vars, 0, "R_PORT", "%d", reader[ridx].r_port);
+	if(reader[ridx].l_port) tpl_printf(vars, 0, "L_PORT", "%d", reader[ridx].l_port);
 
-	/*build form fields*/
-	fprintf(f,"<TR><TD>Device:</TD><TD><input name=\"device\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"%s", reader[ridx].device);
-	if(reader[ridx].r_port) fprintf(f,",%d",reader[ridx].r_port);
-	if(reader[ridx].l_port) fprintf(f,",%d",reader[ridx].l_port);
-	fprintf(f,"\"></TD></TR>\r\n");
 	//Group
-	fprintf(f,"<TR><TD>Group:</TD><TD><input name=\"grp\" type=\"text\" size=\"10\" maxlength=\"10\" value=\"");
 	/*restore the settings format of group from long over bitarray*/
 	char *dot = ""; //flag for comma
 	char grpbit[33];
 	long2bitchar(reader[ridx].grp, grpbit);
 	for(i = 0; i < 32; i++){
 		if (grpbit[i] == '1'){
-				fprintf(f, "%s%d", dot, i+1);
+			tpl_printf(vars, 1, "GRP", "%s%d", dot, i+1);
 				dot = ",";
 			}
 		}
-	fprintf(f,"\"></TD></TR>\r\n");
-	fprintf(f,"<TR><TD>Key:</TD><TD><input name=\"key\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"%s\"></TD></TR>\r\n", reader[ridx].ncd_key);
-	//fprintf(f,"<TR><TD>Password:</TD><TD><input name=\"password\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"%s\"></TD></TR>\r\n", reader[ridx].gbox_pwd);
-	fprintf(f,"<TR><TD>Pincode:</TD><TD><input name=\"pincode\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"%s\"></TD></TR>\r\n", reader[ridx].pincode);
-	fprintf(f,"<TR><TD>Readnano:</TD><TD><input name=\"readnano\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"%s\"></TD></TR>\r\n", reader[ridx].emmfile);
 
 	//services
 	char sidok[33];
@@ -705,512 +693,291 @@ void send_oscam_reader_config(FILE *f, struct uriparams *params) {
 	char sidno[33];
 	long2bitchar(reader[ridx].sidtabno,sidno);
 	struct s_sidtab *sidtab = cfg->sidtab;
-	fprintf(f,"<TR><TD>Services:</TD><TD><TABLE cellspacing=\"0\" class=\"invisible\">");
-	int pos=0;
-	char *chk;
 	//build matrix
-	for (; sidtab; sidtab=sidtab->next){
-		chk="";
-		if(sidok[pos]=='1') chk="checked";
-		fprintf(f,"<TR><TD><INPUT NAME=\"services\" TYPE=\"CHECKBOX\" VALUE=\"%s\" %s> %s</TD>", sidtab->label, chk, sidtab->label);
-		chk="";
-		if(sidno[pos]=='1') chk="checked";
-		fprintf(f,"<TD><INPUT NAME=\"services\" TYPE=\"CHECKBOX\" VALUE=\"!%s\" %s> !%s</TD></TR>\r\n", sidtab->label, chk, sidtab->label);
-		pos++;
+	while(sidtab != NULL){
+		tpl_addVar(vars, 0, "SIDLABEL", sidtab->label);
+		if(sidok[i]=='1') tpl_addVar(vars, 0, "CHECKED", "checked");
+		else tpl_addVar(vars, 0, "CHECKED", "");
+		tpl_addVar(vars, 1, "SIDS", tpl_getTpl(vars, "READERCONFIGSIDOKBIT"));
+		if(sidno[i]=='1') tpl_addVar(vars, 0, "CHECKED", "checked");
+		else tpl_addVar(vars, 0, "CHECKED", "");
+		tpl_addVar(vars, 1, "SIDS", tpl_getTpl(vars, "READERCONFIGSIDNOBIT"));
+		sidtab=sidtab->next;
 	}
-	fprintf(f,"</TD></TR></TABLE>\r\n");
 
-
-	fprintf(f,"<TR><TD>Inactivitytimeout:</TD><TD><input name=\"inactivitytimeout\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"%d\"></TD></TR>\r\n", reader[ridx].tcp_ito);
-	fprintf(f,"<TR><TD>Reconnecttimeout:</TD><TD><input name=\"reconnecttimeout\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"%d\"></TD></TR>\r\n", reader[ridx].tcp_rto);
-	fprintf(f,"<TR><TD>Disableserverfilter:</TD><TD><input name=\"disableserverfilter\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"%d\"></TD></TR>\r\n", reader[ridx].ncd_disable_server_filt);
-	fprintf(f,"<TR><TD>Fallback:</TD><TD><input name=\"fallback\" type=\"text\" size=\"3\" maxlength=\"3\" value=\"%d\"></TD></TR>\r\n", reader[ridx].fallback);
-	//fprintf(f,"<TR><TD>Logport:</TD><TD><input name=\"logport\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"%d\"></TD></TR>\r\n", reader[ridx].log_port);
-	//fprintf(f,"<TR><TD>Caid:</TD><TD><input name=\"caid\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"%s\"></TD></TR>\r\n", reader[ridx].log_port);
-	/*---------------------CAID-----------------------------
-	-------------------------------------------------------*/
+	// CAID
 	i = 0;
 	CAIDTAB *ctab = &reader[ridx].ctab;
-
-	fprintf(f,"<TR><TD>CAID:</TD><TD><input name=\"caid\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"");
-	/*make string from caidtab*/
-	if (ctab->caid[i]){
 		while(ctab->caid[i]) {
-			if (i==0)	fprintf(f, "%04X", ctab->caid[i]);
-			else fprintf(f, ",%04X", ctab->caid[i]);
-			if(ctab->mask[i])	fprintf(f, "&%04X", ctab->mask[i]);
+		if (i == 0) tpl_printf(vars, 1, "CAIDS", "%04X", ctab->caid[i]);
+		else tpl_printf(vars, 1, "CAIDS", ",%04X", ctab->caid[i]);;
+		if(ctab->mask[i])	tpl_printf(vars, 1, "CAIDS", "&%04X", ctab->mask[i]);
 			i++;
 		}
-	}
-	fprintf(f,"\"></TD></TR>\r\n");
-
-
-	fprintf(f,"<TR><TD>Boxid:</TD><TD><input name=\"boxid\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"%ld\"></TD></TR>\r\n", reader[ridx].boxid);
-
-
-
-	/*build form foot*/
-	fprintf(f,"</TABLE>\r\n");
-	fprintf(f,"<input type=\"submit\" value=\"OK\"></form>\r\n");
-
-	fprintf(f,"<BR><BR>Reader not yet implemented - Nothing changes on click<BR><BR>");
-}
-
-void send_oscam_reader_config_do(FILE *f, struct uriparams *params) {
-	int ridx;
-
-	fprintf(f,"<BR><BR>\r\n");
-	char *reader_ = getParam(params, "reader");
-
-	for(ridx=0;ridx<CS_MAXREADER;ridx++){
-		if (!reader[ridx].device[0]){
-			fprintf(f,"Reader %s not found", reader_);
-			return ;
-		}
-		if (!strcmp(reader_,reader[ridx].label)) break;
+	fputs(tpl_getTpl(vars, "READERCONFIG"), f);
 	}
 
-	fprintf(f,"Reader: %s - Nothing changed", reader[ridx].label);
-	fprintf(f,"<BR><BR>Reader not yet implemented<BR><BR>");
-	refresh_oscam(REFR_READERS);
-}
+void send_oscam_user_config_edit(struct templatevars *vars, FILE *f, struct uriparams *params){
+	struct s_auth *account, *ptr;
+	char *user = getParam(params, "user");
+	int i, j;
 
-void send_oscam_user_config_add(FILE *f, struct uriparams *params) {
-		struct s_auth *ptr;
-		struct s_auth *account;
-		int i, accidx=0;
+	for (account = cfg->account; account != NULL && strcmp(user, account->usr) != 0; account = account->next);
 
-		char *newuser = getParam(params, "user");
-
-		if (strlen(newuser) > 0) {
-
-			for (account=cfg->account; (account) ; account=account->next){
-				//account already exist - show config for this account
-				if(!strcmp(newuser, account->usr)){
-					(*params).params[0] = "user";
-					(*params).values[0] = newuser;
-					(*params).paramcount = 1;
-					send_oscam_user_config(f, params);
-					return;
-				}
-				//last account reached
-				if(!account->next) break;
-				accidx++;
-			}
-
-      if (!(ptr=malloc(sizeof(struct s_auth))))
-      {
+	// Create a new user if it doesn't yet
+	if (account == NULL){
+	  if (!(account=malloc(sizeof(struct s_auth)))){
         cs_log("Error allocating memory (errno=%d)", errno);
         return;
       }
-      if (account)
-        account->next=ptr;
-      else
-        cfg->account=ptr;
-      account=ptr;
+	  if(cfg->account == NULL) cfg->account = account;
+	  else {
+	  	for (ptr = cfg->account; ptr != NULL && ptr->next != NULL; ptr = ptr->next);
+	  	ptr->next = account;
+	  }
       memset(account, 0, sizeof(struct s_auth));
-      strncpy((char *)account->usr, newuser, sizeof(account->usr)-1);
+	  strncpy((char *)account->usr, user, sizeof(account->usr)-1);
       account->au=(-1);
       account->monlvl=cfg->mon_level;
       account->tosleep=cfg->tosleep;
       for (i=1; i<CS_MAXCAIDTAB; account->ctab.mask[i++]=0xffff);
       for (i=1; i<CS_MAXTUNTAB; account->ttab.bt_srvid[i++]=0x0000);
-			accidx++;
 #ifdef CS_ANTICASC
       account->ac_users=cfg->ac_users;
       account->ac_penalty=cfg->ac_penalty;
-      account->ac_idx = accidx;
+	  account->ac_idx = account->ac_idx + 1;
 #endif
+		tpl_addVar(vars, 1, "MESSAGE", "<b>New user has been added with default settings</b><BR>");
+		if (write_userdb()==0) refresh_oscam(REFR_ACCOUNTS);
+		else tpl_addVar(vars, 1, "MESSAGE", "<b>Writing configuration to disk failed!</b><BR>"); 
+		// need to reget account as writing to disk changes account!
+		for (account = cfg->account; account != NULL && strcmp(user, account->usr) != 0; account = account->next);
     }
-	(*params).params[0] = "user";
-	(*params).values[0] = newuser;
-	(*params).paramcount = 1;
-	send_oscam_user_config(f, params);
 
-}
-
-void send_oscam_user_config_delete(FILE *f, struct uriparams *params) {
-
-	int found = 0;
-	struct s_auth *account, *account2;
-
-	char *user = getParam(params, "user");
-	
-	account=cfg->account;
-	if(strcmp(account->usr, user) == 0){
-		cfg->account = account->next;
-		free(account);
-		found = 1;
-	} else if (account->next != NULL){
-		do{
-			if(strcmp(account->next->usr, user) == 0){
-				account2 = account->next;
-				account->next = account2->next;
-				free(account2);
-				found = 1;
-				break;
-			}
-		} while ((account = account->next) && (account->next != NULL));
-	}
-
-	if (found>0){
-		if (write_userdb()==0)
-			refresh_oscam(REFR_ACCOUNTS);
-		else
-			fprintf(f,"<B>Write Config failed</B><BR><BR>\r\n");
-	}
-	else
-		fprintf(f,"<B>User not found</B><BR><BR>\r\n");
-	(*params).paramcount = 0;
-	send_oscam_user_config(f, params);
-}
-
-void send_oscam_user_config_do(FILE *f, struct uriparams *params) {
-
-	struct s_auth *account;
-	int i;
+	if(strcmp(getParam(params, "action"), "execute") == 0){
 	char servicelabels[255]="";
-
-	//find username within params
-	char *user = getParam(params, "user");
-
-	//identfy useraccount
-	for (account=cfg->account; (account) ; account=account->next){
-		if(!strcmp(user, account->usr))
-			break;
-	}
-
 	//clear group
 	account->grp = 0;
 
-	//fprintf(f,"<BR><BR>\r\n");
-
 	for(i=0;i<(*params).paramcount;i++){
 		if ((strcmp((*params).params[i], "action")) && (strcmp((*params).params[i], "user"))){
-			//fprintf(f,"%s = %s<BR>\r\n", (*params).params[i], (*params).values[i]);
 			if (!strcmp((*params).params[i], "services"))
 				sprintf(servicelabels + strlen(servicelabels), "%s,", (*params).values[i]);
 			else
 				chk_account((*params).params[i], (*params).values[i], account);
 		}
-	//	else if (!strcmp((*params).params[i], "user"))
-	//		fprintf(f,"<B>User %s is reconfigured as follow</B><BR><BR>\r\n", (*params).values[i]);
 	}
-
 	chk_account("services", servicelabels, account);
-
-	if (write_userdb()==0)
-		refresh_oscam(REFR_ACCOUNTS);
-	else
-		fprintf(f,"<B>Write Config failed</B><BR><BR>\r\n");
-	(*params).paramcount = 0;
-	send_oscam_user_config(f, params);
-}
-
-void send_oscam_user_config(FILE *f, struct uriparams *params) {
-
-	int i;
-	struct s_auth *account;
-	char *action = getParam(params, "action");
-	if ((*params).paramcount>0){
-		if (!strcmp(action, "execute")) {
-			send_oscam_user_config_do(f, params);
-			return;
-		}	else if (!strcmp(action, "adduser")) {
-			send_oscam_user_config_add(f, params);
-			return;
-		}	else if (!strcmp(action, "delete")) {
-			send_oscam_user_config_delete(f, params);
-			return;
-		}
-	}	else {
-		/* No Parameters given --> list accounts*/
-		char *status = "offline";
-		char *expired = "";
-		char *classname="offline";
-		char *lastchan="&nbsp;";
-		time_t now = time((time_t)0);
-		int isec=0;
-
-		fprintf(f,"<BR><BR><TABLE cellspacing=\"0\" cellpadding=\"10\">\r\n");
-		fprintf(f,"<TR><TH>Label</TH>\r\n\t<TH>Status</TH>\r\n\t<TH>Last Channel</TH>\r\n\t<TH>Idle (Sec)</TH>\r\n\t<TH colspan=\"2\" align=\"center\">Action</TH>\r\n</TR>");
-		for (account=cfg->account; (account) ; account=account->next){
-			expired = ""; classname="offline";
-			if(account->expirationdate && account->expirationdate<time(NULL)){
-				expired = " (expired)";
-				classname = "expired";
-			}
-			status="offline";
-
-			//search account in active clients
-			for (i=0; i<CS_MAXPID; i++)
-				if (!strcmp(client[i].usr, account->usr)){
-					//30 secs without ecm is offline
-					if ((now - client[i].lastecm) < 30){
-						status = "<b>online</b>";classname="online";
-						lastchan = monitor_get_srvname(client[i].last_srvid);
-						isec = now - client[i].last;
-					}
-				}
-			fprintf(f,"<TR class=\"%s\">\r\n", classname);
-			fprintf(f,"\t<TD>%s</TD>\r\n\t<TD>%s%s</TD>\r\n\t<TD>%s</TD>\r\n\t<TD>%d</TD>\r\n\t<TD><A HREF=\"userconfig.html?user=%s\">Edit Settings</A></TD>\r\n",account->usr, status, expired, lastchan, isec, account->usr);
-			fprintf(f,"\t<TD><A HREF=\"userconfig.html?user=%s&action=delete\">Delete User</A></TD>\r\n",account->usr);
-			fprintf(f,"</TR>\r\n");
-			isec = 0;
-			lastchan = "&nbsp;";
-		}
-		fprintf(f,"<TR>\r\n");
-		fprintf(f,"\t<FORM action=\"/userconfig.html\" method=\"get\">\r\n");
-		fprintf(f,"\t<TD>New User:</TD>\r\n");
-		fprintf(f,"\t<TD colspan=\"2\"><input name=\"user\" type=\"text\"></TD>\r\n");
-		fprintf(f,"\t<input name=\"action\" type=\"hidden\" value=\"adduser\">\r\n");
-		fprintf(f,"\t<TD colspan=\"3\" align=\"center\"><input type=\"submit\" value=\"Add User\"></TD>\r\n");
-		fprintf(f,"\t</FORM>\r\n");
-		fprintf(f,"<TR>\r\n");
-		fprintf(f,"</TABLE>\r\n");
-
-		return;
+		tpl_addVar(vars, 1, "MESSAGE", "<B>Settings updated</B><BR><BR>");	
+		if (write_userdb()==0) refresh_oscam(REFR_ACCOUNTS);
+		else tpl_addVar(vars, 1, "MESSAGE", "<B>Write Config failed</B><BR><BR>");
 	}
 
-	fprintf(f,"<BR><BR>\r\n");
-	
-	char *user = getParam(params, "user");
+	tpl_addVar(vars, 0, "USERNAME", account->usr);
+	tpl_addVar(vars, 0, "PASSWORD", account->pwd);	
 
-	/*identfy useraccount*/
-	for (account=cfg->account; (account) ; account=account->next){
-		if(!strcmp(user, account->usr))
-			break;
-	}
-
-	fprintf(f,"<form action=\"/userconfig.html\" method=\"get\">");
-	fprintf(f,"<input name=\"user\" type=\"hidden\" value=\"%s\">\r\n", account->usr);
-	fprintf(f,"<input name=\"action\" type=\"hidden\" value=\"execute\">\r\n");
-	fprintf(f,"<TABLE cellspacing=\"0\">");
-	fprintf(f,"<TH>&nbsp;</TH><TH>Edit User %s </TH>", account->usr);
-	//Password
-	fprintf(f,"<TR><TD>Password:</TD><TD><input name=\"pwd\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"%s\"></TD></TR>\r\n", account->pwd);
 	//Expirationdate
 	struct tm * timeinfo = localtime (&account->expirationdate);
 	char buf [80];
 	strftime (buf,80,"%Y-%m-%d",timeinfo);
-	if(strcmp(buf,"1970-01-01"))
-		fprintf(f,"<TR><TD>Exp. Date:</TD><TD><input name=\"expdate\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"%s\"></TD></TR>\r\n",buf);
-	else
-		fprintf(f,"<TR><TD>Exp. Date:</TD><TD><input name=\"expdate\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"\"></TD></TR>\r\n");
+	if(strcmp(buf,"1970-01-01")) tpl_addVar(vars, 0, "EXPDATE", buf);
 	//Group
-	fprintf(f,"<TR><TD>Group:</TD><TD><input name=\"group\" type=\"text\" size=\"10\" maxlength=\"10\" value=\"");
 	/*restore the settings format of group from long over bitarray*/
 	char *dot = ""; //flag for comma
 	char grpbit[33];
 	long2bitchar(account->grp, grpbit);
 	for(i = 0; i < 32; i++){
 		if (grpbit[i] == '1'){
-				fprintf(f, "%s%d", dot, i+1);
+				tpl_printf(vars, 1, "GROUPS", "%s%d", dot, i+1);
 				dot = ",";
 			}
 	}
-	fprintf(f,"\"></TD></TR>\r\n");
 	//Hostname
-	if (strlen((char *)account->dyndns)>0)
-		fprintf(f,"<TR><TD>Hostname:</TD><TD><input name=\"hostname\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"%s\"></TD></TR>\r\n", account->dyndns);
+	tpl_addVar(vars, 0, "DYNDNS", (char *)account->dyndns);
+	
 	//Uniq
-	fprintf(f,"<TR><TD>Uniq:</TD><TD><select name=\"uniq\" >\r\n");
-		for(i = 0; i < 3; i++){
-		if(i == account->uniq)
-			fprintf(f,"\t<option value=\"%d\" selected>%s</option>\r\n", i, uniq[i]);
-		else
-			fprintf(f,"\t<option value=\"%d\">%s</option>\r\n", i, uniq[i]);
-		}
-	fprintf(f,"</SELECT></TD></TR>\r\n");
+	tpl_printf(vars, 0, "TMP", "UNIQSELECTED%d", account->uniq);
+	tpl_addVar(vars, 0, tpl_getVar(vars, "TMP"), "selected");
+	
 	//Sleep
-	if(!account->tosleep)
-		fprintf(f,"<TR><TD>Sleep:</TD><TD><input name=\"sleep\" type=\"text\" size=\"4\" maxlength=\"4\" value=\"0\"></TD></TR>\r\n");
-	else
-		fprintf(f,"<TR><TD>Sleep:</TD><TD><input name=\"sleep\" type=\"text\" size=\"4\" maxlength=\"4\" value=\"%d\"></TD></TR>\r\n", account->tosleep);
+	if(!account->tosleep) tpl_addVar(vars, 0, "SLEEP", "0");
+	else tpl_printf(vars, 0, "SLEEP", "%d", account->tosleep);
 	//Monlevel selector
-	fprintf(f,"<TR><TD>Monlevel:</TD><TD><select name=\"monlevel\" >\r\n");
-	for(i = 0; i < 5; i++){
-		if(i == account->monlvl)
-			fprintf(f,"\t<option value=\"%d\" selected>%s</option>\r\n", i, monlevel[i]);
-		else
-			fprintf(f,"\t<option value=\"%d\">%s</option>\r\n", i, monlevel[i]);
-	}
-	fprintf(f,"</select></TD></TR>\r\n");
+	tpl_printf(vars, 0, "TMP", "MONSELECTED%d", account->monlvl);
+	tpl_addVar(vars, 0, tpl_getVar(vars, "TMP"), "selected");
+
 	//AU Selector
-	fprintf(f,"<TR><TD>AU:</TD><TD><select name=\"au\" >\r\n");
-	if (!account->au)
-		fprintf(f,"\t<option value=\" \" selected>none</option>\r\n");
-	else
-		fprintf(f,"\t<option value=\" \">none</option>\r\n");
-
-	if (account->autoau == 1)
-		fprintf(f,"\t<option value=\"1\" selected>auto</option>\r\n");
-	else
-		fprintf(f,"\t<option value=\"1\">auto</option>\r\n");
-
+	if (!account->au) tpl_addVar(vars, 0, "AUSELECTED", "selected");
+	if (account->autoau == 1) tpl_addVar(vars, 0, "AUTOAUSELECTED", "selected");
 	int ridx;
 	for (ridx=0; ridx<CS_MAXREADER; ridx++){
 		if(!reader[ridx].device[0]) break;
-
-		if (account->au == ridx)
-			fprintf(f,"\t<option value=\"%s\" selected>%s</option>\r\n", reader[ridx].label, reader[ridx].label);
-		else
-			fprintf(f,"\t<option value=\"%s\">%s</option>\r\n", reader[ridx].label, reader[ridx].label);
+		tpl_addVar(vars, 0, "READERNAME", reader[ridx].label);
+		if (account->au == ridx) tpl_addVar(vars, 0, "SELECTED", "selected");
+		else tpl_addVar(vars, 0, "SELECTED", "");
+		tpl_addVar(vars, 1, "RDROPTION", tpl_getTpl(vars, "USEREDITRDRSELECTED"));
 	}
-	fprintf(f,"</select></TD></TR>\r\n");
 
-	/*---------------------SERVICES-------------------------
-	-------------------------------------------------------*/
+	/* SERVICES */
 	//services - first we have to move the long sidtabok/sidtabno to a binary array
 	char sidok[33];
 	long2bitchar(account->sidtabok,sidok);
 	char sidno[33];
 	long2bitchar(account->sidtabno,sidno);
 	struct s_sidtab *sidtab = cfg->sidtab;
-	fprintf(f,"<TR><TD>Services:</TD><TD><TABLE cellspacing=\"0\" class=\"invisible\">");
-	int pos=0;
-	char *chk;
 	//build matrix
-	for (; sidtab; sidtab=sidtab->next){
-		chk="";
-		if(sidok[pos]=='1') chk="checked";
-		fprintf(f,"<TR><TD><INPUT NAME=\"services\" TYPE=\"CHECKBOX\" VALUE=\"%s\" %s> %s</TD>", sidtab->label, chk, sidtab->label);
-		chk="";
-		if(sidno[pos]=='1') chk="checked";
-		fprintf(f,"<TD><INPUT NAME=\"services\" TYPE=\"CHECKBOX\" VALUE=\"!%s\" %s> !%s</TD></TR>\r\n", sidtab->label, chk, sidtab->label);
-		pos++;
+	while(sidtab != NULL){
+		tpl_addVar(vars, 0, "SIDLABEL", sidtab->label);
+		if(sidok[i]=='1') tpl_addVar(vars, 0, "CHECKED", "checked");
+		else tpl_addVar(vars, 0, "CHECKED", "");
+		tpl_addVar(vars, 1, "SIDS", tpl_getTpl(vars, "USEREDITSIDOKBIT"));
+		if(sidno[i]=='1') tpl_addVar(vars, 0, "CHECKED", "checked");
+		else tpl_addVar(vars, 0, "CHECKED", "");
+		tpl_addVar(vars, 1, "SIDS", tpl_getTpl(vars, "USEREDITSIDNOBIT"));
+		sidtab=sidtab->next;
 	}
-	fprintf(f,"</TD></TR></TABLE>\r\n");
-
-	/*---------------------CAID-----------------------------
-	-------------------------------------------------------*/
+	/* CAID */
+	dot="";
 	i = 0;
 	CAIDTAB *ctab = &account->ctab;
-
-	fprintf(f,"<TR><TD>CAID:</TD><TD><input name=\"caid\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"");
-	/*make string from caidtab*/
-	if (ctab->caid[i]){
 		while(ctab->caid[i]) {
-			if (i==0)	fprintf(f, "%04X", ctab->caid[i]);
-			else fprintf(f, ",%04X", ctab->caid[i]);
-			if(ctab->mask[i])	fprintf(f, "&%04X", ctab->mask[i]);
-			i++;
-		}
+		tpl_printf(vars, 1, "CAIDS", "%s%04X", dot, ctab->caid[i]);
+		if(ctab->mask[i])	tpl_printf(vars, 1, "CAIDS", "&%04X", ctab->mask[i]);
+		if(ctab->cmap[i])	tpl_printf(vars, 1, "CAIDS", ":%04X", ctab->cmap[i]);
+		dot=",";
+		++i;
 	}
-	fprintf(f,"\"></TD></TR>\r\n");
 
 	/*IDENT*/
-	fprintf(f,"<TR><TD>Ident:</TD><TD><input name=\"ident\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"");
-
-	int j;
 	dot="";
 	FTAB *ftab = &account->ftab;
-	for (i=0;i<ftab->nfilts;i++){
-		fprintf(f, "%s%04X", dot, ftab->filts[i].caid);
-
-		for (j=0;j<ftab->filts[i].nprids;j++)
-			fprintf(f, ":%06lX", ftab->filts[i].prids[j]);
-
+	for (i = 0; i < ftab->nfilts; ++i){
+		tpl_printf(vars, 1, "IDENTS", "%s%04X", dot, ftab->filts[i].caid);
+		dot=":";
+		for (j = 0; j < ftab->filts[i].nprids; ++j) {
+			tpl_printf(vars, 1, "IDENTS", "%s%06lX", dot, ftab->filts[i].prids[j]);
+			dot=",";
+		}
 		dot=";";
 	}
-	fprintf(f,"\"></TD></TR>\r\n");
 
 	/*Betatunnel*/
+	dot="";
 	i = 0;
 	TUNTAB *ttab = &account->ttab;
-
-	fprintf(f,"<TR><TD>Betatunnel:</TD><TD><input name=\"betatunnel\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"");
-	/*make string from Betatunneltab*/
-	if (ttab->bt_caidfrom[i]) {
 		while(ttab->bt_caidfrom[i]) {
-			if (i==0)	fprintf(f, "%04X", ttab->bt_caidfrom[i]);
-			else fprintf(f, ",%04X", ttab->bt_caidfrom[i]);
-			if(ttab->bt_caidto[i]) fprintf(f, ".%04X", ttab->bt_caidto[i]);
-			if(ttab->bt_srvid[i])	fprintf(f, ":%04X", ttab->bt_srvid[i]);
-			i++;
-		}
+		tpl_printf(vars, 1, "BETATUNNELS", "%s%04X", dot, ttab->bt_caidfrom[i]);
+		if(ttab->bt_srvid[i])	tpl_printf(vars, 1, "BETATUNNELS", ".%04X", ttab->bt_srvid[i]);
+		if(ttab->bt_caidto[i]) tpl_printf(vars, 1, "BETATUNNELS", ":%04X", ttab->bt_caidto[i]);
+		dot=",";
+		++i;
 	}
-	fprintf(f,"\"></TD></TR>\r\n");
 
 #ifdef CS_ANTICASC
-	fprintf(f,"<TR><TD>Anticascading numusers:</TD><TD><input name=\"numusers\" type=\"text\" size=\"3\" maxlength=\"3\" value=\"%d\"></TD></TR>\r\n", account->ac_users);
-	fprintf(f,"<TR><TD>Anticascading penalty:</TD><TD><input name=\"penalty\" type=\"text\" size=\"3\" maxlength=\"3\" value=\"%d\"></TD></TR>\r\n", account->ac_penalty);
+	tpl_printf(vars, 0, "AC_USERS", "%d", account->ac_users);
+	tpl_printf(vars, 0, "AC_PENALTY", "%d", account->ac_penalty);
 #endif
-	fprintf(f,"<TR><TD>&nbsp;</TD><TD align=\"right\"><input type=\"submit\" value=\"Save Settings\" title=\"Save settings and reload users\"></TD></TR>\r\n");
-	fprintf(f,"</TABLE>\r\n");
-	fprintf(f,"</form>\r\n");
+	fputs(tpl_getTpl(vars, "USEREDIT"), f);
 }
 
-void send_oscam_entitlement(FILE *f, struct uriparams *params) {
+void send_oscam_user_config(struct templatevars *vars, FILE *f, struct uriparams *params) {
+	struct s_auth *account, *account2;	
+	char *user = getParam(params, "user");
+	int i, found = 0;
 
-  /*build entitlements from reader init history*/
-	int ridx;
-	char *p, *ctyp;
-
-	if((*params).paramcount==0){
-		fprintf(f, "<BR><BR>\r\n");
-		fprintf(f,"<TABLE cellspacing=\"0\">");
-		fprintf(f,"<TR><TH>Reader</TH><TH>Protocol</TH><TH>&nbsp;</TH></TR>");
-
-		for (ridx=0; ridx<CS_MAXREADER; ridx++){
-
-			switch(reader[ridx].typ)
-			{
-				case R_MOUSE   : ctyp="mouse";    break;
-				case R_INTERNAL: ctyp="intern";   break;
-				case R_SMART   : ctyp="smartreader";    break;
-				case R_CAMD35  : ctyp="camd 3.5x";break;
-				case R_CAMD33  : ctyp="camd 3.3x";break;
-				case R_NEWCAMD : ctyp="newcamd";  break;
-				case R_RADEGAST: ctyp="radegast"; break;
-				case R_SERIAL  : ctyp="serial";   break;
-				case R_GBOX    : ctyp="gbox";     break;
-#ifdef HAVE_PCSC
-				case R_PCSC    : ctyp="pcsc";     break;
-#endif
-				case R_CCCAM   : ctyp="cccam";    break;
-				case R_CS378X  : ctyp="cs378x";   break;
-				default        : ctyp="unknown";  break;
-			}
-
-			if(!reader[ridx].device[0]) break;
-			fprintf(f, "\t<TR><TD>%s</TD><TD>%s</TD><TD><A HREF=\"entitlements.html?user=%s\">Check</A></TD></TR>\r\n", reader[ridx].label, ctyp, reader[ridx].label);
+	if (strcmp(getParam(params, "action"), "delete") == 0){
+		account=cfg->account;
+		if(strcmp(account->usr, user) == 0){
+			cfg->account = account->next;
+			free(account);
+			found = 1;
+		} else if (account->next != NULL){
+			do{
+				if(strcmp(account->next->usr, user) == 0){
+					account2 = account->next;
+					account->next = account2->next;
+					free(account2);
+					found = 1;
+					break;
+				}
+			} while ((account = account->next) && (account->next != NULL));
 		}
-		fprintf(f, "</TABLE>\r\n");
+
+		if (found > 0){
+			tpl_addVar(vars, 1, "MESSAGE", "<b>Account has been deleted!</b><BR>");
+			if (write_userdb()==0) refresh_oscam(REFR_ACCOUNTS);
+			else tpl_addVar(vars, 1, "MESSAGE", "<b>Writing configuration to disk failed!</b><BR>");
+		} else tpl_addVar(vars, 1, "MESSAGE", "<b>Sorry but the specified user doesn't exist. No deletion will be made!</b><BR>");
 	}
-	else {
+	/* List accounts*/
+	char *status = "offline";
+	char *expired = "";
+	char *classname="offline";
+	char *lastchan="&nbsp;";
+	time_t now = time((time_t)0);
+	int isec=0;
 
-		char *user = getParam(params, "user");
+	for (account=cfg->account; (account) ; account=account->next){
+		expired = ""; classname="offline";
+		if(account->expirationdate && account->expirationdate<time(NULL)){
+			expired = " (expired)";
+			classname = "expired";
+			}
+		status="offline";
 
-		fprintf(f, "<BR><BR>Entitlement for %s<BR><BR>\r\n", user);
-
-		for (ridx=0; ridx<CS_MAXREADER; ridx++)
-			if (!strcmp(user, reader[ridx].label)) break;
-
-		fprintf(f, "<DIV class=\"log\">");
-#ifdef CS_RDR_INIT_HIST
-
-		for (p=(char *)reader[ridx].init_history; *p; p+=strlen(p)+1)
-			fprintf(f, "%s<BR>\n",p);
-
-#else
-
-		fprintf(f, "the flag CS_RDR_INIT_HIST is not set in your binary<BR>\n");
-
-#endif
-
-		fprintf(f, "</DIV>");
+		//search account in active clients
+		for (i=0; i<CS_MAXPID; i++)
+			if (!strcmp(client[i].usr, account->usr)){
+				//30 secs without ecm is offline
+				if ((now - client[i].lastecm) < 30){
+					status = "<b>online</b>";classname="online";
+					lastchan = monitor_get_srvname(client[i].last_srvid);
+					isec = now - client[i].last;
+		}
 	}
-
+		tpl_addVar(vars, 0, "CLASSNAME", classname);
+		tpl_addVar(vars, 0, "USER", account->usr);
+		tpl_addVar(vars, 0, "USERENC", tpl_addTmp(vars, urlencode(account->usr)));
+		tpl_addVar(vars, 0, "STATUS", status);
+		tpl_addVar(vars, 0, "EXPIRED", expired);
+		tpl_addVar(vars, 0, "LASTCHANNEL", lastchan);
+		tpl_printf(vars, 0, "IDLESECS", "%d", isec);
+		tpl_addVar(vars, 1, "USERCONFIGS", tpl_getTpl(vars, "USERCONFIGLISTBIT"));
+		isec = 0;
+		lastchan = "&nbsp;";
+	}
+	fputs(tpl_getTpl(vars, "USERCONFIGLIST"), f);
 }
 
-void monitor_client_status(struct templatevars *vars, char id, int i){
-	if (client[i].pid) {
+void send_oscam_entitlement(struct templatevars *vars, FILE *f, struct uriparams *params) {
+  /* build entitlements from reader init history */
+	int ridx;
+	char *p;
+	char *reader_ = getParam(params, "reader");
+	if(strlen(reader_) > 0){	
+#ifdef CS_RDR_INIT_HIST
+		for (ridx=0; ridx<CS_MAXREADER && strcmp(reader_, reader[ridx].label) != 0; ridx++);
+		if(ridx<CS_MAXREADER){
+			for (p=(char *)reader[ridx].init_history; *p; p+=strlen(p)+1){
+				tpl_printf(vars, 1, "LOGHISTORY", "%s<BR>\n", p);
+			}
+		}
+#else
+		tpl_addVar(vars, 0, "LOGHISTORY", "The flag CS_RDR_INIT_HIST is not set in your binary<BR>\n");
+#endif
+		tpl_addVar(vars, 0, "READERNAME", reader_);
+	}
+	fputs(tpl_getTpl(vars, "ENTITLEMENTS"), f);
+}
+
+void send_oscam_status(struct templatevars *vars, FILE *f) {
+	int i;
 		char *usr;
 		int lsec, isec, cnr, con, cau;
 		time_t now = time((time_t)0);
 		struct tm *lt;
-		
+	for (i=0; i<CS_MAXPID; i++)	{
+		if (client[i].pid) {			
 		if ((cfg->mon_hideclient_to <= 0) ||	(((now-client[i].lastecm)/60)<cfg->mon_hideclient_to) ||
 		(((now-client[i].lastemm)/60)<cfg->mon_hideclient_to) || (client[i].typ!='c')){
 			lsec=now-client[i].login;
@@ -1220,10 +987,8 @@ void monitor_client_status(struct templatevars *vars, char id, int i){
 			if (((client[i].typ=='r') || (client[i].typ=='p')) && (con=cs_idx2ridx(i))>=0) usr=reader[con].label;
 			
 			if (client[i].dup) con=2;
-			else {
-				if ((client[i].tosleep) && (now-client[i].lastswitch>client[i].tosleep)) con=1;
+				else if ((client[i].tosleep) && (now-client[i].lastswitch>client[i].tosleep)) con=1;
 				else con=0;
-			}
 			
 			if (i-cdiff>0) cnr=i-cdiff;
 			else cnr=(i>1) ? i-1 : 0;
@@ -1254,10 +1019,6 @@ void monitor_client_status(struct templatevars *vars, char id, int i){
 	}
 }
 
-void send_oscam_status(struct templatevars *vars, FILE *f) {
-	int i;	
-	for (i=0; i<CS_MAXPID; i++)	monitor_client_status(vars, client[i].pid, i);
-	
 #ifdef CS_LOGHISTORY
 	for (i=(*loghistidx+3) % CS_MAXLOGHIST; i!=*loghistidx; i=(i+1) % CS_MAXLOGHIST){
 		char *p_usr, *p_txt;
@@ -1272,53 +1033,33 @@ void send_oscam_status(struct templatevars *vars, FILE *f) {
 	fputs(tpl_getTpl(vars, "STATUS"), f);
 }
 
-void send_oscam_sidtab(FILE *f) {
+void send_oscam_services(struct templatevars *vars, FILE *f) {
   struct s_sidtab *sidtab = cfg->sidtab;
+	int i;	
 
-	fprintf(f,"<BR><BR><DIV class=\"log\">");
-
-  for (; sidtab; sidtab=sidtab->next)
-  {
-    int i, comma;
-    char buf[1024];
-    fprintf(f,"label=%s<BR>\r\n", sidtab->label);
-    sprintf(buf, "caid(%d)=", sidtab->num_caid);
-    comma=0;
+	while(sidtab != NULL){	
     for (i=0; i<sidtab->num_caid; i++){
-			if (comma==0){
-				sprintf(buf+strlen(buf), "%04X",sidtab->caid[i]);
-				comma++;
-			}
-			else
-				sprintf(buf+strlen(buf), ",%04X",sidtab->caid[i]);
+			if (i==0) tpl_printf(vars, 0, "CAIDS", "%04X", sidtab->caid[i]);
+			else tpl_printf(vars, 1, "CAIDS", ",%04X", sidtab->caid[i]);
     }
 
-    fprintf(f,"%s<BR>\r\n", buf);
-    sprintf(buf, "provider(%d)=", sidtab->num_provid);
-    comma=0;
     for (i=0; i<sidtab->num_provid; i++){
-			if (comma==0){
-				sprintf(buf+strlen(buf), "%ld08X", sidtab->provid[i]);
-				comma++;
-			}
-			else
-				sprintf(buf+strlen(buf), ",%ld08X", sidtab->provid[i]);
+			if (i==0) tpl_printf(vars, 0, "PROVIDS", "%ld08X", sidtab->provid[i]);
+			else tpl_printf(vars, 1, "PROVIDS", ",%ld08X", sidtab->provid[i]);
     }
 
-    fprintf(f,"%s<BR>\r\n", buf);
-    sprintf(buf, "services(%d)=", sidtab->num_srvid);
-    comma=0;
     for (i=0; i<sidtab->num_srvid; i++){
-    	if (comma==0){
-				sprintf(buf+strlen(buf), "%04X", sidtab->srvid[i]);
-				comma++;
-			}
-			else
-				sprintf(buf+strlen(buf), ",%04X", sidtab->srvid[i]);
+			if (i==0) tpl_printf(vars, 0, "SRVIDS", "%04X", sidtab->srvid[i]);
+			else tpl_printf(vars, 1, "SRVIDS", ",%04X", sidtab->srvid[i]);
 		}
-    fprintf(f,"%s<BR><BR>\r\n", buf);
+		tpl_addVar(vars, 0, "LABEL", sidtab->label);
+		tpl_printf(vars, 0, "CAIDNUM", "%d", sidtab->num_caid);
+		tpl_printf(vars, 0, "PROVIDNUM", "%d",sidtab->num_provid);
+		tpl_printf(vars, 0, "SRVIDNUM", "%d", sidtab->num_srvid);
+		tpl_addVar(vars, 1, "SIDTABS", tpl_getTpl(vars, "SIDTABBIT"));
+		sidtab=sidtab->next;
   }
-  fprintf(f,"</DIV>");
+	fputs(tpl_getTpl(vars, "SIDTAB"), f);
 }
 
 int process_request(FILE *f) {
@@ -1333,15 +1074,15 @@ int process_request(FILE *f) {
   char *protocol;
   char *pch;
   char *pch2;
-  /*list of possible pages*/
+  /* List of possible pages */
   char *pages[]={	"/config.html",
 			"/readers.html",
 			"/entitlements.html",
 			"/status.html",
 			"/userconfig.html",
 			"/readerconfig.html",
-			"/readerconfig_do.html",
 			"/services.html",
+			"/user_edit.html",
 			"/site.css"};
   int pagescnt = sizeof(pages)/sizeof(char *);  // Calculate the amount of items in array
   
@@ -1356,8 +1097,6 @@ int process_request(FILE *f) {
   method = strtok(buf, " ");
   path = strtok(NULL, " ");
   protocol = strtok(NULL, "\r");
-  /* Throw away references to anchors (these are dealt with by the browser and not the server!) */
-  path = strtok(path, "#");
   if(method == NULL || path == NULL || protocol == NULL) return -1;
 
   pch=path;
@@ -1394,6 +1133,7 @@ int process_request(FILE *f) {
   }
   /* last value wasn't processed in the loop yet... */
   if(parsemode == -1 && params.paramcount <= MAXGETPARAMS){
+      urldecode(pch2);
       params.values[params.paramcount-1] = pch2;
   }
 
@@ -1421,12 +1161,13 @@ int process_request(FILE *f) {
   	strcat(tmp, "\"");
   	if(authok == 2) strcat(tmp, ", stale=true");
 	  send_headers(f, 401, "Unauthorized", tmp, "text/html");
-	  return -1;
+	  return 0;
 	}
 
 	/*build page*/
   send_headers(f, 200, "OK", NULL, "text/html");
-	if(pgidx == -1 || pgidx == 3){
+  if(pgidx == 8) send_css(f);
+	else if(pgidx != 0){
 		time_t t;
 		struct templatevars *vars = tpl_create();
 		struct tm *lt;
@@ -1435,35 +1176,31 @@ int process_request(FILE *f) {
 		lt=localtime(&t);	
 		tpl_addVar(vars, 0, "CS_VERSION", CS_VERSION);
 		tpl_addVar(vars, 0, "CS_SVN_VERSION", CS_SVN_VERSION);
+		if(cfg->http_refresh > 0 && (pgidx == 3 || pgidx == -1)){
 		tpl_printf(vars, 0, "REFRESHTIME", "%d", cfg->http_refresh);
+			tpl_addVar(vars, 0, "REFRESH", tpl_getTpl(vars, "REFRESH"));
+		}
 		tpl_printf(vars, 0, "CURDATE", "%02d.%02d.%02d", lt->tm_mday, lt->tm_mon+1, lt->tm_year%100);
 		tpl_printf(vars, 0, "CURTIME", "%02d:%02d:%02d", lt->tm_hour, lt->tm_min, lt->tm_sec);
-		send_oscam_status(vars, f);
+		switch(pgidx){
+	    case  0: break;
+	    case  1: send_oscam_reader(vars, f); break;
+	    case  2: send_oscam_entitlement(vars, f, &params); break;
+	    case  3: send_oscam_status(vars, f); break;
+	    case  4: send_oscam_user_config(vars, f, &params); break;
+	    case  5: send_oscam_reader_config(vars, f, &params); break;
+	    case	6: send_oscam_services(vars, f); break;
+	    case  7: send_oscam_user_config_edit(vars, f, &params); break;
+	    default: send_oscam_status(vars, f); break;
+	  }
 		tpl_clear(vars);
 	} else {
-  if(pgidx == 8) send_css(f);
-	else {
-
-		if (pgidx == 3)	send_htmlhead(f, cfg->http_refresh); //status
-		else send_htmlhead(f,0);
-
+	 	send_htmlhead(f,0);
   send_oscam_menu(f);
-  switch(pgidx){
-    case  0: send_oscam_config(f, &params); break;
-    case  1: send_oscam_reader(f); break;
-    case  2: send_oscam_entitlement(f, &params); break;
-    case  3: break;
-    case  4: send_oscam_user_config(f, &params); break;
-    case  5: send_oscam_reader_config(f, &params); break;
-    case  6: send_oscam_reader_config_do(f, &params); break;
-    case	7: send_oscam_sidtab(f); break;
-    default: break;
-  }
-
+	  send_oscam_config(f, &params);
   send_footer(f);
   fprintf(f, "</BODY></HTML>\r\n");
 		}
-	}
   return 0;
 }
 

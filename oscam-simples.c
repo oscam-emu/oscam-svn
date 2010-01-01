@@ -388,6 +388,30 @@ void urldecode(char *s){
 	*t = 0;
 }
 
+/* Helper function for urlencode.*/
+char to_hex(char code){
+	static char hex[] = "0123456789abcdef";
+	return hex[code & 15];
+}
+
+/* Encode values in a http url. Note: Be sure to free() the returned string after use */
+char *urlencode(char *str){
+	char *pstr = str, *buf = malloc(strlen(str) * 3 + 1), *pbuf = buf;
+	while (*pstr) {
+		if (isalnum(*pstr) || *pstr == '-' || *pstr == '_' || *pstr == '.' || *pstr == '~') *pbuf++ = *pstr;
+		else if (*pstr == ' ') *pbuf++ = '+';
+		else {
+			*pbuf++ = '%';
+			*pbuf++ = to_hex(*pstr >> 4);
+			*pbuf++ = to_hex(*pstr & 15);
+		}
+		++pstr;
+	}
+	*pbuf = '\0';
+	return buf;
+}
+
+
 /* Converts a long value to a char array in bitwise representation.
    Note that the result array MUST be at least 33 bit large and that
    this function assumes long values to hold only values up to 32bits and to be positive!

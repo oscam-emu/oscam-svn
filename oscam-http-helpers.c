@@ -135,7 +135,24 @@ char *tpl_getUnparsedTpl(const char* name){
 		"MENU",
 		"REFRESH",
 		"STATUS",
-		"CLIENTSTATUSBIT"
+		"CLIENTSTATUSBIT",
+		"USERCONFIGLIST",
+		"USERCONFIGLISTBIT",
+		"SIDTAB",
+		"SIDTABBIT",
+		"READERS",
+		"READERSBIT",
+		"ENTITLEMENTS",
+		"READERCONFIG",
+		"READERCONFIGSIDOKBIT",
+		"READERCONFIGSIDNOBIT",
+		"USEREDIT",
+		"USEREDITRDRSELECTED",
+		"USEREDITSIDOKBIT",
+		"USEREDITSIDNOBIT"
+#ifdef CS_ANTICASC
+		,"USEREDITANTICASC"
+#endif		
 	};
   int i, tplcnt = sizeof(tpl)/sizeof(char *);
   for(i = 0; i < tplcnt; ++i){
@@ -148,6 +165,23 @@ char *tpl_getUnparsedTpl(const char* name){
  		case  3: return TPLREFRESH;
  		case  4: return TPLSTATUS;
  		case  5: return TPLCLIENTSTATUSBIT;
+ 		case  6: return TPLUSERCONFIGLIST;
+ 		case  7: return TPLUSERCONFIGLISTBIT;
+ 		case  8: return TPLSIDTAB;
+ 		case  9: return TPLSIDTABBIT;
+ 		case 10: return TPLREADERS;
+ 		case 11: return TPLREADERSBIT;
+ 		case 12: return TPLENTITLEMENTS;
+ 		case 13: return TPLREADERCONFIG;
+ 		case 14: return TPLREADERCONFIGSIDOKBIT;
+ 		case 15: return TPLREADERCONFIGSIDNOBIT;
+ 		case 16: return TPLUSEREDIT;
+ 		case 17: return TPLUSEREDITRDRSELECTED;
+ 		case 18: return TPLUSEREDITSIDOKBIT;
+ 		case 19: return TPLUSEREDITSIDNOBIT;
+#ifdef CS_ANTICASC
+		case 20: return TPLUSEREDITANTICASC;
+#endif
  		default: return "";
   }	
 }
@@ -165,7 +199,7 @@ char *tpl_getTpl(struct templatevars *vars, const char* name){
 	char *result = (char *) malloc(allocated * sizeof(char));	
 	
 	while(tpl < tplend){
-		if(tpl[0] == '#' && tpl[1] == '#'){			
+		if(tpl[0] == '#' && tpl[1] == '#' && tpl[2] != '#'){			
 			pch2 = tpl;
 			pch = tpl + 2;
 			while(pch[0] != '\0' && (pch[0] != '#' || pch[1] != '#')) ++pch;
@@ -267,11 +301,12 @@ int check_auth(char *authstring, char *method, char *path, char *expectednonce){
 	  pch = strtok (NULL, ",");
 	}
 	if(strncmp(uri, path, strlen(path)) == 0) uriok = 1;
-	else if(strncmp(uri, "http://", 7) == 0){
-		char *tmpuri = uri;
-		tmpuri += 7;
-		while(tmpuri[0] != '\0' && tmpuri[0] != '/') ++tmpuri;
-		if(strncmp(tmpuri, path, strlen(path)) == 0) uriok = 1;
+	else {
+		pch2 = uri;
+		for(pch = uri; pch[0] != '\0'; ++pch) {
+			if(pch[0] == '/') pch2 = pch;			
+		}
+		if(strncmp(pch2, path, strlen(path)) == 0) uriok = 1;
 	}
 	if(uriok == 1){
 		A1tmp = (char*) malloc ((3 + strlen(cfg->http_user) + strlen(AUTHREALM) + strlen(cfg->http_pwd))*sizeof(char));
@@ -330,6 +365,8 @@ void send_headers(FILE *f, int status, char *title, char *extra, char *mime){
 		fprintf(f, "Content-Type: %s\r\n", mime);
 
 	strftime(timebuf, sizeof(timebuf), RFC1123FMT, gmtime(&now));
+	fprintf(f, "Cache-Control: no-store, no-cache, must-revalidate\r\n");
+	fprintf(f, "Expires: Sat, 26 Jul 1997 05:00:00 GMT\r\n");
 	fprintf(f, "Last-Modified: %s\r\n", timebuf);
   fprintf(f, "Connection: close\r\n");
   fprintf(f, "\r\n");
@@ -388,7 +425,6 @@ void send_oscam_menu(FILE *f){
 	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./config.html\">CONFIGURATION</TD>\r\n");
 	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./readers.html\">READERS</TD>\r\n");
 	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./userconfig.html\">USERS</TD>\r\n");
-	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./entitlements.html\">ENTITLEMENTS</TD>\r\n");
 	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./services.html\">SERVICES</TD>\r\n");
 	fprintf(f, "	</TR>\r\n");
 	fprintf(f, "</TABLE>\r\n");

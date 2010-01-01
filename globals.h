@@ -657,6 +657,8 @@ extern void cs_setpriority(int);
 extern struct s_auth *find_user(char *);
 extern int x2i(int i);
 extern void urldecode(char *s);
+extern char to_hex(char code);
+extern char *urlencode(char *str);
 extern void long2bitchar(long value, char *result);
 extern char *char_to_hex(const unsigned char* p_array, unsigned int p_array_len, char hex2ascii[256][2]);
 void create_rand_str(char *dst, int size);
