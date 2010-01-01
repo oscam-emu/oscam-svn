@@ -60,7 +60,7 @@ void send_oscam_config_global(FILE *f, struct uriparams *params) {
 	int i;
 
 	fprintf(f,"<BR><BR>");
-	
+
 	if (strcmp(getParam(params, "action"), "execute") == 0){
 		//we found the execute flag
 		for(i=0;i<(*params).paramcount;i++){
@@ -82,7 +82,7 @@ void send_oscam_config_global(FILE *f, struct uriparams *params) {
 		fprintf(f,"<input name=\"action\" type=\"hidden\" value=\"execute\">\r\n");
 		fprintf(f,"<TABLE cellspacing=\"0\">");
 		fprintf(f,"\t<TH>&nbsp;</TH><TH>Edit Global Config </TH>");
-	
+
 		//ServerIP
 		fprintf(f,"\t<TR><TD>Serverip:</TD><TD><input name=\"serverip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"%s\"></TD></TR>\r\n", inet_ntoa(*(struct in_addr *)&cfg->srvip));
 		//Logfile
@@ -123,11 +123,11 @@ void send_oscam_config_global(FILE *f, struct uriparams *params) {
 		fprintf(f,"\t<TR><TD>Waitforcards:</TD><TD><input name=\"waitforcards\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->waitforcards);
 		//preferlocalcards
 		fprintf(f,"\t<TR><TD>Preferlocalcards:</TD><TD><input name=\"preferlocalcards\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->preferlocalcards);
-	
+
 		//Tablefoot and finish form
 		fprintf(f,"</TABLE>\r\n");
 		fprintf(f,"<input type=\"submit\" value=\"OK\"></form>\r\n");
-	
+
 		//Disclaimer
 		fprintf(f,"<BR><BR>Configuration Global not yet implemented chengings havn't any effect<BR><BR>");
 	}
@@ -159,7 +159,7 @@ void send_oscam_config_camd33(FILE *f, struct uriparams *params) {
 		fprintf(f,"<input name=\"action\" type=\"hidden\" value=\"execute\">\r\n");
 		fprintf(f,"<TABLE cellspacing=\"0\">");
 		fprintf(f,"\t<TH>&nbsp;</TH><TH>Edit Camd33 Config </TH>");
-	
+
 		//Port
 		fprintf(f,"\t<TR><TD>Port:</TD><TD><input name=\"port\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->c33_port);
 		//ServerIP
@@ -183,11 +183,11 @@ void send_oscam_config_camd33(FILE *f, struct uriparams *params) {
 				fprintf(f,"%s%s", dot, inet_ntoa(*(struct in_addr *)&cip->ip[0]));
 	  }
 		fprintf(f,"\">wrong, see Ticket #265</TD></TR>\r\n");
-	
+
 		//Tablefoot and finish form
 		fprintf(f,"</TABLE>\r\n");
 		fprintf(f,"<input type=\"submit\" value=\"OK\"></form>\r\n");
-	
+
 		//Disclaimer
 		fprintf(f,"<BR><BR>Configuration camd33 not yet implemented<BR><BR>");
 	}
@@ -218,16 +218,16 @@ void send_oscam_config_camd35(FILE *f, struct uriparams *params) {
 		fprintf(f,"<input name=\"action\" type=\"hidden\" value=\"execute\">\r\n");
 		fprintf(f,"<TABLE cellspacing=\"0\">");
 		fprintf(f,"\t<TH>&nbsp;</TH><TH>Edit Camd35 Config </TH>");
-	
+
 		//Port
 		fprintf(f,"\t<TR><TD>Port:</TD><TD><input name=\"port\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->c35_port);
 		//ServerIP
 		fprintf(f,"\t<TR><TD>Serverip:</TD><TD><input name=\"serverip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"%s\"></TD></TR>\r\n", inet_ntoa(*(struct in_addr *)&cfg->c35_tcp_srvip));
-	
+
 		//Tablefoot and finish form
 		fprintf(f,"</TABLE>\r\n");
 		fprintf(f,"<input type=\"submit\" value=\"OK\"></form>\r\n");
-	
+
 		//Disclaimer
 		fprintf(f,"<BR><BR>Configuration camd35 not yet implemented<BR><BR>");
 	}
@@ -247,7 +247,7 @@ void send_oscam_config_newcamd(FILE *f, struct uriparams *params) {
 				chk_t_newcamd((*params).params[i], (*params).values[i]);
 			}
 		}
-	
+
 		//Disclaimer
 		fprintf(f,"<BR><BR><B>Configuration newcamd *DONE*</B><BR><BR>");
 		refresh_oscam(REFR_SERVER);
@@ -258,7 +258,7 @@ void send_oscam_config_newcamd(FILE *f, struct uriparams *params) {
 		fprintf(f,"<input name=\"action\" type=\"hidden\" value=\"execute\">\r\n");
 		fprintf(f,"<TABLE cellspacing=\"0\">");
 		fprintf(f,"\t<TH>&nbsp;</TH><TH>Edit Newcamd Config </TH>");
-	
+
 		//Port
 		fprintf(f,"\t<TR><TD>Port:</TD><TD><input name=\"port\" type=\"text\" size=\"80\" maxlength=\"200\" value=\"");
 		int j;
@@ -279,17 +279,17 @@ void send_oscam_config_newcamd(FILE *f, struct uriparams *params) {
 				dot1=";";
 			}
 		}
-	
+
 		fprintf(f,"\"></TD></TR>\r\n");
-	
+
 		//ServerIP
 		fprintf(f,"\t<TR><TD>Serverip:</TD><TD><input name=\"serverip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"%s\"></TD></TR>\r\n", inet_ntoa(*(struct in_addr *)&cfg->ncd_srvip));
 		//Key
 		fprintf(f,"\t<TR><TD>Key:</TD><TD><input name=\"key\" type=\"text\" size=\"35\" maxlength=\"28\" value=\"");
-	
+
 		for (i=0;i<14;i++)
 			fprintf(f,"%02X",cfg->ncd_key[i]);
-	
+
 		fprintf(f,"\"></TD></TR>\r\n");
 		//Tablefoot and finish form
 		fprintf(f,"</TABLE>\r\n");
@@ -301,7 +301,7 @@ void send_oscam_config_radegast(FILE *f, struct uriparams *params) {
 	int i;
 
 	fprintf(f,"<BR><BR>");
-	
+
 	if (strcmp(getParam(params, "action"),"execute") == 0){
 		//we found the execute flag
 		for(i=0;i<(*params).paramcount;i++){
@@ -323,7 +323,7 @@ void send_oscam_config_radegast(FILE *f, struct uriparams *params) {
 		fprintf(f,"<input name=\"action\" type=\"hidden\" value=\"execute\">\r\n");
 		fprintf(f,"<TABLE cellspacing=\"0\">");
 		fprintf(f,"\t<TH>&nbsp;</TH><TH>Edit Radegast Config </TH>");
-	
+
 		//Port
 		fprintf(f,"\t<TR><TD>Port:</TD><TD><input name=\"port\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->rad_port);
 		//ServerIP
@@ -341,7 +341,7 @@ void send_oscam_config_radegast(FILE *f, struct uriparams *params) {
 		fprintf(f,"\">wrong, see Ticket #265</TD></TR>\r\n");
 		//Port
 		fprintf(f,"\t<TR><TD>User:</TD><TD><input name=\"user\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"%s\"></TD></TR>\r\n", cfg->rad_usr);
-	
+
 		//Tablefoot and finish form
 		fprintf(f,"</TABLE>\r\n");
 		fprintf(f,"<input type=\"submit\" value=\"OK\"></form>\r\n");
@@ -374,12 +374,12 @@ void send_oscam_config_cccam(FILE *f, struct uriparams *params) {
 		fprintf(f,"<input name=\"action\" type=\"hidden\" value=\"execute\">\r\n");
 		fprintf(f,"<TABLE cellspacing=\"0\">");
 		fprintf(f,"\t<TH>&nbsp;</TH><TH>Edit Cccam Config </TH>");
-	
-	
+
+
 		//Tablefoot and finish form
 		fprintf(f,"</TABLE>\r\n");
 		fprintf(f,"<input type=\"submit\" value=\"OK\"></form>\r\n");
-	
+
 		//Disclaimer
 		fprintf(f,"<BR><BR>Configuration Cccam not yet implemented<BR><BR>");
 	}
@@ -411,7 +411,7 @@ void send_oscam_config_gbox(FILE *f, struct uriparams *params) {
 		fprintf(f,"<input name=\"action\" type=\"hidden\" value=\"execute\">\r\n");
 		fprintf(f,"<TABLE cellspacing=\"0\">");
 		fprintf(f,"\t<TH>&nbsp;</TH><TH>Edit Gbox Config </TH>");
-	
+
 		//Password
 		fprintf(f,"\t<TR><TD>Password:</TD><TD><input name=\"password\" type=\"text\" size=\"10\" maxlength=\"8\" value=\"");
 		for (i=0;i<4;i++)
@@ -433,7 +433,7 @@ void send_oscam_config_gbox(FILE *f, struct uriparams *params) {
 			dot=";";
 		}
 		fprintf(f,"\"></TD></TR>\r\n");
-	
+
 		//Tablefoot and finish form
 		fprintf(f,"</TABLE>\r\n");
 		fprintf(f,"<input type=\"submit\" value=\"OK\"></form>\r\n");
@@ -466,7 +466,7 @@ void send_oscam_config_monitor(FILE *f, struct uriparams *params) {
 		fprintf(f,"<input name=\"action\" type=\"hidden\" value=\"execute\">\r\n");
 		fprintf(f,"<TABLE cellspacing=\"0\">");
 		fprintf(f,"\t<TH>&nbsp;</TH><TH>Edit Monitor Config </TH>");
-	
+
 		//Port
 		fprintf(f,"\t<TR><TD>Port:</TD><TD><input name=\"port\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->mon_port);
 		//ServerIP
@@ -505,7 +505,7 @@ void send_oscam_config_monitor(FILE *f, struct uriparams *params) {
 		fprintf(f,"<TR><TD>Httpcss:</TD><TD><input name=\"httpcss\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"%s\"></TD></TR>\r\n", cfg->http_css);
 		//HTTPrefresh
 		fprintf(f,"\t<TR><TD>Httprefresh:</TD><TD><input name=\"httprefresh\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->http_refresh);
-	
+
 		//Tablefoot and finish form
 		fprintf(f,"</TABLE>\r\n");
 		fprintf(f,"<input type=\"submit\" value=\"OK\"></form>\r\n");
@@ -540,7 +540,7 @@ void send_oscam_config_anticasc(FILE *f, struct uriparams *params) {
 		fprintf(f,"<input name=\"action\" type=\"hidden\" value=\"execute\">\r\n");
 		fprintf(f,"<TABLE cellspacing=\"0\">");
 		fprintf(f,"\t<TH>&nbsp;</TH><TH>Edit Anticascading Config </TH>");
-	
+
 		//Port
 		char *checked="";
 		if (cfg->ac_enabled > 0) checked="checked";
@@ -559,7 +559,7 @@ void send_oscam_config_anticasc(FILE *f, struct uriparams *params) {
 		fprintf(f,"\t<TR><TD>Fakedelay:</TD><TD><input name=\"fakedelay\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->ac_fakedelay);
 		//denysamples
 		fprintf(f,"\t<TR><TD>Denysamples:</TD><TD><input name=\"denysamples\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->ac_denysamples);
-	
+
 		//Tablefoot and finish form
 		fprintf(f,"</TABLE>\r\n");
 		fprintf(f,"<input type=\"submit\" value=\"OK\"></form>\r\n");
@@ -752,7 +752,7 @@ void send_oscam_user_config_edit(struct templatevars *vars, FILE *f, struct urip
 #endif
 		tpl_addVar(vars, 1, "MESSAGE", "<b>New user has been added with default settings</b><BR>");
 		if (write_userdb()==0) refresh_oscam(REFR_ACCOUNTS);
-		else tpl_addVar(vars, 1, "MESSAGE", "<b>Writing configuration to disk failed!</b><BR>"); 
+		else tpl_addVar(vars, 1, "MESSAGE", "<b>Writing configuration to disk failed!</b><BR>");
 		// need to reget account as writing to disk changes account!
 		for (account = cfg->account; account != NULL && strcmp(user, account->usr) != 0; account = account->next);
     }
@@ -771,13 +771,13 @@ void send_oscam_user_config_edit(struct templatevars *vars, FILE *f, struct urip
 		}
 	}
 	chk_account("services", servicelabels, account);
-		tpl_addVar(vars, 1, "MESSAGE", "<B>Settings updated</B><BR><BR>");	
+		tpl_addVar(vars, 1, "MESSAGE", "<B>Settings updated</B><BR><BR>");
 		if (write_userdb()==0) refresh_oscam(REFR_ACCOUNTS);
 		else tpl_addVar(vars, 1, "MESSAGE", "<B>Write Config failed</B><BR><BR>");
 	}
 
 	tpl_addVar(vars, 0, "USERNAME", account->usr);
-	tpl_addVar(vars, 0, "PASSWORD", account->pwd);	
+	tpl_addVar(vars, 0, "PASSWORD", account->pwd);
 
 	//Expirationdate
 	struct tm * timeinfo = localtime (&account->expirationdate);
@@ -797,11 +797,11 @@ void send_oscam_user_config_edit(struct templatevars *vars, FILE *f, struct urip
 	}
 	//Hostname
 	tpl_addVar(vars, 0, "DYNDNS", (char *)account->dyndns);
-	
+
 	//Uniq
 	tpl_printf(vars, 0, "TMP", "UNIQSELECTED%d", account->uniq);
 	tpl_addVar(vars, 0, tpl_getVar(vars, "TMP"), "selected");
-	
+
 	//Sleep
 	if(!account->tosleep) tpl_addVar(vars, 0, "SLEEP", "0");
 	else tpl_printf(vars, 0, "SLEEP", "%d", account->tosleep);
@@ -829,6 +829,7 @@ void send_oscam_user_config_edit(struct templatevars *vars, FILE *f, struct urip
 	long2bitchar(account->sidtabno,sidno);
 	struct s_sidtab *sidtab = cfg->sidtab;
 	//build matrix
+	i=0;
 	while(sidtab != NULL){
 		tpl_addVar(vars, 0, "SIDLABEL", sidtab->label);
 		if(sidok[i]=='1') tpl_addVar(vars, 0, "CHECKED", "checked");
@@ -838,6 +839,7 @@ void send_oscam_user_config_edit(struct templatevars *vars, FILE *f, struct urip
 		else tpl_addVar(vars, 0, "CHECKED", "");
 		tpl_addVar(vars, 1, "SIDS", tpl_getTpl(vars, "USEREDITSIDNOBIT"));
 		sidtab=sidtab->next;
+		i++;
 	}
 	/* CAID */
 	dot="";
@@ -884,7 +886,7 @@ void send_oscam_user_config_edit(struct templatevars *vars, FILE *f, struct urip
 }
 
 void send_oscam_user_config(struct templatevars *vars, FILE *f, struct uriparams *params) {
-	struct s_auth *account, *account2;	
+	struct s_auth *account, *account2;
 	char *user = getParam(params, "user");
 	int i, found = 0;
 
@@ -957,7 +959,7 @@ void send_oscam_entitlement(struct templatevars *vars, FILE *f, struct uriparams
 	int ridx;
 	char *p;
 	char *reader_ = getParam(params, "reader");
-	if(strlen(reader_) > 0){	
+	if(strlen(reader_) > 0){
 #ifdef CS_RDR_INIT_HIST
 		for (ridx=0; ridx<CS_MAXREADER && strcmp(reader_, reader[ridx].label) != 0; ridx++);
 		if(ridx<CS_MAXREADER){
@@ -980,27 +982,27 @@ void send_oscam_status(struct templatevars *vars, FILE *f) {
 		time_t now = time((time_t)0);
 		struct tm *lt;
 	for (i=0; i<CS_MAXPID; i++)	{
-		if (client[i].pid) {			
+		if (client[i].pid) {
 		if ((cfg->mon_hideclient_to <= 0) ||	(((now-client[i].lastecm)/60)<cfg->mon_hideclient_to) ||
 		(((now-client[i].lastemm)/60)<cfg->mon_hideclient_to) || (client[i].typ!='c')){
 			lsec=now-client[i].login;
 			isec=now-client[i].last;
 			usr=client[i].usr;
-			
+
 			if (((client[i].typ=='r') || (client[i].typ=='p')) && (con=cs_idx2ridx(i))>=0) usr=reader[con].label;
-			
+
 			if (client[i].dup) con=2;
 				else if ((client[i].tosleep) && (now-client[i].lastswitch>client[i].tosleep)) con=1;
 				else con=0;
-			
+
 			if (i-cdiff>0) cnr=i-cdiff;
 			else cnr=(i>1) ? i-1 : 0;
-			
+
 			if( (cau=client[i].au+1) && (now-client[i].lastemm)/60 > cfg->mon_aulow) cau=-cau;
-			
+
 			lt=localtime(&client[i].login);
-			
-			tpl_printf(vars, 0, "CLIENTPID", "%d", client[i].pid); 
+
+			tpl_printf(vars, 0, "CLIENTPID", "%d", client[i].pid);
 			tpl_printf(vars, 0, "CLIENTTYPE", "%c", client[i].typ);
 			tpl_printf(vars, 0, "CLIENTCNR", "%d", cnr);
 			tpl_addVar(vars, 0, "CLIENTUSER", usr);
@@ -1016,9 +1018,9 @@ void send_oscam_status(struct templatevars *vars, FILE *f) {
 			tpl_printf(vars, 0, "CLIENTSRVID", "%04X", client[i].last_srvid);
 			tpl_addVar(vars, 0, "CLIENTSRVNAME", monitor_get_srvname(client[i].last_srvid));
 			tpl_printf(vars, 0, "CLIENTIDLESECS", "%d", isec);
-			tpl_printf(vars, 0, "CLIENTCON", "%d", con); 
-				tpl_printf(vars, 0, "CWOK", "%d", client[i].cwfound); 
-				tpl_printf(vars, 0, "CWNOK", "%d", client[i].cwnot); 
+			tpl_printf(vars, 0, "CLIENTCON", "%d", con);
+				tpl_printf(vars, 0, "CWOK", "%d", client[i].cwfound);
+				tpl_printf(vars, 0, "CWNOK", "%d", client[i].cwnot);
 			tpl_addVar(vars, 1, "CLIENTSTATUS", tpl_getTpl(vars, "CLIENTSTATUSBIT"));
 		}
 	}
@@ -1040,9 +1042,9 @@ void send_oscam_status(struct templatevars *vars, FILE *f) {
 
 void send_oscam_services(struct templatevars *vars, FILE *f) {
   struct s_sidtab *sidtab = cfg->sidtab;
-	int i;	
+	int i;
 
-	while(sidtab != NULL){	
+	while(sidtab != NULL){
     for (i=0; i<sidtab->num_caid; i++){
 			if (i==0) tpl_printf(vars, 0, "CAIDS", "%04X", sidtab->caid[i]);
 			else tpl_printf(vars, 1, "CAIDS", ",%04X", sidtab->caid[i]);
@@ -1090,12 +1092,12 @@ int process_request(FILE *f, struct in_addr in) {
 			"/user_edit.html",
 			"/site.css"};
   int pagescnt = sizeof(pages)/sizeof(char *);  // Calculate the amount of items in array
-  
+
   int pgidx = -1;
   int i;
   int parsemode = 1;
   struct uriparams params;
-  params.paramcount = 0;  
+  params.paramcount = 0;
 
   /* First line always includes the GET/POST request */
   if (!fgets(buf, sizeof(buf), f)) return -1;
@@ -1177,8 +1179,8 @@ int process_request(FILE *f, struct in_addr in) {
 		struct templatevars *vars = tpl_create();
 		struct tm *lt;
 		time(&t);
-	
-		lt=localtime(&t);	
+
+		lt=localtime(&t);
 		tpl_addVar(vars, 0, "CS_VERSION", CS_VERSION);
 		tpl_addVar(vars, 0, "CS_SVN_VERSION", CS_SVN_VERSION);
 		if(cfg->http_refresh > 0 && (pgidx == 3 || pgidx == -1)){
