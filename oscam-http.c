@@ -7,6 +7,7 @@
 #include <time.h>
 #include <sys/stat.h>
 #include <dirent.h>
+#include <sys/socket.h>
 
 static char* monlevel[] = {
 			"0 = no access to monitor",
@@ -1212,10 +1213,10 @@ int process_request(FILE *f, struct in_addr in) {
 }
 
 void http_srv() {
-	int i,sock;
+	int i,sock, reuse =1;
 	struct sockaddr_in sin;
 	struct sockaddr_in remote;
-	socklen_t len;
+	socklen_t len = sizeof(remote);
 	char *tmp;
 
 	/* Prepare lookup array for conversion between ascii and hex */
@@ -1234,6 +1235,10 @@ void http_srv() {
 		cs_log("HTTP Server: Creating socket failed! (errno=%d)", errno);
 		return;
 	}
+	if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0){
+		cs_log("HTTP Server: Setting SO_REUSEADDR via setsockopt failed! (errno=%d)", errno);
+	}
+
 	memset(&sin, 0, sizeof sin);
 	sin.sin_family = AF_INET;
 	sin.sin_addr.s_addr = INADDR_ANY;
@@ -1243,7 +1248,7 @@ void http_srv() {
 		close(sock);
 		return;
 	}
-	if (listen(sock, 5) < 0){
+	if (listen(sock, SOMAXCONN) < 0){
 		cs_log("HTTP Server: Call to listen() failed! (errno=%d)", errno);
 		close(sock);
 		return;
@@ -1262,7 +1267,7 @@ void http_srv() {
 		process_request(f, remote.sin_addr);
 		fflush(f);
 		fclose(f);
-		shutdown(s, 2);
+		shutdown(s, SHUT_WR);
 		close(s);
   }
   close(sock);

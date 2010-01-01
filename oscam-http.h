@@ -68,7 +68,7 @@ A:hover {text-decoration: none; color: red;}"
 <TR><TH>Label</TH>\r\n\t<TH>Status</TH>\r\n\t<TH>Last Channel</TH>\r\n\t<TH>Idle (Sec)</TH>\r\n\t<TH colspan=\"2\" align=\"center\">Action</TH>\r\n</TR>\
 ##USERCONFIGS##\
 <TR>\n\
-\t<FORM action=\"/user_edit.html\" method=\"get\">\n\
+\t<FORM action=\"user_edit.html\" method=\"get\">\n\
 \t<TD>New User:</TD>\n\
 \t<TD colspan=\"2\"><input name=\"user\" type=\"text\"></TD>\n\
 \t<TD colspan=\"3\" align=\"center\"><input type=\"submit\" value=\"Add User\"></TD>\n\
