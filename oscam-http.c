@@ -725,12 +725,9 @@ void send_oscam_reader_config(struct templatevars *vars, FILE *f, struct uripara
 
 void send_oscam_user_config_edit(struct templatevars *vars, FILE *f, struct uriparams *params){
 	struct s_auth *account, *ptr;
-	char *user;// = getParam(params, "user");
+	char *user;
 
-	if (strcmp(getParam(params, "action"), "Save As") == 0) {
-		user = getParam(params, "newuser");
-		printf("%s\n",user);
-	}
+	if (strcmp(getParam(params, "action"), "Save As") == 0) user = getParam(params, "newuser");
 	else user = getParam(params, "user");
 
 	int i, j;
