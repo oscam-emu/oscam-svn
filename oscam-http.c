@@ -672,8 +672,11 @@ void send_oscam_reader_config(struct templatevars *vars, FILE *f, struct uripara
 	tpl_printf(vars, 0, "LOGPORT", "%d", reader[ridx].log_port);
 	tpl_printf(vars, 0, "BOXID", "%ld", reader[ridx].boxid);
 
-	if(reader[ridx].r_port) tpl_printf(vars, 0, "R_PORT", "%d", reader[ridx].r_port);
-	if(reader[ridx].l_port) tpl_printf(vars, 0, "L_PORT", "%d", reader[ridx].l_port);
+	if(reader[ridx].r_port) tpl_printf(vars, 0, "R_PORT", ",%d", reader[ridx].r_port);
+	if(reader[ridx].l_port) {
+		if(reader[ridx].r_port) tpl_printf(vars, 0, "L_PORT", ",%d", reader[ridx].l_port);
+		else tpl_printf(vars, 0, "L_PORT", ",,%d", reader[ridx].l_port);
+	}
 
 	//Group
 	/*restore the settings format of group from long over bitarray*/
@@ -1014,6 +1017,8 @@ void send_oscam_status(struct templatevars *vars, FILE *f) {
 			tpl_addVar(vars, 0, "CLIENTSRVNAME", monitor_get_srvname(client[i].last_srvid));
 			tpl_printf(vars, 0, "CLIENTIDLESECS", "%d", isec);
 			tpl_printf(vars, 0, "CLIENTCON", "%d", con); 
+				tpl_printf(vars, 0, "CWOK", "%d", client[i].cwfound); 
+				tpl_printf(vars, 0, "CWNOK", "%d", client[i].cwnot); 
 			tpl_addVar(vars, 1, "CLIENTSTATUS", tpl_getTpl(vars, "CLIENTSTATUSBIT"));
 		}
 	}
@@ -1062,7 +1067,7 @@ void send_oscam_services(struct templatevars *vars, FILE *f) {
 	fputs(tpl_getTpl(vars, "SIDTAB"), f);
 }
 
-int process_request(FILE *f) {
+int process_request(FILE *f, struct in_addr in) {
   char buf[4096];
   char tmp[4096];
 
@@ -1207,6 +1212,8 @@ int process_request(FILE *f) {
 void http_srv() {
 	int i,sock;
 	struct sockaddr_in sin;
+	struct sockaddr_in remote;
+	socklen_t len;
 	char *tmp;
 
 	/* Prepare lookup array for conversion between ascii and hex */
@@ -1221,10 +1228,11 @@ void http_srv() {
 	create_rand_str(noncekey,32);
 
 	/* Startup server */
-	if((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0){
+	if((sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0){
 		cs_log("HTTP Server: Creating socket failed! (errno=%d)", errno);
 		return;
 	}
+	memset(&sin, 0, sizeof sin);
 	sin.sin_family = AF_INET;
 	sin.sin_addr.s_addr = INADDR_ANY;
 	sin.sin_port = htons(cfg->http_port);
@@ -1243,13 +1251,13 @@ void http_srv() {
 	{
 		int s;
 		FILE *f;
-		if((s = accept(sock, NULL, NULL)) < 0){
+		if((s = accept(sock, (struct sockaddr *) &remote, &len)) < 0){
 			cs_log("HTTP Server: Error calling accept() (errno=%d).", errno);
 			break;
 		}
 
 		f = fdopen(s, "r+");
-		process_request(f);
+		process_request(f, remote.sin_addr);
 		fflush(f);
 		fclose(f);
 		shutdown(s, 2);

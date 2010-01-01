@@ -53,14 +53,14 @@ A:hover {text-decoration: none; color: red;}"
 #define TPLSTATUS "##TPLHEADER##\
 ##TPLMENU##\n\
 <BR><BR><TABLE WIDTH=\"100%\" cellspacing=\"0\" class=\"status\">\n\
-<TR><TH>PID</TH><TH>Typ</TH><TH>ID</TH><TH>Label</TH><TH>AU</TH><TH>0</TH><TH>Address</TH><TH>Port</TH><TH>Protocol</TH><TH>Login</TH><TH>Login</TH><TH>Time</TH><TH>caid:srvid</TH><TH>Last Channel</TH><TH>Idle</TH><TH>0</TH>\n\
+<TR><TH>PID</TH><TH>Typ</TH><TH>ID</TH><TH>Label</TH><TH>AU</TH><TH>0</TH><TH>Address</TH><TH>Port</TH><TH>Protocol</TH><TH>Login</TH><TH>Login</TH><TH>Time</TH><TH>caid:srvid</TH><TH>Last Channel</TH><TH>Idle</TH><TH>CWOK</TH><TH>CWNOK</TH><TH>0</TH>\n\
 ##CLIENTSTATUS##\
 </TABLE><BR>\n\
 <DIV class=\"log\">\n\
 ##LOGHISTORY##\
 </DIV>\n\
 ##TPLFOOTER##"
-#define TPLCLIENTSTATUSBIT "<TR class=\"##CLIENTTYPE##\"><TD>##CLIENTPID##</TD><TD>##CLIENTTYPE##</TD><TD>##CLIENTCNR##</TD><TD>##CLIENTUSER##</TD><TD>##CLIENTCAU##</TD><TD>##CLIENTCRYPTED##</TD><TD>##CLIENTIP##</TD><TD>##CLIENTPORT##</TD><TD>##CLIENTPROTO##</TD><TD>##CLIENTLOGINDATE##</TD><TD>##CLIENTLOGINTIME##</TD><TD>##CLIENTLOGINSECS##</TD><TD>##CLIENTCAID##:##CLIENTSRVID##</TD><TD>##CLIENTSRVNAME##</TD><TD>##CLIENTIDLESECS##</TD><TD>##CLIENTCON##</TD></TR>"
+#define TPLCLIENTSTATUSBIT "<TR class=\"##CLIENTTYPE##\"><TD>##CLIENTPID##</TD><TD>##CLIENTTYPE##</TD><TD>##CLIENTCNR##</TD><TD>##CLIENTUSER##</TD><TD>##CLIENTCAU##</TD><TD>##CLIENTCRYPTED##</TD><TD>##CLIENTIP##</TD><TD>##CLIENTPORT##</TD><TD>##CLIENTPROTO##</TD><TD>##CLIENTLOGINDATE##</TD><TD>##CLIENTLOGINTIME##</TD><TD>##CLIENTLOGINSECS##</TD><TD>##CLIENTCAID##:##CLIENTSRVID##</TD><TD>##CLIENTSRVNAME##</TD><TD>##CLIENTIDLESECS##</TD><TD>##CWOK##</TD><TD>##CWNOK##</TD><TD>##CLIENTCON##</TD></TR>"
 #define TPLUSERCONFIGLIST "##TPLHEADER##\
 ##TPLMENU##\n\
 ##MESSAGE##\
@@ -218,5 +218,4 @@ void send_htmlhead(FILE *f, int refresh);
 void send_css(FILE *f);
 void send_footer(FILE *f);
 void send_oscam_menu(FILE *f);
-void send_oscam_user_config(struct templatevars *vars, FILE *f, struct uriparams *params);
 char *getParam(struct uriparams *params, char *name);
