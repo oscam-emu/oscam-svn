@@ -506,6 +506,8 @@ void send_oscam_config_monitor(FILE *f, struct uriparams *params) {
 		fprintf(f,"<TR><TD>Httpcss:</TD><TD><input name=\"httpcss\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"%s\"></TD></TR>\r\n", cfg->http_css);
 		//HTTPrefresh
 		fprintf(f,"\t<TR><TD>Httprefresh:</TD><TD><input name=\"httprefresh\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->http_refresh);
+		//Httptpl
+		fprintf(f,"\t<TR><TD>Httptpl:</TD><TD><input name=\"httptpl\" type=\"text\" size=\"50\" maxlength=\"100\" value=\"%s\"></TD></TR>\r\n", cfg->http_tpl);
 
 		//Tablefoot and finish form
 		fprintf(f,"</TABLE>\r\n");
@@ -1070,6 +1072,14 @@ void send_oscam_services(struct templatevars *vars, FILE *f) {
 	fputs(tpl_getTpl(vars, "SIDTAB"), f);
 }
 
+void send_oscam_savetpls(struct templatevars *vars, FILE *f){
+	if(strlen(cfg->http_tpl) > 0){
+		tpl_printf(vars, 0, "CNT", "%d", tpl_saveIncludedTpls(cfg->http_tpl));
+		tpl_addVar(vars, 0, "PATH", cfg->http_tpl);
+	} else tpl_addVar(vars, 0, "CNT", "0");
+	fputs(tpl_getTpl(vars, "SAVETEMPLATES"), f);
+}
+
 int process_request(FILE *f, struct in_addr in) {
   char buf[4096];
   char tmp[4096];
@@ -1091,7 +1101,8 @@ int process_request(FILE *f, struct in_addr in) {
 			"/readerconfig.html",
 			"/services.html",
 			"/user_edit.html",
-			"/site.css"};
+			"/site.css",
+			"/savetemplates.html"};
   int pagescnt = sizeof(pages)/sizeof(char *);  // Calculate the amount of items in array
 
   int pgidx = -1;
@@ -1199,6 +1210,7 @@ int process_request(FILE *f, struct in_addr in) {
 	    case  5: send_oscam_reader_config(vars, f, &params); break;
 	    case	6: send_oscam_services(vars, f); break;
 	    case  7: send_oscam_user_config_edit(vars, f, &params); break;
+	    case  9: send_oscam_savetpls(vars, f); break;
 	    default: send_oscam_status(vars, f); break;
 	  }
 		tpl_clear(vars);

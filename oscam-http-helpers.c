@@ -128,70 +128,72 @@ void tpl_clear(struct templatevars *vars){
 	free(vars);
 }
 
+/* Creates a path to a template file. You need to set the resultsize to the correct size of result. */
+char *tpl_getTplPath(const char *name, const char *path, char *result, int resultsize){
+	char *pch;
+	if((strlen(path) + strlen(name) + 5) <= resultsize){
+		strcpy(result, path);
+		strcat(result, name);
+		strcat(result, ".tpl");
+		result[resultsize - 1] = '\0';
+		for(pch = result + strlen(path); pch[0] != '\0'; ++pch){
+			if(pch[0] == '/' || pch[0] == '\\') pch[0] = ' ';
+		}
+	} else result[0] = '\0';
+	return result;
+}
+
+/* Returns an unparsed template either from disk or from internal templates. 
+   Note: You must free() the result after using it!*/
 char *tpl_getUnparsedTpl(const char* name){
-	char *tpl[]={	
-		"HEADER",
-		"FOOTER",
-		"MENU",
-		"REFRESH",
-		"STATUS",
-		"CLIENTSTATUSBIT",
-		"USERCONFIGLIST",
-		"USERCONFIGLISTBIT",
-		"SIDTAB",
-		"SIDTABBIT",
-		"READERS",
-		"READERSBIT",
-		"ENTITLEMENTS",
-		"READERCONFIG",
-		"READERCONFIGSIDOKBIT",
-		"READERCONFIGSIDNOBIT",
-		"USEREDIT",
-		"USEREDITRDRSELECTED",
-		"USEREDITSIDOKBIT",
-		"USEREDITSIDNOBIT"
-#ifdef CS_ANTICASC
-		,"USEREDITANTICASC"
-#endif		
-	};
-  int i, tplcnt = sizeof(tpl)/sizeof(char *);
+  int i;
+  int tplcnt = sizeof(tpl)/sizeof(char *);
+  int tplmapcnt = sizeof(tplmap)/sizeof(char *);
+  char *result;
+  
   for(i = 0; i < tplcnt; ++i){
   	if(strcmp(name, tpl[i]) == 0) break;
   }
- 	switch(i){
- 		case  0: return TPLHEADER;
- 		case  1: return TPLFOOTER;
- 		case  2: return TPLMENU;
- 		case  3: return TPLREFRESH;
- 		case  4: return TPLSTATUS;
- 		case  5: return TPLCLIENTSTATUSBIT;
- 		case  6: return TPLUSERCONFIGLIST;
- 		case  7: return TPLUSERCONFIGLISTBIT;
- 		case  8: return TPLSIDTAB;
- 		case  9: return TPLSIDTABBIT;
- 		case 10: return TPLREADERS;
- 		case 11: return TPLREADERSBIT;
- 		case 12: return TPLENTITLEMENTS;
- 		case 13: return TPLREADERCONFIG;
- 		case 14: return TPLREADERCONFIGSIDOKBIT;
- 		case 15: return TPLREADERCONFIGSIDNOBIT;
- 		case 16: return TPLUSEREDIT;
- 		case 17: return TPLUSEREDITRDRSELECTED;
- 		case 18: return TPLUSEREDITSIDOKBIT;
- 		case 19: return TPLUSEREDITSIDNOBIT;
-#ifdef CS_ANTICASC
-		case 20: return TPLUSEREDITANTICASC;
-#endif
- 		default: return "";
+  
+  if(strlen(cfg->http_tpl) > 0){
+  	char path[200];
+  	if(strlen(tpl_getTplPath(name, cfg->http_tpl, path, 200)) > 0 && file_exists(path)){
+			FILE *fp;
+			char buffer[1024];
+			int read, allocated = 1025, size = 1;
+			result = (char *) malloc(allocated * sizeof(char));	
+			if((fp = fopen(path,"r"))!=NULL){
+			while((read = fread(&buffer,sizeof(char),1024,fp)) > 0){
+				size += read;
+				if(allocated < size) {
+					allocated += size + 1024;
+					result = (char *) realloc(result, allocated * sizeof(char));
+				}
+				memcpy(result, buffer, read);
+			}
+			result[size - 1] = '\0';
+			fclose (fp);
+			return result;
+			}
+	  }
+  }
+ 	if(i >= 0 && i < tplmapcnt){
+ 		int len = (strlen(tplmap[i])) + 1;
+ 		result = (char *) malloc(len * sizeof(char));	
+ 		memcpy(result, tplmap[i], len);
+ 	} else {
+ 		result = (char *) malloc(1 * sizeof(char));	
+ 		result[0] = '\0';
   }	
+ 	return result;
 }
 
 /* Returns the specified template with all variables/other templates replaced or an 
    empty string if the template doesn't exist*/
 char *tpl_getTpl(struct templatevars *vars, const char* name){
-	char *tpl = tpl_getUnparsedTpl(name);
-	char *tplend = tpl + strlen(tpl);
-	char *pch, *pch2;
+	char *tplorg = tpl_getUnparsedTpl(name);
+	char *tplend = tplorg + strlen(tplorg);
+	char *pch, *pch2, *tpl=tplorg;
 	char varname[33];
 	
 	int tmp,respos = 0;
@@ -230,9 +232,27 @@ char *tpl_getTpl(struct templatevars *vars, const char* name){
 			++tpl;
 		}		
 	}
+	free(tplorg);
 	result[respos] = '\0';
 	tpl_addTmp(vars, result);
 	return result;
+}
+
+/* Saves all templates to the specified paths. Existing files will be overwritten! */
+int tpl_saveIncludedTpls(const char *path){
+	int tplcnt = sizeof(tpl)/sizeof(char *);
+  int tplmapcnt = sizeof(tplmap)/sizeof(char *);
+  int i, cnt = 0;
+  char tmp[200];
+  FILE *fp;
+  for(i = 0; i < tplcnt && i < tplmapcnt; ++i){
+  	if(strlen(tpl_getTplPath(tpl[i], path, tmp, 200)) > 0 && (fp = fopen(tmp,"w")) != NULL){
+			fwrite(tplmap[i], sizeof(char), strlen(tplmap[i]), fp);
+			fclose (fp);
+			++cnt;
+		}
+	}
+	return cnt;
 }
 
 /* Parses a value in an authentication string by removing all quotes/whitespace. Note that the original array is modified*/

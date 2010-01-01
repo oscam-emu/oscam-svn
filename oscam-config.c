@@ -426,6 +426,7 @@ void chk_t_monitor(char *token, char *value)
   if (!strcmp(token, "httpuser")) { strncpy(cfg->http_user, value, sizeof(cfg->http_user)-1); cfg->http_user[sizeof(cfg->http_user)-1] = '\0'; return; }
   if (!strcmp(token, "httppwd")) { strncpy(cfg->http_pwd, value, sizeof(cfg->http_pwd)-1); cfg->http_pwd[sizeof(cfg->http_pwd)-1] = '\0'; return; }
   if (!strcmp(token, "httpcss")) { strncpy(cfg->http_css, value, sizeof(cfg->http_css)-1); cfg->http_css[sizeof(cfg->http_css)-1] = '\0'; return; }
+  if (!strcmp(token, "httptpl")) { strncpy(cfg->http_tpl, value, sizeof(cfg->http_tpl)-1); cfg->http_css[sizeof(cfg->http_tpl)-1] = '\0'; return; }
   if (!strcmp(token, "httprefresh")) { cfg->http_refresh=atoi(value); return; }
   if (!strcmp(token, "hideclient_to")) { cfg->mon_hideclient_to=atoi(value); return; }
   if (token[0] != '#')
@@ -549,7 +550,7 @@ static void chk_t_dvbapi(char *token, char *value)
 	if (!strcmp(token, "ca")) 	{ strncpy(cfg->dvbapi_ca, value, sizeof(cfg->dvbapi_ca)-1); return; }
 	if (!strcmp(token, "socket")) 	{ strncpy(cfg->dvbapi_socket, value, sizeof(cfg->dvbapi_socket)-1); return; }
 	if (!strcmp(token, "user")) 	{ strncpy(cfg->dvbapi_usr, value, sizeof(cfg->dvbapi_usr)-1); return; }
-	
+
 	if (token[0] != '#')
 	    fprintf(stderr, "Warning: keyword '%s' in dvbapi section not recognized\n",token);
 #endif
@@ -673,6 +674,7 @@ int init_config()
   strcpy(cfg->http_pwd, "");
   strcpy(cfg->http_css, "");
   cfg->http_refresh=0;
+  strcpy(cfg->http_tpl, "");
 #ifdef CS_ANTICASC
   cfg->ac_enabled=0;
   cfg->ac_users=0;
