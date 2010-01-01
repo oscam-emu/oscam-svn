@@ -725,7 +725,14 @@ void send_oscam_reader_config(struct templatevars *vars, FILE *f, struct uripara
 
 void send_oscam_user_config_edit(struct templatevars *vars, FILE *f, struct uriparams *params){
 	struct s_auth *account, *ptr;
-	char *user = getParam(params, "user");
+	char *user;// = getParam(params, "user");
+
+	if (strcmp(getParam(params, "action"), "Save As") == 0) {
+		user = getParam(params, "newuser");
+		printf("%s\n",user);
+	}
+	else user = getParam(params, "user");
+
 	int i, j;
 
 	for (account = cfg->account; account != NULL && strcmp(user, account->usr) != 0; account = account->next);
@@ -742,7 +749,7 @@ void send_oscam_user_config_edit(struct templatevars *vars, FILE *f, struct urip
 	  	ptr->next = account;
 	  }
       memset(account, 0, sizeof(struct s_auth));
-	  strncpy((char *)account->usr, user, sizeof(account->usr)-1);
+			strncpy((char *)account->usr, user, sizeof(account->usr)-1);
       account->au=(-1);
       account->monlvl=cfg->mon_level;
       account->tosleep=cfg->tosleep;
@@ -751,7 +758,7 @@ void send_oscam_user_config_edit(struct templatevars *vars, FILE *f, struct urip
 #ifdef CS_ANTICASC
       account->ac_users=cfg->ac_users;
       account->ac_penalty=cfg->ac_penalty;
-	  account->ac_idx = account->ac_idx + 1;
+			account->ac_idx = account->ac_idx + 1;
 #endif
 		tpl_addVar(vars, 1, "MESSAGE", "<b>New user has been added with default settings</b><BR>");
 		if (write_userdb()==0) refresh_oscam(REFR_ACCOUNTS);
@@ -760,7 +767,7 @@ void send_oscam_user_config_edit(struct templatevars *vars, FILE *f, struct urip
 		for (account = cfg->account; account != NULL && strcmp(user, account->usr) != 0; account = account->next);
     }
 
-	if(strcmp(getParam(params, "action"), "execute") == 0){
+	if((strcmp(getParam(params, "action"), "Save") == 0) || (strcmp(getParam(params, "action"), "Save As") == 0)){
 	char servicelabels[255]="";
 	//clear group
 	account->grp = 0;

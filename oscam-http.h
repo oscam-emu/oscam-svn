@@ -155,7 +155,6 @@ A:hover {text-decoration: none; color: red;}"
 <BR><BR>\n\
   <form action=\"user_edit.html\" method=\"get\">\n\
   <input name=\"user\" type=\"hidden\" value=\"##USERNAME##\">\n\
-  <input name=\"action\" type=\"hidden\" value=\"execute\">\n\
   <TABLE cellspacing=\"0\">\n\
     <TR>\n\
       <TH>&nbsp;</TH>\n\
@@ -227,8 +226,8 @@ A:hover {text-decoration: none; color: red;}"
     </TR>\n\
     ##TPLUSEREDITANTICASC##\
     <TR>\n\
-      <TD>&nbsp;</TD>\n\
-      <TD align=\"right\"><input type=\"submit\" value=\"Save Settings\" title=\"Save settings and reload users\"></TD>\n\
+      <TD align=\"center\"><input type=\"submit\" name=\"action\" value=\"Save\" title=\"Save settings and reload users\"></TD>\n\
+      <TD align=\"center\"><input name=\"newuser\" type=\"text\" size=\"20\" maxlength=\"20\" title=\"Enter new username if you want to clone this user\">&nbsp;&nbsp;&nbsp;<input type=\"submit\" name=\"action\" value=\"Save As\" title=\"Save as new user and reload users\"></TD>\n\
     </TR>\n\
   </TABLE>\n\
 </form>\n\
