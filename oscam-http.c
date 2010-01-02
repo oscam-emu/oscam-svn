@@ -265,7 +265,7 @@ void send_oscam_config_monitor(struct templatevars *vars, FILE *f, struct uripar
 	tpl_addVar(vars, 0, "HTTPCSS", cfg->http_css);
 	tpl_printf(vars, 0, "HTTPREFRESH", "%d", cfg->http_refresh);
 	tpl_addVar(vars, 0, "HTTPTPL", cfg->http_tpl);
-	tpl_printf(vars, 0, "HTTPHIDEIDLECLIENTS", "%d", cfg->http_hide_idle_clients);
+	if (cfg->http_hide_idle_clients > 0) tpl_addVar(vars, 0, "CHECKED", "checked");
 
 	  struct s_ip *cip;
 	  char *dot="";
@@ -316,7 +316,7 @@ void send_oscam_config_anticasc(struct templatevars *vars, FILE *f, struct uripa
 		refresh_oscam(REFR_ANTICASC);
 	}
 	if (cfg->ac_enabled > 0) tpl_addVar(vars, 0, "CHECKED", "checked");
-	tpl_printf(vars, 0, "NUMUSERS", "%d", "checked");
+	tpl_printf(vars, 0, "NUMUSERS", "%d", cfg->ac_users);
 	tpl_printf(vars, 0, "SAMPLETIME", "%d", cfg->ac_stime);
 	tpl_printf(vars, 0, "SAMPLES", "%d", cfg->ac_samples);
 	tpl_printf(vars, 0, "PENALTY", "%d", cfg->ac_penalty);

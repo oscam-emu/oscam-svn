@@ -471,6 +471,7 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 <form action=\"config.html\" method=\"get\">\n\
 	<input name=\"part\" type=\"hidden\" value=\"monitor\">\n\
 	<input name=\"action\" type=\"hidden\" value=\"execute\">\n\
+  <input name=\"httphideidleclients\" type=\"hidden\" value=\"0\">\n\
 	<TABLE cellspacing=\"0\">\n\
 		<TR><TH>&nbsp;</TH><TH>Edit Monitor Config</TH></TR>\n\
 		<TR><TD>Port:</TD><TD><input name=\"port\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##MONPORT##\"></TD></TR>\n\
@@ -494,7 +495,7 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 		<TR><TD>Httpcss:</TD><TD><input name=\"httpcss\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"##HTTPCSS##\"></TD></TR>\n\
 		<TR><TD>Httprefresh:</TD><TD><input name=\"httprefresh\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##HTTPREFRESH##\"></TD></TR>\n\
 		<TR><TD>Httptpl:</TD><TD><input name=\"httptpl\" type=\"text\" size=\"50\" maxlength=\"100\" value=\"##HTTPTPL##\"></TD></TR>\n\
-    <TR><TD>HttpHideIdleClients:</TD><TD><input name=\"httphideidleclients\" type=\"text\" size=\"5\" maxlength=\"1\" value=\"##HTTPHIDEIDLECLIENTS##\"></TD></TR>\n\
+    <TR><TD>HttpHideIdleClients:</TD><TD><input name=\"httphideidleclients\" type=\"checkbox\" value=\"1\" ##CHECKED##>\n\
     <TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\">\n</TD></TR>\n\
 	</TABLE>\n\
 </form>\n\
