@@ -265,6 +265,7 @@ void send_oscam_config_monitor(struct templatevars *vars, FILE *f, struct uripar
 	tpl_addVar(vars, 0, "HTTPCSS", cfg->http_css);
 	tpl_printf(vars, 0, "HTTPREFRESH", "%d", cfg->http_refresh);
 	tpl_addVar(vars, 0, "HTTPTPL", cfg->http_tpl);
+	tpl_printf(vars, 0, "HTTPHIDEIDLECLIENTS", "%d", cfg->http_hide_idle_clients);
 
 	  struct s_ip *cip;
 	  char *dot="";
@@ -715,7 +716,7 @@ void send_oscam_status(struct templatevars *vars, FILE *f) {
 	for (i=0; i<CS_MAXPID; i++)	{
 		if (client[i].pid) {
 
-			//if((client[i].typ == 'c') && (client[i].last_srvid == 0)) continue;
+			if((cfg->http_hide_idle_clients == 1) && (client[i].typ == 'c') && ((now - client[i].lastecm) > 30)) continue;
 
 			if ((cfg->mon_hideclient_to <= 0) ||	(((now-client[i].lastecm)/60)<cfg->mon_hideclient_to) ||
 			(((now-client[i].lastemm)/60)<cfg->mon_hideclient_to) || (client[i].typ!='c')){

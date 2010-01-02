@@ -541,6 +541,7 @@ struct s_config
   char      http_css[128];
   char      http_tpl[128];
   int				http_refresh;
+  int				http_hide_idle_clients;
   int       c33_port;
   in_addr_t c33_srvip;
   uchar     c33_key[16];

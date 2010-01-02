@@ -428,6 +428,7 @@ void chk_t_monitor(char *token, char *value)
   if (!strcmp(token, "httpcss")) { strncpy(cfg->http_css, value, sizeof(cfg->http_css)-1); cfg->http_css[sizeof(cfg->http_css)-1] = '\0'; return; }
   if (!strcmp(token, "httptpl")) { strncpy(cfg->http_tpl, value, sizeof(cfg->http_tpl)-1); cfg->http_css[sizeof(cfg->http_tpl)-1] = '\0'; return; }
   if (!strcmp(token, "httprefresh")) { cfg->http_refresh=atoi(value); return; }
+  if (!strcmp(token, "httphideidleclients")) { cfg->http_hide_idle_clients=atoi(value); return; }
   if (!strcmp(token, "hideclient_to")) { cfg->mon_hideclient_to=atoi(value); return; }
   if (token[0] != '#')
     fprintf(stderr, "Warning: keyword '%s' in monitor section not recognized\n",token);
@@ -672,6 +673,7 @@ int init_config()
   strcpy(cfg->http_pwd, "");
   strcpy(cfg->http_css, "");
   cfg->http_refresh=0;
+  cfg->http_hide_idle_clients=0;
   strcpy(cfg->http_tpl, "");
 #ifdef CS_ANTICASC
   cfg->ac_enabled=0;
