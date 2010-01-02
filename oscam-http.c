@@ -105,7 +105,7 @@ void send_oscam_config_camd33(struct templatevars *vars, FILE *f, struct uripara
 	tpl_addVar(vars, 0, "SERVERIP", inet_ntoa(*(struct in_addr *)&cfg->c33_srvip));
 	tpl_printf(vars, 0, "PASSIVE", "%d",  cfg->c33_passive);
 
-	for (i = 0; i < sizeof(cfg->c33_key); ++i) tpl_printf(vars, 1, "KEY", "%02X",cfg->c33_key[i]);		
+	for (i = 0; i < sizeof(cfg->c33_key); ++i) tpl_printf(vars, 1, "KEY", "%02X",cfg->c33_key[i]);
 	  struct s_ip *cip;
 	  char *dot="";
   for (cip = cfg->rad_allowed; cip; cip = cip->next){
@@ -148,7 +148,7 @@ void send_oscam_config_newcamd(struct templatevars *vars, FILE *f, struct uripar
 		}
 		tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration newcamd *DONE*</B><BR><BR>");
 		refresh_oscam(REFR_SERVER);
-	} 
+	}
 		int j;
 		char *dot1, *dot2;
 		if (cfg->ncd_ptab.nports>0){
@@ -184,7 +184,7 @@ void send_oscam_config_radegast(struct templatevars *vars, FILE *f, struct uripa
 		}
 		tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration Radegast *DONE*</B><BR><BR>");
 		refresh_oscam(REFR_SERVER);
-	}	
+	}
 	tpl_printf(vars, 0, "PORT", "%d", cfg->rad_port);
 	tpl_addVar(vars, 0, "SERVERIP", inet_ntoa(*(struct in_addr *)&cfg->rad_srvip));
 	tpl_addVar(vars, 0, "USER", cfg->rad_usr);
@@ -264,7 +264,7 @@ void send_oscam_config_monitor(struct templatevars *vars, FILE *f, struct uripar
 	tpl_addVar(vars, 0, "HTTPPASSWORD", cfg->http_pwd);
 	tpl_addVar(vars, 0, "HTTPCSS", cfg->http_css);
 	tpl_printf(vars, 0, "HTTPREFRESH", "%d", cfg->http_refresh);
-	tpl_addVar(vars, 0, "HTTPTPL", cfg->http_tpl);	
+	tpl_addVar(vars, 0, "HTTPTPL", cfg->http_tpl);
 
 	  struct s_ip *cip;
 	  char *dot="";
@@ -277,7 +277,7 @@ void send_oscam_config_monitor(struct templatevars *vars, FILE *f, struct uripar
 	//Monlevel selector
 	tpl_printf(vars, 0, "TMP", "MONSELECTED%d", cfg->mon_level);
 	tpl_addVar(vars, 0, tpl_getVar(vars, "TMP"), "selected");
-	
+
 	fputs(tpl_getTpl(vars, "CONFIGMONITOR"), f);
 }
 
@@ -666,21 +666,21 @@ void send_oscam_user_config(struct templatevars *vars, FILE *f, struct uriparams
 
 void send_oscam_entitlement(struct templatevars *vars, FILE *f, struct uriparams *params) {
   /* build entitlements from reader init history */
+#ifdef CS_RDR_INIT_HIST
 	int ridx;
 	char *p;
 	char *reader_ = getParam(params, "reader");
 	if(strlen(reader_) > 0){
-#ifdef CS_RDR_INIT_HIST
 		for (ridx=0; ridx<CS_MAXREADER && strcmp(reader_, reader[ridx].label) != 0; ridx++);
 		if(ridx<CS_MAXREADER){
 			for (p=(char *)reader[ridx].init_history; *p; p+=strlen(p)+1){
 				tpl_printf(vars, 1, "LOGHISTORY", "%s<BR>\n", p);
 			}
 		}
+		tpl_addVar(vars, 0, "READERNAME", reader_);
 #else
 		tpl_addVar(vars, 0, "LOGHISTORY", "The flag CS_RDR_INIT_HIST is not set in your binary<BR>\n");
 #endif
-		tpl_addVar(vars, 0, "READERNAME", reader_);
 	}
 	fputs(tpl_getTpl(vars, "ENTITLEMENTS"), f);
 }
@@ -729,8 +729,8 @@ void send_oscam_status(struct templatevars *vars, FILE *f) {
 			tpl_addVar(vars, 0, "CLIENTSRVNAME", monitor_get_srvname(client[i].last_srvid));
 			tpl_printf(vars, 0, "CLIENTIDLESECS", "%d", isec);
 			tpl_printf(vars, 0, "CLIENTCON", "%d", con);
-				tpl_printf(vars, 0, "CWOK", "%d", client[i].cwfound);
-				tpl_printf(vars, 0, "CWNOK", "%d", client[i].cwnot);
+			tpl_printf(vars, 0, "CWOK", "%d", client[i].cwfound);
+			tpl_printf(vars, 0, "CWNOK", "%d", client[i].cwnot);
 			tpl_addVar(vars, 1, "CLIENTSTATUS", tpl_getTpl(vars, "CLIENTSTATUSBIT"));
 		}
 	}
