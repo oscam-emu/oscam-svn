@@ -73,6 +73,7 @@ A:hover {text-decoration: none; color: red;}"
 			<TD CLASS=\"menu\"><A HREF=\"config.html?part=gbox\">Gbox</TD>\n\
 			##TPLCONFIGMENUANTICASC##\
 			<TD CLASS=\"menu\"><A HREF=\"config.html?part=monitor\">Monitor</TD>\n\
+			<TD CLASS=\"menu\"><A HREF=\"config.html?part=serial\">Serial</TD>\n\
 		</TR>\n\
 	</TABLE>"
 
@@ -381,8 +382,8 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
       <TD>Boxid:</TD>\n\
       <TD><input name=\"boxid\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##BOXID##\"></TD>\n\
     </TR>\n\
+    <TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\">\n</TD></TR>\n\
   </TABLE>\n\
-  <input type=\"submit\" value=\"OK\"></form>\n\
 <BR><BR>Saving not yet implemented - Nothing changes on click<BR><BR>\n\
 ##TPLFOOTER##"
 #define TPLSAVETEMPLATES "##TPLHEADER##\
@@ -414,8 +415,8 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 		<TR><TD>Onlineinfos:</TD><TD><input name=\"onlineinfos\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"##ONLINEINFOS##\"></TD></TR>\n\
 		<TR><TD>Cardinfos:</TD><TD><input name=\"cardinfos\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"##CARDINFOS##\"></TD></TR>\n\
 		<TR><TD>Locals:</TD><TD><input name=\"locals\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"##LOCALS##\"></TD></TR>\n\
+    <TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\">\n</TD></TR>\n\
 	</TABLE>\n\
-<input type=\"submit\" value=\"OK\"></form>\n\
 ##TPLFOOTER##"
 
 #ifdef CS_ANTICASC
@@ -438,8 +439,8 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 		<TR><TD>AClogfile:</TD><TD><input name=\"aclogfile\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"##ACLOGFILE##\"></TD></TR>\n\
 		<TR><TD>Fakedelay:</TD><TD><input name=\"fakedelay\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##FAKEDELAY##\"></TD></TR>\n\
 		<TR><TD>Denysamples:</TD><TD><input name=\"denysamples\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##DENYSAMPLES##\"></TD></TR>\n\
+    <TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\">\n</TD></TR>\n\
 	</TABLE>\n\
-	<input type=\"submit\" value=\"OK\">\n\
 </form>\n\
 ##TPLFOOTER##"
 #endif
@@ -455,8 +456,8 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 	<input name=\"action\" type=\"hidden\" value=\"execute\">\n\
 	<TABLE cellspacing=\"0\">\n\
 		<TR><TH>&nbsp;</TH><TH>Edit Cccam Config</TH></TR>\n\
+    <TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\">\n</TD></TR>\n\
 	</TABLE>\n\
-	<input type=\"submit\" value=\"OK\">\n\
 </form>\n\
 <BR><BR>Configuration Cccam not yet implemented<BR><BR>\n\
 ##TPLFOOTER##"
@@ -493,8 +494,8 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 		<TR><TD>Httpcss:</TD><TD><input name=\"httpcss\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"##HTTPCSS##\"></TD></TR>\n\
 		<TR><TD>Httprefresh:</TD><TD><input name=\"httprefresh\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##HTTPREFRESH##\"></TD></TR>\n\
 		<TR><TD>Httptpl:</TD><TD><input name=\"httptpl\" type=\"text\" size=\"50\" maxlength=\"100\" value=\"##HTTPTPL##\"></TD></TR>\n\
+    <TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\">\n</TD></TR>\n\
 	</TABLE>\n\
-	<input type=\"submit\" value=\"OK\">\n\
 </form>\n\
 ##TPLFOOTER##"
 
@@ -513,8 +514,8 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 		<TR><TD>Serverip:</TD><TD><input name=\"serverip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##SERVERIP##\"></TD></TR>\n\
 		<TR><TD>Allowed:</TD><TD><input name=\"allowed\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"##ALLOWED##\">wrong, see Ticket #265</TD></TR>\n\
 		<TR><TD>User:</TD><TD><input name=\"user\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##USER##\"></TD></TR>\n\
+    <TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\">\n</TD></TR>\n\
 	</TABLE>\n\
-	<input type=\"submit\" value=\"OK\">\n\
 </form>\n\
 ##TPLFOOTER##"
 
@@ -532,8 +533,8 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 		<TR><TD>Port:</TD><TD><input name=\"port\" type=\"text\" size=\"80\" maxlength=\"200\" value=\"##PORT##\"></TD></TR>\n\
 		<TR><TD>Serverip:</TD><TD><input name=\"serverip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##SERVERIP##\"></TD></TR>\n\
 		<TR><TD>Key:</TD><TD><input name=\"key\" type=\"text\" size=\"35\" maxlength=\"28\" value=\"##KEY##\"></TD></TR>\n\
+    <TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\">\n</TD></TR>\n\
 	</TABLE>\n\
-	<input type=\"submit\" value=\"OK\">\n\
 </form>\n\
 ##TPLFOOTER##"
 
@@ -568,8 +569,8 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 		<TR><TD>Showecmdw:</TD><TD><input name=\"showecmdw\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##SHOWECMDW##\"></TD></TR>\n\
 		<TR><TD>Waitforcards:</TD><TD><input name=\"waitforcards\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##WAITFORCARDS##\"></TD></TR>\n\
 		<TR><TD>Preferlocalcards:</TD><TD><input name=\"preferlocalcards\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##PREFERLOCALCARDS##\"></TD></TR>\n\
+    <TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\">\n</TD></TR>\n\
 	</TABLE>\n\
-	<input type=\"submit\" value=\"OK\">\n\
 </form>\n\
 <BR><BR>Configuration Global not yet implemented chengings havn't any effect<BR><BR>\n\
 ##TPLFOOTER##"
@@ -590,8 +591,8 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 		<TR><TD>Key:</TD><TD><input name=\"key\" type=\"text\" size=\"35\" maxlength=\"28\" value=\"##KEY##\"></TD></TR>\n\
 		<TR><TD>Passive:</TD><TD><input name=\"passive\" type=\"text\" size=\"3\" maxlength=\"1\" value=\"##PASSIVE##\"></TD></TR>\n\
 		<TR><TD>Nocrypt:</TD><TD><input name=\"nocrypt\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"##NOCRYPT##\">wrong, see Ticket #265</TD></TR>\n\
+    <TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\">\n</TD></TR>\n\
 	</TABLE>\n\
-	<input type=\"submit\" value=\"OK\">\n\
 </form>\n\
 <BR><BR>Configuration camd33 not yet implemented<BR><BR>\n\
 ##TPLFOOTER##"
@@ -602,17 +603,35 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 ##TPLCONFIGMENU##\n\
 <BR><BR>\n\
 ##MESSAGE##\
-<form action=\"/config.html\" method=\"get\">\n\
+<form action=\"config.html\" method=\"get\">\n\
 	<input name=\"part\" type=\"hidden\" value=\"camd35\">\n\
 	<input name=\"action\" type=\"hidden\" value=\"execute\">\n\
 	<TABLE cellspacing=\"0\">\n\
 		<TR><TH>&nbsp;</TH><TH>Edit Camd35 Config</TH></TR>\n\
 		<TR><TD>Port:</TD><TD><input name=\"port\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##PORT##\"></TD></TR>\n\
 		<TR><TD>Serverip:</TD><TD><input name=\"serverip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##SERVERIP##\"></TD></TR>\n\
+    <TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\">\n</TD></TR>\n\
 	</TABLE>\n\
-	<input type=\"submit\" value=\"OK\">\n\
 </form>\n\
 <BR><BR>Configuration camd35 not yet implemented<BR><BR>\n\
+##TPLFOOTER##"
+
+#define TPLCONFIGSERIAL "\
+##TPLHEADER##\
+##TPLMENU##\n\
+##TPLCONFIGMENU##\n\
+<BR><BR>\n\
+##MESSAGE##\
+<form action=\"config.html\" method=\"get\">\n\
+	<input name=\"part\" type=\"hidden\" value=\"serial\">\n\
+	<input name=\"action\" type=\"hidden\" value=\"execute\">\n\
+	<TABLE cellspacing=\"0\">\n\
+		<TR><TH>&nbsp;</TH><TH>Edit Serial Config</TH></TR>\n\
+		<TR><TD>Device:</TD><TD><input name=\"device\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"##SERIALDEVICE##\"></TD></TR>\n\
+    <TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\">\n</TD></TR>\n\
+	</TABLE>\n\
+</form>\n\
+<BR><BR>Configuration Serial not yet implemented<BR><BR>\n\
 ##TPLFOOTER##"
 
 enum refreshtypes {REFR_ACCOUNTS, REFR_READERS, REFR_SERVER, REFR_ANTICASC};
@@ -647,7 +666,8 @@ char *tpl[]={
 	"CONFIGNEWCAMD",
 	"CONFIGGLOBAL",
 	"CONFIGCAMD33",
-	"CONFIGCAMD35"
+	"CONFIGCAMD35",
+	"CONFIGSERIAL"
 #ifdef CS_ANTICASC
 	,"USEREDITANTICASC"
 	,"CONFIGANTICASC"
@@ -685,7 +705,8 @@ char *tplmap[]={
 	TPLCONFIGNEWCAMD,
 	TPLCONFIGGLOBAL,
 	TPLCONFIGCAMD33,
-	TPLCONFIGCAMD35
+	TPLCONFIGCAMD35,
+	TPLCONFIGSERIAL
 #ifdef CS_ANTICASC
 	,TPLUSEREDITANTICASC
 	,TPLCONFIGANTICASC

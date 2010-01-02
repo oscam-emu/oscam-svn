@@ -281,6 +281,25 @@ void send_oscam_config_monitor(struct templatevars *vars, FILE *f, struct uripar
 	fputs(tpl_getTpl(vars, "CONFIGMONITOR"), f);
 }
 
+void send_oscam_config_serial(struct templatevars *vars, FILE *f, struct uriparams *params) {
+	int i;
+	if (strcmp(getParam(params, "action"),"execute") == 0){
+			for(i = 0; i < (*params).paramcount; ++i){
+				if ((strcmp((*params).params[i], "part")) && (strcmp((*params).params[i], "action"))){
+					tpl_printf(vars, 1, "MESSAGE", "Parameter: %s set to Value: %s<BR>\n", (*params).params[i], (*params).values[i]);
+					//we use the same function as used for parsing the config tokens
+					chk_t_serial((*params).params[i], (*params).values[i]);
+				}
+			}
+			tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration Serial *DONE*</B><BR><BR>");
+			refresh_oscam(REFR_SERVER);
+	}
+
+	tpl_addVar(vars, 0, "SERIALDEVICE", cfg->ser_device);
+
+	fputs(tpl_getTpl(vars, "CONFIGSERIAL"), f);
+}
+
 #ifdef CS_ANTICASC
 void send_oscam_config_anticasc(struct templatevars *vars, FILE *f, struct uriparams *params) {
 	int i;
@@ -320,6 +339,7 @@ void send_oscam_config(struct templatevars *vars, FILE *f, struct uriparams *par
 	else if (!strcmp(part,"anticasc")) send_oscam_config_anticasc(vars, f, params);
 #endif
 	else if (!strcmp(part,"monitor")) send_oscam_config_monitor(vars, f, params);
+	else if (!strcmp(part,"serial")) send_oscam_config_serial(vars, f, params);
 	else send_oscam_config_global(vars, f, params);
 }
 
@@ -687,54 +707,58 @@ void send_oscam_entitlement(struct templatevars *vars, FILE *f, struct uriparams
 
 void send_oscam_status(struct templatevars *vars, FILE *f) {
 	int i;
-		char *usr;
-		int lsec, isec, cnr, con, cau;
-		time_t now = time((time_t)0);
-		struct tm *lt;
+	char *usr;
+	int lsec, isec, cnr, con, cau;
+	time_t now = time((time_t)0);
+	struct tm *lt;
+
 	for (i=0; i<CS_MAXPID; i++)	{
 		if (client[i].pid) {
-		if ((cfg->mon_hideclient_to <= 0) ||	(((now-client[i].lastecm)/60)<cfg->mon_hideclient_to) ||
-		(((now-client[i].lastemm)/60)<cfg->mon_hideclient_to) || (client[i].typ!='c')){
-			lsec=now-client[i].login;
-			isec=now-client[i].last;
-			usr=client[i].usr;
 
-			if (((client[i].typ=='r') || (client[i].typ=='p')) && (con=cs_idx2ridx(i))>=0) usr=reader[con].label;
+			//if((client[i].typ == 'c') && (client[i].last_srvid == 0)) continue;
 
-			if (client[i].dup) con=2;
-				else if ((client[i].tosleep) && (now-client[i].lastswitch>client[i].tosleep)) con=1;
-				else con=0;
+			if ((cfg->mon_hideclient_to <= 0) ||	(((now-client[i].lastecm)/60)<cfg->mon_hideclient_to) ||
+			(((now-client[i].lastemm)/60)<cfg->mon_hideclient_to) || (client[i].typ!='c')){
+				lsec=now-client[i].login;
+				isec=now-client[i].last;
+				usr=client[i].usr;
 
-			if (i-cdiff>0) cnr=i-cdiff;
-			else cnr=(i>1) ? i-1 : 0;
+				if (((client[i].typ=='r') || (client[i].typ=='p')) && (con=cs_idx2ridx(i))>=0) usr=reader[con].label;
 
-			if( (cau=client[i].au+1) && (now-client[i].lastemm)/60 > cfg->mon_aulow) cau=-cau;
+				if (client[i].dup) con=2;
+					else if ((client[i].tosleep) && (now-client[i].lastswitch>client[i].tosleep)) con=1;
+					else con=0;
 
-			lt=localtime(&client[i].login);
+				if (i-cdiff>0) cnr=i-cdiff;
+				else cnr=(i>1) ? i-1 : 0;
 
-			tpl_printf(vars, 0, "CLIENTPID", "%d", client[i].pid);
-			tpl_printf(vars, 0, "CLIENTTYPE", "%c", client[i].typ);
-			tpl_printf(vars, 0, "CLIENTCNR", "%d", cnr);
-			tpl_addVar(vars, 0, "CLIENTUSER", usr);
-			tpl_printf(vars, 0, "CLIENTCAU", "%d", cau);
-			tpl_printf(vars, 0, "CLIENTCRYPTED", "%d", client[i].crypted);
-			tpl_printf(vars, 0, "CLIENTIP", "%s", cs_inet_ntoa(client[i].ip));
-			tpl_printf(vars, 0, "CLIENTPORT", "%d", client[i].port);
-			tpl_addVar(vars, 0, "CLIENTPROTO", monitor_get_proto(i));
-			tpl_printf(vars, 0, "CLIENTLOGINDATE", "%02d.%02d.%02d", lt->tm_mday, lt->tm_mon+1, lt->tm_year%100);
-			tpl_printf(vars, 0, "CLIENTLOGINTIME", "%02d:%02d:%02d", lt->tm_hour, lt->tm_min, lt->tm_sec);
-			tpl_printf(vars, 0, "CLIENTLOGINSECS", "%d", lsec);
-			tpl_printf(vars, 0, "CLIENTCAID", "%04X", client[i].last_caid);
-			tpl_printf(vars, 0, "CLIENTSRVID", "%04X", client[i].last_srvid);
-			tpl_addVar(vars, 0, "CLIENTSRVNAME", monitor_get_srvname(client[i].last_srvid));
-			tpl_printf(vars, 0, "CLIENTIDLESECS", "%d", isec);
-			tpl_printf(vars, 0, "CLIENTCON", "%d", con);
-			tpl_printf(vars, 0, "CWOK", "%d", client[i].cwfound);
-			tpl_printf(vars, 0, "CWNOK", "%d", client[i].cwnot);
-			tpl_addVar(vars, 1, "CLIENTSTATUS", tpl_getTpl(vars, "CLIENTSTATUSBIT"));
+				if( (cau=client[i].au+1) && (now-client[i].lastemm)/60 > cfg->mon_aulow) cau=-cau;
+
+				lt=localtime(&client[i].login);
+
+				tpl_printf(vars, 0, "CLIENTPID", "%d", client[i].pid);
+				tpl_printf(vars, 0, "CLIENTTYPE", "%c", client[i].typ);
+				tpl_printf(vars, 0, "CLIENTCNR", "%d", cnr);
+				tpl_addVar(vars, 0, "CLIENTUSER", usr);
+				tpl_printf(vars, 0, "CLIENTCAU", "%d", cau);
+				tpl_printf(vars, 0, "CLIENTCRYPTED", "%d", client[i].crypted);
+				tpl_printf(vars, 0, "CLIENTIP", "%s", cs_inet_ntoa(client[i].ip));
+				tpl_printf(vars, 0, "CLIENTPORT", "%d", client[i].port);
+				tpl_addVar(vars, 0, "CLIENTPROTO", monitor_get_proto(i));
+				tpl_printf(vars, 0, "CLIENTLOGINDATE", "%02d.%02d.%02d", lt->tm_mday, lt->tm_mon+1, lt->tm_year%100);
+				tpl_printf(vars, 0, "CLIENTLOGINTIME", "%02d:%02d:%02d", lt->tm_hour, lt->tm_min, lt->tm_sec);
+				tpl_printf(vars, 0, "CLIENTLOGINSECS", "%d", lsec);
+				tpl_printf(vars, 0, "CLIENTCAID", "%04X", client[i].last_caid);
+				tpl_printf(vars, 0, "CLIENTSRVID", "%04X", client[i].last_srvid);
+				tpl_addVar(vars, 0, "CLIENTSRVNAME", monitor_get_srvname(client[i].last_srvid));
+				tpl_printf(vars, 0, "CLIENTIDLESECS", "%d", isec);
+				tpl_printf(vars, 0, "CLIENTCON", "%d", con);
+				tpl_printf(vars, 0, "CWOK", "%d", client[i].cwfound);
+				tpl_printf(vars, 0, "CWNOK", "%d", client[i].cwnot);
+				tpl_addVar(vars, 1, "CLIENTSTATUS", tpl_getTpl(vars, "CLIENTSTATUSBIT"));
+			}
 		}
 	}
-}
 
 #ifdef CS_LOGHISTORY
 	for (i=(*loghistidx+3) % CS_MAXLOGHIST; i!=*loghistidx; i=(i+1) % CS_MAXLOGHIST){
