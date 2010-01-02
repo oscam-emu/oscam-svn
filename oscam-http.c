@@ -449,10 +449,11 @@ void send_oscam_reader_config(struct templatevars *vars, FILE *f, struct uripara
 
 void send_oscam_user_config_edit(struct templatevars *vars, FILE *f, struct uriparams *params){
 	struct s_auth *account, *ptr;
-	char *user;
+	char user[128];
 
-	if (strcmp(getParam(params, "action"), "Save As") == 0) user = getParam(params, "newuser");
-	else user = getParam(params, "user");
+	if (strcmp(getParam(params, "action"), "Save As") == 0) strncpy(user, getParam(params, "newuser"), sizeof(user)/sizeof(char) - 1);
+	else strncpy(user, getParam(params, "user"), sizeof(user)/sizeof(char) - 1);
+	user[sizeof(user)/sizeof(char) - 1] = '\0';
 
 	int i, j;
 
@@ -460,6 +461,13 @@ void send_oscam_user_config_edit(struct templatevars *vars, FILE *f, struct urip
 
 	// Create a new user if it doesn't yet
 	if (account == NULL){
+		i = 1;
+		while(strlen(user) < 1){
+			snprintf(user, sizeof(user)/sizeof(char) - 1, "NEWUSER%d", i);
+			for (account = cfg->account; account != NULL && strcmp(user, account->usr) != 0; account = account->next);
+			if(account != NULL) user[0] = '\0';
+			++i;
+		}
 	  if (!(account=malloc(sizeof(struct s_auth)))){
         cs_log("Error allocating memory (errno=%d)", errno);
         return;
