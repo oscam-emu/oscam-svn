@@ -9,14 +9,6 @@
 #include <dirent.h>
 #include <sys/socket.h>
 
-static char* monlevel[] = {
-			"0 = no access to monitor",
-			"1 = only server and own procs",
-			"2 = all procs, but viewing only, default",
-			"3 = all procs, reload of oscam.user possible",
-			"4 = complete access"
-			};
-
 void refresh_oscam(enum refreshtypes refreshtype){
 int i;
 	switch (refreshtype){
@@ -57,223 +49,116 @@ int i;
 	}
 }
 
-void send_oscam_config_global(FILE *f, struct uriparams *params) {
+void send_oscam_config_global(struct templatevars *vars, FILE *f, struct uriparams *params) {
 	int i;
 
-	fprintf(f,"<BR><BR>");
-
 	if (strcmp(getParam(params, "action"), "execute") == 0){
-		//we found the execute flag
-		for(i=0;i<(*params).paramcount;i++){
+		for(i = 0; i < (*params).paramcount; ++i){
 			if ((strcmp((*params).params[i], "part")) && (strcmp((*params).params[i], "action"))){
-				fprintf(f,"Parameter: %s set to Value: %s<BR>\r\n", (*params).params[i], (*params).values[i]);
+				tpl_printf(vars, 1, "MESSAGE", "Parameter: %s set to Value: %s<BR>\n", (*params).params[i], (*params).values[i]);
 				//we use the same function as used for parsing the config tokens
 				chk_t_global((*params).params[i], (*params).values[i]);
 			}
 		}
-
-		//Disclaimer
-		fprintf(f,"<BR><BR><B>Configuration Global *DONE*</B><BR><BR>");
+		tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration Global *DONE*</B><BR><BR>");
 		refresh_oscam(REFR_SERVER);
-	} else {
-
-		//if nothing above matches we show the form
-		fprintf(f,"<form action=\"/config.html\" method=\"get\">\r\n");
-		fprintf(f,"<input name=\"part\" type=\"hidden\" value=\"global\">\r\n");
-		fprintf(f,"<input name=\"action\" type=\"hidden\" value=\"execute\">\r\n");
-		fprintf(f,"<TABLE cellspacing=\"0\">");
-		fprintf(f,"\t<TH>&nbsp;</TH><TH>Edit Global Config </TH>");
-
-		//ServerIP
-		fprintf(f,"\t<TR><TD>Serverip:</TD><TD><input name=\"serverip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"%s\"></TD></TR>\r\n", inet_ntoa(*(struct in_addr *)&cfg->srvip));
-		//Logfile
-		fprintf(f,"\t<TR><TD>Logfile:</TD><TD><input name=\"logfile\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"%s\"></TD></TR>\r\n", logfile);
-		//PID File
-		fprintf(f,"\t<TR><TD>PID File:</TD><TD><input name=\"pidfile\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"%s\"></TD></TR>\r\n", cfg->pidfile);
-		//Userfile
-		fprintf(f,"\t<TR><TD>Usrfile:</TD><TD><input name=\"usrfile\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"%s\"></TD></TR>\r\n", cfg->usrfile);
-		//Logfile
-		fprintf(f,"\t<TR><TD>CWlogdir:</TD><TD><input name=\"cwlogdir\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"%s\"></TD></TR>\r\n", cfg->cwlogdir);
-		//Clienttimeout
-		fprintf(f,"\t<TR><TD>Clienttimeout:</TD><TD><input name=\"clienttimeout\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%ld\"></TD></TR>\r\n", cfg->ctimeout);
-		//fallbacktimeout
-		fprintf(f,"\t<TR><TD>Fallbacktimeout:</TD><TD><input name=\"fallbacktimeout\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%ld\"></TD></TR>\r\n", cfg->ftimeout);
-		//clientmaxidle
-		fprintf(f,"\t<TR><TD>Clientmaxidle:</TD><TD><input name=\"clientmaxidle\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->cmaxidle);
-		//cachedelay
-		fprintf(f,"\t<TR><TD>Cachedelay:</TD><TD><input name=\"cachedelay\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%ld\"></TD></TR>\r\n", cfg->delay);
-		//bindwait
-		fprintf(f,"\t<TR><TD>Bindwait:</TD><TD><input name=\"bindwait\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->bindwait);
-		//netprio
-		fprintf(f,"\t<TR><TD>Netprio:</TD><TD><input name=\"netprio\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%ld\"></TD></TR>\r\n", cfg->netprio);
-		//resolvedelay
-		fprintf(f,"\t<TR><TD>Resolvedelay:</TD><TD><input name=\"resolvedelay\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->resolvedelay);
-		//sleep
-		fprintf(f,"\t<TR><TD>Sleep:</TD><TD><input name=\"sleep\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->tosleep);
-		//unlockparental
-		fprintf(f,"\t<TR><TD>Unlockparental:</TD><TD><input name=\"unlockparental\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->ulparent);
-		//nice
-		fprintf(f,"\t<TR><TD>Nice:</TD><TD><input name=\"nice\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->nice);
-		//serialreadertimeout
-		fprintf(f,"\t<TR><TD>Serialreadertimeout:</TD><TD><input name=\"serialreadertimeout\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->srtimeout);
-		//maxlogsize
-		fprintf(f,"\t<TR><TD>Maxlogsize:</TD><TD><input name=\"maxlogsize\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->max_log_size);
-		//showecmdw
-		fprintf(f,"\t<TR><TD>Showecmdw:</TD><TD><input name=\"showecmdw\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->show_ecm_dw);
-		//waitforcards
-		fprintf(f,"\t<TR><TD>Waitforcards:</TD><TD><input name=\"waitforcards\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->waitforcards);
-		//preferlocalcards
-		fprintf(f,"\t<TR><TD>Preferlocalcards:</TD><TD><input name=\"preferlocalcards\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->preferlocalcards);
-
-		//Tablefoot and finish form
-		fprintf(f,"</TABLE>\r\n");
-		fprintf(f,"<input type=\"submit\" value=\"OK\"></form>\r\n");
-
-		//Disclaimer
-		fprintf(f,"<BR><BR>Configuration Global not yet implemented chengings havn't any effect<BR><BR>");
 	}
+	tpl_addVar(vars, 0, "SERVERIP", inet_ntoa(*(struct in_addr *)&cfg->srvip));
+	tpl_addVar(vars, 0, "LOGFILE", logfile);
+	tpl_addVar(vars, 0, "PIDFILE", cfg->pidfile);
+	tpl_addVar(vars, 0, "USERFILE", cfg->usrfile);
+	tpl_addVar(vars, 0, "CWLOGDIR", cfg->cwlogdir);
+	tpl_printf(vars, 0, "CLIENTTIMEOUT", "%ld", cfg->ctimeout);
+	tpl_printf(vars, 0, "FALLBACKTIMEOUT", "%ld", cfg->ftimeout);
+	tpl_printf(vars, 0, "CLIENTMAXIDLE", "%d", cfg->cmaxidle);
+	tpl_printf(vars, 0, "CACHEDELAY", "%ld", cfg->delay);
+	tpl_printf(vars, 0, "BINDWAIT", "%d", cfg->bindwait);
+	tpl_printf(vars, 0, "NETPRIO", "%ld", cfg->netprio);
+	tpl_printf(vars, 0, "RESOLVEDELAY", "%d", cfg->resolvedelay);
+	tpl_printf(vars, 0, "SLEEP", "%d", cfg->tosleep);
+	tpl_printf(vars, 0, "UNLOCKPARENTAL", "%d", cfg->ulparent);
+	tpl_printf(vars, 0, "NICE", "%d", cfg->nice);
+	tpl_printf(vars, 0, "SERIALTIMEOUT", "%d", cfg->srtimeout);
+	tpl_printf(vars, 0, "MAXLOGSIZE", "%d", cfg->max_log_size);
+	tpl_printf(vars, 0, "SHOWECMDW", "%d", cfg->show_ecm_dw);
+	tpl_printf(vars, 0, "WAITFORCARDS", "%d", cfg->waitforcards);
+	tpl_printf(vars, 0, "PREFERLOCALCARDS", "%d", cfg->preferlocalcards);
+
+	fputs(tpl_getTpl(vars, "CONFIGGLOBAL"), f);
 }
 
-void send_oscam_config_camd33(FILE *f, struct uriparams *params) {
+void send_oscam_config_camd33(struct templatevars *vars, FILE *f, struct uriparams *params) {
 	int i;
 
-	fprintf(f,"<BR><BR>");
-
 	if (strcmp(getParam(params, "action"), "execute") == 0){
-		//we found the execute flag
-		for(i=0;i<(*params).paramcount;i++){
+		for(i = 0; i < (*params).paramcount; ++i){
 			if ((strcmp((*params).params[i], "part")) && (strcmp((*params).params[i], "action"))){
-				fprintf(f,"Parameter: %s set to Value: %s<BR>\r\n", (*params).params[i], (*params).values[i]);
+				tpl_printf(vars, 1, "MESSAGE", "Parameter: %s set to Value: %s<BR>\n", (*params).params[i], (*params).values[i]);
 				//we use the same function as used for parsing the config tokens
 				chk_t_camd33((*params).params[i], (*params).values[i]);
 			}
 		}
-
-		//Disclaimer
-		fprintf(f,"<BR><BR><B>Configuration camd33 *DONE*</B><BR><BR>");
+		tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration camd33 *DONE*</B><BR><BR>");
 		refresh_oscam(REFR_SERVER);
-	} else {
+	}
+	tpl_printf(vars, 0, "PORT", "%d", cfg->c33_port);
+	tpl_addVar(vars, 0, "SERVERIP", inet_ntoa(*(struct in_addr *)&cfg->c33_srvip));
+	tpl_printf(vars, 0, "PASSIVE", "%d",  cfg->c33_passive);
 
-		//if nothing above matches we show the form
-		fprintf(f,"<form action=\"/config.html\" method=\"get\">\r\n");
-		fprintf(f,"<input name=\"part\" type=\"hidden\" value=\"camd33\">\r\n");
-		fprintf(f,"<input name=\"action\" type=\"hidden\" value=\"execute\">\r\n");
-		fprintf(f,"<TABLE cellspacing=\"0\">");
-		fprintf(f,"\t<TH>&nbsp;</TH><TH>Edit Camd33 Config </TH>");
-
-		//Port
-		fprintf(f,"\t<TR><TD>Port:</TD><TD><input name=\"port\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->c33_port);
-		//ServerIP
-		fprintf(f,"\t<TR><TD>Serverip:</TD><TD><input name=\"serverip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"%s\"></TD></TR>\r\n", inet_ntoa(*(struct in_addr *)&cfg->c33_srvip));
-		//Key
-		int keysize =sizeof(cfg->c33_key);
-		fprintf(f,"\t<TR><TD>Key:</TD><TD><input name=\"key\" type=\"text\" size=\"35\" maxlength=\"28\" value=\"");
-		for (i=0;i<keysize;i++)
-			fprintf(f,"%02X",cfg->c33_key[i]);
-		fprintf(f,"\"></TD></TR>\r\n");
-		//Passive
-		fprintf(f,"\t<TR><TD>Passive:</TD><TD><input name=\"passive\" type=\"text\" size=\"3\" maxlength=\"1\" value=\"%d\"></TD></TR>\r\n", cfg->c33_passive);
-		//Nocrypt
-		fprintf(f,"\t<TR><TD>Nocrypt:</TD><TD><input name=\"nocrypt\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"");
+	for (i = 0; i < sizeof(cfg->c33_key); ++i) tpl_printf(vars, 1, "KEY", "%02X",cfg->c33_key[i]);		
 	  struct s_ip *cip;
 	  char *dot="";
-	  for (cip=cfg->c33_plain; cip; cip=cip->next){
-	  	if (!(cip->ip[0] == cip->ip[1]))
-				fprintf(f,"%s%s-%s", dot, inet_ntoa(*(struct in_addr *)&cip->ip[0]), inet_ntoa(*(struct in_addr *)&cip->ip[1]));
-	  	else
-				fprintf(f,"%s%s", dot, inet_ntoa(*(struct in_addr *)&cip->ip[0]));
+  for (cip = cfg->rad_allowed; cip; cip = cip->next){
+  	tpl_printf(vars, 1, "NOCRYPT", "%s%s", dot, inet_ntoa(*(struct in_addr *)&cip->ip[0]));
+  	if (cip->ip[0] == cip->ip[1])	tpl_printf(vars, 1, "NOCRYPT", "-%s", inet_ntoa(*(struct in_addr *)&cip->ip[1]));
+  	dot=",";
 	  }
-		fprintf(f,"\">wrong, see Ticket #265</TD></TR>\r\n");
 
-		//Tablefoot and finish form
-		fprintf(f,"</TABLE>\r\n");
-		fprintf(f,"<input type=\"submit\" value=\"OK\"></form>\r\n");
-
-		//Disclaimer
-		fprintf(f,"<BR><BR>Configuration camd33 not yet implemented<BR><BR>");
-	}
+	fputs(tpl_getTpl(vars, "CONFIGCAMD33"), f);
 }
 
-void send_oscam_config_camd35(FILE *f, struct uriparams *params) {
+void send_oscam_config_camd35(struct templatevars *vars, FILE *f, struct uriparams *params) {
 	int i;
-
-	fprintf(f,"<BR><BR>");
-
 	if (strcmp(getParam(params, "action"),"execute") == 0){
-			//we found the execute flag
-			for(i=0;i<(*params).paramcount;i++){
+			for(i = 0; i < (*params).paramcount; ++i){
 				if ((strcmp((*params).params[i], "part")) && (strcmp((*params).params[i], "action"))){
-					fprintf(f,"Parameter: %s set to Value: %s<BR>\r\n", (*params).params[i], (*params).values[i]);
+					tpl_printf(vars, 1, "MESSAGE", "Parameter: %s set to Value: %s<BR>\n", (*params).params[i], (*params).values[i]);
 					//we use the same function as used for parsing the config tokens
 					chk_t_camd35((*params).params[i], (*params).values[i]);
 				}
 			}
-
-			//Disclaimer
-			fprintf(f,"<BR><BR><B>Configuration camd35 *DONE*</B><BR><BR>");
+			tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration camd35 *DONE*</B><BR><BR>");
 			refresh_oscam(REFR_SERVER);
-	} else {
-		//if nothing above matches we show the form
-		fprintf(f,"<form action=\"/config.html\" method=\"get\">\r\n");
-		fprintf(f,"<input name=\"part\" type=\"hidden\" value=\"camd35\">\r\n");
-		fprintf(f,"<input name=\"action\" type=\"hidden\" value=\"execute\">\r\n");
-		fprintf(f,"<TABLE cellspacing=\"0\">");
-		fprintf(f,"\t<TH>&nbsp;</TH><TH>Edit Camd35 Config </TH>");
-
-		//Port
-		fprintf(f,"\t<TR><TD>Port:</TD><TD><input name=\"port\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->c35_port);
-		//ServerIP
-		fprintf(f,"\t<TR><TD>Serverip:</TD><TD><input name=\"serverip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"%s\"></TD></TR>\r\n", inet_ntoa(*(struct in_addr *)&cfg->c35_tcp_srvip));
-
-		//Tablefoot and finish form
-		fprintf(f,"</TABLE>\r\n");
-		fprintf(f,"<input type=\"submit\" value=\"OK\"></form>\r\n");
-
-		//Disclaimer
-		fprintf(f,"<BR><BR>Configuration camd35 not yet implemented<BR><BR>");
 	}
+	tpl_printf(vars, 0, "PORT", "%d", cfg->c35_port);
+	tpl_addVar(vars, 1, "SERVERIP", inet_ntoa(*(struct in_addr *)&cfg->c35_tcp_srvip));
+
+	fputs(tpl_getTpl(vars, "CONFIGCAMD35"), f);
 }
 
-void send_oscam_config_newcamd(FILE *f, struct uriparams *params) {
+void send_oscam_config_newcamd(struct templatevars *vars, FILE *f, struct uriparams *params) {
 	int i;
-
-	fprintf(f,"<BR><BR>");
-
 	if (strcmp(getParam(params, "action"),"execute") == 0){
-		//we found the execute flag
-		for(i=0;i<(*params).paramcount;i++){
+		for(i = 0; i < (*params).paramcount; ++i){
 			if ((strcmp((*params).params[i], "part")) && (strcmp((*params).params[i], "action"))){
-				fprintf(f,"Parameter: %s set to Value: %s<BR>\r\n", (*params).params[i], (*params).values[i]);
+				tpl_printf(vars, 1, "MESSAGE", "Parameter: %s set to Value: %s<BR>\n", (*params).params[i], (*params).values[i]);
 				//we use the same function as used for parsing the config tokens
 				chk_t_newcamd((*params).params[i], (*params).values[i]);
 			}
 		}
-
-		//Disclaimer
-		fprintf(f,"<BR><BR><B>Configuration newcamd *DONE*</B><BR><BR>");
+		tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration newcamd *DONE*</B><BR><BR>");
 		refresh_oscam(REFR_SERVER);
-	} else {
-		//if nothing above matches we show the form
-		fprintf(f,"<form action=\"/config.html\" method=\"get\">\r\n");
-		fprintf(f,"<input name=\"part\" type=\"hidden\" value=\"newcamd\">\r\n");
-		fprintf(f,"<input name=\"action\" type=\"hidden\" value=\"execute\">\r\n");
-		fprintf(f,"<TABLE cellspacing=\"0\">");
-		fprintf(f,"\t<TH>&nbsp;</TH><TH>Edit Newcamd Config </TH>");
-
-		//Port
-		fprintf(f,"\t<TR><TD>Port:</TD><TD><input name=\"port\" type=\"text\" size=\"80\" maxlength=\"200\" value=\"");
+	} 
 		int j;
 		char *dot1, *dot2;
 		if (cfg->ncd_ptab.nports>0){
 			dot1 = "";
-			for(i=0;i<cfg->ncd_ptab.nports;i++){
-				dot2 = "";
-				fprintf(f, "%s%d", dot1, cfg->ncd_ptab.ports[i].s_port);
-				fprintf(f, "@%04X", cfg->ncd_ptab.ports[i].ftab.filts[0].caid);
+		for(i = 0; i < cfg->ncd_ptab.nports; ++i){
+			dot2 = ":";
+			tpl_printf(vars, 1, "PORT", "%s%d@%04X", dot1, cfg->ncd_ptab.ports[i].s_port, cfg->ncd_ptab.ports[i].ftab.filts[0].caid);
 				if (cfg->ncd_ptab.ports[i].ftab.filts[0].nprids > 0){
-					fprintf(f, ":");
-					for (j = 0; j < cfg->ncd_ptab.ports[i].ftab.filts[0].nprids; j++){
-						fprintf(f,"%s%lX", dot2, cfg->ncd_ptab.ports[i].ftab.filts[0].prids[j]);
+				for (j = 0; j < cfg->ncd_ptab.ports[i].ftab.filts[0].nprids; ++j){
+					tpl_printf(vars, 1, "PORT", "%s%lX", dot2, cfg->ncd_ptab.ports[i].ftab.filts[0].prids[j]);
 						dot2 = ",";
 					}
 				}
@@ -281,343 +166,161 @@ void send_oscam_config_newcamd(FILE *f, struct uriparams *params) {
 			}
 		}
 
-		fprintf(f,"\"></TD></TR>\r\n");
+	tpl_addVar(vars, 0, "SERVERIP", inet_ntoa(*(struct in_addr *)&cfg->ncd_srvip));
+	for (i=0;i<14;i++) tpl_printf(vars, 1, "KEY", "%02X", cfg->ncd_key[i]);
 
-		//ServerIP
-		fprintf(f,"\t<TR><TD>Serverip:</TD><TD><input name=\"serverip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"%s\"></TD></TR>\r\n", inet_ntoa(*(struct in_addr *)&cfg->ncd_srvip));
-		//Key
-		fprintf(f,"\t<TR><TD>Key:</TD><TD><input name=\"key\" type=\"text\" size=\"35\" maxlength=\"28\" value=\"");
-
-		for (i=0;i<14;i++)
-			fprintf(f,"%02X",cfg->ncd_key[i]);
-
-		fprintf(f,"\"></TD></TR>\r\n");
-		//Tablefoot and finish form
-		fprintf(f,"</TABLE>\r\n");
-		fprintf(f,"<input type=\"submit\" value=\"OK\"></form>\r\n");
-	}
+	fputs(tpl_getTpl(vars, "CONFIGNEWCAMD"), f);
 }
 
-void send_oscam_config_radegast(FILE *f, struct uriparams *params) {
+void send_oscam_config_radegast(struct templatevars *vars, FILE *f, struct uriparams *params) {
 	int i;
-
-	fprintf(f,"<BR><BR>");
-
 	if (strcmp(getParam(params, "action"),"execute") == 0){
-		//we found the execute flag
-		for(i=0;i<(*params).paramcount;i++){
+		for(i = 0; i < (*params).paramcount; ++i){
 			if ((strcmp((*params).params[i], "part")) && (strcmp((*params).params[i], "action"))){
-				fprintf(f,"Parameter: %s set to Value: %s<BR>\r\n", (*params).params[i], (*params).values[i]);
+				tpl_printf(vars, 1, "MESSAGE", "Parameter: %s set to Value: %s<BR>\n", (*params).params[i], (*params).values[i]);
 				//we use the same function as used for parsing the config tokens
 				chk_t_radegast((*params).params[i], (*params).values[i]);
 			}
 		}
-
-		//Disclaimer
-		fprintf(f,"<BR><BR><B>Configuration Radegast *DONE*</B><BR><BR>");
+		tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration Radegast *DONE*</B><BR><BR>");
 		refresh_oscam(REFR_SERVER);
-	} else {
+	}	
+	tpl_printf(vars, 0, "PORT", "%d", cfg->rad_port);
+	tpl_addVar(vars, 0, "SERVERIP", inet_ntoa(*(struct in_addr *)&cfg->rad_srvip));
+	tpl_addVar(vars, 0, "USER", cfg->rad_usr);
 
-		//if nothing above matches we show the form
-		fprintf(f,"<form action=\"/config.html\" method=\"get\">\r\n");
-		fprintf(f,"<input name=\"part\" type=\"hidden\" value=\"radegast\">\r\n");
-		fprintf(f,"<input name=\"action\" type=\"hidden\" value=\"execute\">\r\n");
-		fprintf(f,"<TABLE cellspacing=\"0\">");
-		fprintf(f,"\t<TH>&nbsp;</TH><TH>Edit Radegast Config </TH>");
-
-		//Port
-		fprintf(f,"\t<TR><TD>Port:</TD><TD><input name=\"port\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->rad_port);
-		//ServerIP
-		fprintf(f,"\t<TR><TD>Serverip:</TD><TD><input name=\"serverip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"%s\"></TD></TR>\r\n", inet_ntoa(*(struct in_addr *)&cfg->rad_srvip));
-		//Allowed
-		fprintf(f,"\t<TR><TD>Allowed:</TD><TD><input name=\"allowed\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"");
 	  struct s_ip *cip;
 	  char *dot="";
 	  for (cip=cfg->rad_allowed; cip; cip=cip->next){
-	  	if (!(cip->ip[0] == cip->ip[1]))
-				fprintf(f,"%s%s-%s", dot, inet_ntoa(*(struct in_addr *)&cip->ip[0]), inet_ntoa(*(struct in_addr *)&cip->ip[1]));
-	  	else
-				fprintf(f,"%s%s", dot, inet_ntoa(*(struct in_addr *)&cip->ip[0]));
+  	tpl_printf(vars, 1, "ALLOWED", "%s%s", dot, inet_ntoa(*(struct in_addr *)&cip->ip[0]));
+  	if (cip->ip[0] == cip->ip[1])	tpl_printf(vars, 1, "ALLOWED", "-%s", inet_ntoa(*(struct in_addr *)&cip->ip[1]));
+  	dot=",";
 	  }
-		fprintf(f,"\">wrong, see Ticket #265</TD></TR>\r\n");
-		//Port
-		fprintf(f,"\t<TR><TD>User:</TD><TD><input name=\"user\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"%s\"></TD></TR>\r\n", cfg->rad_usr);
 
-		//Tablefoot and finish form
-		fprintf(f,"</TABLE>\r\n");
-		fprintf(f,"<input type=\"submit\" value=\"OK\"></form>\r\n");
-	}
+	fputs(tpl_getTpl(vars, "CONFIGRADEGAST"), f);
 }
 
-void send_oscam_config_cccam(FILE *f, struct uriparams *params) {
+void send_oscam_config_cccam(struct templatevars *vars, FILE *f, struct uriparams *params) {
 	int i;
-
-	fprintf(f,"<BR><BR>");
-
 	if (strcmp(getParam(params, "action"),"execute") == 0){
-		//we found the execute flag
-		for(i=0;i<(*params).paramcount;i++){
+		for(i = 0; i < (*params).paramcount; ++i){
 			if ((strcmp((*params).params[i], "part")) && (strcmp((*params).params[i], "action"))){
-				fprintf(f,"Parameter: %s set to Value: %s<BR>\r\n", (*params).params[i], (*params).values[i]);
+				tpl_printf(vars, 1, "MESSAGE", "Parameter: %s set to Value: %s<BR>\n", (*params).params[i], (*params).values[i]);
 				//we use the same function as used for parsing the config tokens
 				chk_t_cccam((*params).params[i], (*params).values[i]);
 			}
 		}
-
-		//Disclaimer
-		fprintf(f,"<BR><BR>Configuration Cccam Do not yet implemented<BR><BR>");
+		tpl_addVar(vars, 1, "MESSAGE", "<BR><BR>Configuration Cccam Do not yet implemented<BR><BR>");
 		refresh_oscam(REFR_SERVER);
-	} else {
-
-		//if nothing above matches we show the form
-		fprintf(f,"<form action=\"/config.html\" method=\"get\">\r\n");
-		fprintf(f,"<input name=\"part\" type=\"hidden\" value=\"cccam\">\r\n");
-		fprintf(f,"<input name=\"action\" type=\"hidden\" value=\"execute\">\r\n");
-		fprintf(f,"<TABLE cellspacing=\"0\">");
-		fprintf(f,"\t<TH>&nbsp;</TH><TH>Edit Cccam Config </TH>");
-
-
-		//Tablefoot and finish form
-		fprintf(f,"</TABLE>\r\n");
-		fprintf(f,"<input type=\"submit\" value=\"OK\"></form>\r\n");
-
-		//Disclaimer
-		fprintf(f,"<BR><BR>Configuration Cccam not yet implemented<BR><BR>");
 	}
+	fputs(tpl_getTpl(vars, "CONFIGCCCAM"), f);
 }
 
-void send_oscam_config_gbox(FILE *f, struct uriparams *params) {
+void send_oscam_config_gbox(struct templatevars *vars, FILE *f, struct uriparams *params) {
 	int i;
-
-	fprintf(f,"<BR><BR>");
-
 	if (strcmp(getParam(params, "action"),"execute") == 0){
-		//we found the execute flag
-		for(i=0;i<(*params).paramcount;i++){
+		for(i = 0; i < (*params).paramcount; ++i){
 			if ((strcmp((*params).params[i], "part")) && (strcmp((*params).params[i], "action"))){
-				fprintf(f,"Parameter: %s set to Value: %s<BR>\r\n", (*params).params[i], (*params).values[i]);
+				tpl_printf(vars, 1, "MESSAGE", "Parameter: %s set to Value: %s<BR>\n", (*params).params[i], (*params).values[i]);
 				//we use the same function as used for parsing the config tokens
 				chk_t_gbox((*params).params[i], (*params).values[i]);
 			}
 		}
-
-		//Disclaimer
-		fprintf(f,"<BR><BR><B>Configuration Gbox *DONE*</B><BR><BR>");
+		tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration Gbox *DONE*</B><BR><BR>");
 		refresh_oscam(REFR_SERVER);
-	} else {
-
-		//if nothing above matches we show the form
-		fprintf(f,"<form action=\"/config.html\" method=\"get\">\r\n");
-		fprintf(f,"<input name=\"part\" type=\"hidden\" value=\"gbox\">\r\n");
-		fprintf(f,"<input name=\"action\" type=\"hidden\" value=\"execute\">\r\n");
-		fprintf(f,"<TABLE cellspacing=\"0\">");
-		fprintf(f,"\t<TH>&nbsp;</TH><TH>Edit Gbox Config </TH>");
-
-		//Password
-		fprintf(f,"\t<TR><TD>Password:</TD><TD><input name=\"password\" type=\"text\" size=\"10\" maxlength=\"8\" value=\"");
-		for (i=0;i<4;i++)
-			fprintf(f,"%02X",cfg->gbox_pwd[i]);
-		fprintf(f,"\"></TD></TR>\r\n");
-		//Maxdist
-		fprintf(f,"\t<TR><TD>Maxdist:</TD><TD><input name=\"maxdist\" type=\"text\" size=\"5\" maxlength=\"2\" value=\"%d\"></TD></TR>\r\n", cfg->maxdist);
-		//ignorelist
-		fprintf(f,"\t<TR><TD>Ignorelist:</TD><TD><input name=\"ignorelist\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"%s\"></TD></TR>\r\n", cfg->ignorefile);
-		//onlineinfos
-		fprintf(f,"\t<TR><TD>Onlineinfos:</TD><TD><input name=\"onlineinfos\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"%s\"></TD></TR>\r\n", cfg->gbxShareOnl);
-		//cardinfos
-		fprintf(f,"\t<TR><TD>Cardinfos:</TD><TD><input name=\"cardinfos\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"%s\"></TD></TR>\r\n", cfg->cardfile);
-		//locals
-		fprintf(f,"\t<TR><TD>Locals:</TD><TD><input name=\"locals\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"");
+	}
+	tpl_printf(vars, 0, "MAXDIST", "%d", cfg->maxdist);
+	for (i=0;i<4;i++) tpl_printf(vars, 1, "PASSWORD", "%02X", cfg->gbox_pwd[i]);
+	tpl_addVar(vars, 0, "IGNORELIST", (char *)cfg->ignorefile);
+	tpl_addVar(vars, 0, "ONLINEINFOS", (char *)cfg->gbxShareOnl);
+	tpl_addVar(vars, 0, "CARDINFOS", (char *)cfg->cardfile);
 		char *dot = "";
 		for (i = 0; i < cfg->num_locals; i++){
-			fprintf(f,"%s%06lX", dot, cfg->locals[i]);
+		tpl_printf(vars, 1, "LOCALS", "%s%06lX", dot, cfg->locals[i]);
 			dot=";";
 		}
-		fprintf(f,"\"></TD></TR>\r\n");
-
-		//Tablefoot and finish form
-		fprintf(f,"</TABLE>\r\n");
-		fprintf(f,"<input type=\"submit\" value=\"OK\"></form>\r\n");
-	}
+	fputs(tpl_getTpl(vars, "CONFIGGBOX"), f);
 }
 
-void send_oscam_config_monitor(FILE *f, struct uriparams *params) {
+void send_oscam_config_monitor(struct templatevars *vars, FILE *f, struct uriparams *params) {
 	int i;
-
-	fprintf(f,"<BR><BR>");
-
 	if (strcmp(getParam(params, "action"),"execute") == 0){
-		//we found the execute flag
-		for(i=0;i<(*params).paramcount;i++){
+		for(i = 0; i < (*params).paramcount; ++i){
 			if ((strcmp((*params).params[i], "part")) && (strcmp((*params).params[i], "action"))){
-				fprintf(f,"Parameter: %s set to Value: %s<BR>\r\n", (*params).params[i], (*params).values[i]);
+				tpl_printf(vars, 1, "MESSAGE", "Parameter: %s set to Value: %s<BR>\n", (*params).params[i], (*params).values[i]);
 				//we use the same function as used for parsing the config tokens
 				chk_t_monitor((*params).params[i], (*params).values[i]);
 			}
 		}
-
-		//Disclaimer
-		fprintf(f,"<BR><BR><B>Configuration Monitor *DONE*</B><BR><BR>");
+		tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration Monitor *DONE*</B><BR><BR>");
 		refresh_oscam(REFR_SERVER);
-	} else {
+	}
+	tpl_printf(vars, 0, "MONPORT", "%d", cfg->mon_port);
+	tpl_addVar(vars, 0, "SERVERIP", inet_ntoa(*(struct in_addr *)&cfg->mon_srvip));
+	tpl_printf(vars, 0, "MONPORT", "%d", cfg->mon_aulow);
+	tpl_printf(vars, 0, "HIDECLIENTTO", "%d", cfg->mon_hideclient_to);
+	tpl_printf(vars, 0, "HTTPPORT", "%d", cfg->http_port);
+	tpl_addVar(vars, 0, "HTTPUSER", cfg->http_user);
+	tpl_addVar(vars, 0, "HTTPPASSWORD", cfg->http_pwd);
+	tpl_addVar(vars, 0, "HTTPCSS", cfg->http_css);
+	tpl_printf(vars, 0, "HTTPREFRESH", "%d", cfg->http_refresh);
+	tpl_addVar(vars, 0, "HTTPTPL", cfg->http_tpl);	
 
-		//if nothing above matches we show the form
-		fprintf(f,"<form action=\"/config.html\" method=\"get\">\r\n");
-		fprintf(f,"<input name=\"part\" type=\"hidden\" value=\"monitor\">\r\n");
-		fprintf(f,"<input name=\"action\" type=\"hidden\" value=\"execute\">\r\n");
-		fprintf(f,"<TABLE cellspacing=\"0\">");
-		fprintf(f,"\t<TH>&nbsp;</TH><TH>Edit Monitor Config </TH>");
-
-		//Port
-		fprintf(f,"\t<TR><TD>Port:</TD><TD><input name=\"port\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->mon_port);
-		//ServerIP
-		fprintf(f,"\t<TR><TD>Serverip:</TD><TD><input name=\"serverip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"%s\"></TD></TR>\r\n", inet_ntoa(*(struct in_addr *)&cfg->mon_srvip));
-		//Nocrypt
-		fprintf(f,"\t<TR><TD>Nocrypt:</TD><TD><input name=\"nocrypt\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"");
 	  struct s_ip *cip;
 	  char *dot="";
-	  for (cip=cfg->mon_allowed; cip; cip=cip->next){
-	  	if (!(cip->ip[0] == cip->ip[1]))
-				fprintf(f,"%s%s-%s", dot, inet_ntoa(*(struct in_addr *)&cip->ip[0]), inet_ntoa(*(struct in_addr *)&cip->ip[1]));
-	  	else
-				fprintf(f,"%s%s", dot, inet_ntoa(*(struct in_addr *)&cip->ip[0]));
-	  }
-		fprintf(f,"\">wrong, see Ticket #265</TD></TR>\r\n");
-		//aulow
-		fprintf(f,"\t<TR><TD>Aulow:</TD><TD><input name=\"aulow\" type=\"text\" size=\"5\" maxlength=\"1\" value=\"%d\"></TD></TR>\r\n", cfg->mon_aulow);
-		//Monlevel
-		fprintf(f,"<TR><TD>Monlevel:</TD><TD><select name=\"monlevel\" >\r\n");
-			for(i = 0; i < 5; i++){
-				if(i == cfg->mon_level)
-					fprintf(f,"\t<option value=\"%d\" selected>%s</option>\r\n", i, monlevel[i]);
-				else
-					fprintf(f,"\t<option value=\"%d\">%s</option>\r\n", i, monlevel[i]);
+  for (cip = cfg->rad_allowed; cip; cip = cip->next){
+  	tpl_printf(vars, 1, "NOCRYPT", "%s%s", dot, inet_ntoa(*(struct in_addr *)&cip->ip[0]));
+  	if (cip->ip[0] == cip->ip[1])	tpl_printf(vars, 1, "NOCRYPT", "-%s", inet_ntoa(*(struct in_addr *)&cip->ip[1]));
+  	dot=",";
 		}
-		fprintf(f,"</select></TD></TR>\r\n");
-		//HTTPport
-		fprintf(f,"\t<TR><TD>Port:</TD><TD><input name=\"httpport\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->http_port);
-		//hideclient_to
-		fprintf(f,"\t<TR><TD>Hideclientto:</TD><TD><input name=\"hideclient_to\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->mon_hideclient_to);
-		//HTTPuser
-		fprintf(f,"<TR><TD>Httpuser:</TD><TD><input name=\"httpuser\" type=\"text\" size=\"20\" maxlength=\"20\" value=\"%s\"></TD></TR>\r\n", cfg->http_user);
-		//HTTPpassword
-		fprintf(f,"<TR><TD>Httppwd:</TD><TD><input name=\"httppwd\" type=\"text\" size=\"20\" maxlength=\"20\" value=\"%s\"></TD></TR>\r\n", cfg->http_pwd);
-		//HTTPcss
-		fprintf(f,"<TR><TD>Httpcss:</TD><TD><input name=\"httpcss\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"%s\"></TD></TR>\r\n", cfg->http_css);
-		//HTTPrefresh
-		fprintf(f,"\t<TR><TD>Httprefresh:</TD><TD><input name=\"httprefresh\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->http_refresh);
-		//Httptpl
-		fprintf(f,"\t<TR><TD>Httptpl:</TD><TD><input name=\"httptpl\" type=\"text\" size=\"50\" maxlength=\"100\" value=\"%s\"></TD></TR>\r\n", cfg->http_tpl);
 
-		//Tablefoot and finish form
-		fprintf(f,"</TABLE>\r\n");
-		fprintf(f,"<input type=\"submit\" value=\"OK\"></form>\r\n");
-	}
+	//Monlevel selector
+	tpl_printf(vars, 0, "TMP", "MONSELECTED%d", cfg->mon_level);
+	tpl_addVar(vars, 0, tpl_getVar(vars, "TMP"), "selected");
+	
+	fputs(tpl_getTpl(vars, "CONFIGMONITOR"), f);
 }
 
 #ifdef CS_ANTICASC
-
-void send_oscam_config_anticasc(FILE *f, struct uriparams *params) {
+void send_oscam_config_anticasc(struct templatevars *vars, FILE *f, struct uriparams *params) {
 	int i;
-
-	fprintf(f,"<BR><BR>");
-
 	if (strcmp(getParam(params, "action"),"execute") == 0){
-		//we found the execute flag
-		for(i=0;i<(*params).paramcount;i++){
+		for(i = 0; i < (*params).paramcount; ++i){
 			if ((strcmp((*params).params[i], "part")) && (strcmp((*params).params[i], "action"))){
-				fprintf(f,"Parameter: %s set to Value: %s<BR>\r\n", (*params).params[i], (*params).values[i]);
+				tpl_printf(vars, 1, "MESSAGE", "Parameter: %s set to Value: %s<BR>\n", (*params).params[i], (*params).values[i]);
 				//we use the same function as used for parsing the config tokens
 				chk_t_ac((*params).params[i], (*params).values[i]);
 			}
 		}
-
-		//Disclaimer
-		fprintf(f,"<BR><BR><B>Configuration Anticascading *DONE*</B><BR><BR>");
+		tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration Anticascading *DONE*</B><BR><BR>");
 		refresh_oscam(REFR_ANTICASC);
-	} else{
-
-		//if nothing above matches we show the form
-		fprintf(f,"<form action=\"/config.html\" method=\"get\">\r\n");
-		fprintf(f,"<input name=\"part\" type=\"hidden\" value=\"anticasc\">\r\n");
-		fprintf(f,"<input name=\"action\" type=\"hidden\" value=\"execute\">\r\n");
-		fprintf(f,"<TABLE cellspacing=\"0\">");
-		fprintf(f,"\t<TH>&nbsp;</TH><TH>Edit Anticascading Config </TH>");
-
-		//Port
-		char *checked="";
-		if (cfg->ac_enabled > 0) checked="checked";
-		fprintf(f,"\t<TR><TD>Enabled:</TD><TD><input name=\"enabled\" type=\"checkbox\" value=\"1\" %s>\r\n", checked);
-		//numusers
-		fprintf(f,"\t<TR><TD>Numusers:</TD><TD><input name=\"numusers\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->ac_users);
-		//sampletime
-		fprintf(f,"\t<TR><TD>Sampletime:</TD><TD><input name=\"sampletime\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->ac_stime);
-		//samples
-		fprintf(f,"\t<TR><TD>Samples:</TD><TD><input name=\"samples\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->ac_samples);
-		//penalty
-		fprintf(f,"\t<TR><TD>Penalty:</TD><TD><input name=\"penalty\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->ac_penalty);
-		//aclogfile
-		fprintf(f,"\t<TR><TD>AClogfile:</TD><TD><input name=\"aclogfile\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"%s\"></TD></TR>\r\n", cfg->ac_logfile);
-		//fakedelay
-		fprintf(f,"\t<TR><TD>Fakedelay:</TD><TD><input name=\"fakedelay\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->ac_fakedelay);
-		//denysamples
-		fprintf(f,"\t<TR><TD>Denysamples:</TD><TD><input name=\"denysamples\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"%d\"></TD></TR>\r\n", cfg->ac_denysamples);
-
-		//Tablefoot and finish form
-		fprintf(f,"</TABLE>\r\n");
-		fprintf(f,"<input type=\"submit\" value=\"OK\"></form>\r\n");
 	}
+	if (cfg->ac_enabled > 0) tpl_addVar(vars, 0, "CHECKED", "checked");
+	tpl_printf(vars, 0, "NUMUSERS", "%d", "checked");
+	tpl_printf(vars, 0, "SAMPLETIME", "%d", cfg->ac_stime);
+	tpl_printf(vars, 0, "SAMPLES", "%d", cfg->ac_samples);
+	tpl_printf(vars, 0, "PENALTY", "%d", cfg->ac_penalty);
+	tpl_addVar(vars, 0, "ACLOGFILE", cfg->ac_logfile);
+	tpl_printf(vars, 0, "FAKEDELAY", "%d", cfg->ac_fakedelay);
+	tpl_printf(vars, 0, "DENYSAMPLES", "%d", cfg->ac_denysamples);
+	fputs(tpl_getTpl(vars, "CONFIGANTICASC"), f);
 }
 
 #endif
 
-void send_oscam_config(FILE *f, struct uriparams *params) {
-	fprintf(f,"<BR><BR>");
-
-	/*create submenue*/
-	fprintf(f, "<TABLE border=0 class=\"menu\">\n");
-	fprintf(f, "	<TR>\n");
-	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"config.html?part=global\">Global</TD>\n");
-	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"config.html?part=camd33\">Camd3.3</TD>\n");
-	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"config.html?part=camd35\">Camd3.5</TD>\n");
-	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"config.html?part=newcamd\">Newcamd</TD>\n");
-	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"config.html?part=radegast\">Radegast</TD>\n");
-	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"config.html?part=cccam\">Cccam</TD>\n");
-	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"config.html?part=gbox\">Gbox</TD>\n");
-#ifdef CS_ANTICASC
-	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"config.html?part=anticasc\">Anticascading</TD>\n");
-#endif
-	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"config.html?part=monitor\">Monitor</TD>\n");
-	fprintf(f, "	</TR>\n");
-	fprintf(f, "</TABLE>\n");
-
+void send_oscam_config(struct templatevars *vars, FILE *f, struct uriparams *params) {
 	char *part = getParam(params, "part");
-	if (strlen(part) == 0)
-		send_oscam_config_global(f, params);
-	else {
-		if (!strcmp(part,"global"))
-			send_oscam_config_global(f, params);
-		else if (!strcmp(part,"camd33"))
-			send_oscam_config_camd33(f, params);
-		else if (!strcmp(part,"camd35"))
-			send_oscam_config_camd35(f, params);
-		else if (!strcmp(part,"newcamd"))
-			send_oscam_config_newcamd(f, params);
-		else if (!strcmp(part,"radegast"))
-			send_oscam_config_radegast(f, params);
-		else if (!strcmp(part,"cccam"))
-			send_oscam_config_cccam(f, params);
-		else if (!strcmp(part,"gbox"))
-			send_oscam_config_gbox(f, params);
+	if (!strcmp(part,"camd33")) send_oscam_config_camd33(vars, f, params);
+	else if (!strcmp(part,"camd35")) send_oscam_config_camd35(vars, f, params);
+	else if (!strcmp(part,"newcamd")) send_oscam_config_newcamd(vars, f, params);
+	else if (!strcmp(part,"radegast")) send_oscam_config_radegast(vars, f, params);
+	else if (!strcmp(part,"cccam")) send_oscam_config_cccam(vars, f, params);
+	else if (!strcmp(part,"gbox")) send_oscam_config_gbox(vars, f, params);
 #ifdef CS_ANTICASC
-		else if (!strcmp(part,"anticasc"))
-			send_oscam_config_anticasc(f, params);
+	else if (!strcmp(part,"anticasc")) send_oscam_config_anticasc(vars, f, params);
 #endif
-		else if (!strcmp(part,"monitor"))
-			send_oscam_config_monitor(f, params);
-		else
-			send_oscam_config_global(f, params);
-	}
+	else if (!strcmp(part,"monitor")) send_oscam_config_monitor(vars, f, params);
+	else send_oscam_config_global(vars, f, params);
 }
 
 void send_oscam_reader(struct templatevars *vars, FILE *f) {
@@ -1190,7 +893,7 @@ int process_request(FILE *f, struct in_addr in) {
 	/*build page*/
   send_headers(f, 200, "OK", NULL, "text/html");
   if(pgidx == 8) send_css(f);
-	else if(pgidx != 0){
+	else {
 		time_t t;
 		struct templatevars *vars = tpl_create();
 		struct tm *lt;
@@ -1206,7 +909,7 @@ int process_request(FILE *f, struct in_addr in) {
 		tpl_printf(vars, 0, "CURDATE", "%02d.%02d.%02d", lt->tm_mday, lt->tm_mon+1, lt->tm_year%100);
 		tpl_printf(vars, 0, "CURTIME", "%02d:%02d:%02d", lt->tm_hour, lt->tm_min, lt->tm_sec);
 		switch(pgidx){
-	    case  0: break;
+	    case  0: send_oscam_config(vars, f, &params); break;
 	    case  1: send_oscam_reader(vars, f); break;
 	    case  2: send_oscam_entitlement(vars, f, &params); break;
 	    case  3: send_oscam_status(vars, f); break;
@@ -1218,12 +921,6 @@ int process_request(FILE *f, struct in_addr in) {
 	    default: send_oscam_status(vars, f); break;
 	  }
 		tpl_clear(vars);
-	} else {
-	 	send_htmlhead(f,0);
-  send_oscam_menu(f);
-	  send_oscam_config(f, &params);
-  send_footer(f);
-  fprintf(f, "</BODY></HTML>\r\n");
 		}
   return 0;
 }

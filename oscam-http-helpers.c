@@ -392,21 +392,6 @@ void send_headers(FILE *f, int status, char *title, char *extra, char *mime){
   fprintf(f, "\r\n");
 }
 
-void send_htmlhead(FILE *f, int refresh){
-
-	/*build HTML head*/
-	fprintf(f, "<HTML>\n");
-	fprintf(f, "<HEAD>\n");
-	fprintf(f, "<TITLE>OSCAM %s build #%s</TITLE>\n", CS_VERSION, CS_SVN_VERSION);
-	fprintf(f, "<link rel=\"stylesheet\" type=\"text/css\" href=\"site.css\">\n");
-	if (refresh > 0)
-		fprintf(f, "<meta http-equiv=\"refresh\" content=\"%d; URL=/status.html\" />", refresh);
-	fprintf(f, "</HEAD>\n");
-	fprintf(f, "<BODY>");
-	fprintf(f, "<H2>OSCAM %s build #%s</H2>\r\n", CS_VERSION, CS_SVN_VERSION);
-
-}
-
 void send_css(FILE *f){
 	if(strlen(cfg->http_css) > 0 && file_exists(cfg->http_css) == 1){
 		FILE *fp;
@@ -419,36 +404,6 @@ void send_css(FILE *f){
 	} else {
 		fputs(CSS, f);
 	}
-}
-
-void send_footer(FILE *f){
-
-  /*create footline*/
-  time_t t;
-  struct tm *lt;
-	time(&t);
-
-	lt=localtime(&t);
-
-	fprintf(f, "<HR/>");
-	fprintf(f, "<H4>OSCAM Webinterface - %02d.%02d.%02d %02d:%02d:%02d</H4>\r\n",
-										lt->tm_mday, lt->tm_mon+1, lt->tm_year%100,
-										lt->tm_hour, lt->tm_min, lt->tm_sec);
-}
-
-void send_oscam_menu(FILE *f){
-
-	/*create menue*/
-	fprintf(f, "<TABLE border=0 class=\"menu\">\r\n");
-	fprintf(f, "	<TR>\r\n");
-	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./status.html\">STATUS</TD>\r\n");
-	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./config.html\">CONFIGURATION</TD>\r\n");
-	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./readers.html\">READERS</TD>\r\n");
-	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./userconfig.html\">USERS</TD>\r\n");
-	fprintf(f, "		<TD CLASS=\"menu\"><A HREF=\"./services.html\">SERVICES</TD>\r\n");
-	fprintf(f, "	</TR>\r\n");
-	fprintf(f, "</TABLE>\r\n");
-
 }
 
 //void send_error(FILE *f, int status, char *title, char *extra, char *text)
