@@ -257,7 +257,7 @@ void send_oscam_config_monitor(struct templatevars *vars, FILE *f, struct uripar
 	}
 	tpl_printf(vars, 0, "MONPORT", "%d", cfg->mon_port);
 	tpl_addVar(vars, 0, "SERVERIP", inet_ntoa(*(struct in_addr *)&cfg->mon_srvip));
-	tpl_printf(vars, 0, "MONPORT", "%d", cfg->mon_aulow);
+	tpl_printf(vars, 0, "AULOW", "%d", cfg->mon_aulow);
 	tpl_printf(vars, 0, "HIDECLIENTTO", "%d", cfg->mon_hideclient_to);
 	tpl_printf(vars, 0, "HTTPPORT", "%d", cfg->http_port);
 	tpl_addVar(vars, 0, "HTTPUSER", cfg->http_user);
