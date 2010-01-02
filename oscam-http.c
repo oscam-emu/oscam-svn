@@ -494,7 +494,7 @@ void send_oscam_user_config_edit(struct templatevars *vars, FILE *f, struct urip
 	account->grp = 0;
 
 	for(i=0;i<(*params).paramcount;i++){
-		if ((strcmp((*params).params[i], "action")) && (strcmp((*params).params[i], "user"))){
+		if ((strcmp((*params).params[i], "action")) && (strcmp((*params).params[i], "user")) && (strcmp((*params).params[i], "newuser"))){
 			if (!strcmp((*params).params[i], "services"))
 				sprintf(servicelabels + strlen(servicelabels), "%s,", (*params).values[i]);
 			else
