@@ -85,6 +85,13 @@ A:hover {text-decoration: none; color: red;}"
   ##TPLHEADER##\
   ##TPLMENU##\n\
   <BR><BR>\n\
+  <form action=\"status.html\" method=\"get\">\n\
+		<select name=\"hideidle\">\n\
+      <option value=\"0\" ##HIDEIDLECLIENTSSELECTED0##>Show idle clients</option>\n\
+      <option value=\"1\" ##HIDEIDLECLIENTSSELECTED1##>Hide idle clients</option>\n\
+  	</select>\n\
+  	<input type=\"submit\" value=\"Update\">\n\
+  </form>\n\
   <TABLE WIDTH=\"100%\" cellspacing=\"0\" class=\"status\">\n\
     <TR>\n\
       <TH>PID</TH>\n\

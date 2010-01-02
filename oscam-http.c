@@ -714,12 +714,24 @@ void send_oscam_entitlement(struct templatevars *vars, FILE *f, struct uriparams
 	fputs(tpl_getTpl(vars, "ENTITLEMENTS"), f);
 }
 
-void send_oscam_status(struct templatevars *vars, FILE *f) {
+void send_oscam_status(struct templatevars *vars, FILE *f, struct uriparams *params) {
 	int i;
 	char *usr;
 	int lsec, isec, cnr, con, cau;
 	time_t now = time((time_t)0);
 	struct tm *lt;
+	
+	char *hideidle = getParam(params, "hideidle");
+	if(strlen(hideidle) > 0){
+		int oldval = cfg->http_hide_idle_clients;
+		chk_t_monitor("httphideidleclients", hideidle);
+		if(oldval != cfg->http_hide_idle_clients){
+			refresh_oscam(REFR_SERVER);
+		}
+	}
+	
+	if(cfg->http_hide_idle_clients > 0) tpl_addVar(vars, 0, "HIDEIDLECLIENTSSELECTED1", "selected");
+	else tpl_addVar(vars, 0, "HIDEIDLECLIENTSSELECTED0", "selected"); 
 
 	for (i=0; i<CS_MAXPID; i++)	{
 		if (client[i].pid) {
@@ -763,7 +775,7 @@ void send_oscam_status(struct templatevars *vars, FILE *f) {
 				tpl_printf(vars, 0, "CLIENTIDLESECS", "%d", isec);
 				tpl_printf(vars, 0, "CLIENTCON", "%d", con);
 				tpl_printf(vars, 0, "CWOK", "%d", client[i].cwfound);
-				tpl_printf(vars, 0, "CWNOK", "%d", client[i].cwnot);
+				tpl_printf(vars, 0, "CWNOK", "%d", client[i].cwnot); 
 				tpl_addVar(vars, 1, "CLIENTSTATUS", tpl_getTpl(vars, "CLIENTSTATUSBIT"));
 			}
 		}
@@ -945,13 +957,13 @@ int process_request(FILE *f, struct in_addr in) {
 	    case  0: send_oscam_config(vars, f, &params); break;
 	    case  1: send_oscam_reader(vars, f); break;
 	    case  2: send_oscam_entitlement(vars, f, &params); break;
-	    case  3: send_oscam_status(vars, f); break;
+	    case  3: send_oscam_status(vars, f, &params); break;
 	    case  4: send_oscam_user_config(vars, f, &params); break;
 	    case  5: send_oscam_reader_config(vars, f, &params); break;
 	    case	6: send_oscam_services(vars, f); break;
 	    case  7: send_oscam_user_config_edit(vars, f, &params); break;
 	    case  9: send_oscam_savetpls(vars, f); break;
-	    default: send_oscam_status(vars, f); break;
+	    default: send_oscam_status(vars, f, &params); break;
 	  }
 		tpl_clear(vars);
 		}
