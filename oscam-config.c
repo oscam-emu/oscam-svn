@@ -830,6 +830,77 @@ void chk_account(char *token, char *value, struct s_auth *account)
 //  }
 }
 
+int write_config()
+{
+	//int i;
+	FILE *f;
+	//char *dot = ""; //flag for comma
+	char tmpfile[256];
+	char destfile[256];
+	char bakfile[256];
+
+	snprintf(destfile, 255,"%s%s", cs_confdir, cs_conf);
+	snprintf(tmpfile, 255, "%s%s.tmp", cs_confdir, cs_conf);
+	snprintf(bakfile, 255,"%s%s.bak", cs_confdir, cs_conf);
+
+	if (!(f=fopen(tmpfile, "w"))){
+    cs_log("Cannot open file \"%s\" (errno=%d)", tmpfile, errno);
+    return(1);
+  }
+  fprintf(f,"#oscam.config generated automatically\n\n");
+
+	/*global settings*/
+	fprintf(f,"[global]\n");
+	fprintf(f,"serverip            = %s\n", inet_ntoa(*(struct in_addr *)&cfg->srvip));
+	fprintf(f,"logfile             = %s\n", logfile);
+	fprintf(f,"pidfile             = %s\n", cfg->pidfile);
+	fprintf(f,"usrfile             = %s\n", cfg->usrfile);
+	fprintf(f,"cwlogdir            = %s\n", cfg->cwlogdir);
+	fprintf(f,"clienttimeout       = %ld\n", cfg->ctimeout);
+	fprintf(f,"fallbacktimeout     = %ld\n", cfg->ftimeout);
+	fprintf(f,"clientmaxidle       = %d\n", cfg->cmaxidle);
+	fprintf(f,"cachedelay          = %ld\n", cfg->delay);
+	fprintf(f,"bindwait            = %d\n", cfg->bindwait);
+	fprintf(f,"netprio             = %ld\n", cfg->netprio);
+	fprintf(f,"resolvedelay        = %d\n", cfg->resolvedelay);
+	fprintf(f,"sleep               = %d\n", cfg->tosleep);
+	fprintf(f,"unlockparental      = %d\n", cfg->ulparent);
+	fprintf(f,"nice                = %d\n", cfg->nice);
+	fprintf(f,"serialreadertimeout = %d\n", cfg->srtimeout);
+	fprintf(f,"maxlogsize          = %d\n", cfg->max_log_size);
+	fprintf(f,"showecmdw           = %d\n", cfg->show_ecm_dw);
+	fprintf(f,"waitforcards        = %d\n", cfg->waitforcards);
+	fprintf(f,"preferlocalcards    = %d\n", cfg->preferlocalcards);
+	fprintf(f,"\n");
+
+	/*monitor settings*/
+	fprintf(f,"[monitor]\n");
+	//todo
+
+
+
+	fclose(f);
+
+	if(file_exists(bakfile)){
+  	if(remove(destfile) < 0) {
+  		cs_log("Error removing original conf file %s (errno=%d). Will maintain original one!", destfile, errno);
+  		if(remove(tmpfile) < 0) cs_log("Error removing temp conf file %s (errno=%d).!", tmpfile, errno);
+  		return(1);
+  	}
+  } else {
+  	if(rename(destfile, bakfile) < 0){
+  		cs_log("Error renaming original conf file %s to %s (errno=%d). Will maintain original one!", destfile, bakfile, errno);
+  		if(remove(tmpfile) < 0) cs_log("Error removing temp conf file %s (errno=%d).!", tmpfile, errno);
+  		return(1);
+  	}
+  }
+  if(rename(tmpfile, destfile) < 0){
+  	cs_log("Error renaming new conf file %s to %s (errno=%d). The config will be missing upon next startup as this is non-recoverable!", tmpfile, destfile, errno);
+  	return(1);
+  }
+  return(0);
+}
+
 int write_userdb()
 {
 	int i;
