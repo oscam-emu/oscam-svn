@@ -195,13 +195,13 @@ void send_oscam_config_radegast(struct templatevars *vars, FILE *f, struct uripa
 	tpl_addVar(vars, 0, "SERVERIP", inet_ntoa(*(struct in_addr *)&cfg->rad_srvip));
 	tpl_addVar(vars, 0, "USER", cfg->rad_usr);
 
-	  struct s_ip *cip;
-	  char *dot="";
+	struct s_ip *cip;
+	char *dot="";
 	  for (cip=cfg->rad_allowed; cip; cip=cip->next){
   	tpl_printf(vars, 1, "ALLOWED", "%s%s", dot, cs_inet_ntoa(cip->ip[0]));
   	if (cip->ip[0] != cip->ip[1])	tpl_printf(vars, 1, "ALLOWED", "-%s", cs_inet_ntoa(cip->ip[1]));
-  	dot=",";
-	  }
+		dot=",";
+	}
 
 	fputs(tpl_getTpl(vars, "CONFIGRADEGAST"), f);
 }
@@ -276,13 +276,13 @@ void send_oscam_config_monitor(struct templatevars *vars, FILE *f, struct uripar
 	tpl_addVar(vars, 0, "HTTPTPL", cfg->http_tpl);
 	if (cfg->http_hide_idle_clients > 0) tpl_addVar(vars, 0, "CHECKED", "checked");
 
-	  struct s_ip *cip;
-	  char *dot="";
-  for (cip = cfg->mon_allowed; cip; cip = cip->next){
+	struct s_ip *cip;
+	char *dot="";
+	for (cip = cfg->mon_allowed; cip; cip = cip->next){
   	tpl_printf(vars, 1, "NOCRYPT", "%s%s", dot, cs_inet_ntoa(cip->ip[0]));
   	if (cip->ip[0] != cip->ip[1])	tpl_printf(vars, 1, "NOCRYPT", "-%s", cs_inet_ntoa(cip->ip[1]));
-  	dot=",";
-		}
+		dot=",";
+	}
 
 	//Monlevel selector
 	tpl_printf(vars, 0, "TMP", "MONSELECTED%d", cfg->mon_level);
