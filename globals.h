@@ -783,6 +783,7 @@ void chk_t_global(char *token, char *value);
 void chk_t_monitor(char *token, char *value);
 void chk_account(char *token, char *value, struct s_auth *account);
 int write_userdb();
+int write_config();
 
 // oscam-reader
 extern int ridx, logfd;

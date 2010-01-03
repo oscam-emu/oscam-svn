@@ -61,7 +61,7 @@ void send_oscam_config_global(struct templatevars *vars, FILE *f, struct uripara
 			}
 		}
 		tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration Global *DONE*</B><BR><BR>");
-		refresh_oscam(REFR_SERVER);
+		/*if(write_config()==0) */refresh_oscam(REFR_SERVER);
 	}
 	tpl_addVar(vars, 0, "SERVERIP", inet_ntoa(*(struct in_addr *)&cfg->srvip));
 	tpl_addVar(vars, 0, "LOGFILE", logfile);
@@ -269,7 +269,7 @@ void send_oscam_config_monitor(struct templatevars *vars, FILE *f, struct uripar
 
 	  struct s_ip *cip;
 	  char *dot="";
-  for (cip = cfg->rad_allowed; cip; cip = cip->next){
+  for (cip = cfg->mon_allowed; cip; cip = cip->next){
   	tpl_printf(vars, 1, "NOCRYPT", "%s%s", dot, inet_ntoa(*(struct in_addr *)&cip->ip[0]));
   	if (cip->ip[0] == cip->ip[1])	tpl_printf(vars, 1, "NOCRYPT", "-%s", inet_ntoa(*(struct in_addr *)&cip->ip[1]));
   	dot=",";
@@ -720,7 +720,7 @@ void send_oscam_status(struct templatevars *vars, FILE *f, struct uriparams *par
 	int lsec, isec, cnr, con, cau;
 	time_t now = time((time_t)0);
 	struct tm *lt;
-	
+
 	char *hideidle = getParam(params, "hideidle");
 	if(strlen(hideidle) > 0){
 		int oldval = cfg->http_hide_idle_clients;
@@ -729,9 +729,9 @@ void send_oscam_status(struct templatevars *vars, FILE *f, struct uriparams *par
 			refresh_oscam(REFR_SERVER);
 		}
 	}
-	
+
 	if(cfg->http_hide_idle_clients > 0) tpl_addVar(vars, 0, "HIDEIDLECLIENTSSELECTED1", "selected");
-	else tpl_addVar(vars, 0, "HIDEIDLECLIENTSSELECTED0", "selected"); 
+	else tpl_addVar(vars, 0, "HIDEIDLECLIENTSSELECTED0", "selected");
 
 	for (i=0; i<CS_MAXPID; i++)	{
 		if (client[i].pid) {
@@ -775,7 +775,7 @@ void send_oscam_status(struct templatevars *vars, FILE *f, struct uriparams *par
 				tpl_printf(vars, 0, "CLIENTIDLESECS", "%d", isec);
 				tpl_printf(vars, 0, "CLIENTCON", "%d", con);
 				tpl_printf(vars, 0, "CWOK", "%d", client[i].cwfound);
-				tpl_printf(vars, 0, "CWNOK", "%d", client[i].cwnot); 
+				tpl_printf(vars, 0, "CWNOK", "%d", client[i].cwnot);
 				tpl_addVar(vars, 1, "CLIENTSTATUS", tpl_getTpl(vars, "CLIENTSTATUSBIT"));
 			}
 		}

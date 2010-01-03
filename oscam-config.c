@@ -832,9 +832,9 @@ void chk_account(char *token, char *value, struct s_auth *account)
 
 int write_config()
 {
-	//int i;
+	int i;
 	FILE *f;
-	//char *dot = ""; //flag for comma
+	char *dot = ""; //flag for comma
 	char tmpfile[256];
 	char destfile[256];
 	char bakfile[256];
@@ -875,8 +875,77 @@ int write_config()
 
 	/*monitor settings*/
 	fprintf(f,"[monitor]\n");
-	//todo
+	fprintf(f,"port                = %d\n", cfg->mon_port);
+	fprintf(f,"serverip            = %s\n", inet_ntoa(*(struct in_addr *)&cfg->mon_srvip));
 
+	fprintf(f,"nocrypt             = ");
+	struct s_ip *cip;
+	for (cip = cfg->mon_allowed; cip; cip = cip->next){
+		fprintf(f,"%s%s", dot, inet_ntoa(*(struct in_addr *)&cip->ip[0]));
+  	if (cip->ip[0] == cip->ip[1])	fprintf(f,"-%s", inet_ntoa(*(struct in_addr *)&cip->ip[1]));
+  	dot=",";
+	}
+	fprintf(f,"\n");
+
+	fprintf(f,"aulow               = %d\n", cfg->mon_aulow);
+	fprintf(f,"hideclient_to       = %d\n", cfg->mon_hideclient_to);
+	fprintf(f,"monlevel            = %d\n", cfg->mon_level);
+	fprintf(f,"httpport            = %d\n", cfg->http_port);
+	fprintf(f,"httpuser            = %s\n", cfg->http_user);
+	fprintf(f,"httppwd             = %s\n", cfg->http_pwd);
+	fprintf(f,"httpcss             = %s\n", cfg->http_css);
+	fprintf(f,"httprefresh         = %d\n", cfg->http_refresh);
+	fprintf(f,"httphideidleclients = %d\n", cfg->http_hide_idle_clients);
+	fprintf(f,"\n");
+
+	/*newcamd*/
+	int j;
+	char *dot1, *dot2;
+	if (cfg->ncd_ptab.nports>0){
+			fprintf(f,"[newcamd]\n");
+			fprintf(f,"port                = ");
+			dot1 = "";
+		for(i = 0; i < cfg->ncd_ptab.nports; ++i){
+			dot2 = ":";
+			fprintf(f,"%s%d@%04X", dot1, cfg->ncd_ptab.ports[i].s_port, cfg->ncd_ptab.ports[i].ftab.filts[0].caid);
+			if (cfg->ncd_ptab.ports[i].ftab.filts[0].nprids > 0){
+			for (j = 0; j < cfg->ncd_ptab.ports[i].ftab.filts[0].nprids; ++j){
+				fprintf(f,"%s%lX", dot2, cfg->ncd_ptab.ports[i].ftab.filts[0].prids[j]);
+				dot2 = ",";
+				}
+			}
+			dot1=";";
+		}
+		fprintf(f,"\n");
+		fprintf(f,"serverip            = %s\n", inet_ntoa(*(struct in_addr *)&cfg->ncd_srvip));
+		fprintf(f,"key                 = ");
+		for (i=0;i<14;i++) fprintf(f,"%02X", cfg->ncd_key[i]);
+		fprintf(f,"\n\n");
+	}
+
+	/*camd3.5*/
+	if ( cfg->c35_port > 0) {
+		fprintf(f,"[cs357x]\n");
+		fprintf(f,"port                = %d\n", cfg->c35_port);
+		fprintf(f,"serverip            = %s\n", inet_ntoa(*(struct in_addr *)&cfg->c35_tcp_srvip));
+		fprintf(f,"\n");
+	}
+
+	/*Radegast*/
+	if ( cfg->rad_port > 0) {
+		fprintf(f,"[radegast]\n");
+		fprintf(f,"port                = %d\n", cfg->rad_port);
+		fprintf(f,"serverip            = %s\n", inet_ntoa(*(struct in_addr *)&cfg->rad_srvip));
+		fprintf(f,"user                = %s\n", cfg->rad_usr);
+		fprintf(f,"allowed             = ");
+		struct s_ip *cip;
+		for (cip = cfg->rad_allowed; cip; cip = cip->next){
+			fprintf(f,"%s%s", dot, inet_ntoa(*(struct in_addr *)&cip->ip[0]));
+			if (cip->ip[0] == cip->ip[1])	fprintf(f,"-%s", inet_ntoa(*(struct in_addr *)&cip->ip[1]));
+			dot=",";
+		}
+		fprintf(f,"\n\n");
+	}
 
 
 	fclose(f);
