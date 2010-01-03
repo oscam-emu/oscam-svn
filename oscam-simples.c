@@ -466,3 +466,11 @@ int file_exists(const char * filename){
 	}
 	return 0;
 }
+
+void clear_sip(struct s_ip **sip){
+	struct s_ip *cip = *sip, *lip;
+	for (*sip = NULL; cip != NULL; cip = lip){
+		lip = cip->next;
+		free(cip);
+	}
+}

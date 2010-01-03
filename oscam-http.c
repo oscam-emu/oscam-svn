@@ -94,6 +94,9 @@ void send_oscam_config_camd33(struct templatevars *vars, FILE *f, struct uripara
 		for(i = 0; i < (*params).paramcount; ++i){
 			if ((strcmp((*params).params[i], "part")) && (strcmp((*params).params[i], "action"))){
 				tpl_printf(vars, 1, "MESSAGE", "Parameter: %s set to Value: %s<BR>\n", (*params).params[i], (*params).values[i]);
+				if (strcmp((*params).params[i], "nocrypt") == 0){
+					clear_sip(&cfg->c33_plain);
+				}
 				//we use the same function as used for parsing the config tokens
 				chk_t_camd33((*params).params[i], (*params).values[i]);
 			}
@@ -108,9 +111,9 @@ void send_oscam_config_camd33(struct templatevars *vars, FILE *f, struct uripara
 	for (i = 0; i < sizeof(cfg->c33_key); ++i) tpl_printf(vars, 1, "KEY", "%02X",cfg->c33_key[i]);
 	  struct s_ip *cip;
 	  char *dot="";
-  for (cip = cfg->rad_allowed; cip; cip = cip->next){
-  	tpl_printf(vars, 1, "NOCRYPT", "%s%s", dot, inet_ntoa(*(struct in_addr *)&cip->ip[0]));
-  	if (cip->ip[0] == cip->ip[1])	tpl_printf(vars, 1, "NOCRYPT", "-%s", inet_ntoa(*(struct in_addr *)&cip->ip[1]));
+  for (cip = cfg->c33_plain; cip; cip = cip->next){
+  	tpl_printf(vars, 1, "NOCRYPT", "%s%s", dot, cs_inet_ntoa(cip->ip[0]));
+  	if (cip->ip[0] != cip->ip[1])	tpl_printf(vars, 1, "NOCRYPT", "-%s", cs_inet_ntoa(cip->ip[1]));
   	dot=",";
 	  }
 
@@ -178,6 +181,9 @@ void send_oscam_config_radegast(struct templatevars *vars, FILE *f, struct uripa
 		for(i = 0; i < (*params).paramcount; ++i){
 			if ((strcmp((*params).params[i], "part")) && (strcmp((*params).params[i], "action"))){
 				tpl_printf(vars, 1, "MESSAGE", "Parameter: %s set to Value: %s<BR>\n", (*params).params[i], (*params).values[i]);
+				if (strcmp((*params).params[i], "allowed") == 0){
+					clear_sip(&cfg->rad_allowed);
+				}
 				//we use the same function as used for parsing the config tokens
 				chk_t_radegast((*params).params[i], (*params).values[i]);
 			}
@@ -192,8 +198,8 @@ void send_oscam_config_radegast(struct templatevars *vars, FILE *f, struct uripa
 	  struct s_ip *cip;
 	  char *dot="";
 	  for (cip=cfg->rad_allowed; cip; cip=cip->next){
-  	tpl_printf(vars, 1, "ALLOWED", "%s%s", dot, inet_ntoa(*(struct in_addr *)&cip->ip[0]));
-  	if (cip->ip[0] == cip->ip[1])	tpl_printf(vars, 1, "ALLOWED", "-%s", inet_ntoa(*(struct in_addr *)&cip->ip[1]));
+  	tpl_printf(vars, 1, "ALLOWED", "%s%s", dot, cs_inet_ntoa(cip->ip[0]));
+  	if (cip->ip[0] != cip->ip[1])	tpl_printf(vars, 1, "ALLOWED", "-%s", cs_inet_ntoa(cip->ip[1]));
   	dot=",";
 	  }
 
@@ -248,6 +254,9 @@ void send_oscam_config_monitor(struct templatevars *vars, FILE *f, struct uripar
 		for(i = 0; i < (*params).paramcount; ++i){
 			if ((strcmp((*params).params[i], "part")) && (strcmp((*params).params[i], "action"))){
 				tpl_printf(vars, 1, "MESSAGE", "Parameter: %s set to Value: %s<BR>\n", (*params).params[i], (*params).values[i]);
+				if (strcmp((*params).params[i], "nocrypt") == 0){
+					clear_sip(&cfg->mon_allowed);
+				}
 				//we use the same function as used for parsing the config tokens
 				chk_t_monitor((*params).params[i], (*params).values[i]);
 			}
@@ -270,8 +279,8 @@ void send_oscam_config_monitor(struct templatevars *vars, FILE *f, struct uripar
 	  struct s_ip *cip;
 	  char *dot="";
   for (cip = cfg->mon_allowed; cip; cip = cip->next){
-  	tpl_printf(vars, 1, "NOCRYPT", "%s%s", dot, inet_ntoa(*(struct in_addr *)&cip->ip[0]));
-  	if (cip->ip[0] == cip->ip[1])	tpl_printf(vars, 1, "NOCRYPT", "-%s", inet_ntoa(*(struct in_addr *)&cip->ip[1]));
+  	tpl_printf(vars, 1, "NOCRYPT", "%s%s", dot, cs_inet_ntoa(cip->ip[0]));
+  	if (cip->ip[0] != cip->ip[1])	tpl_printf(vars, 1, "NOCRYPT", "-%s", cs_inet_ntoa(cip->ip[1]));
   	dot=",";
 		}
 
