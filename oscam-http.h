@@ -67,6 +67,7 @@ A:hover {text-decoration: none; color: red;}"
 			<TD CLASS=\"menu\"><A HREF=\"config.html?part=global\">Global</TD>\n\
 			<TD CLASS=\"menu\"><A HREF=\"config.html?part=camd33\">Camd3.3</TD>\n\
 			<TD CLASS=\"menu\"><A HREF=\"config.html?part=camd35\">Camd3.5</TD>\n\
+			<TD CLASS=\"menu\"><A HREF=\"config.html?part=camd35tcp\">Camd3.5 TCP</TD>\n\
 			<TD CLASS=\"menu\"><A HREF=\"config.html?part=newcamd\">Newcamd</TD>\n\
 			<TD CLASS=\"menu\"><A HREF=\"config.html?part=radegast\">Radegast</TD>\n\
 			<TD CLASS=\"menu\"><A HREF=\"config.html?part=cccam\">Cccam</TD>\n\
@@ -630,6 +631,25 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 <BR><BR>Configuration camd35 not yet implemented<BR><BR>\n\
 ##TPLFOOTER##"
 
+#define TPLCONFIGCAMD35TCP "\
+##TPLHEADER##\
+##TPLMENU##\n\
+##TPLCONFIGMENU##\n\
+<BR><BR>\n\
+##MESSAGE##\
+<form action=\"config.html\" method=\"get\">\n\
+	<input name=\"part\" type=\"hidden\" value=\"camd35tcp\">\n\
+	<input name=\"action\" type=\"hidden\" value=\"execute\">\n\
+	<TABLE cellspacing=\"0\">\n\
+		<TR><TH>&nbsp;</TH><TH>Edit Camd35 TCP Config</TH></TR>\n\
+		<TR><TD>Port:</TD><TD><input name=\"port\" type=\"text\" size=\"100\" maxlength=\"200\" value=\"##PORT##\"></TD></TR>\n\
+		<TR><TD>Serverip:</TD><TD><input name=\"serverip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##SERVERIP##\"></TD></TR>\n\
+    <TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\">\n</TD></TR>\n\
+	</TABLE>\n\
+</form>\n\
+<BR><BR>Configuration camd35 TCP not yet implemented<BR><BR>\n\
+##TPLFOOTER##"
+
 #define TPLCONFIGSERIAL "\
 ##TPLHEADER##\
 ##TPLMENU##\n\
@@ -706,6 +726,7 @@ char *tpl[]={
 	"CONFIGGLOBAL",
 	"CONFIGCAMD33",
 	"CONFIGCAMD35",
+	"CONFIGCAMD35TCP",
 	"CONFIGSERIAL"
 #ifdef HAVE_DVBAPI_3
 	,"CONFIGMENUDVBAPI"
@@ -749,6 +770,7 @@ char *tplmap[]={
 	TPLCONFIGGLOBAL,
 	TPLCONFIGCAMD33,
 	TPLCONFIGCAMD35,
+	TPLCONFIGCAMD35TCP,
 	TPLCONFIGSERIAL
 #ifdef HAVE_DVBAPI_3
 	,TPLCONFIGDVBAPI

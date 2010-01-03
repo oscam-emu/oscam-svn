@@ -139,6 +139,41 @@ void send_oscam_config_camd35(struct templatevars *vars, FILE *f, struct uripara
 	fputs(tpl_getTpl(vars, "CONFIGCAMD35"), f);
 }
 
+void send_oscam_config_camd35tcp(struct templatevars *vars, FILE *f, struct uriparams *params) {
+	int i;
+	if (strcmp(getParam(params, "action"),"execute") == 0){
+			for(i = 0; i < (*params).paramcount; ++i){
+				if ((strcmp((*params).params[i], "part")) && (strcmp((*params).params[i], "action"))){
+					tpl_printf(vars, 1, "MESSAGE", "Parameter: %s set to Value: %s<BR>\n", (*params).params[i], (*params).values[i]);
+					//we use the same function as used for parsing the config tokens
+					chk_t_camd35((*params).params[i], (*params).values[i]);
+				}
+			}
+			tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration camd35 TCP *DONE*</B><BR><BR>");
+			refresh_oscam(REFR_SERVER);
+	}
+
+	int j;
+	char *dot1, *dot2;
+	if ((cfg->c35_tcp_ptab.nports > 0) && (cfg->c35_tcp_ptab.ports[0].s_port > 0)){
+		dot1 = "";
+		for(i = 0; i < cfg->c35_tcp_ptab.nports; ++i){
+			dot2 = ":";
+			tpl_printf(vars, 1, "PORT", "%s%d@%04X", dot1, cfg->c35_tcp_ptab.ports[i].s_port, cfg->c35_tcp_ptab.ports[i].ftab.filts[0].caid);
+			if (cfg->c35_tcp_ptab.ports[i].ftab.filts[0].nprids > 0){
+				for (j = 0; j < cfg->c35_tcp_ptab.ports[i].ftab.filts[0].nprids; ++j){
+					tpl_printf(vars, 1, "PORT", "%s%lX", dot2, cfg->c35_tcp_ptab.ports[i].ftab.filts[0].prids[j]);
+					dot2 = ",";
+				}
+			}
+			dot1=";";
+		}
+	}
+	tpl_addVar(vars, 1, "SERVERIP", inet_ntoa(*(struct in_addr *)&cfg->c35_tcp_srvip));
+
+	fputs(tpl_getTpl(vars, "CONFIGCAMD35TCP"), f);
+}
+
 void send_oscam_config_newcamd(struct templatevars *vars, FILE *f, struct uriparams *params) {
 	int i;
 	if (strcmp(getParam(params, "action"),"execute") == 0){
@@ -146,22 +181,22 @@ void send_oscam_config_newcamd(struct templatevars *vars, FILE *f, struct uripar
 			if ((strcmp((*params).params[i], "part")) && (strcmp((*params).params[i], "action"))){
 				tpl_printf(vars, 1, "MESSAGE", "Parameter: %s set to Value: %s<BR>\n", (*params).params[i], (*params).values[i]);
 				//we use the same function as used for parsing the config tokens
-				chk_t_newcamd((*params).params[i], (*params).values[i]);
+				chk_t_camd35_tcp((*params).params[i], (*params).values[i]);
 			}
 		}
-		tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration newcamd *DONE*</B><BR><BR>");
+		tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration Camd3.5 TCP *DONE*</B><BR><BR>");
 		refresh_oscam(REFR_SERVER);
 	}
 		int j;
 		char *dot1, *dot2;
-		if (cfg->ncd_ptab.nports>0){
+		if ((cfg->ncd_ptab.nports > 0) && (cfg->ncd_ptab.ports[0].s_port > 0)){
 			dot1 = "";
-		for(i = 0; i < cfg->ncd_ptab.nports; ++i){
-			dot2 = ":";
-			tpl_printf(vars, 1, "PORT", "%s%d@%04X", dot1, cfg->ncd_ptab.ports[i].s_port, cfg->ncd_ptab.ports[i].ftab.filts[0].caid);
+			for(i = 0; i < cfg->ncd_ptab.nports; ++i){
+				dot2 = ":";
+				tpl_printf(vars, 1, "PORT", "%s%d@%04X", dot1, cfg->ncd_ptab.ports[i].s_port, cfg->ncd_ptab.ports[i].ftab.filts[0].caid);
 				if (cfg->ncd_ptab.ports[i].ftab.filts[0].nprids > 0){
-				for (j = 0; j < cfg->ncd_ptab.ports[i].ftab.filts[0].nprids; ++j){
-					tpl_printf(vars, 1, "PORT", "%s%lX", dot2, cfg->ncd_ptab.ports[i].ftab.filts[0].prids[j]);
+					for (j = 0; j < cfg->ncd_ptab.ports[i].ftab.filts[0].nprids; ++j){
+						tpl_printf(vars, 1, "PORT", "%s%lX", dot2, cfg->ncd_ptab.ports[i].ftab.filts[0].prids[j]);
 						dot2 = ",";
 					}
 				}
@@ -358,13 +393,13 @@ void send_oscam_config_anticasc(struct templatevars *vars, FILE *f, struct uripa
 	tpl_printf(vars, 0, "DENYSAMPLES", "%d", cfg->ac_denysamples);
 	fputs(tpl_getTpl(vars, "CONFIGANTICASC"), f);
 }
-
 #endif
 
 void send_oscam_config(struct templatevars *vars, FILE *f, struct uriparams *params) {
 	char *part = getParam(params, "part");
 	if (!strcmp(part,"camd33")) send_oscam_config_camd33(vars, f, params);
 	else if (!strcmp(part,"camd35")) send_oscam_config_camd35(vars, f, params);
+	else if (!strcmp(part,"camd35tcp")) send_oscam_config_camd35tcp(vars, f, params);
 	else if (!strcmp(part,"newcamd")) send_oscam_config_newcamd(vars, f, params);
 	else if (!strcmp(part,"radegast")) send_oscam_config_radegast(vars, f, params);
 	else if (!strcmp(part,"cccam")) send_oscam_config_cccam(vars, f, params);

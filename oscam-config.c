@@ -913,7 +913,7 @@ int write_config()
 			fprintf(f,"[newcamd]\n");
 			fprintf(f,"port                = ");
 			dot1 = "";
-		for(i = 0; i < cfg->ncd_ptab.nports; ++i){
+		if ((cfg->ncd_ptab.nports > 0) && (cfg->ncd_ptab.ports[0].s_port > 0)){
 			dot2 = ":";
 			fprintf(f,"%s%d@%04X", dot1, cfg->ncd_ptab.ports[i].s_port, cfg->ncd_ptab.ports[i].ftab.filts[0].caid);
 			if (cfg->ncd_ptab.ports[i].ftab.filts[0].nprids > 0){
@@ -957,7 +957,7 @@ int write_config()
 	}
 
 	/*camd3.5 TCP*/
-	if ( cfg->c35_tcp_ptab.nports>0) {
+	if ((cfg->c35_tcp_ptab.nports > 0) && (cfg->c35_tcp_ptab.ports[0].s_port > 0)) {
 		fprintf(f,"[cs378x]\n");
 		fprintf(f,"port                = ");
 		dot1 = ""; dot2 = "";
