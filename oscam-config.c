@@ -842,9 +842,9 @@ void chk_account(char *token, char *value, struct s_auth *account)
 
 int write_config()
 {
-	int i;
+	int i,j;
 	FILE *f;
-	char *dot = ""; //flag for comma
+	char *dot = "", *dot1 = "", *dot2 = ""; //flags for delimiters
 	char tmpfile[256];
 	char destfile[256];
 	char bakfile[256];
@@ -909,8 +909,6 @@ int write_config()
 	fprintf(f,"\n");
 
 	/*newcamd*/
-	int j;
-	char *dot1, *dot2;
 	if (cfg->ncd_ptab.nports>0){
 			fprintf(f,"[newcamd]\n");
 			fprintf(f,"port                = ");
@@ -933,12 +931,49 @@ int write_config()
 		fprintf(f,"\n\n");
 	}
 
+	/*camd3.3*/
+	if ( cfg->c33_port > 0) {
+		fprintf(f,"[camd33]\n");
+		fprintf(f,"port                = %d\n", cfg->c33_port);
+		fprintf(f,"serverip            = %s\n", inet_ntoa(*(struct in_addr *)&cfg->c33_srvip));
+		fprintf(f,"passive             = %d\n", cfg->c33_passive);
+		fprintf(f,"key                 = "); for (i = 0; i < sizeof(cfg->c33_key); ++i) fprintf(f,"%02X", cfg->c33_key[i]); fprintf(f,"\n");
+		fprintf(f,"nocrypt             = ");
+		dot="";
+		for (cip = cfg->c33_plain; cip; cip = cip->next){
+			fprintf(f,"%s%s", dot, cs_inet_ntoa(cip->ip[0]));
+			if (cip->ip[0] != cip->ip[1])	fprintf(f,"-%s", cs_inet_ntoa(cip->ip[1]));
+			dot=",";
+	  }
+		fprintf(f,"\n\n");
+	}
+
 	/*camd3.5*/
 	if ( cfg->c35_port > 0) {
 		fprintf(f,"[cs357x]\n");
 		fprintf(f,"port                = %d\n", cfg->c35_port);
 		fprintf(f,"serverip            = %s\n", inet_ntoa(*(struct in_addr *)&cfg->c35_tcp_srvip));
 		fprintf(f,"\n");
+	}
+
+	/*camd3.5 TCP*/
+	if ( cfg->c35_tcp_ptab.nports>0) {
+		fprintf(f,"[cs378x]\n");
+		fprintf(f,"port                = ");
+		dot1 = ""; dot2 = "";
+		for(i = 0; i < cfg->c35_tcp_ptab.nports; ++i){
+			dot2 = ":";
+			fprintf(f,"%s%d@%04X", dot1, cfg->c35_tcp_ptab.ports[i].s_port, cfg->c35_tcp_ptab.ports[i].ftab.filts[0].caid);
+			if (cfg->c35_tcp_ptab.ports[i].ftab.filts[0].nprids > 0){
+			for (j = 0; j < cfg->c35_tcp_ptab.ports[i].ftab.filts[0].nprids; ++j){
+				fprintf(f,"%s%lX", dot2, cfg->c35_tcp_ptab.ports[i].ftab.filts[0].prids[j]);
+				dot2 = ",";
+				}
+			}
+			dot1=";";
+		}
+
+	fprintf(f,"serverip            = %s\n", inet_ntoa(*(struct in_addr *)&cfg->c35_tcp_srvip));
 	}
 
 	/*Radegast*/
@@ -957,6 +992,53 @@ int write_config()
 		fprintf(f,"\n\n");
 	}
 
+	/*Gbox*/
+	if ((cfg->gbox_pwd[0] > 0) || (cfg->gbox_pwd[1] > 0) || (cfg->gbox_pwd[2] > 0) || (cfg->gbox_pwd[3] > 0)){
+		fprintf(f,"[gbox]\n");
+		fprintf(f,"password            = "); for (i=0;i<4;i++) fprintf(f,"%02X", cfg->gbox_pwd[i]); fprintf(f,"\n");
+		fprintf(f,"maxdist             = %d\n", cfg->maxdist);
+		fprintf(f,"ignorelist          = %s\n", cfg->ignorefile);
+		fprintf(f,"onlineinfos         = %s\n", cfg->gbxShareOnl);
+		fprintf(f,"cardinfos           = %s\n", cfg->cardfile);
+		fprintf(f,"locals              = ");
+		char *dot = "";
+		for (i = 0; i < cfg->num_locals; i++){
+			fprintf(f,"%s%06lX", dot, cfg->locals[i]);
+			dot=";";
+		}
+		fprintf(f,"\n\n");
+	}
+
+	/*serial*/
+
+
+	/*cccam placeholder*/
+
+#ifdef HAVE_DVBAPI_3
+	/*dvb-api*/
+	if (cfg->dvbapi_enabled > 0) {
+		fprintf(f,"[dvbapi]\n");
+		fprintf(f,"enabled             = %d\n", cfg->dvbapi_enabled);
+		fprintf(f,"au                  = %d\n", cfg->dvbapi_au);
+		fprintf(f,"socket              = %s\n", cfg->dvbapi_socket);
+		fprintf(f,"user                = %s\n", cfg->dvbapi_usr);
+		fprintf(f,"\n");
+	}
+#endif
+
+#ifdef CS_ANTICASC
+	if (cfg->ac_enabled > 0){
+		fprintf(f,"enabled             = %d\n", cfg->ac_enabled);
+		fprintf(f,"numusers            = %d\n", cfg->ac_users);
+		fprintf(f,"sampletime          = %d\n", cfg->ac_stime);
+		fprintf(f,"samples             = %d\n", cfg->ac_samples);
+		fprintf(f,"penalty             = %d\n", cfg->ac_penalty);
+		fprintf(f,"aclogfile           = %s\n", cfg->ac_logfile);
+		fprintf(f,"denysamples         = %d\n", cfg->ac_denysamples);
+		fprintf(f,"fakedelay           = %d\n", cfg->ac_fakedelay);
+		fprintf(f,"\n");
+	}
+#endif
 
 	fclose(f);
 
