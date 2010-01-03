@@ -74,11 +74,16 @@ A:hover {text-decoration: none; color: red;}"
 			##TPLCONFIGMENUANTICASC##\
 			<TD CLASS=\"menu\"><A HREF=\"config.html?part=monitor\">Monitor</TD>\n\
 			<TD CLASS=\"menu\"><A HREF=\"config.html?part=serial\">Serial</TD>\n\
+			##TPLCONFIGMENUDVBAPI##\
 		</TR>\n\
 	</TABLE>"
 
 #ifdef CS_ANTICASC
 #define TPLCONFIGMENUANTICASC "<TD CLASS=\"menu\"><A HREF=\"config.html?part=anticasc\">Anticascading</TD>\n"
+#endif
+
+#ifdef HAVE_DVBAPI_3
+#define TPLCONFIGMENUDVBAPI "<TD CLASS=\"menu\"><A HREF=\"config.html?part=dvbapi\">DVB-Api</TD>\n"
 #endif
 
 #define TPLSTATUS "\
@@ -643,6 +648,31 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 <BR><BR>Configuration Serial not yet implemented<BR><BR>\n\
 ##TPLFOOTER##"
 
+#ifdef HAVE_DVBAPI_3
+#define TPLCONFIGDVBAPI "\
+##TPLHEADER##\
+##TPLMENU##\n\
+##TPLCONFIGMENU##\n\
+<BR><BR>\n\
+##MESSAGE##\
+<form action=\"config.html\" method=\"get\">\n\
+	<input name=\"part\" type=\"hidden\" value=\"dvbapi\">\n\
+	<input name=\"action\" type=\"hidden\" value=\"execute\">\n\
+	<input name=\"enabled\" type=\"hidden\" value=\"0\">\n\
+	<input name=\"au\" type=\"hidden\" value=\"0\">\n\
+	<TABLE cellspacing=\"0\">\n\
+		<TR><TH>&nbsp;</TH><TH>Edit DVB Api Config</TH></TR>\n\
+		<TR><TD>Enabled:</TD><TD><input name=\"enabled\" type=\"checkbox\" value=\"1\" ##ENABLEDCHECKED##>\n\
+		<TR><TD>AU:</TD><TD><input name=\"au\" type=\"checkbox\" value=\"1\" ##AUCHECKED##>\n\
+		<TR><TD>Socket:</TD><TD><input name=\"socket\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"##SOCKET##\"></TD></TR>\n\
+		<TR><TD>User:</TD><TD><input name=\"user\" type=\"text\" size=\"20\" maxlength=\"20\" value=\"##USER##\"></TD></TR>\n\
+    <TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\">\n</TD></TR>\n\
+	</TABLE>\n\
+</form>\n\
+<BR><BR>Configuration DVB Api not yet implemented<BR><BR>\n\
+##TPLFOOTER##"
+#endif
+
 enum refreshtypes {REFR_ACCOUNTS, REFR_READERS, REFR_SERVER, REFR_ANTICASC};
 
 char *tpl[]={
@@ -677,6 +707,10 @@ char *tpl[]={
 	"CONFIGCAMD33",
 	"CONFIGCAMD35",
 	"CONFIGSERIAL"
+#ifdef HAVE_DVBAPI_3
+	,"CONFIGMENUDVBAPI"
+	,"CONFIGDVBAPI"
+#endif
 #ifdef CS_ANTICASC
 	,"USEREDITANTICASC"
 	,"CONFIGANTICASC"
@@ -716,6 +750,10 @@ char *tplmap[]={
 	TPLCONFIGCAMD33,
 	TPLCONFIGCAMD35,
 	TPLCONFIGSERIAL
+#ifdef HAVE_DVBAPI_3
+	,TPLCONFIGDVBAPI
+	,TPLCONFIGMENUDVBAPI
+#endif
 #ifdef CS_ANTICASC
 	,TPLUSEREDITANTICASC
 	,TPLCONFIGANTICASC

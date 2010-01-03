@@ -310,6 +310,30 @@ void send_oscam_config_serial(struct templatevars *vars, FILE *f, struct uripara
 	fputs(tpl_getTpl(vars, "CONFIGSERIAL"), f);
 }
 
+#ifdef HAVE_DVBAPI_3
+void send_oscam_config_dvbapi(struct templatevars *vars, FILE *f, struct uriparams *params) {
+	int i;
+	if (strcmp(getParam(params, "action"),"execute") == 0){
+			for(i = 0; i < (*params).paramcount; ++i){
+				if ((strcmp((*params).params[i], "part")) && (strcmp((*params).params[i], "action"))){
+					tpl_printf(vars, 1, "MESSAGE", "Parameter: %s set to Value: %s<BR>\n", (*params).params[i], (*params).values[i]);
+					//we use the same function as used for parsing the config tokens
+					chk_t_dvbapi((*params).params[i], (*params).values[i]);
+				}
+			}
+			tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration DVB Api *DONE*</B><BR><BR>");
+			refresh_oscam(REFR_SERVER);
+	}
+
+	if (cfg->dvbapi_enabled > 0) tpl_addVar(vars, 0, "ENABLEDCHECKED", "checked");
+	if (cfg->dvbapi_au > 0) tpl_addVar(vars, 0, "AUCHECKED", "checked");
+	tpl_addVar(vars, 0, "SOCKET", cfg->dvbapi_socket);
+	tpl_addVar(vars, 0, "USER", cfg->dvbapi_usr);
+
+	fputs(tpl_getTpl(vars, "CONFIGDVBAPI"), f);
+}
+#endif
+
 #ifdef CS_ANTICASC
 void send_oscam_config_anticasc(struct templatevars *vars, FILE *f, struct uriparams *params) {
 	int i;
@@ -345,6 +369,9 @@ void send_oscam_config(struct templatevars *vars, FILE *f, struct uriparams *par
 	else if (!strcmp(part,"radegast")) send_oscam_config_radegast(vars, f, params);
 	else if (!strcmp(part,"cccam")) send_oscam_config_cccam(vars, f, params);
 	else if (!strcmp(part,"gbox")) send_oscam_config_gbox(vars, f, params);
+#ifdef HAVE_DVBAPI_3
+	else if (!strcmp(part,"dvbapi")) send_oscam_config_dvbapi(vars, f, params);
+#endif
 #ifdef CS_ANTICASC
 	else if (!strcmp(part,"anticasc")) send_oscam_config_anticasc(vars, f, params);
 #endif

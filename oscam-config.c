@@ -550,7 +550,7 @@ void chk_t_cccam(char *token, char *value)
   // placeholder for ccam server support
 }
 
-static void chk_t_dvbapi(char *token, char *value)
+void chk_t_dvbapi(char *token, char *value)
 {
 #ifndef HAVE_DVBAPI_3
 	fprintf(stderr, "Warning: OSCam compiled without DVB API support.\n");
