@@ -813,10 +813,10 @@ void send_oscam_status(struct templatevars *vars, FILE *f, struct uriparams *par
 	for (i=0; i<CS_MAXPID; i++)	{
 		if (client[i].pid) {
 
-			if((cfg->http_hide_idle_clients == 1) && (client[i].typ == 'c') && ((now - client[i].lastecm) > 30)) continue;
+			if((cfg->http_hide_idle_clients == 1) && (client[i].typ == 'c') && ((now - client[i].lastecm) > cfg->mon_hideclient_to)) continue;
 
-			if ((cfg->mon_hideclient_to <= 0) ||	(((now-client[i].lastecm)/60)<cfg->mon_hideclient_to) ||
-			(((now-client[i].lastemm)/60)<cfg->mon_hideclient_to) || (client[i].typ!='c')){
+			/*if ((cfg->mon_hideclient_to <= 0) ||	(((now-client[i].lastecm)/60)<cfg->mon_hideclient_to) ||
+			(((now-client[i].lastemm)/60)<cfg->mon_hideclient_to) || (client[i].typ!='c')){*/
 				lsec=now-client[i].login;
 				isec=now-client[i].last;
 				usr=client[i].usr;
@@ -854,7 +854,7 @@ void send_oscam_status(struct templatevars *vars, FILE *f, struct uriparams *par
 				tpl_printf(vars, 0, "CWOK", "%d", client[i].cwfound);
 				tpl_printf(vars, 0, "CWNOK", "%d", client[i].cwnot);
 				tpl_addVar(vars, 1, "CLIENTSTATUS", tpl_getTpl(vars, "CLIENTSTATUSBIT"));
-			}
+			//}
 		}
 	}
 
