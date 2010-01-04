@@ -23,6 +23,7 @@ DIV.log{border:1px solid black;background-color: black; font-family:\"Courier Ne
 TABLE.menu{background-color:black; align:center; font-size: 10px;}\n\
 TABLE.menu TD{border:2px outset lightgrey; background-color:silver; font-color:black; font-family: Arial;}\n\
 TABLE.status{background-color:#66CCFF;empty-cells:show;}\n\
+TABLE.config{width:750px;}\n\
 TABLE.invisible TD {border:0px; font-family: Arial; font-size: 12px; padding:5px; background-color:#6666FF;}}\n\
 TD.menu {border:2px outset lightgrey; background-color:silver; font-color:black; font-family: Arial; font-size:11px;}\n\
 body {background-color: grey; font-family: Arial; font-size: 12px;}\n\
@@ -420,7 +421,7 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 <form action=\"config.html\" method=\"get\">\n\
 	<input name=\"part\" type=\"hidden\" value=\"gbox\">\n\
 	<input name=\"action\" type=\"hidden\" value=\"execute\">\n\
-	<TABLE cellspacing=\"0\">\n\
+	<TABLE class=\"config\" cellspacing=\"0\">\n\
 		<TR><TH>&nbsp;</TH><TH>Edit Gbox Config </TH></TR>\n\
 		<TR><TD>Password:</TD><TD><input name=\"password\" type=\"text\" size=\"10\" maxlength=\"8\" value=\"##PASSWORD##\"></TD></TR>\n\
 		<TR><TD>Maxdist:</TD><TD><input name=\"maxdist\" type=\"text\" size=\"5\" maxlength=\"2\" value=\"##MAXDIST##\"></TD></TR>\n\
@@ -442,7 +443,7 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 <form action=\"config.html\" method=\"get\">\n\
 	<input name=\"part\" type=\"hidden\" value=\"anticasc\">\n\
 	<input name=\"action\" type=\"hidden\" value=\"execute\">\n\
-	<TABLE cellspacing=\"0\">\n\
+	<TABLE class=\"config\" cellspacing=\"0\">\n\
 		<TR><TH>&nbsp;</TH><TH>Edit Anticascading Config</TH></TR>\n\
 		<TR><TD>Enabled:</TD><TD><input name=\"enabled\" type=\"checkbox\" value=\"1\" ##CHECKED##>\n\
 		<TR><TD>Numusers:</TD><TD><input name=\"numusers\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##NUMUSERS##\"></TD></TR>\n\
@@ -467,7 +468,7 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 <form action=\"config.html\" method=\"get\">\n\
 	<input name=\"part\" type=\"hidden\" value=\"cccam\">\n\
 	<input name=\"action\" type=\"hidden\" value=\"execute\">\n\
-	<TABLE cellspacing=\"0\">\n\
+	<TABLE class=\"config\" cellspacing=\"0\">\n\
 		<TR><TH>&nbsp;</TH><TH>Edit Cccam Config</TH></TR>\n\
     <TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\">\n</TD></TR>\n\
 	</TABLE>\n\
@@ -485,7 +486,7 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 	<input name=\"part\" type=\"hidden\" value=\"monitor\">\n\
 	<input name=\"action\" type=\"hidden\" value=\"execute\">\n\
   <input name=\"httphideidleclients\" type=\"hidden\" value=\"0\">\n\
-	<TABLE cellspacing=\"0\">\n\
+	<TABLE class=\"config\" cellspacing=\"0\">\n\
 		<TR><TH>&nbsp;</TH><TH>Edit Monitor Config</TH></TR>\n\
 		<TR><TD>Port:</TD><TD><input name=\"port\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##MONPORT##\"></TD></TR>\n\
 		<TR><TD>Serverip:</TD><TD><input name=\"serverip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##SERVERIP##\"></TD></TR>\n\
@@ -523,7 +524,7 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 <form action=\"config.html\" method=\"get\">\n\
 	<input name=\"part\" type=\"hidden\" value=\"radegast\">\n\
 	<input name=\"action\" type=\"hidden\" value=\"execute\">\n\
-	<TABLE cellspacing=\"0\">\n\
+	<TABLE class=\"config\" cellspacing=\"0\">\n\
 		<TR><TH>&nbsp;</TH><TH>Edit Radegast Config</TH></TR>\n\
 		<TR><TD>Port:</TD><TD><input name=\"port\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##PORT##\"></TD></TR>\n\
 		<TR><TD>Serverip:</TD><TD><input name=\"serverip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##SERVERIP##\"></TD></TR>\n\
@@ -543,7 +544,7 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 <form action=\"config.html\" method=\"get\">\n\
 	<input name=\"part\" type=\"hidden\" value=\"newcamd\">\n\
 	<input name=\"action\" type=\"hidden\" value=\"execute\">\n\
-	<TABLE cellspacing=\"0\">\n\
+	<TABLE class=\"config\" cellspacing=\"0\">\n\
 		<TR><TH>&nbsp;</TH><TH>Edit Newcamd Config</TH></TR>\n\
 		<TR><TD>Port:</TD><TD><input name=\"port\" type=\"text\" size=\"80\" maxlength=\"200\" value=\"##PORT##\"></TD></TR>\n\
 		<TR><TD>Serverip:</TD><TD><input name=\"serverip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##SERVERIP##\"></TD></TR>\n\
@@ -562,7 +563,7 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 <form action=\"config.html\" method=\"get\">\n\
 	<input name=\"part\" type=\"hidden\" value=\"global\">\n\
 	<input name=\"action\" type=\"hidden\" value=\"execute\">\n\
-	<TABLE cellspacing=\"0\">\n\
+	<TABLE class=\"config\" cellspacing=\"0\">\n\
 		<TR><TH>&nbsp;</TH><TH>Edit Global Config</TH></TR>\n\
 		<TR><TD>Serverip:</TD><TD><input name=\"serverip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##SERVERIP##\"></TD></TR>\n\
 		<TR><TD>Logfile:</TD><TD><input name=\"logfile\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##LOGFILE##\"></TD></TR>\n\
@@ -587,7 +588,7 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
     <TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\">\n</TD></TR>\n\
 	</TABLE>\n\
 </form>\n\
-<BR><BR>Configuration Global not yet implemented chengings havn't any effect<BR><BR>\n\
+<BR><BR>Configuration Global not yet implemented changings havn't any effect<BR><BR>\n\
 ##TPLFOOTER##"
 
 #define TPLCONFIGCAMD33 "\
@@ -599,7 +600,7 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 <form action=\"config.html\" method=\"get\">\n\
 	<input name=\"part\" type=\"hidden\" value=\"camd33\">\n\
 	<input name=\"action\" type=\"hidden\" value=\"execute\">\n\
-	<TABLE cellspacing=\"0\">\n\
+	<TABLE class=\"config\" cellspacing=\"0\">\n\
 		<TR><TH>&nbsp;</TH><TH>Edit Camd33 Config</TH></TR>\n\
 		<TR><TD>Port:</TD><TD><input name=\"port\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##PORT##\"></TD></TR>\n\
 		<TR><TD>Serverip:</TD><TD><input name=\"serverip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##SERVERIP##\"></TD></TR>\n\
@@ -621,7 +622,7 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 <form action=\"config.html\" method=\"get\">\n\
 	<input name=\"part\" type=\"hidden\" value=\"camd35\">\n\
 	<input name=\"action\" type=\"hidden\" value=\"execute\">\n\
-	<TABLE cellspacing=\"0\">\n\
+	<TABLE class=\"config\" cellspacing=\"0\">\n\
 		<TR><TH>&nbsp;</TH><TH>Edit Camd35 Config</TH></TR>\n\
 		<TR><TD>Port:</TD><TD><input name=\"port\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##PORT##\"></TD></TR>\n\
 		<TR><TD>Serverip:</TD><TD><input name=\"serverip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##SERVERIP##\"></TD></TR>\n\
@@ -640,9 +641,9 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 <form action=\"config.html\" method=\"get\">\n\
 	<input name=\"part\" type=\"hidden\" value=\"camd35tcp\">\n\
 	<input name=\"action\" type=\"hidden\" value=\"execute\">\n\
-	<TABLE cellspacing=\"0\">\n\
+	<TABLE class=\"config\" cellspacing=\"0\">\n\
 		<TR><TH>&nbsp;</TH><TH>Edit Camd35 TCP Config</TH></TR>\n\
-		<TR><TD>Port:</TD><TD><input name=\"port\" type=\"text\" size=\"100\" maxlength=\"200\" value=\"##PORT##\"></TD></TR>\n\
+		<TR><TD>Port:</TD><TD><input name=\"port\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##PORT##\"></TD></TR>\n\
 		<TR><TD>Serverip:</TD><TD><input name=\"serverip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##SERVERIP##\"></TD></TR>\n\
     <TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\">\n</TD></TR>\n\
 	</TABLE>\n\
@@ -659,7 +660,7 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 <form action=\"config.html\" method=\"get\">\n\
 	<input name=\"part\" type=\"hidden\" value=\"serial\">\n\
 	<input name=\"action\" type=\"hidden\" value=\"execute\">\n\
-	<TABLE cellspacing=\"0\">\n\
+	<TABLE class=\"config\" cellspacing=\"0\">\n\
 		<TR><TH>&nbsp;</TH><TH>Edit Serial Config</TH></TR>\n\
 		<TR><TD>Device:</TD><TD><input name=\"device\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"##SERIALDEVICE##\"></TD></TR>\n\
     <TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\">\n</TD></TR>\n\
@@ -680,7 +681,7 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 	<input name=\"action\" type=\"hidden\" value=\"execute\">\n\
 	<input name=\"enabled\" type=\"hidden\" value=\"0\">\n\
 	<input name=\"au\" type=\"hidden\" value=\"0\">\n\
-	<TABLE cellspacing=\"0\">\n\
+	<TABLE class=\"config\" cellspacing=\"0\">\n\
 		<TR><TH>&nbsp;</TH><TH>Edit DVB Api Config</TH></TR>\n\
 		<TR><TD>Enabled:</TD><TD><input name=\"enabled\" type=\"checkbox\" value=\"1\" ##ENABLEDCHECKED##>\n\
 		<TR><TD>AU:</TD><TD><input name=\"au\" type=\"checkbox\" value=\"1\" ##AUCHECKED##>\n\
