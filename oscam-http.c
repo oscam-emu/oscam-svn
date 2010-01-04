@@ -142,11 +142,12 @@ void send_oscam_config_camd35(struct templatevars *vars, FILE *f, struct uripara
 void send_oscam_config_camd35tcp(struct templatevars *vars, FILE *f, struct uriparams *params) {
 	int i;
 	if (strcmp(getParam(params, "action"),"execute") == 0){
+			clear_ptab(&cfg->c35_tcp_ptab); /*clear Porttab*/
 			for(i = 0; i < (*params).paramcount; ++i){
 				if ((strcmp((*params).params[i], "part")) && (strcmp((*params).params[i], "action"))){
 					tpl_printf(vars, 1, "MESSAGE", "Parameter: %s set to Value: %s<BR>\n", (*params).params[i], (*params).values[i]);
 					//we use the same function as used for parsing the config tokens
-					chk_t_camd35((*params).params[i], (*params).values[i]);
+					chk_t_camd35_tcp((*params).params[i], (*params).values[i]);
 				}
 			}
 			tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration camd35 TCP *DONE*</B><BR><BR>");
@@ -158,9 +159,10 @@ void send_oscam_config_camd35tcp(struct templatevars *vars, FILE *f, struct urip
 	if ((cfg->c35_tcp_ptab.nports > 0) && (cfg->c35_tcp_ptab.ports[0].s_port > 0)){
 		dot1 = "";
 		for(i = 0; i < cfg->c35_tcp_ptab.nports; ++i){
-			dot2 = ":";
 			tpl_printf(vars, 1, "PORT", "%s%d@%04X", dot1, cfg->c35_tcp_ptab.ports[i].s_port, cfg->c35_tcp_ptab.ports[i].ftab.filts[0].caid);
 			if (cfg->c35_tcp_ptab.ports[i].ftab.filts[0].nprids > 0){
+				tpl_printf(vars, 1, "PORT", ":");
+				dot2 = "";
 				for (j = 0; j < cfg->c35_tcp_ptab.ports[i].ftab.filts[0].nprids; ++j){
 					tpl_printf(vars, 1, "PORT", "%s%lX", dot2, cfg->c35_tcp_ptab.ports[i].ftab.filts[0].prids[j]);
 					dot2 = ",";
@@ -177,14 +179,15 @@ void send_oscam_config_camd35tcp(struct templatevars *vars, FILE *f, struct urip
 void send_oscam_config_newcamd(struct templatevars *vars, FILE *f, struct uriparams *params) {
 	int i;
 	if (strcmp(getParam(params, "action"),"execute") == 0){
+		clear_ptab(&cfg->ncd_ptab); /*clear Porttab*/
 		for(i = 0; i < (*params).paramcount; ++i){
 			if ((strcmp((*params).params[i], "part")) && (strcmp((*params).params[i], "action"))){
 				tpl_printf(vars, 1, "MESSAGE", "Parameter: %s set to Value: %s<BR>\n", (*params).params[i], (*params).values[i]);
 				//we use the same function as used for parsing the config tokens
-				chk_t_camd35_tcp((*params).params[i], (*params).values[i]);
+				chk_t_newcamd((*params).params[i], (*params).values[i]);
 			}
 		}
-		tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration Camd3.5 TCP *DONE*</B><BR><BR>");
+		tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration Newcamd *DONE*</B><BR><BR>");
 		refresh_oscam(REFR_SERVER);
 	}
 		int j;
@@ -192,9 +195,10 @@ void send_oscam_config_newcamd(struct templatevars *vars, FILE *f, struct uripar
 		if ((cfg->ncd_ptab.nports > 0) && (cfg->ncd_ptab.ports[0].s_port > 0)){
 			dot1 = "";
 			for(i = 0; i < cfg->ncd_ptab.nports; ++i){
-				dot2 = ":";
 				tpl_printf(vars, 1, "PORT", "%s%d@%04X", dot1, cfg->ncd_ptab.ports[i].s_port, cfg->ncd_ptab.ports[i].ftab.filts[0].caid);
 				if (cfg->ncd_ptab.ports[i].ftab.filts[0].nprids > 0){
+					tpl_printf(vars, 1, "PORT", ":");
+					dot2 = "";
 					for (j = 0; j < cfg->ncd_ptab.ports[i].ftab.filts[0].nprids; ++j){
 						tpl_printf(vars, 1, "PORT", "%s%lX", dot2, cfg->ncd_ptab.ports[i].ftab.filts[0].prids[j]);
 						dot2 = ",";

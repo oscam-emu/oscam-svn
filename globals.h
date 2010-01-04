@@ -672,6 +672,7 @@ extern char *char_to_hex(const unsigned char* p_array, unsigned int p_array_len,
 void create_rand_str(char *dst, int size);
 int file_exists(const char * filename);
 void clear_sip(struct s_ip **sip);
+void clear_ptab(struct s_ptab *ptab);
 
 // oscam variables
 extern int pfd, rfd, fd_c2m, fd_m2c, cs_idx, *c_start, cs_ptyp, cs_dblevel, cs_hw;

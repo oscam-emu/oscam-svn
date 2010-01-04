@@ -30,7 +30,8 @@ body {background-color: grey; font-family: Arial; font-size: 12px;}\n\
 A:link {text-decoration: none; color:blue}\n\
 A:visited {text-decoration: none; color:blue}\n\
 A:active {text-decoration: none; color:white}\n\
-A:hover {text-decoration: none; color: red;}"
+A:hover {text-decoration: none; color: red;}\n\
+DIV.message{float:right}"
 
 #define TPLHEADER "\
 <HTML>\n\
@@ -186,7 +187,7 @@ A:hover {text-decoration: none; color: red;}"
 #define TPLUSEREDIT "\
 ##TPLHEADER##\
 ##TPLMENU##\n\
-##MESSAGE##\
+<DIV CLASS=\"message\">##MESSAGE##</DIV>\
 <BR><BR>\n\
   <form action=\"user_edit.html\" method=\"get\">\n\
   <input name=\"user\" type=\"hidden\" value=\"##USERNAME##\">\n\
@@ -341,61 +342,19 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 ##MESSAGE##\
   <form action=\"readerconfig.html?action=execute\" method=\"get\"><input name=\"reader\" type=\"hidden\" value=\"##READERNAME##\">\n\
   <TABLE cellspacing=\"0\">\n\
-    <TR>\n\
-      <TH>&nbsp;</TH>\n\
-      <TH>Edit Reader ##READERNAME##</TH>\n\
-    </TR>\n\
-    <TR>\n\
-      <TD>Device:</TD>\n\
-      <TD><input name=\"device\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##DEVICE####R_PORT####L_PORT##\"></TD>\n\
-    </TR>\n\
-    <TR>\n\
-      <TD>Group:</TD>\n\
-      <TD><input name=\"grp\" type=\"text\" size=\"10\" maxlength=\"10\" value=\"##GRP##\"></TD>\n\
-    </TR>\n\
-    <TR>\n\
-      <TD>Key:</TD>\n\
-      <TD><input name=\"key\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##NCD_KEY##\"></TD>\n\
-    </TR>\n\
-    <TR>\n\
-      <TD>Pincode:</TD>\n\
-      <TD><input name=\"pincode\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##PINCODE##\"></TD>\n\
-    </TR>\n\
-    <TR>\n\
-      <TD>Readnano:</TD>\n\
-      <TD><input name=\"readnano\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##EMMFILE##\"></TD>\n\
-    </TR>\n\
-    <TR>\n\
-      <TD>Services:</TD>\n\
-      <TD>\n\
-        <TABLE cellspacing=\"0\" class=\"invisible\">##SIDS##\
-            </TD>\n\
-          </TR>\n\
-        </TABLE>\n\
-    <TR>\n\
-      <TD>Inactivitytimeout:</TD>\n\
-      <TD><input name=\"inactivitytimeout\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##INACTIVITYTIMEOUT##\"></TD>\n\
-    </TR>\n\
-    <TR>\n\
-      <TD>Reconnecttimeout:</TD>\n\
-      <TD><input name=\"reconnecttimeout\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##RECEIVETIMEOUT##\"></TD>\n\
-    </TR>\n\
-    <TR>\n\
-      <TD>Disableserverfilter:</TD>\n\
-      <TD><input name=\"disableserverfilter\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##DISABLESERVERFILTER##\"></TD>\n\
-    </TR>\n\
-    <TR>\n\
-      <TD>Fallback:</TD>\n\
-      <TD><input name=\"fallback\" type=\"text\" size=\"3\" maxlength=\"3\" value=\"##FALLBACK##\"></TD>\n\
-    </TR>\n\
-    <TR>\n\
-      <TD>CAID:</TD>\n\
-      <TD><input name=\"caid\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"##CAIDS##\"></TD>\n\
-    </TR>\n\
-    <TR>\n\
-      <TD>Boxid:</TD>\n\
-      <TD><input name=\"boxid\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##BOXID##\"></TD>\n\
-    </TR>\n\
+    <TR><TH>&nbsp;</TH><TH>Edit Reader ##READERNAME##</TH></TR>\n\
+    <TR><TD>Device:</TD><TD><input name=\"device\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##DEVICE####R_PORT####L_PORT##\"></TD></TR>\n\
+    <TR><TD>Group:</TD><TD><input name=\"grp\" type=\"text\" size=\"10\" maxlength=\"10\" value=\"##GRP##\"></TD></TR>\n\
+    <TR><TD>Key:</TD><TD><input name=\"key\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##NCD_KEY##\"></TD></TR>\n\
+    <TR><TD>Pincode:</TD><TD><input name=\"pincode\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##PINCODE##\"></TD></TR>\n\
+    <TR><TD>Readnano:</TD><TD><input name=\"readnano\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##EMMFILE##\"></TD></TR>\n\
+    <TR><TD>Services:</TD><TD>\n<TABLE cellspacing=\"0\" class=\"invisible\">##SIDS##</TD>\n</TR>\n</TABLE>\n\
+    <TR><TD>Inactivitytimeout:</TD><TD><input name=\"inactivitytimeout\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##INACTIVITYTIMEOUT##\"></TD></TR>\n\
+    <TR><TD>Reconnecttimeout:</TD><TD><input name=\"reconnecttimeout\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##RECEIVETIMEOUT##\"></TD></TR>\n\
+    <TR><TD>Disableserverfilter:</TD><TD><input name=\"disableserverfilter\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##DISABLESERVERFILTER##\"></TD></TR>\n\
+    <TR><TD>Fallback:</TD><TD><input name=\"fallback\" type=\"text\" size=\"3\" maxlength=\"3\" value=\"##FALLBACK##\"></TD></TR>\n\
+    <TR><TD>CAID:</TD><TD><input name=\"caid\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"##CAIDS##\"></TD></TR>\n\
+    <TR><TD>Boxid:</TD><TD><input name=\"boxid\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##BOXID##\"></TD></TR>\n\
     <TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\">\n</TD></TR>\n\
   </TABLE>\n\
 <BR><BR>Saving not yet implemented - Nothing changes on click<BR><BR>\n\
@@ -417,7 +376,7 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 ##TPLMENU##\n\
 ##TPLCONFIGMENU##\n\
 <BR><BR>\n\
-##MESSAGE##\
+<DIV CLASS=\"message\">##MESSAGE##</DIV>\
 <form action=\"config.html\" method=\"get\">\n\
 	<input name=\"part\" type=\"hidden\" value=\"gbox\">\n\
 	<input name=\"action\" type=\"hidden\" value=\"execute\">\n\
@@ -643,7 +602,7 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 	<input name=\"action\" type=\"hidden\" value=\"execute\">\n\
 	<TABLE class=\"config\" cellspacing=\"0\">\n\
 		<TR><TH>&nbsp;</TH><TH>Edit Camd35 TCP Config</TH></TR>\n\
-		<TR><TD>Port:</TD><TD><input name=\"port\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##PORT##\"></TD></TR>\n\
+		<TR><TD>Port:</TD><TD><input name=\"port\" type=\"text\" size=\"100\" maxlength=\"200\" value=\"##PORT##\"></TD></TR>\n\
 		<TR><TD>Serverip:</TD><TD><input name=\"serverip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##SERVERIP##\"></TD></TR>\n\
     <TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\">\n</TD></TR>\n\
 	</TABLE>\n\
