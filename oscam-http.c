@@ -495,6 +495,7 @@ void send_oscam_reader_config(struct templatevars *vars, FILE *f, struct uripara
 	long2bitchar(reader[ridx].sidtabno,sidno);
 	struct s_sidtab *sidtab = cfg->sidtab;
 	//build matrix
+	i = 0;
 	while(sidtab != NULL){
 		tpl_addVar(vars, 0, "SIDLABEL", sidtab->label);
 		if(sidok[i]=='1') tpl_addVar(vars, 0, "CHECKED", "checked");
@@ -504,6 +505,7 @@ void send_oscam_reader_config(struct templatevars *vars, FILE *f, struct uripara
 		else tpl_addVar(vars, 0, "CHECKED", "");
 		tpl_addVar(vars, 1, "SIDS", tpl_getTpl(vars, "READERCONFIGSIDNOBIT"));
 		sidtab=sidtab->next;
+		i++;
 	}
 
 	// CAID
