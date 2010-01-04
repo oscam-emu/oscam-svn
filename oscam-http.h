@@ -19,7 +19,7 @@ TR.p TD{background-color:yellow;}\n\
 TR.c TD{background-color:green;}\n\
 TR.online TD{background-color:#009900;}\n\
 TR.expired TD{background-color:orange;}\n\
-DIV.log{border:1px solid black;background-color: black; font-family:\"Courier New\", monospace ; color:yellow; font-size: 11px;}\n\
+DIV.log{border:1px solid black;background-color: black; font-family:\"Courier New\", monospace ; color:yellow; font-size: 11px; word-wrap:break-word;}\n\
 TABLE.menu{background-color:black; align:center; font-size: 10px;}\n\
 TABLE.menu TD{border:2px outset lightgrey; background-color:silver; font-color:black; font-family: Arial;}\n\
 TABLE.status{background-color:#66CCFF;empty-cells:show;}\n\
@@ -212,9 +212,9 @@ A:hover {text-decoration: none; color: red;}"
     <TR>\n\
       <TD>Uniq:</TD>\n\
       <TD><select name=\"uniq\">\n\
-        <option value=\"0\" ##UNIQSELECTED0##>none</option>\n\
-        <option value=\"1\" ##UNIQSELECTED1##>strict</option>\n\
-        <option value=\"2\" ##UNIQSELECTED2##>per IP</option>\n\
+        <option value=\"0\" ##UNIQSELECTED0##>0 - none</option>\n\
+        <option value=\"1\" ##UNIQSELECTED1##>1 - strict</option>\n\
+        <option value=\"2\" ##UNIQSELECTED2##>2 - per IP</option>\n\
       </SELECT></TD>\n\
     </TR>\n\
     <TR>\n\
@@ -224,11 +224,11 @@ A:hover {text-decoration: none; color: red;}"
     <TR>\n\
       <TD>Monlevel:</TD>\n\
       <TD><select name=\"monlevel\">\n\
-        <option value=\"0\" ##MONSELECTED0##>no access to monitor</option>\n\
-        <option value=\"1\" ##MONSELECTED1##>only server and own procs</option>\n\
-        <option value=\"2\" ##MONSELECTED2##>all procs, but viewing only, default</option>\n\
-        <option value=\"3\" ##MONSELECTED3##>all procs, reload of oscam.user possible</option>\n\
-        <option value=\"4\" ##MONSELECTED4##>complete access</option>\n\
+        <option value=\"0\" ##MONSELECTED0##>0 - no access to monitor</option>\n\
+        <option value=\"1\" ##MONSELECTED1##>1 - only server and own procs</option>\n\
+        <option value=\"2\" ##MONSELECTED2##>2 - all procs, but viewing only, default</option>\n\
+        <option value=\"3\" ##MONSELECTED3##>3 - all procs, reload of oscam.user possible</option>\n\
+        <option value=\"4\" ##MONSELECTED4##>4 - complete access</option>\n\
       </select></TD>\n\
     </TR>\n\
     <TR>\n\
@@ -494,11 +494,11 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 		<TR>\n\
 			<TD>Monlevel:</TD>\n\
 	    <TD><select name=\"monlevel\">\n\
-				<option value=\"0\" ##MONSELECTED0##>no access to monitor</option>\n\
-				<option value=\"1\" ##MONSELECTED1##>only server and own procs</option>\n\
-				<option value=\"2\" ##MONSELECTED2##>all procs, but viewing only, default</option>\n\
-				<option value=\"3\" ##MONSELECTED3##>all procs, reload of oscam.user possible</option>\n\
-				<option value=\"4\" ##MONSELECTED4##>complete access</option>\n\
+				<option value=\"0\" ##MONSELECTED0##>0 - no access to monitor</option>\n\
+				<option value=\"1\" ##MONSELECTED1##>1 - only server and own procs</option>\n\
+				<option value=\"2\" ##MONSELECTED2##>2 - all procs, but viewing only, default</option>\n\
+				<option value=\"3\" ##MONSELECTED3##>3 - all procs, reload of oscam.user possible</option>\n\
+				<option value=\"4\" ##MONSELECTED4##>4 - complete access</option>\n\
 			</select></TD>\n\
 		</TR>\n\
 		<TR><TD>Hideclientto:</TD><TD><input name=\"hideclient_to\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##HIDECLIENTTO##\"></TD></TR>\n\
