@@ -909,11 +909,11 @@ int write_config()
 	fprintf(f,"\n");
 
 	/*newcamd*/
-	if (cfg->ncd_ptab.nports>0){
+	if ((cfg->ncd_ptab.nports > 0) && (cfg->ncd_ptab.ports[0].s_port > 0)){
 			fprintf(f,"[newcamd]\n");
 			fprintf(f,"port                = ");
-			dot1 = "";
-		if ((cfg->ncd_ptab.nports > 0) && (cfg->ncd_ptab.ports[0].s_port > 0)){
+			dot1 = ""; dot2 = "";
+		for(i = 0; i < cfg->ncd_ptab.nports; ++i){
 			dot2 = ":";
 			fprintf(f,"%s%d@%04X", dot1, cfg->ncd_ptab.ports[i].s_port, cfg->ncd_ptab.ports[i].ftab.filts[0].caid);
 			if (cfg->ncd_ptab.ports[i].ftab.filts[0].nprids > 0){
