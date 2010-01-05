@@ -557,7 +557,7 @@ void chk_t_dvbapi(char *token, char *value)
 #else
 	if (!strcmp(token, "enabled")) 	{ cfg->dvbapi_enabled=atoi(value); return; }
 	if (!strcmp(token, "au"))		{ cfg->dvbapi_au=atoi(value); return; }
-	if (!strcmp(token, "socket")) 	{ strncpy(cfg->dvbapi_socket, value, sizeof(cfg->dvbapi_socket)-1); return; }
+	if (!strcmp(token, "boxtype")) 	{ strncpy(cfg->dvbapi_boxtype, value, sizeof(cfg->dvbapi_boxtype)-1); return; }
 	if (!strcmp(token, "user")) 	{ strncpy(cfg->dvbapi_usr, value, sizeof(cfg->dvbapi_usr)-1); return; }
 
 	if (token[0] != '#')
@@ -1025,7 +1025,7 @@ int write_config()
 		fprintf(f,"[dvbapi]\n");
 		fprintf(f,"enabled             = %d\n", cfg->dvbapi_enabled);
 		fprintf(f,"au                  = %d\n", cfg->dvbapi_au);
-		fprintf(f,"socket              = %s\n", cfg->dvbapi_socket);
+		fprintf(f,"boxtype             = %s\n", cfg->dvbapi_boxtype);
 		fprintf(f,"user                = %s\n", cfg->dvbapi_usr);
 		fprintf(f,"\n");
 	}
