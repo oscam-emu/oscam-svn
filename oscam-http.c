@@ -786,7 +786,10 @@ void send_oscam_entitlement(struct templatevars *vars, FILE *f, struct uriparams
 		tpl_addVar(vars, 0, "READERNAME", reader_);
 	}
 #else
-	tpl_addVar(vars, 0, "LOGHISTORY", "The flag CS_RDR_INIT_HIST is not set in your binary<BR>\n");
+	tpl_addVar(vars, 0, "LOGHISTORY", "Your binary has not been compiled with the \
+																		CS_RDR_INIT_HIST flag (some architectures disable this \
+																		per default to save ressources). Please recompile if you \
+																		need this feature! This is not a bug!<BR>\n");
 #endif
 	fputs(tpl_getTpl(vars, "ENTITLEMENTS"), f);
 }
