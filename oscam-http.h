@@ -215,8 +215,9 @@ DIV.message{float:right}"
       <TD>Uniq:</TD>\n\
       <TD><select name=\"uniq\">\n\
         <option value=\"0\" ##UNIQSELECTED0##>0 - none</option>\n\
-        <option value=\"1\" ##UNIQSELECTED1##>1 - strict</option>\n\
+        <option value=\"1\" ##UNIQSELECTED1##>1 - strict first</option>\n\
         <option value=\"2\" ##UNIQSELECTED2##>2 - per IP</option>\n\
+        <option value=\"3\" ##UNIQSELECTED3##>3 - strict last</option>\n\
       </SELECT></TD>\n\
     </TR>\n\
     <TR>\n\
