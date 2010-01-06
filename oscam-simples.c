@@ -414,7 +414,6 @@ char *urlencode(char *str){
 	return pbuf;
 }
 
-
 /* Converts a long value to a char array in bitwise representation.
    Note that the result array MUST be at least 33 bit large and that
    this function assumes long values to hold only values up to 32bits and to be positive!
@@ -470,6 +469,7 @@ int file_exists(const char * filename){
 	return 0;
 }
 
+/* Clears the s_ip structure provided. The pointer will be set to NULL so everything is cleared.*/
 void clear_sip(struct s_ip **sip){
 	struct s_ip *cip = *sip, *lip;
 	for (*sip = NULL; cip != NULL; cip = lip){
@@ -478,6 +478,7 @@ void clear_sip(struct s_ip **sip){
 	}
 }
 
+/* Clears the s_ptab struct provided by setting nfilts and nprids to zero. */
 void clear_ptab(struct s_ptab *ptab){
 	int i;
 	for (i = 0; i < ptab->nports; i++) {
@@ -485,4 +486,53 @@ void clear_ptab(struct s_ptab *ptab){
 		ptab->ports[i].ftab.filts[0].nprids = 0;
 	}
 	ptab->nports = 0;
+}
+
+/* Overwrites destfile with tmpfile. If forceBakOverWrite = 0, the bakfile will not be overwritten if it exists, else it will be.*/
+int safe_overwrite_with_bak(char *destfile, char *tmpfile, char *bakfile, int forceBakOverWrite){
+	if(forceBakOverWrite != 0 && file_exists(bakfile)){
+		if(remove(bakfile) < 0) cs_log("Error removing backup conf file %s (errno=%d)! Will try to proceed nonetheless...", bakfile, errno);
+	}
+	if(file_exists(bakfile)){
+		if(remove(destfile) < 0) {
+			cs_log("Error removing original conf file %s (errno=%d). Will maintain original one!", destfile, errno);
+			if(remove(tmpfile) < 0) cs_log("Error removing temp conf file %s (errno=%d)!", tmpfile, errno);
+			return(1);
+		}
+	} else {
+		if(rename(destfile, bakfile) < 0){
+			cs_log("Error renaming original conf file %s to %s (errno=%d). Will maintain original one!", destfile, bakfile, errno);
+			if(remove(tmpfile) < 0) cs_log("Error removing temp conf file %s (errno=%d)!", tmpfile, errno);
+			return(1);
+		}
+	}
+	if(rename(tmpfile, destfile) < 0){
+		cs_log("Error renaming new conf file %s to %s (errno=%d). The config will be missing upon next startup as this is non-recoverable!", tmpfile, destfile, errno);
+		return(1);
+	}
+	return(0);
+}
+
+/* Replacement of fprintf which adds necessary whitespace to fill up the varname to a fixed width. 
+   If varname is longer than varnameWidth, no whitespace is added*/
+void fprintf_conf(FILE *f, int varnameWidth, const char *varname, const char *fmtstring, ...){
+	int varlen = strlen(varname);
+	int max = (varlen > varnameWidth) ? varlen : varnameWidth; 
+	char varnamebuf[max + 3];
+	char *ptr = varnamebuf + varlen;
+	va_list argptr;
+	
+	strcpy(varnamebuf, varname);
+	while(varlen < varnameWidth){
+		ptr[0] = ' ';
+		++ptr;
+		++varlen;
+	}
+	strcpy(ptr, "= ");
+	fwrite(varnamebuf, sizeof(char), strlen(varnamebuf), f);
+	if(strlen(fmtstring) > 0){
+		va_start(argptr, fmtstring);
+		vfprintf(f, fmtstring, argptr);
+		va_end(argptr);
+	}
 }

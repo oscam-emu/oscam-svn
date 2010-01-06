@@ -3,6 +3,8 @@
 #  include "oscam-boxkeys.np"
 #endif
 
+#define CONFVARWIDTH 16
+
 static char *cs_conf="oscam.conf";
 static char *cs_user="oscam.user";
 static char *cs_srvr="oscam.server";
@@ -861,18 +863,19 @@ int write_services()
 
 	while(sidtab != NULL){
 		fprintf(f,"[%s]\n", sidtab->label);
-		fprintf(f,"caid   = ");
-
+		fprintf_conf(f, CONFVARWIDTH, "caid", "");
     for (i=0; i<sidtab->num_caid; i++){
 			if (i==0) fprintf(f,"%04X", sidtab->caid[i]);
 			else fprintf(f,",%04X", sidtab->caid[i]);
     }
-		fprintf(f,"\nprovid = ");
+    fputc((int)'\n', f);
+    fprintf_conf(f, CONFVARWIDTH, "provid", "");
     for (i=0; i<sidtab->num_provid; i++){
 			if (i==0) fprintf(f,"%08lX", sidtab->provid[i]);
 			else fprintf(f,",%08lX", sidtab->provid[i]);
     }
-		fprintf(f,"\nsrvid  = ");
+    fputc((int)'\n', f);
+    fprintf_conf(f, CONFVARWIDTH, "srvid", "");
     for (i=0; i<sidtab->num_srvid; i++){
 			if (i==0) fprintf(f,"%04X", sidtab->srvid[i]);
 			else fprintf(f,",%04X", sidtab->srvid[i]);
@@ -882,25 +885,7 @@ int write_services()
   }
 
 	fclose(f);
-
-	if(file_exists(bakfile)){
-  	if(remove(destfile) < 0) {
-  		cs_log("Error removing original conf file %s (errno=%d). Will maintain original one!", destfile, errno);
-  		if(remove(tmpfile) < 0) cs_log("Error removing temp conf file %s (errno=%d).!", tmpfile, errno);
-  		return(1);
-  	}
-  } else {
-  	if(rename(destfile, bakfile) < 0){
-  		cs_log("Error renaming original conf file %s to %s (errno=%d). Will maintain original one!", destfile, bakfile, errno);
-  		if(remove(tmpfile) < 0) cs_log("Error removing temp conf file %s (errno=%d).!", tmpfile, errno);
-  		return(1);
-  	}
-  }
-  if(rename(tmpfile, destfile) < 0){
-  	cs_log("Error renaming new conf file %s to %s (errno=%d). The config will be missing upon next startup as this is non-recoverable!", tmpfile, destfile, errno);
-  	return(1);
-  }
-  return(0);
+	return(safe_overwrite_with_bak(destfile, tmpfile, bakfile, 0));
 }
 
 int write_config()
@@ -924,57 +909,56 @@ int write_config()
 
 	/*global settings*/
 	fprintf(f,"[global]\n");
-	fprintf(f,"serverip            = %s\n", inet_ntoa(*(struct in_addr *)&cfg->srvip));
-	fprintf(f,"logfile             = %s\n", logfile);
-	fprintf(f,"pidfile             = %s\n", cfg->pidfile);
-	fprintf(f,"usrfile             = %s\n", cfg->usrfile);
-	fprintf(f,"cwlogdir            = %s\n", cfg->cwlogdir);
-	fprintf(f,"clienttimeout       = %ld\n", cfg->ctimeout);
-	fprintf(f,"fallbacktimeout     = %ld\n", cfg->ftimeout);
-	fprintf(f,"clientmaxidle       = %d\n", cfg->cmaxidle);
-	fprintf(f,"cachedelay          = %ld\n", cfg->delay);
-	fprintf(f,"bindwait            = %d\n", cfg->bindwait);
-	fprintf(f,"netprio             = %ld\n", cfg->netprio);
-	fprintf(f,"resolvedelay        = %d\n", cfg->resolvedelay);
-	fprintf(f,"sleep               = %d\n", cfg->tosleep);
-	fprintf(f,"unlockparental      = %d\n", cfg->ulparent);
-	fprintf(f,"nice                = %d\n", cfg->nice);
-	fprintf(f,"serialreadertimeout = %d\n", cfg->srtimeout);
-	fprintf(f,"maxlogsize          = %d\n", cfg->max_log_size);
-	fprintf(f,"showecmdw           = %d\n", cfg->show_ecm_dw);
-	fprintf(f,"waitforcards        = %d\n", cfg->waitforcards);
-	fprintf(f,"preferlocalcards    = %d\n", cfg->preferlocalcards);
-	fprintf(f,"\n");
+	fprintf_conf(f, CONFVARWIDTH, "serverip", "%s\n", inet_ntoa(*(struct in_addr *)&cfg->srvip));
+	fprintf_conf(f, CONFVARWIDTH, "logfile", "%s\n", logfile);
+	fprintf_conf(f, CONFVARWIDTH, "pidfile", "%s\n", cfg->pidfile);
+	fprintf_conf(f, CONFVARWIDTH, "usrfile", "%s\n", cfg->usrfile);
+	fprintf_conf(f, CONFVARWIDTH, "cwlogdir", "%s\n", cfg->cwlogdir);
+	fprintf_conf(f, CONFVARWIDTH, "clienttimeout", "%id\n", cfg->ctimeout);
+	fprintf_conf(f, CONFVARWIDTH, "fallbacktimeout", "%ld\n", cfg->ftimeout);
+	fprintf_conf(f, CONFVARWIDTH, "clientmaxidle", "%d\n", cfg->cmaxidle);
+	fprintf_conf(f, CONFVARWIDTH, "cachedelay", "%ld\n", cfg->delay);
+	fprintf_conf(f, CONFVARWIDTH, "bindwait", "%d\n", cfg->bindwait);
+	fprintf_conf(f, CONFVARWIDTH, "netprio", "%ld\n", cfg->netprio);
+	fprintf_conf(f, CONFVARWIDTH, "resolvedelay", "%d\n", cfg->resolvedelay);
+	fprintf_conf(f, CONFVARWIDTH, "sleep", "%d\n", cfg->tosleep);
+	fprintf_conf(f, CONFVARWIDTH, "unlockparental", "%d\n", cfg->ulparent);
+	fprintf_conf(f, CONFVARWIDTH, "nice", "%d\n", cfg->nice);
+	fprintf_conf(f, CONFVARWIDTH, "serialreadertimeout", "%d\n", cfg->srtimeout);
+	fprintf_conf(f, CONFVARWIDTH, "maxlogsize", "%d\n", cfg->max_log_size);
+	fprintf_conf(f, CONFVARWIDTH, "showecmdw", "%d\n", cfg->show_ecm_dw);
+	fprintf_conf(f, CONFVARWIDTH, "waitforcards", "%d\n", cfg->waitforcards);
+	fprintf_conf(f, CONFVARWIDTH, "preferlocalcards", "%d\n", cfg->preferlocalcards);
+	fputc((int)'\n', f);
 
 	/*monitor settings*/
 	fprintf(f,"[monitor]\n");
-	fprintf(f,"port                = %d\n", cfg->mon_port);
-	fprintf(f,"serverip            = %s\n", inet_ntoa(*(struct in_addr *)&cfg->mon_srvip));
+	fprintf_conf(f, CONFVARWIDTH, "port", "%d\n", cfg->mon_port);
+	fprintf_conf(f, CONFVARWIDTH, "serverip", "%d\n", inet_ntoa(*(struct in_addr *)&cfg->mon_srvip));
 
-	fprintf(f,"nocrypt             = ");
+	fprintf_conf(f, CONFVARWIDTH, "nocrypt", "");
 	struct s_ip *cip;
 	for (cip = cfg->mon_allowed; cip; cip = cip->next){
 		fprintf(f,"%s%s", dot, inet_ntoa(*(struct in_addr *)&cip->ip[0]));
   	if (cip->ip[0] == cip->ip[1])	fprintf(f,"-%s", inet_ntoa(*(struct in_addr *)&cip->ip[1]));
   	dot=",";
 	}
-	fprintf(f,"\n");
-
-	fprintf(f,"aulow               = %d\n", cfg->mon_aulow);
-	fprintf(f,"hideclient_to       = %d\n", cfg->mon_hideclient_to);
-	fprintf(f,"monlevel            = %d\n", cfg->mon_level);
-	fprintf(f,"httpport            = %d\n", cfg->http_port);
-	fprintf(f,"httpuser            = %s\n", cfg->http_user);
-	fprintf(f,"httppwd             = %s\n", cfg->http_pwd);
-	fprintf(f,"httpcss             = %s\n", cfg->http_css);
-	fprintf(f,"httprefresh         = %d\n", cfg->http_refresh);
-	fprintf(f,"httphideidleclients = %d\n", cfg->http_hide_idle_clients);
-	fprintf(f,"\n");
+	fputc((int)'\n', f);	
+	fprintf_conf(f, CONFVARWIDTH, "aulow", "%d\n", cfg->mon_aulow);
+	fprintf_conf(f, CONFVARWIDTH, "hideclient_to", "%d\n", cfg->mon_hideclient_to);
+	fprintf_conf(f, CONFVARWIDTH, "monlevel", "%d\n", cfg->mon_level);
+	fprintf_conf(f, CONFVARWIDTH, "httpport", "%d\n", cfg->http_port);
+	fprintf_conf(f, CONFVARWIDTH, "httpuser", "%s\n", cfg->http_user);
+	fprintf_conf(f, CONFVARWIDTH, "httppwd", "%s\n", cfg->http_pwd);
+	fprintf_conf(f, CONFVARWIDTH, "httpcss", "%s\n", cfg->http_css);
+	fprintf_conf(f, CONFVARWIDTH, "httprefresh", "%d\n", cfg->http_refresh);
+	fprintf_conf(f, CONFVARWIDTH, "httphideidleclients", "%d\n", cfg->http_hide_idle_clients);
+	fputc((int)'\n', f);
 
 	/*newcamd*/
 	if ((cfg->ncd_ptab.nports > 0) && (cfg->ncd_ptab.ports[0].s_port > 0)){
 		fprintf(f,"[newcamd]\n");
-		fprintf(f,"port                = ");
+		fprintf_conf(f, CONFVARWIDTH, "port", "");
 		dot1 = "";
 		for(i = 0; i < cfg->ncd_ptab.nports; ++i){
 			fprintf(f,"%s%d@%04X", dot1, cfg->ncd_ptab.ports[i].s_port, cfg->ncd_ptab.ports[i].ftab.filts[0].caid);
@@ -989,9 +973,9 @@ int write_config()
 			dot1=";";
 		}
 
-		fprintf(f,"\n");
-		fprintf(f,"serverip            = %s\n", inet_ntoa(*(struct in_addr *)&cfg->ncd_srvip));
-		fprintf(f,"key                 = ");
+		fputc((int)'\n', f);
+		fprintf_conf(f, CONFVARWIDTH, "serverip", "%s\n", inet_ntoa(*(struct in_addr *)&cfg->ncd_srvip));
+		fprintf_conf(f, CONFVARWIDTH, "key", "");
 		for (i=0;i<14;i++) fprintf(f,"%02X", cfg->ncd_key[i]);
 		fprintf(f,"\n\n");
 	}
@@ -999,11 +983,11 @@ int write_config()
 	/*camd3.3*/
 	if ( cfg->c33_port > 0) {
 		fprintf(f,"[camd33]\n");
-		fprintf(f,"port                = %d\n", cfg->c33_port);
-		fprintf(f,"serverip            = %s\n", inet_ntoa(*(struct in_addr *)&cfg->c33_srvip));
-		fprintf(f,"passive             = %d\n", cfg->c33_passive);
-		fprintf(f,"key                 = "); for (i = 0; i < sizeof(cfg->c33_key); ++i) fprintf(f,"%02X", cfg->c33_key[i]); fprintf(f,"\n");
-		fprintf(f,"nocrypt             = ");
+		fprintf_conf(f, CONFVARWIDTH, "port", "%d\n", cfg->c33_port);
+		fprintf_conf(f, CONFVARWIDTH, "serverip", "%s\n", inet_ntoa(*(struct in_addr *)&cfg->c33_srvip));
+		fprintf_conf(f, CONFVARWIDTH, "passive", "%d\n", cfg->c33_passive);
+		fprintf_conf(f, CONFVARWIDTH, "key", ""); for (i = 0; i < sizeof(cfg->c33_key); ++i) fprintf(f,"%02X", cfg->c33_key[i]); fputc((int)'\n', f);
+		fprintf_conf(f, CONFVARWIDTH, "nocrypt", "");
 		dot="";
 		for (cip = cfg->c33_plain; cip; cip = cip->next){
 			fprintf(f,"%s%s", dot, cs_inet_ntoa(cip->ip[0]));
@@ -1016,15 +1000,15 @@ int write_config()
 	/*camd3.5*/
 	if ( cfg->c35_port > 0) {
 		fprintf(f,"[cs357x]\n");
-		fprintf(f,"port                = %d\n", cfg->c35_port);
-		fprintf(f,"serverip            = %s\n", inet_ntoa(*(struct in_addr *)&cfg->c35_tcp_srvip));
+		fprintf_conf(f, CONFVARWIDTH, "port", "%d\n", cfg->c35_port);
+		fprintf_conf(f, CONFVARWIDTH, "serverip", "%s\n", inet_ntoa(*(struct in_addr *)&cfg->c35_tcp_srvip));
 		fprintf(f,"\n\n");
 	}
 
 	/*camd3.5 TCP*/
 	if ((cfg->c35_tcp_ptab.nports > 0) && (cfg->c35_tcp_ptab.ports[0].s_port > 0)) {
 		fprintf(f,"[cs378x]\n");
-		fprintf(f,"port                = ");
+		fprintf_conf(f, CONFVARWIDTH, "port", "");
 		dot1 = "";
 		for(i = 0; i < cfg->c35_tcp_ptab.nports; ++i){
 			fprintf(f,"%s%d@%04X", dot1, cfg->c35_tcp_ptab.ports[i].s_port, cfg->c35_tcp_ptab.ports[i].ftab.filts[0].caid);
@@ -1039,18 +1023,18 @@ int write_config()
 			dot1=";";
 		}
 
-		fprintf(f,"\n");
-		fprintf(f,"serverip            = %s\n", inet_ntoa(*(struct in_addr *)&cfg->c35_tcp_srvip));
-		fprintf(f,"\n");
+		fputc((int)'\n', f);
+		fprintf_conf(f, CONFVARWIDTH, "serverip", "%s\n", inet_ntoa(*(struct in_addr *)&cfg->c35_tcp_srvip));
+		fputc((int)'\n', f);
 	}
 
 	/*Radegast*/
 	if ( cfg->rad_port > 0) {
 		fprintf(f,"[radegast]\n");
-		fprintf(f,"port                = %d\n", cfg->rad_port);
-		fprintf(f,"serverip            = %s\n", inet_ntoa(*(struct in_addr *)&cfg->rad_srvip));
-		fprintf(f,"user                = %s\n", cfg->rad_usr);
-		fprintf(f,"allowed             = ");
+		fprintf_conf(f, CONFVARWIDTH, "port", "%d\n", cfg->rad_port);
+		fprintf_conf(f, CONFVARWIDTH, "serverip", "%s\n", inet_ntoa(*(struct in_addr *)&cfg->rad_srvip));
+		fprintf_conf(f, CONFVARWIDTH, "user", "%s\n", cfg->rad_usr);
+		fprintf_conf(f, CONFVARWIDTH, "allowed", "");
 		struct s_ip *cip;
 		for (cip = cfg->rad_allowed; cip; cip = cip->next){
 			fprintf(f,"%s%s", dot, inet_ntoa(*(struct in_addr *)&cip->ip[0]));
@@ -1063,12 +1047,12 @@ int write_config()
 	/*Gbox*/
 	if ((cfg->gbox_pwd[0] > 0) || (cfg->gbox_pwd[1] > 0) || (cfg->gbox_pwd[2] > 0) || (cfg->gbox_pwd[3] > 0)){
 		fprintf(f,"[gbox]\n");
-		fprintf(f,"password            = "); for (i=0;i<4;i++) fprintf(f,"%02X", cfg->gbox_pwd[i]); fprintf(f,"\n");
-		fprintf(f,"maxdist             = %d\n", cfg->maxdist);
-		fprintf(f,"ignorelist          = %s\n", cfg->ignorefile);
-		fprintf(f,"onlineinfos         = %s\n", cfg->gbxShareOnl);
-		fprintf(f,"cardinfos           = %s\n", cfg->cardfile);
-		fprintf(f,"locals              = ");
+		fprintf_conf(f, CONFVARWIDTH, "password", ""); for (i=0;i<4;i++) fprintf(f,"%02X", cfg->gbox_pwd[i]); fputc((int)'\n', f);;
+		fprintf_conf(f, CONFVARWIDTH, "maxdist", "%d\n", cfg->maxdist);
+		fprintf_conf(f, CONFVARWIDTH, "ignorelist", "%s\n", cfg->ignorefile);
+		fprintf_conf(f, CONFVARWIDTH, "onlineinfos", "%s\n", cfg->gbxShareOnl);
+		fprintf_conf(f, CONFVARWIDTH, "cardinfos", "%s\n", cfg->cardfile);
+		fprintf_conf(f, CONFVARWIDTH, "locals", "");
 		char *dot = "";
 		for (i = 0; i < cfg->num_locals; i++){
 			fprintf(f,"%s%06lX", dot, cfg->locals[i]);
@@ -1086,48 +1070,31 @@ int write_config()
 	/*dvb-api*/
 	if (cfg->dvbapi_enabled > 0) {
 		fprintf(f,"[dvbapi]\n");
-		fprintf(f,"enabled             = %d\n", cfg->dvbapi_enabled);
-		fprintf(f,"au                  = %d\n", cfg->dvbapi_au);
-		fprintf(f,"boxtype             = %s\n", cfg->dvbapi_boxtype);
-		fprintf(f,"user                = %s\n", cfg->dvbapi_usr);
-		fprintf(f,"\n");
+		fprintf_conf(f, CONFVARWIDTH, "enabled", "%d\n", cfg->dvbapi_enabled);
+		fprintf_conf(f, CONFVARWIDTH, "au", "%d\n", cfg->dvbapi_au);
+		fprintf_conf(f, CONFVARWIDTH, "boxtype", "%s\n", cfg->dvbapi_boxtype);
+		fprintf_conf(f, CONFVARWIDTH, "user", "%s\n", cfg->dvbapi_usr);
+		fputc((int)'\n', f);
 	}
 #endif
 
 #ifdef CS_ANTICASC
 	if (cfg->ac_enabled > 0){
-		fprintf(f,"enabled             = %d\n", cfg->ac_enabled);
-		fprintf(f,"numusers            = %d\n", cfg->ac_users);
-		fprintf(f,"sampletime          = %d\n", cfg->ac_stime);
-		fprintf(f,"samples             = %d\n", cfg->ac_samples);
-		fprintf(f,"penalty             = %d\n", cfg->ac_penalty);
-		fprintf(f,"aclogfile           = %s\n", cfg->ac_logfile);
-		fprintf(f,"denysamples         = %d\n", cfg->ac_denysamples);
-		fprintf(f,"fakedelay           = %d\n", cfg->ac_fakedelay);
-		fprintf(f,"\n");
+		fprintf_conf(f, CONFVARWIDTH, "enabled", "%d\n", cfg->ac_enabled);
+		fprintf_conf(f, CONFVARWIDTH, "numusers", "%d\n", cfg->ac_users);
+		fprintf_conf(f, CONFVARWIDTH, "sampletime", "%d\n", cfg->ac_stime);
+		fprintf_conf(f, CONFVARWIDTH, "samples", "%d\n", cfg->ac_samples);
+		fprintf_conf(f, CONFVARWIDTH, "penalty", "%d\n", cfg->ac_penalty);
+		fprintf_conf(f, CONFVARWIDTH, "aclogfile", "%s\n", cfg->ac_logfile);
+		fprintf_conf(f, CONFVARWIDTH, "denysamples", "%d\n", cfg->ac_denysamples);
+		fprintf_conf(f, CONFVARWIDTH, "fakedelay", "%d\n", cfg->ac_fakedelay);
+		fputc((int)'\n', f);
 	}
 #endif
 
 	fclose(f);
 
-	if(file_exists(bakfile)){
-  	if(remove(destfile) < 0) {
-  		cs_log("Error removing original conf file %s (errno=%d). Will maintain original one!", destfile, errno);
-  		if(remove(tmpfile) < 0) cs_log("Error removing temp conf file %s (errno=%d).!", tmpfile, errno);
-  		return(1);
-  	}
-  } else {
-  	if(rename(destfile, bakfile) < 0){
-  		cs_log("Error renaming original conf file %s to %s (errno=%d). Will maintain original one!", destfile, bakfile, errno);
-  		if(remove(tmpfile) < 0) cs_log("Error removing temp conf file %s (errno=%d).!", tmpfile, errno);
-  		return(1);
-  	}
-  }
-  if(rename(tmpfile, destfile) < 0){
-  	cs_log("Error renaming new conf file %s to %s (errno=%d). The config will be missing upon next startup as this is non-recoverable!", tmpfile, destfile, errno);
-  	return(1);
-  }
-  return(0);
+	return(safe_overwrite_with_bak(destfile, tmpfile, bakfile, 0));
 }
 
 int write_userdb()
@@ -1153,16 +1120,16 @@ int write_userdb()
   //each account
 	for (account=cfg->account; (account) ; account=account->next){
 		fprintf(f,"[account]\n");
-		fprintf(f,"user          = %s\n", account->usr);
-		fprintf(f,"pwd           = %s\n", account->pwd);
+		fprintf_conf(f, CONFVARWIDTH, "user", "%s\n", account->usr);
+		fprintf_conf(f, CONFVARWIDTH, "pwd", "%s\n", account->pwd);
 		struct tm * timeinfo = localtime (&account->expirationdate);
 		char buf [80];
 		strftime (buf,80,"%Y-%m-%d",timeinfo);
 		if(strcmp(buf,"1970-01-01"))
-			fprintf(f,"expdate       = %s\n", buf);
+			fprintf_conf(f, CONFVARWIDTH, "expdate", "%s\n", buf);
 		else
-			fprintf(f,"expdate       = \n");
-		fprintf(f,"group         = ");
+			fprintf_conf(f, CONFVARWIDTH, "expdate", "\n");
+		fprintf_conf(f, CONFVARWIDTH, "group", "");
 		char grpbit[33];
 		long2bitchar(account->grp, grpbit);
 		dot = "";
@@ -1172,18 +1139,18 @@ int write_userdb()
 					dot = ",";
 				}
 		}
-		fprintf(f,"\n");
-		fprintf(f,"hostname      = %s\n", account->dyndns);
-		fprintf(f,"uniq          = %d\n", account->uniq);
-		fprintf(f,"sleep         = %d\n", account->tosleep);
-		fprintf(f,"monlevel      = %d\n", account->monlvl);
+		fputc((int)'\n', f);
+		fprintf_conf(f, CONFVARWIDTH, "hostname", "%d\n", account->dyndns);
+		fprintf_conf(f, CONFVARWIDTH, "uniq", "%d\n", account->uniq);
+		fprintf_conf(f, CONFVARWIDTH, "sleep", "%d\n", account->tosleep);
+		fprintf_conf(f, CONFVARWIDTH, "monlevel", "%d\n", account->monlvl);
 
 		if (account->au > -1)
 			if (account->au < CS_MAXREADER)
-				fprintf(f,"au            = %s\n", reader[account->au].label);
-		if (account->autoau == 1) fprintf(f,"au            = 1\n");
+				fprintf_conf(f, CONFVARWIDTH, "au", "%s\n", reader[account->au].label);
+		if (account->autoau == 1) fprintf_conf(f, CONFVARWIDTH, "au", "1\n");
 
-		fprintf(f,"services      = ");
+		fprintf_conf(f, CONFVARWIDTH, "services", "");
 		char sidok[33]; long2bitchar(account->sidtabok,sidok);
 		char sidno[33];	long2bitchar(account->sidtabno,sidno);
 		struct s_sidtab *sidtab = cfg->sidtab;
@@ -1193,9 +1160,9 @@ int write_userdb()
 			if(sidno[i]=='1') {fprintf(f,"%s!%s", dot, sidtab->label); dot = ",";}
 			i++;
 		}
-		fprintf(f,"\n");
+		fputc((int)'\n', f);
 
-		fprintf(f,"caid          = ");
+		fprintf_conf(f, CONFVARWIDTH, "caid", "");
 		CAIDTAB *ctab = &account->ctab;
 		i = 0; dot = "";
 		if (ctab->caid[i]){
@@ -1206,9 +1173,9 @@ int write_userdb()
 				i++; dot = ",";
 			}
 		}
-		fprintf(f,"\n");
+		fputc((int)'\n', f);
 
-		fprintf(f,"betatunnel    = ");
+		fprintf_conf(f, CONFVARWIDTH, "betatunnel", "");
 		TUNTAB *ttab = &account->ttab;
 		i = 0; dot = "";
 		if (ttab->bt_caidfrom[i]) {
@@ -1219,9 +1186,9 @@ int write_userdb()
 				i++; dot = ",";
 			}
 		}
-		fprintf(f,"\n");
+		fputc((int)'\n', f);
 
-		fprintf(f,"ident         = ");
+		fprintf_conf(f, CONFVARWIDTH, "ident", "");
 		int j;
 		dot="";
 		FTAB *ftab = &account->ftab;
@@ -1234,34 +1201,17 @@ int write_userdb()
 			}
 			dot=";";
 		}
-		fprintf(f,"\n");
+		fputc((int)'\n', f);
 
 #ifdef CS_ANTICASC
-		fprintf(f,"numusers      = %d\n", account->ac_users);
-		fprintf(f,"penalty       = %d\n", account->ac_penalty);
+		fprintf_conf(f, CONFVARWIDTH, "numusers", "%d\n", account->ac_users);
+		fprintf_conf(f, CONFVARWIDTH, "penalty", "%d\n", account->ac_penalty);
 #endif
-		fprintf(f,"\n");
+		fputc((int)'\n', f);
 	}
   fclose(f);
 
-  if(file_exists(bakfile)){
-  	if(remove(destfile) < 0) {
-  		cs_log("Error removing original conf file %s (errno=%d). Will maintain original one!", destfile, errno);
-  		if(remove(tmpfile) < 0) cs_log("Error removing temp conf file %s (errno=%d).!", tmpfile, errno);
-  		return(1);
-  	}
-  } else {
-  	if(rename(destfile, bakfile) < 0){
-  		cs_log("Error renaming original conf file %s to %s (errno=%d). Will maintain original one!", destfile, bakfile, errno);
-  		if(remove(tmpfile) < 0) cs_log("Error removing temp conf file %s (errno=%d).!", tmpfile, errno);
-  		return(1);
-  	}
-  }
-  if(rename(tmpfile, destfile) < 0){
-  	cs_log("Error renaming new conf file %s to %s (errno=%d). The config will be missing upon next startup as this is non-recoverable!", tmpfile, destfile, errno);
-  	return(1);
-  }
-  return(0);
+  return(safe_overwrite_with_bak(destfile, tmpfile, bakfile, 0));
 }
 
 int init_userdb()
