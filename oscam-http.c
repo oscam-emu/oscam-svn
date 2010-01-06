@@ -874,8 +874,11 @@ void send_oscam_status(struct templatevars *vars, FILE *f, struct uriparams *par
 
 void send_oscam_services_edit(struct templatevars *vars, FILE *f, struct uriparams *params) {
   struct s_sidtab *sidtab,*ptr;
-  char *label = getParam(params, "service");
+  char label[128];
 	int i;
+
+	strncpy(label, getParam(params, "service"), sizeof(label)/sizeof(char) - 1);
+	label[sizeof(label)/sizeof(char) - 1] = '\0';
 
 	for (sidtab  = cfg->sidtab; sidtab != NULL && strcmp(label, sidtab->label) != 0; sidtab=sidtab->next);
 
@@ -923,8 +926,8 @@ void send_oscam_services_edit(struct templatevars *vars, FILE *f, struct uripara
 		else tpl_printf(vars, 1, "CAIDS", ",%04X", sidtab->caid[i]);
 	}
 	for (i=0; i<sidtab->num_provid; i++){
-		if (i==0) tpl_printf(vars, 0, "PROVIDS", "%ld08X", sidtab->provid[i]);
-		else tpl_printf(vars, 1, "PROVIDS", ",%ld08X", sidtab->provid[i]);
+		if (i==0) tpl_printf(vars, 0, "PROVIDS", "%08lX", sidtab->provid[i]);
+		else tpl_printf(vars, 1, "PROVIDS", ",%08lX", sidtab->provid[i]);
 	}
 	for (i=0; i<sidtab->num_srvid; i++){
 		if (i==0) tpl_printf(vars, 0, "SRVIDS", "%04X", sidtab->srvid[i]);
