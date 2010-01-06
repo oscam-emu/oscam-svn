@@ -378,7 +378,8 @@ int camd35_client_init_log()
     return(1);
   }
 
-  if (ptrp=getprotobyname("udp"))
+  ptrp=getprotobyname("udp");
+  if (ptrp)
     p_proto=ptrp->p_proto;
   else
     p_proto=17;	// use defaults on error
@@ -412,7 +413,7 @@ static int tcp_connect()
   if (!reader[ridx].tcp_connected) 
   {
     int handle=0;
-    handle = network_tcp_connection_open(reader[ridx].device, reader[ridx].r_port);
+    handle = network_tcp_connection_open((uint8 *)reader[ridx].device, reader[ridx].r_port);
     if (handle<0) return(0);
 
     reader[ridx].tcp_connected = 1;

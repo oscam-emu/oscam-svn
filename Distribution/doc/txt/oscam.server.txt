@@ -171,11 +171,17 @@ DESCRIPTIONS
        n3_boxkey = box key
 	  box key for Nagravision SCs
 
-OVERCLOCKING
-	 Dreambox reader
+       tiger_rsakey = RSA key
+	  RSA key for Tiger Nagravision SCs
 
-	  For  SC overclocking set to 600. If mhz is unset or any other value,
-	  the default value will be used and behaviour will be standard.
+       tiger_ideakey = IDEA key
+	  IDEA key for Tiger Nagravision SCs
+
+OVERCLOCKING
+	 Dreambox and other internal readers
+
+	  For  Dreambox and other internal readers the highest possible clock
+	  rate will be auto detected. The mhz parameter will be ignored.
 
 	 Phoenix / Smartmouse reader
 

@@ -536,7 +536,7 @@ static void chk_t_dvbapi(char *token, char *value)
 #else
 	if (!strcmp(token, "enabled")) 	{ cfg->dvbapi_enabled=atoi(value); return; }
 	if (!strcmp(token, "au"))		{ cfg->dvbapi_au=atoi(value); return; }
-	if (!strcmp(token, "socket")) 	{ strncpy(cfg->dvbapi_socket, value, sizeof(cfg->dvbapi_socket)-1); return; }
+	if (!strcmp(token, "boxtype")) 	{ strncpy(cfg->dvbapi_boxtype, value, sizeof(cfg->dvbapi_boxtype)-1); return; }
 	if (!strcmp(token, "user")) 	{ strncpy(cfg->dvbapi_usr, value, sizeof(cfg->dvbapi_usr)-1); return; }
 	
 	if (token[0] != '#')
@@ -604,13 +604,15 @@ int search_boxkey(ushort caid, ulong provid, char *key)
   char c_caid[512];
 
   sprintf(c_caid, "%s%s", cs_confdir, cs_cert);
-  if (fp=fopen(c_caid, "r"))
+  fp=fopen(c_caid, "r");
+  if (fp)
   {
     for (; (!rc) && fgets(c_caid, sizeof(c_caid), fp);)
     {
       char *c_provid, *c_key;
-      if (c_provid=strchr(c_caid, '#'))
-        *c_provid='\0';
+
+      c_provid=strchr(c_caid, '#');
+      if (c_provid) *c_provid='\0';
       if (!(c_provid=strchr(c_caid, ':'))) continue;
       *c_provid++='\0';
       if (!(c_key=strchr(c_provid, ':'))) continue;
@@ -1131,9 +1133,18 @@ static void chk_reader(char *token, char *value, struct s_reader *rdr)
     }
     return;
   }
-  if (!strcmp(token, "n3_boxkey") || !strcmp(token, "tiger_ideakey"))
+  if (!strcmp(token, "n3_boxkey"))
   {
     if (key_atob_l(value, rdr->nagra_boxkey, 16))
+    {
+      fprintf(stderr, "Configuration reader: Error in Nagra Boxkey\n");
+      exit(1);
+    }
+    return;
+  }
+  if (!strcmp(token, "tiger_ideakey"))
+  {
+    if (key_atob_l(value, rdr->nagra_boxkey, 32))
     {
       fprintf(stderr, "Configuration reader: Error in Nagra Boxkey\n");
       exit(1);

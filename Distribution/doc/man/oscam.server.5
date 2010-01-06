@@ -228,13 +228,23 @@ RSA key for Nagravision SCs
 .RS 3n
 box key for Nagravision SCs
 .RE
+.PP
+\fBtiger_rsakey\fP = \fBRSA key\fP
+.RS 3n
+RSA key for Tiger Nagravision SCs
+.RE
+.PP
+\fBtiger_ideakey\fP = \fBIDEA key\fP
+.RS 3n
+IDEA key for Tiger Nagravision SCs
+.RE
 .SH OVERCLOCKING
 .TP 3n
 \(bu
-Dreambox reader
+Dreambox and other internal readers
 
-For SC overclocking set to 600. If \fBmhz\fR is unset or any other value, 
-the default value will be used and behaviour will be standard.
+For Dreambox and other internal readers the highest possible 
+clockrate will be auto detected. The \fBmhz\fR parameter will be ignored.
 .TP 3n 
 \(bu
 Phoenix / Smartmouse reader
