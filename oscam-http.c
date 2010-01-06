@@ -546,9 +546,9 @@ void send_oscam_user_config_edit(struct templatevars *vars, FILE *f, struct urip
 			++i;
 		}
 	  if (!(account=malloc(sizeof(struct s_auth)))){
-        cs_log("Error allocating memory (errno=%d)", errno);
-        return;
-      }
+			cs_log("Error allocating memory (errno=%d)", errno);
+			return;
+		}
 	  if(cfg->account == NULL) cfg->account = account;
 	  else {
 	  	for (ptr = cfg->account; ptr != NULL && ptr->next != NULL; ptr = ptr->next);
@@ -872,6 +872,67 @@ void send_oscam_status(struct templatevars *vars, FILE *f, struct uriparams *par
 	fputs(tpl_getTpl(vars, "STATUS"), f);
 }
 
+void send_oscam_services_edit(struct templatevars *vars, FILE *f, struct uriparams *params) {
+  struct s_sidtab *sidtab,*ptr;
+  char *label = getParam(params, "service");
+	int i;
+
+	for (sidtab  = cfg->sidtab; sidtab != NULL && strcmp(label, sidtab->label) != 0; sidtab=sidtab->next);
+
+	if (sidtab == NULL){
+		i = 1;
+		while(strlen(label) < 1){
+			snprintf(label, sizeof(label)/sizeof(char) - 1, "NEWSERVICE%d", i);
+			for (sidtab = cfg->sidtab; sidtab != NULL && strcmp(label, sidtab->label) != 0; sidtab = sidtab->next);
+			if(sidtab != NULL) label[0] = '\0';
+			++i;
+		}
+	  if (!(sidtab=malloc(sizeof(struct s_sidtab)))){
+			cs_log("Error allocating memory (errno=%d)", errno);
+			return;
+		}
+
+		if(cfg->sidtab == NULL) cfg->sidtab = sidtab;
+	  else {
+	  	for (ptr = cfg->sidtab; ptr != NULL && ptr->next != NULL; ptr = ptr->next);
+	  	ptr->next = sidtab;
+	  }
+      memset(sidtab, 0, sizeof(struct s_sidtab));
+			strncpy((char *)sidtab->label, label, sizeof(sidtab->label)-1);
+
+			tpl_addVar(vars, 1, "MESSAGE", "<b>New service has been added</b><BR>");
+
+			//todo save and reload
+
+			for (sidtab  = cfg->sidtab; sidtab != NULL && strcmp(label, sidtab->label) != 0; sidtab=sidtab->next);
+	}
+
+	if (strcmp(getParam(params, "action"), "Save") == 0){
+		for(i=0;i<(*params).paramcount;i++){
+			if ((strcmp((*params).params[i], "action")) && (strcmp((*params).params[i], "service"))){
+				chk_sidtab((*params).params[i], (*params).values[i], sidtab);
+			}
+		}
+	}
+
+  tpl_addVar(vars, 0, "LABEL", sidtab->label);
+  tpl_addVar(vars, 0, "LABELENC", urlencode(sidtab->label));
+
+	for (i=0; i<sidtab->num_caid; i++){
+		if (i==0) tpl_printf(vars, 0, "CAIDS", "%04X", sidtab->caid[i]);
+		else tpl_printf(vars, 1, "CAIDS", ",%04X", sidtab->caid[i]);
+	}
+	for (i=0; i<sidtab->num_provid; i++){
+		if (i==0) tpl_printf(vars, 0, "PROVIDS", "%ld08X", sidtab->provid[i]);
+		else tpl_printf(vars, 1, "PROVIDS", ",%ld08X", sidtab->provid[i]);
+	}
+	for (i=0; i<sidtab->num_srvid; i++){
+		if (i==0) tpl_printf(vars, 0, "SRVIDS", "%04X", sidtab->srvid[i]);
+		else tpl_printf(vars, 1, "SRVIDS", ",%04X", sidtab->srvid[i]);
+	}
+	fputs(tpl_getTpl(vars, "SERVICEEDIT"), f);
+}
+
 void send_oscam_services(struct templatevars *vars, FILE *f, struct uriparams *params) {
   struct s_sidtab *sidtab = cfg->sidtab;
 	int i;
@@ -883,20 +944,6 @@ void send_oscam_services(struct templatevars *vars, FILE *f, struct uriparams *p
 
   }
 
-	if (strcmp(getParam(params, "action"), "edit") == 0){
-
-  	//Todo Edit Service
-  	tpl_addVar(vars, 0, "MESSAGE", "<BR><B>Edit Service not yet implemented</B>");
-
-  }
-
-	if (strcmp(getParam(params, "action"), "add") == 0){
-
-  	//Todo Add Service
-  	tpl_addVar(vars, 0, "MESSAGE", "<BR><B>Add Service not yet implemented</B>");
-
-  }
-
 	// Show List
 	while(sidtab != NULL){
 		tpl_printf(vars, 0, "SID","");
@@ -905,8 +952,9 @@ void send_oscam_services(struct templatevars *vars, FILE *f, struct uriparams *p
 				tpl_printf(vars, 1, "SID", "%04X : %s<BR>", sidtab->srvid[i], monitor_get_srvname(sidtab->srvid[i]));
 			}
 		}	else {
-			tpl_printf(vars, 0, "SID","<A HREF=\"services.html?service=%s&action=list\">Show Services</A>",sidtab->label);
+			tpl_printf(vars, 0, "SID","<A HREF=\"services.html?service=%s&action=list\">Show Services</A>",tpl_addTmp(vars, urlencode(sidtab->label)));
 		}
+		tpl_addVar(vars, 0, "LABELENC", tpl_addTmp(vars, urlencode(sidtab->label)));
 		tpl_addVar(vars, 0, "LABEL", sidtab->label);
 		tpl_addVar(vars, 0, "SIDLIST", tpl_getTpl(vars, "SERVICECONFIGSIDBIT"));
 		tpl_addVar(vars, 1, "SERVICETABS", tpl_getTpl(vars, "SERVICECONFIGLISTBIT"));
@@ -960,7 +1008,8 @@ int process_request(FILE *f, struct in_addr in) {
   char *pch;
   char *pch2;
   /* List of possible pages */
-  char *pages[]={	"/config.html",
+  char *pages[]={
+			"/config.html",
 			"/readers.html",
 			"/entitlements.html",
 			"/status.html",
@@ -969,6 +1018,7 @@ int process_request(FILE *f, struct in_addr in) {
 			"/services.html",
 			"/user_edit.html",
 			"/site.css",
+			"/services_edit.html",
 			"/savetemplates.html"};
   int pagescnt = sizeof(pages)/sizeof(char *);  // Calculate the amount of items in array
 
@@ -1077,7 +1127,8 @@ int process_request(FILE *f, struct in_addr in) {
 	    case  5: send_oscam_reader_config(vars, f, &params); break;
 	    case	6: send_oscam_services(vars, f, &params); break;
 	    case  7: send_oscam_user_config_edit(vars, f, &params); break;
-	    case  9: send_oscam_savetpls(vars, f); break;
+	    case  9: send_oscam_services_edit(vars, f, &params); break;
+	    case  10: send_oscam_savetpls(vars, f); break;
 	    default: send_oscam_status(vars, f, &params); break;
 	  }
 		tpl_clear(vars);

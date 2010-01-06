@@ -396,7 +396,7 @@ char to_hex(char code){
 
 /* Encode values in a http url. Note: Be sure to free() the returned string after use */
 char *urlencode(char *str){
-	char *pstr = str, *buf = malloc(strlen(str) * 3 + 1), *pbuf = buf;
+	char *pstr = str, *buf = (char *) malloc((strlen(str) * 3 + 1) * sizeof(char)), *pbuf = buf;
 	while (*pstr) {
 		if (isalnum(*pstr) || *pstr == '-' || *pstr == '_' || *pstr == '.' || *pstr == '~') *pbuf++ = *pstr;
 		else if (*pstr == ' ') *pbuf++ = '+';
@@ -408,7 +408,10 @@ char *urlencode(char *str){
 		++pstr;
 	}
 	*pbuf = '\0';
-	return buf;
+	pbuf = (char *) malloc((strlen(buf) + 1) * sizeof(char));
+	strcpy(pbuf, buf);
+	free(buf);
+	return pbuf;
 }
 
 

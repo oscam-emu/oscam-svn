@@ -666,7 +666,7 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
     </TR>\n\
     ##SERVICETABS##\
     <TR>\n\
-      <FORM action=\"services.html\" method=\"get\"><INPUT TYPE=\"hidden\" NAME=\"action\" VALUE=\"add\">\n\
+      <FORM action=\"services_edit.html\" method=\"get\"><INPUT TYPE=\"hidden\" NAME=\"action\" VALUE=\"add\">\n\
       <TD>New Service:</TD>\n\
       <TD colspan=\"2\"><input name=\"service\" type=\"text\"></TD>\n\
       <TD align=\"center\"><input type=\"submit\" value=\"Add Service\"></TD>\n\
@@ -679,14 +679,29 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
   <TR>\n\
     <TD>##LABEL##</TD>\n\
     <TD>##SIDLIST##</TD>\n\
-    <TD><A HREF=\"services.html?service=##LABEL##&action=edit\">Edit Settings</A></TD>\n\
-    <TD><A HREF=\"services.html?service=##LABEL##&action=delete\">Delete Service</A></TD>\n\
+    <TD><A HREF=\"services_edit.html?service=##LABELENC##&action=edit\">Edit Settings</A></TD>\n\
+    <TD><A HREF=\"services.html?service=##LABELENC##&action=delete\">Delete Service</A></TD>\n\
   </TR>\n"
 
 #define TPLSERVICECONFIGSIDBIT "\
 	##SID##"
 
-
+#define TPLSERVICEEDIT "\
+##TPLHEADER##\
+##TPLMENU##\n\
+<DIV CLASS=\"message\">##MESSAGE##</DIV>\
+<BR><BR>\n\
+  <form action=\"services_edit.html\" method=\"get\">\n\
+  <input name=\"service\" type=\"hidden\" value=\"##LABELENC##\">\n\
+  <TABLE cellspacing=\"0\">\n\
+    <TR>\n<TH>&nbsp;</TH>\n<TH>Edit Service ##LABEL##</TH>\n</TR>\n\
+    <TR>\n<TD>CAID: </TD><TD><input name=\"caid\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"##CAIDS##\"></TD></TR>\
+    <TR>\n<TD>PROVID: </TD><TD><input name=\"provid\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"##PROVIDS##\"></TD></TR>\
+    <TR>\n<TD>SRVID: </TD><TD><textarea name=\"srvid\" cols=\"80\" rows=\"5\">##SRVIDS##</textarea></TD></TR>\
+    <TR>\n<TD>&nbsp;</TD><TD align=\"right\"><input type=\"submit\" name=\"action\" value=\"Save\" title=\"Save service and reload services\"></TD>\n\
+  </TABLE>\n\
+</form>\n\
+##TPLFOOTER##"
 
 enum refreshtypes {REFR_ACCOUNTS, REFR_READERS, REFR_SERVER, REFR_ANTICASC};
 
@@ -725,7 +740,8 @@ char *tpl[]={
 	"CONFIGSERIAL",
 	"SERVICECONFIGLIST",
 	"SERVICECONFIGLISTBIT",
-	"SERVICECONFIGSIDBIT"
+	"SERVICECONFIGSIDBIT",
+	"SERVICEEDIT"
 #ifdef HAVE_DVBAPI_3
 	,"CONFIGDVBAPI"
 	,"CONFIGMENUDVBAPI"
@@ -772,7 +788,8 @@ char *tplmap[]={
 	TPLCONFIGSERIAL,
 	TPLSERVICECONFIGLIST,
 	TPLSERVICECONFIGLISTBIT,
-	TPLSERVICECONFIGSIDBIT
+	TPLSERVICECONFIGSIDBIT,
+	TPLSERVICEEDIT
 #ifdef HAVE_DVBAPI_3
 	,TPLCONFIGDVBAPI
 	,TPLCONFIGMENUDVBAPI

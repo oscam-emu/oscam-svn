@@ -1318,7 +1318,7 @@ static void chk_entry4sidtab(char *value, struct s_sidtab *sidtab, int what)
   }
 }
 
-static void chk_sidtab(char *token, char *value, struct s_sidtab *sidtab)
+void chk_sidtab(char *token, char *value, struct s_sidtab *sidtab)
 {
   if (!strcmp(token, "caid")) { chk_entry4sidtab(value, sidtab, 0); return; }
   if (!strcmp(token, "provid")) { chk_entry4sidtab(value, sidtab, 1); return; }
