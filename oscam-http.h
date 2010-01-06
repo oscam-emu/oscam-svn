@@ -654,6 +654,40 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 ##TPLFOOTER##"
 #endif
 
+#define TPLSERVICECONFIGLIST "\
+  ##TPLHEADER##\
+  ##TPLMENU##\n\
+  ##MESSAGE##\
+  <BR><BR>\
+  <TABLE cellspacing=\"0\" cellpadding=\"10\">\n\
+    <TR>\n\
+      <TH>Label</TH>\n\
+      <TH colspan=\"3\" align=\"center\">Action</TH>\n\
+    </TR>\n\
+    ##SERVICETABS##\
+    <TR>\n\
+      <FORM action=\"services.html\" method=\"get\"><INPUT TYPE=\"hidden\" NAME=\"action\" VALUE=\"add\">\n\
+      <TD>New Service:</TD>\n\
+      <TD colspan=\"2\"><input name=\"service\" type=\"text\"></TD>\n\
+      <TD align=\"center\"><input type=\"submit\" value=\"Add Service\"></TD>\n\
+      </FORM>\n\
+    <TR>\n\
+  </TABLE>\n\
+  ##TPLFOOTER##"
+
+#define TPLSERVICECONFIGLISTBIT "\
+  <TR>\n\
+    <TD>##LABEL##</TD>\n\
+    <TD>##SIDLIST##</TD>\n\
+    <TD><A HREF=\"services.html?service=##LABEL##&action=edit\">Edit Settings</A></TD>\n\
+    <TD><A HREF=\"services.html?service=##LABEL##&action=delete\">Delete Service</A></TD>\n\
+  </TR>\n"
+
+#define TPLSERVICECONFIGSIDBIT "\
+	##SID##"
+
+
+
 enum refreshtypes {REFR_ACCOUNTS, REFR_READERS, REFR_SERVER, REFR_ANTICASC};
 
 char *tpl[]={
@@ -688,7 +722,10 @@ char *tpl[]={
 	"CONFIGCAMD33",
 	"CONFIGCAMD35",
 	"CONFIGCAMD35TCP",
-	"CONFIGSERIAL"
+	"CONFIGSERIAL",
+	"SERVICECONFIGLIST",
+	"SERVICECONFIGLISTBIT",
+	"SERVICECONFIGSIDBIT"
 #ifdef HAVE_DVBAPI_3
 	,"CONFIGDVBAPI"
 	,"CONFIGMENUDVBAPI"
@@ -732,7 +769,10 @@ char *tplmap[]={
 	TPLCONFIGCAMD33,
 	TPLCONFIGCAMD35,
 	TPLCONFIGCAMD35TCP,
-	TPLCONFIGSERIAL
+	TPLCONFIGSERIAL,
+	TPLSERVICECONFIGLIST,
+	TPLSERVICECONFIGLISTBIT,
+	TPLSERVICECONFIGSIDBIT
 #ifdef HAVE_DVBAPI_3
 	,TPLCONFIGDVBAPI
 	,TPLCONFIGMENUDVBAPI

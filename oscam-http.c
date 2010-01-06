@@ -818,8 +818,6 @@ void send_oscam_status(struct templatevars *vars, FILE *f, struct uriparams *par
 
 			if((cfg->http_hide_idle_clients == 1) && (client[i].typ == 'c') && ((now - client[i].lastecm) > cfg->mon_hideclient_to)) continue;
 
-			/*if ((cfg->mon_hideclient_to <= 0) ||	(((now-client[i].lastecm)/60)<cfg->mon_hideclient_to) ||
-			(((now-client[i].lastemm)/60)<cfg->mon_hideclient_to) || (client[i].typ!='c')){*/
 				lsec=now-client[i].login;
 				isec=now-client[i].last;
 				usr=client[i].usr;
@@ -857,7 +855,6 @@ void send_oscam_status(struct templatevars *vars, FILE *f, struct uriparams *par
 				tpl_printf(vars, 0, "CWOK", "%d", client[i].cwfound);
 				tpl_printf(vars, 0, "CWNOK", "%d", client[i].cwnot);
 				tpl_addVar(vars, 1, "CLIENTSTATUS", tpl_getTpl(vars, "CLIENTSTATUSBIT"));
-			//}
 		}
 	}
 
@@ -875,33 +872,71 @@ void send_oscam_status(struct templatevars *vars, FILE *f, struct uriparams *par
 	fputs(tpl_getTpl(vars, "STATUS"), f);
 }
 
-void send_oscam_services(struct templatevars *vars, FILE *f) {
+void send_oscam_services(struct templatevars *vars, FILE *f, struct uriparams *params) {
   struct s_sidtab *sidtab = cfg->sidtab;
 	int i;
 
+  if (strcmp(getParam(params, "action"), "delete") == 0){
+
+  	//Todo Delete Service
+  	tpl_addVar(vars, 0, "MESSAGE", "<BR><B>Delete Service not yet implemented</B>");
+
+  }
+
+	if (strcmp(getParam(params, "action"), "edit") == 0){
+
+  	//Todo Edit Service
+  	tpl_addVar(vars, 0, "MESSAGE", "<BR><B>Edit Service not yet implemented</B>");
+
+  }
+
+	if (strcmp(getParam(params, "action"), "add") == 0){
+
+  	//Todo Add Service
+  	tpl_addVar(vars, 0, "MESSAGE", "<BR><B>Add Service not yet implemented</B>");
+
+  }
+
+	// Show List
 	while(sidtab != NULL){
-    for (i=0; i<sidtab->num_caid; i++){
-			if (i==0) tpl_printf(vars, 0, "CAIDS", "%04X", sidtab->caid[i]);
-			else tpl_printf(vars, 1, "CAIDS", ",%04X", sidtab->caid[i]);
-    }
-
-    for (i=0; i<sidtab->num_provid; i++){
-			if (i==0) tpl_printf(vars, 0, "PROVIDS", "%ld08X", sidtab->provid[i]);
-			else tpl_printf(vars, 1, "PROVIDS", ",%ld08X", sidtab->provid[i]);
-    }
-
-    for (i=0; i<sidtab->num_srvid; i++){
-			if (i==0) tpl_printf(vars, 0, "SRVIDS", "%04X", sidtab->srvid[i]);
-			else tpl_printf(vars, 1, "SRVIDS", ",%04X", sidtab->srvid[i]);
+		tpl_printf(vars, 0, "SID","");
+		if ((strcmp(getParam(params, "service"), sidtab->label) == 0) && (strcmp(getParam(params, "action"), "list") == 0) ){
+			for (i=0; i<sidtab->num_srvid; i++){
+				tpl_printf(vars, 1, "SID", "%04X : %s<BR>", sidtab->srvid[i], monitor_get_srvname(sidtab->srvid[i]));
+			}
+		}	else {
+			tpl_printf(vars, 0, "SID","<A HREF=\"services.html?service=%s&action=list\">Show Services</A>",sidtab->label);
 		}
 		tpl_addVar(vars, 0, "LABEL", sidtab->label);
-		tpl_printf(vars, 0, "CAIDNUM", "%d", sidtab->num_caid);
-		tpl_printf(vars, 0, "PROVIDNUM", "%d",sidtab->num_provid);
-		tpl_printf(vars, 0, "SRVIDNUM", "%d", sidtab->num_srvid);
-		tpl_addVar(vars, 1, "SIDTABS", tpl_getTpl(vars, "SIDTABBIT"));
+		tpl_addVar(vars, 0, "SIDLIST", tpl_getTpl(vars, "SERVICECONFIGSIDBIT"));
+		tpl_addVar(vars, 1, "SERVICETABS", tpl_getTpl(vars, "SERVICECONFIGLISTBIT"));
 		sidtab=sidtab->next;
-  }
-	fputs(tpl_getTpl(vars, "SIDTAB"), f);
+	}
+	fputs(tpl_getTpl(vars, "SERVICECONFIGLIST"), f);
+
+//	while(sidtab != NULL){
+//    for (i=0; i<sidtab->num_caid; i++){
+//			if (i==0) tpl_printf(vars, 0, "CAIDS", "%04X", sidtab->caid[i]);
+//			else tpl_printf(vars, 1, "CAIDS", ",%04X", sidtab->caid[i]);
+//    }
+//
+//    for (i=0; i<sidtab->num_provid; i++){
+//			if (i==0) tpl_printf(vars, 0, "PROVIDS", "%ld08X", sidtab->provid[i]);
+//			else tpl_printf(vars, 1, "PROVIDS", ",%ld08X", sidtab->provid[i]);
+//    }
+//
+//    for (i=0; i<sidtab->num_srvid; i++){
+//			if (i==0) tpl_printf(vars, 0, "SRVIDS", "%04X", sidtab->srvid[i]);
+//			else tpl_printf(vars, 1, "SRVIDS", ",%04X", sidtab->srvid[i]);
+//		}
+//		tpl_addVar(vars, 0, "LABEL", sidtab->label);
+//		tpl_printf(vars, 0, "CAIDNUM", "%d", sidtab->num_caid);
+//		tpl_printf(vars, 0, "PROVIDNUM", "%d",sidtab->num_provid);
+//		tpl_printf(vars, 0, "SRVIDNUM", "%d", sidtab->num_srvid);
+//		tpl_addVar(vars, 1, "SIDTABS", tpl_getTpl(vars, "SIDTABBIT"));
+//		sidtab=sidtab->next;
+//  }
+//	fputs(tpl_getTpl(vars, "SIDTAB"), f);
 }
 
 void send_oscam_savetpls(struct templatevars *vars, FILE *f){
@@ -1040,7 +1075,7 @@ int process_request(FILE *f, struct in_addr in) {
 	    case  3: send_oscam_status(vars, f, &params); break;
 	    case  4: send_oscam_user_config(vars, f, &params); break;
 	    case  5: send_oscam_reader_config(vars, f, &params); break;
-	    case	6: send_oscam_services(vars, f); break;
+	    case	6: send_oscam_services(vars, f, &params); break;
 	    case  7: send_oscam_user_config_edit(vars, f, &params); break;
 	    case  9: send_oscam_savetpls(vars, f); break;
 	    default: send_oscam_status(vars, f, &params); break;
