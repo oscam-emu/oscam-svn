@@ -703,7 +703,7 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 </form>\n\
 ##TPLFOOTER##"
 
-enum refreshtypes {REFR_ACCOUNTS, REFR_READERS, REFR_SERVER, REFR_ANTICASC};
+enum refreshtypes {REFR_ACCOUNTS, REFR_READERS, REFR_SERVER, REFR_ANTICASC, REFR_SERVICES};
 
 char *tpl[]={
 	"HEADER",

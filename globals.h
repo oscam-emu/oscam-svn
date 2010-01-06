@@ -793,6 +793,7 @@ void chk_t_monitor(char *token, char *value);
 void chk_t_dvbapi(char *token, char *value);
 void chk_account(char *token, char *value, struct s_auth *account);
 void chk_sidtab(char *token, char *value, struct s_sidtab *sidtab);
+int write_services();
 int write_userdb();
 int write_config();
 

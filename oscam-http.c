@@ -36,6 +36,11 @@ int i;
 			//todo how I can refresh the server after global settings
 			break;
 
+		case REFR_SERVICES:
+			cs_log("Refresh Services requested by WebIF");
+			init_sidtab();
+			break;
+
 #ifdef CS_ANTICASC
 		case REFR_ANTICASC:
 			cs_log("Refresh Anticascading requested by WebIF");
@@ -877,7 +882,7 @@ void send_oscam_services_edit(struct templatevars *vars, FILE *f, struct uripara
   char label[128];
 	int i;
 
-	strncpy(label, getParam(params, "service"), sizeof(label)/sizeof(char) - 1);
+	strncpy(label, strtolower(getParam(params, "service")), sizeof(label)/sizeof(char) - 1);
 	label[sizeof(label)/sizeof(char) - 1] = '\0';
 
 	for (sidtab  = cfg->sidtab; sidtab != NULL && strcmp(label, sidtab->label) != 0; sidtab=sidtab->next);
@@ -885,7 +890,7 @@ void send_oscam_services_edit(struct templatevars *vars, FILE *f, struct uripara
 	if (sidtab == NULL){
 		i = 1;
 		while(strlen(label) < 1){
-			snprintf(label, sizeof(label)/sizeof(char) - 1, "NEWSERVICE%d", i);
+			snprintf(label, sizeof(label)/sizeof(char) - 1, "newservice%d", i);
 			for (sidtab = cfg->sidtab; sidtab != NULL && strcmp(label, sidtab->label) != 0; sidtab = sidtab->next);
 			if(sidtab != NULL) label[0] = '\0';
 			++i;
@@ -904,8 +909,8 @@ void send_oscam_services_edit(struct templatevars *vars, FILE *f, struct uripara
 			strncpy((char *)sidtab->label, label, sizeof(sidtab->label)-1);
 
 			tpl_addVar(vars, 1, "MESSAGE", "<b>New service has been added</b><BR>");
-
-			//todo save and reload
+			if (write_services()==0) refresh_oscam(REFR_SERVICES);
+			else tpl_addVar(vars, 1, "MESSAGE", "<b>Writing services to disk failed!</b><BR>");
 
 			for (sidtab  = cfg->sidtab; sidtab != NULL && strcmp(label, sidtab->label) != 0; sidtab=sidtab->next);
 	}
@@ -916,6 +921,11 @@ void send_oscam_services_edit(struct templatevars *vars, FILE *f, struct uripara
 				chk_sidtab((*params).params[i], (*params).values[i], sidtab);
 			}
 		}
+		tpl_addVar(vars, 1, "MESSAGE", "<B>Services updated</B><BR><BR>");
+		if (write_services()==0) refresh_oscam(REFR_SERVICES);
+		else tpl_addVar(vars, 1, "MESSAGE", "<B>Write Config failed</B><BR><BR>");
+
+		for (sidtab  = cfg->sidtab; sidtab != NULL && strcmp(label, sidtab->label) != 0; sidtab=sidtab->next);
 	}
 
   tpl_addVar(vars, 0, "LABEL", sidtab->label);
@@ -960,8 +970,8 @@ void send_oscam_services(struct templatevars *vars, FILE *f, struct uriparams *p
 		}
 		if (found > 0){
 			tpl_addVar(vars, 1, "MESSAGE", "<b>Service has been deleted!</b><BR>");
-			//if (write_userdb()==0) refresh_oscam(REFR_ACCOUNTS);
-			//else tpl_addVar(vars, 1, "MESSAGE", "<b>Writing configuration to disk failed!</b><BR>");
+			if (write_services()==0) refresh_oscam(REFR_SERVICES);
+			else tpl_addVar(vars, 1, "MESSAGE", "<b>Writing services to disk failed!</b><BR>");
 		} else tpl_addVar(vars, 1, "MESSAGE", "<b>Sorry but the specified service doesn't exist. No deletion will be made!</b><BR>");
 	}
 
@@ -983,30 +993,6 @@ void send_oscam_services(struct templatevars *vars, FILE *f, struct uriparams *p
 		sidtab=sidtab->next;
 	}
 	fputs(tpl_getTpl(vars, "SERVICECONFIGLIST"), f);
-
-//	while(sidtab != NULL){
-//    for (i=0; i<sidtab->num_caid; i++){
-//			if (i==0) tpl_printf(vars, 0, "CAIDS", "%04X", sidtab->caid[i]);
-//			else tpl_printf(vars, 1, "CAIDS", ",%04X", sidtab->caid[i]);
-//    }
-//
-//    for (i=0; i<sidtab->num_provid; i++){
-//			if (i==0) tpl_printf(vars, 0, "PROVIDS", "%ld08X", sidtab->provid[i]);
-//			else tpl_printf(vars, 1, "PROVIDS", ",%ld08X", sidtab->provid[i]);
-//    }
-//
-//    for (i=0; i<sidtab->num_srvid; i++){
-//			if (i==0) tpl_printf(vars, 0, "SRVIDS", "%04X", sidtab->srvid[i]);
-//			else tpl_printf(vars, 1, "SRVIDS", ",%04X", sidtab->srvid[i]);
-//		}
-//		tpl_addVar(vars, 0, "LABEL", sidtab->label);
-//		tpl_printf(vars, 0, "CAIDNUM", "%d", sidtab->num_caid);
-//		tpl_printf(vars, 0, "PROVIDNUM", "%d",sidtab->num_provid);
-//		tpl_printf(vars, 0, "SRVIDNUM", "%d", sidtab->num_srvid);
-//		tpl_addVar(vars, 1, "SIDTABS", tpl_getTpl(vars, "SIDTABBIT"));
-//		sidtab=sidtab->next;
-//  }
-//	fputs(tpl_getTpl(vars, "SIDTAB"), f);
 }
 
 void send_oscam_savetpls(struct templatevars *vars, FILE *f){

@@ -840,6 +840,69 @@ void chk_account(char *token, char *value, struct s_auth *account)
 //  }
 }
 
+int write_services()
+{
+	int i;
+	FILE *f;
+	struct s_sidtab *sidtab = cfg->sidtab;
+	char tmpfile[256];
+	char destfile[256];
+	char bakfile[256];
+
+	snprintf(destfile, 255,"%s%s", cs_confdir, cs_sidt);
+	snprintf(tmpfile, 255, "%s%s.tmp", cs_confdir, cs_sidt);
+	snprintf(bakfile, 255,"%s%s.bak", cs_confdir, cs_sidt);
+
+	if (!(f=fopen(tmpfile, "w"))){
+    cs_log("Cannot open file \"%s\" (errno=%d)", tmpfile, errno);
+    return(1);
+  }
+  fprintf(f,"#oscam.services generated automatically\n\n");
+
+	while(sidtab != NULL){
+		fprintf(f,"[%s]\n", sidtab->label);
+		fprintf(f,"caid   = ");
+
+    for (i=0; i<sidtab->num_caid; i++){
+			if (i==0) fprintf(f,"%04X", sidtab->caid[i]);
+			else fprintf(f,",%04X", sidtab->caid[i]);
+    }
+		fprintf(f,"\nprovid = ");
+    for (i=0; i<sidtab->num_provid; i++){
+			if (i==0) fprintf(f,"%08lX", sidtab->provid[i]);
+			else fprintf(f,",%08lX", sidtab->provid[i]);
+    }
+		fprintf(f,"\nsrvid  = ");
+    for (i=0; i<sidtab->num_srvid; i++){
+			if (i==0) fprintf(f,"%04X", sidtab->srvid[i]);
+			else fprintf(f,",%04X", sidtab->srvid[i]);
+		}
+		fprintf(f,"\n\n");
+		sidtab=sidtab->next;
+  }
+
+	fclose(f);
+
+	if(file_exists(bakfile)){
+  	if(remove(destfile) < 0) {
+  		cs_log("Error removing original conf file %s (errno=%d). Will maintain original one!", destfile, errno);
+  		if(remove(tmpfile) < 0) cs_log("Error removing temp conf file %s (errno=%d).!", tmpfile, errno);
+  		return(1);
+  	}
+  } else {
+  	if(rename(destfile, bakfile) < 0){
+  		cs_log("Error renaming original conf file %s to %s (errno=%d). Will maintain original one!", destfile, bakfile, errno);
+  		if(remove(tmpfile) < 0) cs_log("Error removing temp conf file %s (errno=%d).!", tmpfile, errno);
+  		return(1);
+  	}
+  }
+  if(rename(tmpfile, destfile) < 0){
+  	cs_log("Error renaming new conf file %s to %s (errno=%d). The config will be missing upon next startup as this is non-recoverable!", tmpfile, destfile, errno);
+  	return(1);
+  }
+  return(0);
+}
+
 int write_config()
 {
 	int i,j;
