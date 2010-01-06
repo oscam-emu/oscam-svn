@@ -980,10 +980,12 @@ void send_oscam_services(struct templatevars *vars, FILE *f, struct uriparams *p
 	while(sidtab != NULL){
 		tpl_printf(vars, 0, "SID","");
 		if ((strcmp(getParam(params, "service"), sidtab->label) == 0) && (strcmp(getParam(params, "action"), "list") == 0) ){
+			tpl_printf(vars, 0, "SIDCLASS","sidlist");
 			for (i=0; i<sidtab->num_srvid; i++){
 				tpl_printf(vars, 1, "SID", "%04X : %s<BR>", sidtab->srvid[i], monitor_get_srvname(sidtab->srvid[i]));
 			}
 		}	else {
+			tpl_printf(vars, 0, "SIDCLASS","");
 			tpl_printf(vars, 0, "SID","<A HREF=\"services.html?service=%s&action=list\">Show Services</A>",tpl_addTmp(vars, urlencode(sidtab->label)));
 		}
 		tpl_addVar(vars, 0, "LABELENC", tpl_addTmp(vars, urlencode(sidtab->label)));

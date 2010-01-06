@@ -20,6 +20,7 @@ TR.c TD{background-color:green;}\n\
 TR.online TD{background-color:#009900;}\n\
 TR.expired TD{background-color:orange;}\n\
 DIV.log{border:1px solid black;background-color: black; font-family:\"Courier New\", monospace ; color:yellow; font-size: 11px; word-wrap:break-word;}\n\
+DIV.sidlist{background-color: #FFFF99; padding:2; text-align:left; font-family:\"Courier New\", monospace ; color:black; font-size: 10px; word-wrap:break-word;}\n\
 TABLE.menu{background-color:black; align:center; font-size: 10px;}\n\
 TABLE.menu TD{border:2px outset lightgrey; background-color:silver; font-color:black; font-family: Arial;}\n\
 TABLE.status{background-color:#66CCFF;empty-cells:show;}\n\
@@ -678,13 +679,13 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 #define TPLSERVICECONFIGLISTBIT "\
   <TR>\n\
     <TD>##LABEL##</TD>\n\
-    <TD>##SIDLIST##</TD>\n\
+    <TD width =\"200\" align=\"center\">##SIDLIST##</TD>\n\
     <TD><A HREF=\"services_edit.html?service=##LABELENC##&action=edit\">Edit Settings</A></TD>\n\
     <TD><A HREF=\"services.html?service=##LABELENC##&action=delete\">Delete Service</A></TD>\n\
   </TR>\n"
 
 #define TPLSERVICECONFIGSIDBIT "\
-	##SID##"
+	<DIV class=\"##SIDCLASS##\">##SID##</DIV>"
 
 #define TPLSERVICEEDIT "\
 ##TPLHEADER##\
@@ -695,9 +696,9 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
   <input name=\"service\" type=\"hidden\" value=\"##LABELENC##\">\n\
   <TABLE cellspacing=\"0\">\n\
     <TR>\n<TH>&nbsp;</TH>\n<TH>Edit Service ##LABEL##</TH>\n</TR>\n\
-    <TR>\n<TD>CAID: </TD><TD><input name=\"caid\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"##CAIDS##\"></TD></TR>\
-    <TR>\n<TD>PROVID: </TD><TD><input name=\"provid\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"##PROVIDS##\"></TD></TR>\
-    <TR>\n<TD>SRVID: </TD><TD><textarea name=\"srvid\" cols=\"80\" rows=\"5\">##SRVIDS##</textarea></TD></TR>\
+    <TR>\n<TD>caid: </TD><TD><input name=\"caid\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"##CAIDS##\"></TD></TR>\
+    <TR>\n<TD>provid: </TD><TD><input name=\"provid\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"##PROVIDS##\"></TD></TR>\
+    <TR>\n<TD>srvid: </TD><TD><textarea name=\"srvid\" cols=\"80\" rows=\"5\">##SRVIDS##</textarea></TD></TR>\
     <TR>\n<TD>&nbsp;</TD><TD align=\"right\"><input type=\"submit\" name=\"action\" value=\"Save\" title=\"Save service and reload services\"></TD>\n\
   </TABLE>\n\
 </form>\n\
