@@ -914,7 +914,7 @@ int write_config()
 	fprintf_conf(f, CONFVARWIDTH, "pidfile", "%s\n", cfg->pidfile);
 	fprintf_conf(f, CONFVARWIDTH, "usrfile", "%s\n", cfg->usrfile);
 	fprintf_conf(f, CONFVARWIDTH, "cwlogdir", "%s\n", cfg->cwlogdir);
-	fprintf_conf(f, CONFVARWIDTH, "clienttimeout", "%id\n", cfg->ctimeout);
+	fprintf_conf(f, CONFVARWIDTH, "clienttimeout", "%ld\n", cfg->ctimeout);
 	fprintf_conf(f, CONFVARWIDTH, "fallbacktimeout", "%ld\n", cfg->ftimeout);
 	fprintf_conf(f, CONFVARWIDTH, "clientmaxidle", "%d\n", cfg->cmaxidle);
 	fprintf_conf(f, CONFVARWIDTH, "cachedelay", "%ld\n", cfg->delay);
@@ -934,7 +934,7 @@ int write_config()
 	/*monitor settings*/
 	fprintf(f,"[monitor]\n");
 	fprintf_conf(f, CONFVARWIDTH, "port", "%d\n", cfg->mon_port);
-	fprintf_conf(f, CONFVARWIDTH, "serverip", "%d\n", inet_ntoa(*(struct in_addr *)&cfg->mon_srvip));
+	fprintf_conf(f, CONFVARWIDTH, "serverip", "%s\n", inet_ntoa(*(struct in_addr *)&cfg->mon_srvip));
 
 	fprintf_conf(f, CONFVARWIDTH, "nocrypt", "");
 	struct s_ip *cip;
