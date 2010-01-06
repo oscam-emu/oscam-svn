@@ -937,16 +937,35 @@ void send_oscam_services_edit(struct templatevars *vars, FILE *f, struct uripara
 }
 
 void send_oscam_services(struct templatevars *vars, FILE *f, struct uriparams *params) {
-  struct s_sidtab *sidtab = cfg->sidtab;
-	int i;
+  struct s_sidtab *sidtab, *sidtab2;
+  char *service = getParam(params, "service");
+	int i, found = 0;
 
-  if (strcmp(getParam(params, "action"), "delete") == 0){
+	if (strcmp(getParam(params, "action"), "delete") == 0){
+		sidtab=cfg->sidtab;
+		if(strcmp(sidtab->label, service) == 0){
+			cfg->sidtab = sidtab->next;
+			free(sidtab);
+			found = 1;
+		} else if (sidtab->next != NULL){
+			do{
+				if(strcmp(sidtab->next->label, service) == 0){
+					sidtab2 = sidtab->next;
+					sidtab->next = sidtab2->next;
+					free(sidtab2);
+					found = 1;
+					break;
+				}
+			} while ((sidtab = sidtab->next) && (sidtab->next != NULL));
+		}
+		if (found > 0){
+			tpl_addVar(vars, 1, "MESSAGE", "<b>Service has been deleted!</b><BR>");
+			//if (write_userdb()==0) refresh_oscam(REFR_ACCOUNTS);
+			//else tpl_addVar(vars, 1, "MESSAGE", "<b>Writing configuration to disk failed!</b><BR>");
+		} else tpl_addVar(vars, 1, "MESSAGE", "<b>Sorry but the specified service doesn't exist. No deletion will be made!</b><BR>");
+	}
 
-  	//Todo Delete Service
-  	tpl_addVar(vars, 0, "MESSAGE", "<BR><B>Delete Service not yet implemented</B>");
-
-  }
-
+	sidtab=cfg->sidtab;
 	// Show List
 	while(sidtab != NULL){
 		tpl_printf(vars, 0, "SID","");
