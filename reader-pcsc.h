@@ -3,6 +3,7 @@
 
 #ifdef HAVE_PCSC
 #include <PCSC/pcsclite.h>
+#include <PCSC/winscard.h>
 #ifdef OS_MACOSX
 #include <PCSC/wintypes.h>
 #else

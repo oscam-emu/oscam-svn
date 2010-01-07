@@ -554,7 +554,7 @@ void chk_t_cccam(char *token, char *value)
 
 void chk_t_dvbapi(char *token, char *value)
 {
-#ifndef HAVE_DVBAPI_3
+#ifndef HAVE_DVBAPI
 	fprintf(stderr, "Warning: OSCam compiled without DVB API support.\n");
 #else
 	if (!strcmp(token, "enabled")) 	{ cfg->dvbapi_enabled=atoi(value); return; }
@@ -627,13 +627,15 @@ int search_boxkey(ushort caid, ulong provid, char *key)
   char c_caid[512];
 
   sprintf(c_caid, "%s%s", cs_confdir, cs_cert);
-  if (fp=fopen(c_caid, "r"))
+  fp=fopen(c_caid, "r");
+  if (fp)
   {
     for (; (!rc) && fgets(c_caid, sizeof(c_caid), fp);)
     {
       char *c_provid, *c_key;
-      if (c_provid=strchr(c_caid, '#'))
-        *c_provid='\0';
+
+      c_provid=strchr(c_caid, '#');
+      if (c_provid) *c_provid='\0';
       if (!(c_provid=strchr(c_caid, ':'))) continue;
       *c_provid++='\0';
       if (!(c_key=strchr(c_provid, ':'))) continue;

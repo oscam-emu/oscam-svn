@@ -635,7 +635,7 @@ static void init_shm()
 
   buf=(char *)malloc(shmsize);
   memset(buf, 0, shmsize);
-  write(shmid, buf, shmsize);
+  if (!write(shmid, buf, shmsize)) cs_exit(1);
   free(buf);
 
   ecmcache=(struct s_ecm *)mmap((void *)0, (size_t) shmsize,
@@ -843,7 +843,8 @@ static void cs_client_resolve()
     for (account=cfg->account; account; account=account->next)
       if (account->dyndns[0])
       {
-        if (rht=gethostbyname((const char *)account->dyndns))
+        rht=gethostbyname((const char *)account->dyndns);
+        if (rht)
         {
           memcpy(&udp_sa.sin_addr, rht->h_addr, sizeof(udp_sa.sin_addr));
           account->dynip=cs_inet_order(udp_sa.sin_addr.s_addr);
@@ -861,7 +862,8 @@ static void start_client_resolver()
   int i;
   pthread_t tid;
 
-  if (i=pthread_create(&tid, (pthread_attr_t *)0, (void *)&cs_client_resolve, (void *) 0))
+  i=pthread_create(&tid, (pthread_attr_t *)0, (void *)&cs_client_resolve, (void *) 0);
+  if (i)
     cs_log("ERROR: can't create resolver-thread (err=%d)", i);
   else
   {
@@ -879,7 +881,8 @@ void cs_resolve()
     if ((idx=reader[i].cs_idx) && (reader[i].typ & R_IS_NETWORK))
     {
       client[cs_idx].last=time((time_t)0);
-      if (rht=gethostbyname(reader[i].device))
+      rht=gethostbyname(reader[i].device);
+      if (rht)
       {
         memcpy(&client[idx].udp_sa.sin_addr, rht->h_addr,
                sizeof(client[idx].udp_sa.sin_addr));
@@ -2192,7 +2195,7 @@ int main (int argc, char *argv[])
 #endif
            module_radegast,
            module_oscam_ser,
-#ifdef HAVE_DVBAPI_3
+#ifdef HAVE_DVBAPI
 	   module_dvbapi,
 #endif
            0
