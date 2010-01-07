@@ -108,7 +108,7 @@ DIV.message{float:right}"
       <TH>ID</TH>\n\
       <TH>Label</TH>\n\
       <TH>AU</TH>\n\
-      <TH>0</TH>\n\
+      <TH>Crypted</TH>\n\
       <TH>Address</TH>\n\
       <TH>Port</TH>\n\
       <TH>Protocol</TH>\n\
@@ -120,7 +120,7 @@ DIV.message{float:right}"
       <TH>Idle</TH>\n\
       <TH>CWOK</TH>\n\
       <TH>CWNOK</TH>\n\
-      <TH>0</TH>\n\
+      <TH>Status</TH>\n\
     </TR>\n\
     ##CLIENTSTATUS##\
   </TABLE><BR>\n\

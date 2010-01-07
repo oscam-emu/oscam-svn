@@ -856,7 +856,9 @@ void send_oscam_status(struct templatevars *vars, FILE *f, struct uriparams *par
 				tpl_printf(vars, 0, "CLIENTSRVID", "%04X", client[i].last_srvid);
 				tpl_addVar(vars, 0, "CLIENTSRVNAME", monitor_get_srvname(client[i].last_srvid));
 				tpl_printf(vars, 0, "CLIENTIDLESECS", "%d", isec);
-				tpl_printf(vars, 0, "CLIENTCON", "%d", con);
+				if(con == 2) tpl_printf(vars, 0, "CLIENTCON", "Duplicate");
+				else if (con == 1) tpl_printf(vars, 0, "CLIENTCON", "Sleep");
+				else tpl_printf(vars, 0, "CLIENTCON", "OK");
 				tpl_printf(vars, 0, "CWOK", "%d", client[i].cwfound);
 				tpl_printf(vars, 0, "CWNOK", "%d", client[i].cwnot);
 				tpl_addVar(vars, 1, "CLIENTSTATUS", tpl_getTpl(vars, "CLIENTSTATUSBIT"));
