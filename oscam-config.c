@@ -914,10 +914,10 @@ int write_config()
 	fprintf_conf(f, CONFVARWIDTH, "pidfile", "%s\n", cfg->pidfile);
 	fprintf_conf(f, CONFVARWIDTH, "usrfile", "%s\n", cfg->usrfile);
 	fprintf_conf(f, CONFVARWIDTH, "cwlogdir", "%s\n", cfg->cwlogdir);
-	fprintf_conf(f, CONFVARWIDTH, "clienttimeout", "%ld\n", cfg->ctimeout);
-	fprintf_conf(f, CONFVARWIDTH, "fallbacktimeout", "%ld\n", cfg->ftimeout);
+	fprintf_conf(f, CONFVARWIDTH, "clienttimeout", "%ld\n", cfg->ctimeout/1000);
+	fprintf_conf(f, CONFVARWIDTH, "fallbacktimeout", "%ld\n", cfg->ftimeout/1000);
 	fprintf_conf(f, CONFVARWIDTH, "clientmaxidle", "%d\n", cfg->cmaxidle);
-	fprintf_conf(f, CONFVARWIDTH, "cachedelay", "%ld\n", cfg->delay);
+	fprintf_conf(f, CONFVARWIDTH, "cachedelay", "%ld\n", cfg->delay/1000);
 	fprintf_conf(f, CONFVARWIDTH, "bindwait", "%d\n", cfg->bindwait);
 	fprintf_conf(f, CONFVARWIDTH, "netprio", "%ld\n", cfg->netprio);
 	fprintf_conf(f, CONFVARWIDTH, "resolvedelay", "%d\n", cfg->resolvedelay);

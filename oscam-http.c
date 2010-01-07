@@ -73,10 +73,10 @@ void send_oscam_config_global(struct templatevars *vars, FILE *f, struct uripara
 	tpl_addVar(vars, 0, "PIDFILE", cfg->pidfile);
 	tpl_addVar(vars, 0, "USERFILE", cfg->usrfile);
 	tpl_addVar(vars, 0, "CWLOGDIR", cfg->cwlogdir);
-	tpl_printf(vars, 0, "CLIENTTIMEOUT", "%ld", cfg->ctimeout);
-	tpl_printf(vars, 0, "FALLBACKTIMEOUT", "%ld", cfg->ftimeout);
+	tpl_printf(vars, 0, "CLIENTTIMEOUT", "%ld", cfg->ctimeout/1000);
+	tpl_printf(vars, 0, "FALLBACKTIMEOUT", "%ld", cfg->ftimeout/1000);
 	tpl_printf(vars, 0, "CLIENTMAXIDLE", "%d", cfg->cmaxidle);
-	tpl_printf(vars, 0, "CACHEDELAY", "%ld", cfg->delay);
+	tpl_printf(vars, 0, "CACHEDELAY", "%ld", cfg->delay/1000);
 	tpl_printf(vars, 0, "BINDWAIT", "%d", cfg->bindwait);
 	tpl_printf(vars, 0, "NETPRIO", "%ld", cfg->netprio);
 	tpl_printf(vars, 0, "RESOLVEDELAY", "%d", cfg->resolvedelay);
