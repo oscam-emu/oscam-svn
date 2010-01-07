@@ -462,7 +462,7 @@ void create_rand_str(char *dst, int size){
 /* Return 1 if the file exists, else 0 */
 int file_exists(const char * filename){
 	FILE *file;
-	if (file = fopen(filename, "r")){
+	if ((file = fopen(filename, "r"))){
 		fclose(file);
 		return 1;
 	}
@@ -513,15 +513,15 @@ int safe_overwrite_with_bak(char *destfile, char *tmpfile, char *bakfile, int fo
 	return(0);
 }
 
-/* Replacement of fprintf which adds necessary whitespace to fill up the varname to a fixed width. 
+/* Replacement of fprintf which adds necessary whitespace to fill up the varname to a fixed width.
    If varname is longer than varnameWidth, no whitespace is added*/
 void fprintf_conf(FILE *f, int varnameWidth, const char *varname, const char *fmtstring, ...){
 	int varlen = strlen(varname);
-	int max = (varlen > varnameWidth) ? varlen : varnameWidth; 
+	int max = (varlen > varnameWidth) ? varlen : varnameWidth;
 	char varnamebuf[max + 3];
 	char *ptr = varnamebuf + varlen;
 	va_list argptr;
-	
+
 	strcpy(varnamebuf, varname);
 	while(varlen < varnameWidth){
 		ptr[0] = ' ';
