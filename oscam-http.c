@@ -54,6 +54,22 @@ int i;
 	}
 }
 
+void gettimestring(char *retval, int seconds){
+	int secs = 0, fullmins =0, mins =0, hours =0;
+	char *tmp="00:00:00";
+
+	if(seconds > 0){
+		secs = seconds % 60;
+		if (seconds > 60){
+			fullmins = seconds / 60;
+			mins = fullmins % 60;
+			if(fullmins > 60)	hours = fullmins / 60;
+		}
+		sprintf(tmp,"%d:%d:%d", hours, mins, secs);
+	}
+	strncpy(retval,tmp,sizeof(retval)-1);
+}
+
 void send_oscam_config_global(struct templatevars *vars, FILE *f, struct uriparams *params) {
 	int i;
 
