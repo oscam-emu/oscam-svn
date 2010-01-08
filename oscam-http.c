@@ -54,22 +54,6 @@ int i;
 	}
 }
 
-void gettimestring(char *retval, int seconds){
-	int secs = 0, fullmins =0, mins =0, hours =0;
-	char *tmp="00:00:00";
-
-	if(seconds > 0){
-		secs = seconds % 60;
-		if (seconds > 60){
-			fullmins = seconds / 60;
-			mins = fullmins % 60;
-			if(fullmins > 60)	hours = fullmins / 60;
-		}
-		sprintf(tmp,"%d:%d:%d", hours, mins, secs);
-	}
-	strncpy(retval,tmp,sizeof(retval)-1);
-}
-
 void send_oscam_config_global(struct templatevars *vars, FILE *f, struct uriparams *params) {
 	int i;
 
@@ -867,11 +851,33 @@ void send_oscam_status(struct templatevars *vars, FILE *f, struct uriparams *par
 				tpl_addVar(vars, 0, "CLIENTPROTO", monitor_get_proto(i));
 				tpl_printf(vars, 0, "CLIENTLOGINDATE", "%02d.%02d.%02d", lt->tm_mday, lt->tm_mon+1, lt->tm_year%100);
 				tpl_printf(vars, 0, "CLIENTLOGINTIME", "%02d:%02d:%02d", lt->tm_hour, lt->tm_min, lt->tm_sec);
-				tpl_printf(vars, 0, "CLIENTLOGINSECS", "%d", lsec);
+
+				int secs = 0, fullmins =0, mins =0, hours =0;
+				if(lsec > 0){
+					secs = lsec % 60;
+					if (lsec > 60){
+						fullmins = lsec / 60;
+						mins = fullmins % 60;
+						if(fullmins > 60)	hours = fullmins / 60;
+					}
+				}
+
+				tpl_printf(vars, 0, "CLIENTLOGINSECS", "%02d:%02d:%02d", hours, mins, secs);
 				tpl_printf(vars, 0, "CLIENTCAID", "%04X", client[i].last_caid);
 				tpl_printf(vars, 0, "CLIENTSRVID", "%04X", client[i].last_srvid);
 				tpl_addVar(vars, 0, "CLIENTSRVNAME", monitor_get_srvname(client[i].last_srvid));
-				tpl_printf(vars, 0, "CLIENTIDLESECS", "%d", isec);
+
+				secs = 0; fullmins =0; mins =0; hours =0;
+				if(isec > 0){
+					secs = isec % 60;
+					if (isec > 60){
+						fullmins = isec / 60;
+						mins = fullmins % 60;
+						if(fullmins > 60)	hours = fullmins / 60;
+					}
+				}
+
+				tpl_printf(vars, 0, "CLIENTIDLESECS", "%02d:%02d:%02d", hours, mins, secs);
 				if(con == 2) tpl_printf(vars, 0, "CLIENTCON", "Duplicate");
 				else if (con == 1) tpl_printf(vars, 0, "CLIENTCON", "Sleep");
 				else tpl_printf(vars, 0, "CLIENTCON", "OK");

@@ -554,7 +554,7 @@ void chk_t_cccam(char *token, char *value)
 }
 
 #ifdef HAVE_DVBAPI
-static void chk_t_dvbapi(char *token, char *value)
+void chk_t_dvbapi(char *token, char *value)
 {
 	if (!strcmp(token, "enabled")) 	{ cfg->dvbapi_enabled=atoi(value); return; }
 	if (!strcmp(token, "au"))		{ cfg->dvbapi_au=atoi(value); return; }
@@ -948,7 +948,7 @@ int write_config()
   	if (cip->ip[0] == cip->ip[1])	fprintf(f,"-%s", inet_ntoa(*(struct in_addr *)&cip->ip[1]));
   	dot=",";
 	}
-	fputc((int)'\n', f);	
+	fputc((int)'\n', f);
 	fprintf_conf(f, CONFVARWIDTH, "aulow", "%d\n", cfg->mon_aulow);
 	fprintf_conf(f, CONFVARWIDTH, "hideclient_to", "%d\n", cfg->mon_hideclient_to);
 	fprintf_conf(f, CONFVARWIDTH, "monlevel", "%d\n", cfg->mon_level);

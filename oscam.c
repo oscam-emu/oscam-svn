@@ -1028,7 +1028,7 @@ static void init_service(int srv)
 #else
         case 97: cs_logger();
 #endif
-        case 98: start_resolver(); 
+        case 98: start_resolver();
         case 95: cs_http();
       }
   }
@@ -1052,11 +1052,11 @@ static void cs_fake_client(char *usr, int uniq, in_addr_t ip)
 {
     /* Uniq = 1: only one connection per user
      *
-     * Uniq = 2: set (new connected) user only to fake if source 
-     *           ip is different (e.g. for newcamd clients with 
+     * Uniq = 2: set (new connected) user only to fake if source
+     *           ip is different (e.g. for newcamd clients with
      *	         different CAID's -> Ports)
      *
-     * Uniq = 3: only one connection per user, but only the last 
+     * Uniq = 3: only one connection per user, but only the last
      *           login will survive (old mpcs behavior)
      */
 
@@ -2282,6 +2282,9 @@ int main (int argc, char *argv[])
           gfd=ph[i].ptab->ports[j].fd+1;
       }
 
+	//set time for server to now to avoid 0 in monitor/webif
+	client[0].last=time((time_t *)0);
+
   start_client_resolver();
   init_service(97); // logger
   init_service(98); // resolver
@@ -2323,7 +2326,6 @@ int main (int argc, char *argv[])
       cs_log("Init for all local cards done !");
 
   }
-
 
 #ifdef CS_ANTICASC
   if( !cfg->ac_enabled )
