@@ -152,6 +152,6 @@ extern unsigned long IFD_Towitoko_GetMaxBaudrate ();
 extern void IFD_Towitoko_GetDescription (IFD * ifd, BYTE * desc, unsigned length);
 
 /* Atributes of this IFD */
-extern BYTE IFD_Towitoko_GetSlot (IFD * ifd);
+extern BYTE IFD_Towitoko_GetSlot ();
 
 #endif /* _IFD_TOWITOKO_ */

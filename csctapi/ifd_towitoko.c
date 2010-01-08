@@ -887,13 +887,13 @@ IFD_Towitoko_GetFirmware (IFD * ifd)
 }
 
 BYTE
-IFD_Towitoko_GetSlot ()
+IFD_Towitoko_GetSlot (IFD * ifd)
 {
 	return ifd->slot;
 }
 
 unsigned
-IFD_Towitoko_GetNumSlots (IFD * ifd)
+IFD_Towitoko_GetNumSlots ()
 {
 	return 1;
 }
