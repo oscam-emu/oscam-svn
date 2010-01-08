@@ -54,7 +54,7 @@ static bool PPS_Match (BYTE * request, unsigned len_request, BYTE * reply, unsig
 
 static unsigned PPS_GetLength (BYTE * block);
 
-static int PPS_InitICC (PPS * pps, int protocol_selected);
+static int PPS_InitICC (PPS * pps);
 
 static int PPS_InitProtocol (PPS * pps, int protocol_selected);
 
@@ -214,7 +214,15 @@ int PPS_Perform (PPS * pps, BYTE * params, unsigned *length)
 			}
 		}
 
-		//FIXME Currently InitICC sets baudrate to 9600 for all T14 cards, which is the old behaviour...; for SCI TA1 is obeyed...
+		//FIXME Currently InitICC sets baudrate to 9600 for all T14 cards (=no switching); 
+		//When for SCI, T14 protocol, TA1 is obeyed, this goes OK for mosts devices, but somehow on DM7025 Sky S02 card goes wrong when setting ETU (ok on DM800/DM8000)
+		//So either 
+		//a) for ALL T14 ETU should not be set, or 
+		//b) only for Irdeto T14 cards, 
+		//c) or all Irdeto cards
+		//to be working on DM7025 and all other sci-devices ...
+		//we choose option b) for now, can always expand it...
+		//implemented it in InitICC
 		if (!PPS_success) {//last PPS not succesfull
 			BYTE TA1;
 			if (ATR_GetInterfaceByte (atr, 1 , ATR_INTERFACE_BYTE_TA, &TA1) == ATR_OK) {
@@ -260,13 +268,16 @@ int PPS_Perform (PPS * pps, BYTE * params, unsigned *length)
 	pps->parameters.n);
 #endif
 
-	ret  = PPS_InitICC(pps, protocol_selected);
+	ret  = PPS_InitICC(pps);
 			
 	if (ret != PPS_OK)
 		return ret;
 	
 	/* Initialize selected protocol with selected parameters */
-	ret = PPS_InitProtocol (pps, protocol_selected);
+	if (pps->parameters.t == 1)
+		ret = PPS_InitProtocol (pps, 3); //FIXME in practice most T1 cards carry timing parameters in TA3, TB3 and TC3
+	else
+		ret = PPS_InitProtocol (pps, 2); //FIXME T0 cards carry timing parameters in TC2
 	
 	return ret;
 }
@@ -375,7 +386,7 @@ static unsigned PPS_GetLength (BYTE * block)
 	return length;
 }
 
-static int PPS_InitICC (PPS * pps, int selected_protocol)
+static int PPS_InitICC (PPS * pps)
 {
 #ifdef SCI_DEV
 #include <sys/ioctl.h>
@@ -394,7 +405,9 @@ static int PPS_InitICC (PPS * pps, int selected_protocol)
 		params.T = pps->parameters.t;
 		params.fs = atr_fs_table[pps->parameters.FI] / 1000000;
 		double F =  (double) atr_f_table[pps->parameters.FI];
-		params.ETU = F / pps->parameters.d;
+		//for Irdeto T14 cards, do not set ETU
+    if (!(atr->hbn >= 6 && !memcmp(atr->hb, "IRDETO", 6) && params.T == 14))
+		  params.ETU = F / pps->parameters.d;
 		if (pps->parameters.n == 255) //only for T0 or also for T1?
 			params.EGT = 0;
 		else
@@ -461,7 +474,7 @@ static int PPS_InitProtocol (PPS * pps, int selected_protocol)
 		
 		if (pps->protocol != NULL)
 		{
-			ret = Protocol_T1_Init ((Protocol_T1 *) pps->protocol, (ICC_Async *) pps->icc, &(pps->parameters), selected_protocol);
+			ret = Protocol_T1_Init ((Protocol_T1 *) pps->protocol, (ICC_Async *) pps->icc, selected_protocol);
 			
 			if (ret != PROTOCOL_T1_OK)
 			{
