@@ -161,7 +161,7 @@ DIV.message{float:right}"
       <TH>Label</TH>\n\
       <TH>Status</TH>\n\
       <TH>Last Channel</TH>\n\
-      <TH>Idle (Sec)</TH>\n\
+      <TH>Idle</TH>\n\
       <TH colspan=\"2\" align=\"center\">Action</TH>\n\
     </TR>\n\
     ##USERCONFIGS##\
@@ -463,7 +463,7 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 				<option value=\"4\" ##MONSELECTED4##>4 - complete access</option>\n\
 			</select></TD>\n\
 		</TR>\n\
-		<TR><TD>Hideclientto:</TD><TD><input name=\"hideclient_to\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##HIDECLIENTTO##\"> ms</TD></TR>\n\
+		<TR><TD>Hideclientto:</TD><TD><input name=\"hideclient_to\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##HIDECLIENTTO##\"> s</TD></TR>\n\
 		<TR><TD>Httpport:</TD><TD><input name=\"httpport\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##HTTPPORT##\"></TD></TR>\n\
 		<TR><TD>Httpuser:</TD><TD><input name=\"httpuser\" type=\"text\" size=\"20\" maxlength=\"20\" value=\"##HTTPUSER##\"></TD></TR>\n\
 		<TR><TD>Httppwd:</TD><TD><input name=\"httppwd\" type=\"text\" size=\"20\" maxlength=\"20\" value=\"##HTTPPASSWORD##\"></TD></TR>\n\

@@ -767,7 +767,18 @@ void send_oscam_user_config(struct templatevars *vars, FILE *f, struct uriparams
 		tpl_addVar(vars, 0, "STATUS", status);
 		tpl_addVar(vars, 0, "EXPIRED", expired);
 		tpl_addVar(vars, 0, "LASTCHANNEL", lastchan);
-		tpl_printf(vars, 0, "IDLESECS", "%d", isec);
+
+		int secs = 0, fullmins =0, mins =0, hours =0;
+		if(isec > 0){
+			secs = isec % 60;
+			if (isec > 60){
+				fullmins = isec / 60;
+				mins = fullmins % 60;
+				if(fullmins > 60)	hours = fullmins / 60;
+			}
+		}
+
+		tpl_printf(vars, 0, "IDLESECS", "%02d:%02d:%02d", hours, mins, secs);
 		tpl_addVar(vars, 1, "USERCONFIGS", tpl_getTpl(vars, "USERCONFIGLISTBIT"));
 		isec = 0;
 		lastchan = "&nbsp;";
