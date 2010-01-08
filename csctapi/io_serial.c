@@ -1022,34 +1022,39 @@ static bool IO_Serial_Set_Smartreader_Config(IO_Serial * io)
 	cmd[3]=(BYTE)((int)(srConfig->D)  & 0xFF);
 	if(!IO_Serial_Write(io, 0, 4, cmd))
 		return FALSE;
+    usleep(50000);
 
 	cmd[0]=2;
 	cmd[1]=(BYTE)((fs>>8) & 0xFF);
 	cmd[2]=(BYTE)(fs & 0xFF);
 	if(!IO_Serial_Write(io, 0, 3, cmd))
 		return FALSE;
+    usleep(50000);
 
 	cmd[0]=3;
 	cmd[1]=(BYTE)(srConfig->N & 0xFF);
 	if(!IO_Serial_Write(io, 0, 2, cmd))
 		return FALSE;
+    usleep(50000);
 
 	cmd[0]=4;
 	cmd[1]=(BYTE)(srConfig->T & 0xFF);
 	if(!IO_Serial_Write(io, 0, 2, cmd))
 		return FALSE;
+    usleep(50000);
 
 	cmd[0]=5;
 	cmd[1]=(BYTE)(srConfig->inv & 0xFF);
 	if(!IO_Serial_Write(io, 0, 2, cmd))
 		return FALSE;
+    usleep(50000);
 
 	
 	// We're entering SmartReader+ mode; speed up serial communication.
-	// cfsetispeed(&term,B115200);
-	// cfsetospeed(&term,B115200);
-	// io->input_bitrate=115200;
-	// io->output_bitrate=115200;
+	cfsetispeed(&term,B115200);
+	cfsetospeed(&term,B115200);
+	io->input_bitrate=115200;
+	io->output_bitrate=115200;
 
 	// Set SmartReader+ in DATA mode.
 	term.c_cflag&=~CSIZE;
