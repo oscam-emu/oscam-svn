@@ -572,8 +572,38 @@ void send_oscam_reader_config(struct templatevars *vars, FILE *f, struct uripara
 	tpl_printf(vars, 0, "MAXQLEN", "%d", reader[ridx].maxqlen);
 	tpl_printf(vars, 0, "EMMCACHE", "%d,%d,&d", reader[ridx].cachemm, reader[ridx].rewritemm, reader[ridx].logemm);
 
-	//todo "blocknano"
-	//todo "savenano"
+	//savenano
+	int all = 1;
+	dot="";
+	for(i = 0; i < 256; ++i){
+		if(!(reader[ridx].b_nano[i] & 0x02)){
+			all = 0;
+			break;
+		}
+	}
+	if (all == 1) tpl_printf(vars, 0, "SAVENANO", "all", reader[ridx].maxqlen);
+	else {
+		for(i = 0; i < 256; ++i){
+			if(reader[ridx].b_nano[i] & 0x02) tpl_printf(vars, 1, "SAVENANO", "%s%02x\n", dot, i);
+			dot=",";
+		}
+	}
+
+	//blocknano
+	dot="";
+	for(i = 0; i < 256; ++i){
+		if(!(reader[ridx].b_nano[i] & 0x01)){
+			all = 0;
+			break;
+		}
+	}
+	if (all == 1) tpl_printf(vars, 0, "BLOCKNANO", "all", reader[ridx].maxqlen);
+	else {
+		for(i = 0; i < 256; ++i){
+			if(reader[ridx].b_nano[i] & 0x01) tpl_printf(vars, 1, "BLOCKNANO", "%s%02x\n", dot, i);
+			dot=",";
+		}
+	}
 
 	tpl_addVar(vars, 0, "CCCVERSION", reader[ridx].cc_version);
 	tpl_addVar(vars, 0, "CCCBUILD", reader[ridx].cc_build);
