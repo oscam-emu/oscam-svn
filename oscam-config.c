@@ -764,6 +764,7 @@ void chk_account(char *token, char *value, struct s_auth *account)
 {
   int i;
   char *ptr1;//, *ptr2;
+
   if (!strcmp(token, "user")) { strncpy(account->usr, value, sizeof(account->usr)-1); return; }
   if (!strcmp(token, "pwd")) { strncpy(account->pwd, value, sizeof(account->pwd)-1); return; }
   if (!strcmp(token, "hostname")) { strncpy((char *)account->dyndns, value, sizeof(account->dyndns)-1);return; }
@@ -806,7 +807,10 @@ void chk_account(char *token, char *value, struct s_auth *account)
 
   if (!strcmp(token, "expdate"))
   {
-  	if (!value[0]) return;
+  	if (!value[0]) {
+  		account->expirationdate=(time_t)NULL;
+  		return;
+  	}
     struct tm cstime;
     memset(&cstime,0,sizeof(cstime));
     for (i=0, ptr1=strtok(value, "-/"); (i<3)&&(ptr1); ptr1=strtok(NULL, "-/"), i++)
@@ -1493,8 +1497,10 @@ static void chk_reader(char *token, char *value, struct s_reader *rdr)
     }
     return;
   }
+#ifdef CS_WITH_GBOX
   if (!strcmp(token, "password")) { strncpy((char *)rdr->gbox_pwd, (const char *)i2b(4, a2i(value, 4)), 4); return; }
   if (!strcmp(token, "premium")) { rdr->gbox_prem=1; return; }
+#endif
   if (!strcmp(token, "account"))
   {
     for (i=0, ptr=strtok(value, ","); (i<2)&&(ptr); ptr=strtok(NULL, ","), i++)

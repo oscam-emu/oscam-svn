@@ -443,7 +443,9 @@ void send_oscam_reader(struct templatevars *vars, FILE *f) {
 				case R_NEWCAMD : ctyp="newcamd";  break;
 				case R_RADEGAST: ctyp="radegast"; break;
 				case R_SERIAL  : ctyp="serial";   break;
+#ifdef CS_WITH_GBOX
 				case R_GBOX    : ctyp="gbox";     break;
+#endif
 #ifdef HAVE_PCSC
 				case R_PCSC    : ctyp="pcsc";     break;
 #endif
@@ -470,18 +472,31 @@ void send_oscam_reader_config(struct templatevars *vars, FILE *f, struct uripara
 		refresh_oscam(REFR_READERS, in);
 	}
 	int i;
+
 	tpl_addVar(vars, 0, "READERNAME", reader[ridx].label);
-	tpl_addVar(vars, 0, "DEVICE", reader[ridx].device);
+	tpl_printf(vars, 0, "DEVICE", "%s", reader[ridx].device);
 	tpl_addVar(vars, 0, "NCD_KEY", (char *)reader[ridx].ncd_key);
 	tpl_addVar(vars, 0, "PINCODE", reader[ridx].pincode);
 	tpl_addVar(vars, 0, "EMMFILE", (char *)reader[ridx].emmfile);
-	tpl_addVar(vars, 0, "GBOXPWD", (char *)reader[ridx].gbox_pwd);
 	tpl_printf(vars, 0, "INACTIVITYTIMEOUT", "%d", reader[ridx].tcp_ito);
 	tpl_printf(vars, 0, "RECEIVETIMEOUT", "%d", reader[ridx].tcp_rto);
 	tpl_printf(vars, 0, "DISABLESERVERFILTER", "%d", reader[ridx].ncd_disable_server_filt);
 	tpl_printf(vars, 0, "FALLBACK", "%d", reader[ridx].fallback);
 	tpl_printf(vars, 0, "LOGPORT", "%d", reader[ridx].log_port);
 	tpl_printf(vars, 0, "BOXID", "%ld", reader[ridx].boxid);
+	tpl_addVar(vars, 0, "USER", reader[ridx].r_usr);
+	tpl_addVar(vars, 0, "PASS", reader[ridx].r_pwd);
+	tpl_addVar(vars, 0, "RSAKEY", (char *)reader[ridx].rsa_mod);
+	tpl_addVar(vars, 0, "BOXKEY", (char *)reader[ridx].nagra_boxkey);
+	//todo "detect"
+	tpl_printf(vars, 0, "MHZ", "%d", reader[ridx].mhz);
+	tpl_printf(vars, 0, "CARDMHZ", "%d", reader[ridx].cardmhz);
+
+
+#ifdef CS_WITH_GBOX
+	tpl_addVar(vars, 0, "GBOXPWD", (char *)reader[ridx].gbox_pwd);
+	tpl_addVar(vars, 0, "PREMIUM", reader[ridx].gbox_prem);
+#endif
 
 	if(reader[ridx].r_port) tpl_printf(vars, 0, "R_PORT", ",%d", reader[ridx].r_port);
 	if(reader[ridx].l_port) {
@@ -530,8 +545,82 @@ void send_oscam_reader_config(struct templatevars *vars, FILE *f, struct uripara
 		if(ctab->mask[i])	tpl_printf(vars, 1, "CAIDS", "&%04X", ctab->mask[i]);
 			i++;
 		}
-	fputs(tpl_getTpl(vars, "READERCONFIG"), f);
+
+	/*IDENT*/
+	int j;
+	dot="";
+	FTAB *ftab = &reader[ridx].ftab;
+	for (i = 0; i < ftab->nfilts; ++i){
+		tpl_printf(vars, 1, "IDENTS", "%s%04X", dot, ftab->filts[i].caid);
+		dot=":";
+		for (j = 0; j < ftab->filts[i].nprids; ++j) {
+			tpl_printf(vars, 1, "IDENTS", "%s%06lX", dot, ftab->filts[i].prids[j]);
+			dot=",";
+		}
+		dot=";";
 	}
+
+	//todo "class"
+	//todo "chid"
+
+	tpl_printf(vars, 0, "SHOWCLS", "%d", reader[ridx].show_cls);
+	tpl_printf(vars, 0, "MAXQLEN", "%d", reader[ridx].maxqlen);
+	tpl_printf(vars, 0, "EMMCACHE", "%d,%d,&d", reader[ridx].cachemm, reader[ridx].rewritemm, reader[ridx].logemm);
+
+	//todo "blocknano"
+	//todo "savenano"
+
+	tpl_addVar(vars, 0, "CCCVERSION", reader[ridx].cc_version);
+	tpl_addVar(vars, 0, "CCCBUILD", reader[ridx].cc_build);
+	tpl_printf(vars, 0, "CCCMAXHOP", "%d", reader[ridx].cc_maxhop);
+
+
+	// Show only parameters which needed for the reader
+	switch (reader[ridx].typ) {
+
+		case	R_MOUSE		:
+			tpl_addVar(vars, 1, "READERDEPENDINGCONFIG", tpl_getTpl(vars, "READERCONFIGMOUSEBIT"));
+			break;
+		case	R_SMART		:
+			tpl_addVar(vars, 1, "READERDEPENDINGCONFIG", tpl_getTpl(vars, "READERCONFIGSMARTBIT"));
+			break;
+		case	R_INTERNAL:
+			tpl_addVar(vars, 1, "READERDEPENDINGCONFIG", tpl_getTpl(vars, "READERCONFIGINTERNALBIT"));
+			break;
+		case	R_SERIAL	:
+			tpl_addVar(vars, 1, "READERDEPENDINGCONFIG", tpl_getTpl(vars, "READERCONFIGSERIALBIT"));
+			break;
+		case	R_CAMD35	:
+			tpl_addVar(vars, 1, "READERDEPENDINGCONFIG", tpl_getTpl(vars, "READERCONFIGCAMD35BIT"));
+			break;
+		case	R_CS378X	:
+			tpl_addVar(vars, 1, "READERDEPENDINGCONFIG", tpl_getTpl(vars, "READERCONFIGCS378XBIT"));
+			break;
+		case	R_RADEGAST:
+			tpl_addVar(vars, 1, "READERDEPENDINGCONFIG", tpl_getTpl(vars, "READERCONFIGRADEGASTBIT"));
+			break;
+		case	R_NEWCAMD	:
+			if ( reader[ridx].ncd_proto == NCD_525 )
+				tpl_addVar(vars, 1, "READERDEPENDINGCONFIG", tpl_getTpl(vars, "READERCONFIGNCD525BIT"));
+			else if ( reader[ridx].ncd_proto == NCD_524 )
+				tpl_addVar(vars, 1, "READERDEPENDINGCONFIG", tpl_getTpl(vars, "READERCONFIGNCD524BIT"));
+			break;
+#ifdef CS_WITH_GBOX
+		case	R_GBOX		:
+			tpl_addVar(vars, 1, "READERDEPENDINGCONFIG", tpl_getTpl(vars, "READERCONFIGGBOXBIT"));
+			break;
+#endif
+#ifdef HAVE_PCSC
+		case	R_PCSC		:
+			tpl_addVar(vars, 1, "READERDEPENDINGCONFIG", tpl_getTpl(vars, "READERCONFIGPCSCBIT"));
+			break;
+#endif
+
+
+	}
+		//READERCONFIGMOUSEBIT
+	fputs(tpl_getTpl(vars, "READERCONFIG"), f);
+}
 
 void send_oscam_user_config_edit(struct templatevars *vars, FILE *f, struct uriparams *params, struct in_addr in){
 	struct s_auth *account, *ptr;
