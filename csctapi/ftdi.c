@@ -28,6 +28,7 @@
 /** \addtogroup libftdi */
 /* @{ */
 
+#ifdef HAVE_LIBUSB
 #include <usb.h>
 #include <string.h>
 #include <errno.h>
@@ -2525,4 +2526,5 @@ char *ftdi_get_error_string (struct ftdi_context *ftdi)
     return ftdi->error_str;
 }
 
+#endif // HAVE_LIBUSB
 /* @} end of doxygen libftdi group */

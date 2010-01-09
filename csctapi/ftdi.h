@@ -16,7 +16,7 @@
 
 #ifndef __libftdi_h__
 #define __libftdi_h__
-
+#ifdef HAVE_LIBUSB
 #include <usb.h>
 
 #define FTDI_DEFAULT_EEPROM_SIZE 128
@@ -372,4 +372,5 @@ extern "C"
 }
 #endif
 
+#endif // HAVE_LIBUSB
 #endif /* __libftdi_h__ */
