@@ -30,7 +30,9 @@ typedef enum cs_proto_type
   TAG_SERIAL,   // serial (static)
   TAG_CS357X,   // camd 3.5x UDP
   TAG_CS378X,    // camd 3.5x TCP
+#ifdef CS_WITH_GBOX
   TAG_GBOX, // gbox
+#endif
   TAG_CCCAM,  // cccam
   TAG_DVBAPI
 #ifdef CS_ANTICASC
@@ -39,7 +41,11 @@ typedef enum cs_proto_type
 } cs_proto_type_t;
 
 static char *cctag[]={"global", "monitor", "camd33", "camd35",
-                      "newcamd", "radegast", "serial", "cs357x", "cs378x", "gbox", "cccam", "dvbapi",
+                      "newcamd", "radegast", "serial", "cs357x", "cs378x",
+#ifdef CS_WITH_GBOX
+                      "gbox",
+#endif
+                      "cccam", "dvbapi",
 #ifdef CS_ANTICASC
                       "anticasc",
 #endif
@@ -523,6 +529,7 @@ void chk_t_serial(char *token, char *value)
     fprintf(stderr, "Warning: keyword '%s' in serial section not recognized\n",token);
 }
 
+#ifdef CS_WITH_GBOX
 void chk_t_gbox(char *token, char *value)
 {
 //  if (!strcmp(token, "password")) strncpy(cfg->gbox_pwd, i2b(4, a2i(value, 4)), 4);
@@ -546,6 +553,7 @@ void chk_t_gbox(char *token, char *value)
   if (token[0] != '#')
     fprintf(stderr, "Warning: keyword '%s' in gbox section not recognized\n",token);
 }
+#endif
 
 void chk_t_cccam(char *token, char *value)
 {
@@ -579,7 +587,9 @@ static void chk_token(char *token, char *value, int tag)
     case TAG_RADEGAST: chk_t_radegast(token, value); break;
     case TAG_SERIAL  : chk_t_serial(token, value); break;
     case TAG_CS378X  : chk_t_camd35_tcp(token, value); break;
+#ifdef CS_WITH_GBOX
     case TAG_GBOX    : chk_t_gbox(token, value); break;
+#endif
     case TAG_CCCAM   : chk_t_cccam(token, value); break;
 #ifdef HAVE_DVBAPI
     case TAG_DVBAPI  : chk_t_dvbapi(token, value); break;
@@ -1049,6 +1059,7 @@ int write_config()
 		fprintf(f,"\n\n");
 	}
 
+#ifdef CS_WITH_GBOX
 	/*Gbox*/
 	if ((cfg->gbox_pwd[0] > 0) || (cfg->gbox_pwd[1] > 0) || (cfg->gbox_pwd[2] > 0) || (cfg->gbox_pwd[3] > 0)){
 		fprintf(f,"[gbox]\n");
@@ -1065,6 +1076,7 @@ int write_config()
 		}
 		fprintf(f,"\n\n");
 	}
+#endif
 
 	/*serial*/
 

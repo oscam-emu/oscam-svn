@@ -266,6 +266,7 @@ void send_oscam_config_cccam(struct templatevars *vars, FILE *f, struct uriparam
 	fputs(tpl_getTpl(vars, "CONFIGCCCAM"), f);
 }
 
+#ifdef CS_WITH_GBOX
 void send_oscam_config_gbox(struct templatevars *vars, FILE *f, struct uriparams *params) {
 	int i;
 	if (strcmp(getParam(params, "action"),"execute") == 0){
@@ -291,6 +292,7 @@ void send_oscam_config_gbox(struct templatevars *vars, FILE *f, struct uriparams
 		}
 	fputs(tpl_getTpl(vars, "CONFIGGBOX"), f);
 }
+#endif
 
 void send_oscam_config_monitor(struct templatevars *vars, FILE *f, struct uriparams *params) {
 	int i;
@@ -412,7 +414,9 @@ void send_oscam_config(struct templatevars *vars, FILE *f, struct uriparams *par
 	else if (!strcmp(part,"newcamd")) send_oscam_config_newcamd(vars, f, params);
 	else if (!strcmp(part,"radegast")) send_oscam_config_radegast(vars, f, params);
 	else if (!strcmp(part,"cccam")) send_oscam_config_cccam(vars, f, params);
+#ifdef CS_WITH_GBOX
 	else if (!strcmp(part,"gbox")) send_oscam_config_gbox(vars, f, params);
+#endif
 #ifdef HAVE_DVBAPI_3
 	else if (!strcmp(part,"dvbapi")) send_oscam_config_dvbapi(vars, f, params);
 #endif

@@ -74,7 +74,7 @@ DIV.message{float:right}"
 			<TD CLASS=\"menu\"><A HREF=\"config.html?part=newcamd\">Newcamd</TD>\n\
 			<TD CLASS=\"menu\"><A HREF=\"config.html?part=radegast\">Radegast</TD>\n\
 			<TD CLASS=\"menu\"><A HREF=\"config.html?part=cccam\">Cccam</TD>\n\
-			<TD CLASS=\"menu\"><A HREF=\"config.html?part=gbox\">Gbox</TD>\n\
+			##TPLCONFIGMENUGBOX##\
 			##TPLCONFIGMENUANTICASC##\
 			<TD CLASS=\"menu\"><A HREF=\"config.html?part=monitor\">Monitor</TD>\n\
 			<TD CLASS=\"menu\"><A HREF=\"config.html?part=serial\">Serial</TD>\n\
@@ -88,6 +88,10 @@ DIV.message{float:right}"
 
 #ifdef HAVE_DVBAPI_3
 #define TPLCONFIGMENUDVBAPI "<TD CLASS=\"menu\"><A HREF=\"config.html?part=dvbapi\">DVB-Api</TD>\n"
+#endif
+
+#ifdef CS_WITH_GBOX
+#define TPLCONFIGMENUGBOX "<TD CLASS=\"menu\"><A HREF=\"config.html?part=gbox\">Gbox</TD>\n\"
 #endif
 
 #define TPLSTATUS "\
@@ -752,6 +756,9 @@ char *tpl[]={
 	,"CONFIGANTICASC"
 	,"CONFIGMENUANTICASC"
 #endif
+#ifdef CS_WITH_GBOX
+	,"TPLCONFIGMENUGBOX"
+#endif
 };
 
 char *tplmap[]={
@@ -799,6 +806,9 @@ char *tplmap[]={
 	,TPLUSEREDITANTICASC
 	,TPLCONFIGANTICASC
 	,TPLCONFIGMENUANTICASC
+#endif
+#ifdef CS_WITH_GBOX
+	,TPLCONFIGMENUGBOX
 #endif
 };
 
