@@ -577,7 +577,18 @@ void send_oscam_reader_config(struct templatevars *vars, FILE *f, struct uripara
 		dot=",";
 	}
 
-	//todo "chid"
+	//chid
+	dot="";
+	ftab = &reader[ridx].fchid;
+	for (i = 0; i < ftab->nfilts; ++i){
+		tpl_printf(vars, 1, "CHIDS", "%s%04X", dot, ftab->filts[i].caid);
+		dot=":";
+		for (j = 0; j < ftab->filts[i].nprids; ++j) {
+			tpl_printf(vars, 1, "CHIDS", "%s%06lX", dot, ftab->filts[i].prids[j]);
+			dot=",";
+		}
+		dot=";";
+	}
 
 	tpl_printf(vars, 0, "SHOWCLS", "%d", reader[ridx].show_cls);
 	tpl_printf(vars, 0, "MAXQLEN", "%d", reader[ridx].maxqlen);
