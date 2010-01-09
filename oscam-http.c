@@ -565,7 +565,18 @@ void send_oscam_reader_config(struct templatevars *vars, FILE *f, struct uripara
 		dot=";";
 	}
 
-	//todo "class"
+	//class
+	CLASSTAB *clstab = &reader[ridx].cltab;
+	dot="";
+	for(i = 0; i < clstab->an; ++i){
+		tpl_printf(vars, 1, "CLASS", "%s%02x", dot, (int)clstab->aclass[i]);
+		dot=",";
+	}
+	for(i = 0; i < clstab->bn; ++i){
+		tpl_printf(vars, 0, "CLASS", "%s!%02x", dot, (int)clstab->bclass[i]);
+		dot=",";
+	}
+
 	//todo "chid"
 
 	tpl_printf(vars, 0, "SHOWCLS", "%d", reader[ridx].show_cls);
