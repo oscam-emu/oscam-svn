@@ -488,7 +488,12 @@ void send_oscam_reader_config(struct templatevars *vars, FILE *f, struct uripara
 	tpl_addVar(vars, 0, "PASS", reader[ridx].r_pwd);
 	tpl_addVar(vars, 0, "RSAKEY", (char *)reader[ridx].rsa_mod);
 	tpl_addVar(vars, 0, "BOXKEY", (char *)reader[ridx].nagra_boxkey);
-	//todo "detect"
+
+	if (reader[ridx].detect&0x80)
+		tpl_printf(vars, 0, "DETECT", "!%s", RDR_CD_TXT[reader[ridx].detect&0x7f]);
+	else
+		tpl_printf(vars, 0, "DETECT", "%s", RDR_CD_TXT[reader[ridx].detect&0x7f]);
+
 	tpl_printf(vars, 0, "MHZ", "%d", reader[ridx].mhz);
 	tpl_printf(vars, 0, "CARDMHZ", "%d", reader[ridx].cardmhz);
 
