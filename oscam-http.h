@@ -86,7 +86,7 @@ DIV.message{float:right}"
 #define TPLCONFIGMENUANTICASC "<TD CLASS=\"menu\"><A HREF=\"config.html?part=anticasc\">Anticascading</TD>\n"
 #endif
 
-#ifdef HAVE_DVBAPI_3
+#ifdef HAVE_DVBAPI
 #define TPLCONFIGMENUDVBAPI "<TD CLASS=\"menu\"><A HREF=\"config.html?part=dvbapi\">DVB-Api</TD>\n"
 #endif
 
@@ -634,7 +634,7 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 <BR><BR>Configuration Serial not yet implemented<BR><BR>\n\
 ##TPLFOOTER##"
 
-#ifdef HAVE_DVBAPI_3
+#ifdef HAVE_DVBAPI
 #define TPLCONFIGDVBAPI "\
 ##TPLHEADER##\
 ##TPLMENU##\n\
@@ -747,7 +747,7 @@ char *tpl[]={
 	"SERVICECONFIGLISTBIT",
 	"SERVICECONFIGSIDBIT",
 	"SERVICEEDIT"
-#ifdef HAVE_DVBAPI_3
+#ifdef HAVE_DVBAPI
 	,"CONFIGDVBAPI"
 	,"CONFIGMENUDVBAPI"
 #endif
@@ -798,7 +798,7 @@ char *tplmap[]={
 	TPLSERVICECONFIGLISTBIT,
 	TPLSERVICECONFIGSIDBIT,
 	TPLSERVICEEDIT
-#ifdef HAVE_DVBAPI_3
+#ifdef HAVE_DVBAPI
 	,TPLCONFIGDVBAPI
 	,TPLCONFIGMENUDVBAPI
 #endif

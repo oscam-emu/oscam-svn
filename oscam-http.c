@@ -356,7 +356,7 @@ void send_oscam_config_serial(struct templatevars *vars, FILE *f, struct uripara
 	fputs(tpl_getTpl(vars, "CONFIGSERIAL"), f);
 }
 
-#ifdef HAVE_DVBAPI_3
+#ifdef HAVE_DVBAPI
 void send_oscam_config_dvbapi(struct templatevars *vars, FILE *f, struct uriparams *params) {
 	int i;
 	if (strcmp(getParam(params, "action"),"execute") == 0){
@@ -417,7 +417,7 @@ void send_oscam_config(struct templatevars *vars, FILE *f, struct uriparams *par
 #ifdef CS_WITH_GBOX
 	else if (!strcmp(part,"gbox")) send_oscam_config_gbox(vars, f, params);
 #endif
-#ifdef HAVE_DVBAPI_3
+#ifdef HAVE_DVBAPI
 	else if (!strcmp(part,"dvbapi")) send_oscam_config_dvbapi(vars, f, params);
 #endif
 #ifdef CS_ANTICASC

@@ -1083,7 +1083,7 @@ int write_config()
 
 	/*cccam placeholder*/
 
-#ifdef HAVE_DVBAPI_3
+#ifdef HAVE_DVBAPI
 	/*dvb-api*/
 	if (cfg->dvbapi_enabled > 0) {
 		fprintf(f,"[dvbapi]\n");
