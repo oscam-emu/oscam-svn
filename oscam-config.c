@@ -766,7 +766,7 @@ void chk_account(char *token, char *value, struct s_auth *account)
   char *ptr1;//, *ptr2;
   if (!strcmp(token, "user")) { strncpy(account->usr, value, sizeof(account->usr)-1); return; }
   if (!strcmp(token, "pwd")) { strncpy(account->pwd, value, sizeof(account->pwd)-1); return; }
-  if (!strcmp(token, "hostname")) { strncpy((char *)account->dyndns, value, sizeof(account->dyndns)-1); return; }
+  if (!strcmp(token, "hostname")) { strncpy((char *)account->dyndns, value, sizeof(account->dyndns)-1);return; }
   if (!strcmp(token, "betatunnel")) { chk_tuntab(value, &account->ttab); return; }
   if (!strcmp(token, "uniq")) { account->uniq=atoi(value); return; }
   if (!strcmp(token, "sleep")) { account->tosleep=atoi(value); return; }
@@ -1157,7 +1157,7 @@ int write_userdb()
 				}
 		}
 		fputc((int)'\n', f);
-		fprintf_conf(f, CONFVARWIDTH, "hostname", "%d\n", account->dyndns);
+		fprintf_conf(f, CONFVARWIDTH, "hostname", "%s\n", account->dyndns);
 		fprintf_conf(f, CONFVARWIDTH, "uniq", "%d\n", account->uniq);
 		fprintf_conf(f, CONFVARWIDTH, "sleep", "%d\n", account->tosleep);
 		fprintf_conf(f, CONFVARWIDTH, "monlevel", "%d\n", account->monlvl);
