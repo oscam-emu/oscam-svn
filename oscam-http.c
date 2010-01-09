@@ -113,7 +113,8 @@ void send_oscam_config_camd33(struct templatevars *vars, FILE *f, struct uripara
 	tpl_addVar(vars, 0, "SERVERIP", inet_ntoa(*(struct in_addr *)&cfg->c33_srvip));
 	tpl_printf(vars, 0, "PASSIVE", "%d",  cfg->c33_passive);
 
-	for (i = 0; i < sizeof(cfg->c33_key); ++i) tpl_printf(vars, 1, "KEY", "%02X",cfg->c33_key[i]);
+	unsigned int ui;
+	for (ui = 0; ui < sizeof(cfg->c33_key); ++ui) tpl_printf(vars, 1, "KEY", "%02X",cfg->c33_key[ui]);
 	  struct s_ip *cip;
 	  char *dot="";
   for (cip = cfg->c33_plain; cip; cip = cip->next){

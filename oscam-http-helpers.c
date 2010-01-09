@@ -1,6 +1,6 @@
 #include "oscam-http.h"
 
-/* Adds a name->value-mapping or appends to it. You will get a reference back which you may freely 
+/* Adds a name->value-mapping or appends to it. You will get a reference back which you may freely
    use (but you should not call free/realloc on this!)*/
 char *tpl_addVar(struct templatevars *vars, int append, char *name, char *value){
 	int i;
@@ -36,13 +36,13 @@ char *tpl_addVar(struct templatevars *vars, int append, char *name, char *value)
 			strcpy(tmp, value);
 		}
 		free((*vars).values[i]);
-		(*vars).values[i] = tmp;		
-	}	
+		(*vars).values[i] = tmp;
+	}
 	return tmp;
 }
 
-/* Allows to add a char array which has been allocated by malloc. It will automatically get 
-  freed when calling tpl_create(). Please do NOT free the memory yourself or realloc 
+/* Allows to add a char array which has been allocated by malloc. It will automatically get
+  freed when calling tpl_create(). Please do NOT free the memory yourself or realloc
   it after having added the array here! */
 char *tpl_addTmp(struct templatevars *vars, char *value){
 	if((*vars).tmpalloc <= (*vars).tmpcnt){
@@ -58,10 +58,10 @@ char *tpl_addTmp(struct templatevars *vars, char *value){
    varname, the printf-result will be added/appended to the varlist. You will always get a reference
    back which you may freely use (but you should not call free/realloc on this!)*/
 char *tpl_printf(struct templatevars *vars, int append, char *varname, char *fmtstring, ...){
-	int allocated = strlen(fmtstring) - (strlen(fmtstring)%16) + 16;
-	char *result, *tmp = (char *) malloc(allocated * sizeof(char));	
+	unsigned int allocated = strlen(fmtstring) - (strlen(fmtstring)%16) + 16;
+	char *result, *tmp = (char *) malloc(allocated * sizeof(char));
 	va_list argptr;
-	
+
 	va_start(argptr,fmtstring);
 	vsnprintf(tmp ,allocated, fmtstring, argptr);
 	va_end(argptr);
@@ -71,7 +71,7 @@ char *tpl_printf(struct templatevars *vars, int append, char *varname, char *fmt
 		va_start(argptr,fmtstring);
 		vsnprintf(tmp, allocated, fmtstring, argptr);
 		va_end(argptr);
-	}	
+	}
 	result = (char *) malloc(strlen(tmp) + 1 * sizeof(char));
 	strcpy(result, tmp);
 	free(tmp);
@@ -80,7 +80,7 @@ char *tpl_printf(struct templatevars *vars, int append, char *varname, char *fmt
 		char *tmp = tpl_addVar(vars, append, varname, result);
 		free(result);
 		result = tmp;
-	}	
+	}
 	return result;
 }
 
@@ -98,7 +98,7 @@ char *tpl_getVar(struct templatevars *vars, char *name){
 	else return result;
 }
 
-/* Initializes all variables vor a templatevar-structure and returns a pointer to it. Make 
+/* Initializes all variables vor a templatevar-structure and returns a pointer to it. Make
    sure to call tpl_clear() when you are finished or you'll run into a memory leak! */
 struct templatevars *tpl_create(){
 	struct templatevars *vars = (struct templatevars *) malloc(sizeof(struct templatevars));
@@ -117,19 +117,19 @@ void tpl_clear(struct templatevars *vars){
 	int i;
 	for(i = (*vars).varscnt-1; i >= 0; --i){
 		free((*vars).names[i]);
-		free((*vars).values[i]);		
+		free((*vars).values[i]);
 	}
 	free((*vars).names);
 	free((*vars).values);
 	for(i = (*vars).tmpcnt-1; i >= 0; --i){
-		free((*vars).tmp[i]);	
+		free((*vars).tmp[i]);
 	}
 	free((*vars).tmp);
 	free(vars);
 }
 
 /* Creates a path to a template file. You need to set the resultsize to the correct size of result. */
-char *tpl_getTplPath(const char *name, const char *path, char *result, int resultsize){
+char *tpl_getTplPath(const char *name, const char *path, char *result, unsigned int resultsize){
 	char *pch;
 	if((strlen(path) + strlen(name) + 5) <= resultsize){
 		strcpy(result, path);
@@ -143,25 +143,25 @@ char *tpl_getTplPath(const char *name, const char *path, char *result, int resul
 	return result;
 }
 
-/* Returns an unparsed template either from disk or from internal templates. 
+/* Returns an unparsed template either from disk or from internal templates.
    Note: You must free() the result after using it!*/
 char *tpl_getUnparsedTpl(const char* name){
   int i;
   int tplcnt = sizeof(tpl)/sizeof(char *);
   int tplmapcnt = sizeof(tplmap)/sizeof(char *);
   char *result;
-  
+
   for(i = 0; i < tplcnt; ++i){
   	if(strcmp(name, tpl[i]) == 0) break;
   }
-  
+
   if(strlen(cfg->http_tpl) > 0){
   	char path[200];
   	if(strlen(tpl_getTplPath(name, cfg->http_tpl, path, 200)) > 0 && file_exists(path)){
 			FILE *fp;
 			char buffer[1024];
 			int read, allocated = 1025, size = 1;
-			result = (char *) malloc(allocated * sizeof(char));	
+			result = (char *) malloc(allocated * sizeof(char));
 			if((fp = fopen(path,"r"))!=NULL){
 			while((read = fread(&buffer,sizeof(char),1024,fp)) > 0){
 				size += read;
@@ -179,29 +179,29 @@ char *tpl_getUnparsedTpl(const char* name){
   }
  	if(i >= 0 && i < tplmapcnt){
  		int len = (strlen(tplmap[i])) + 1;
- 		result = (char *) malloc(len * sizeof(char));	
+ 		result = (char *) malloc(len * sizeof(char));
  		memcpy(result, tplmap[i], len);
  	} else {
- 		result = (char *) malloc(1 * sizeof(char));	
+ 		result = (char *) malloc(1 * sizeof(char));
  		result[0] = '\0';
-  }	
+  }
  	return result;
 }
 
-/* Returns the specified template with all variables/other templates replaced or an 
+/* Returns the specified template with all variables/other templates replaced or an
    empty string if the template doesn't exist*/
 char *tpl_getTpl(struct templatevars *vars, const char* name){
 	char *tplorg = tpl_getUnparsedTpl(name);
 	char *tplend = tplorg + strlen(tplorg);
 	char *pch, *pch2, *tpl=tplorg;
 	char varname[33];
-	
+
 	int tmp,respos = 0;
 	int allocated = 2 * strlen(tpl) + 1;
-	char *result = (char *) malloc(allocated * sizeof(char));	
-	
+	char *result = (char *) malloc(allocated * sizeof(char));
+
 	while(tpl < tplend){
-		if(tpl[0] == '#' && tpl[1] == '#' && tpl[2] != '#'){			
+		if(tpl[0] == '#' && tpl[1] == '#' && tpl[2] != '#'){
 			pch2 = tpl;
 			pch = tpl + 2;
 			while(pch[0] != '\0' && (pch[0] != '#' || pch[1] != '#')) ++pch;
@@ -212,7 +212,7 @@ char *tpl_getTpl(struct templatevars *vars, const char* name){
 					pch2 = tpl_getTpl(vars, varname + 3);
 				} else {
 					pch2 = tpl_getVar(vars, varname);
-				}				
+				}
 				tmp = strlen(pch2);
 				if(tmp + respos + 2 >= allocated){
 					allocated = tmp + respos + 256;
@@ -221,7 +221,7 @@ char *tpl_getTpl(struct templatevars *vars, const char* name){
 				memcpy(result + respos, pch2, tmp);
 				respos += tmp;
 				tpl = pch + 2;
-			}				
+			}
 		} else {
 			if(respos + 2 >= allocated){
 				allocated = respos + 256;
@@ -230,7 +230,7 @@ char *tpl_getTpl(struct templatevars *vars, const char* name){
 			result[respos] = tpl[0];
 			++respos;
 			++tpl;
-		}		
+		}
 	}
 	free(tplorg);
 	result[respos] = '\0';
@@ -324,7 +324,7 @@ int check_auth(char *authstring, char *method, char *path, char *expectednonce){
 	else {
 		pch2 = uri;
 		for(pch = uri; pch[0] != '\0'; ++pch) {
-			if(pch[0] == '/') pch2 = pch;			
+			if(pch[0] == '/') pch2 = pch;
 		}
 		if(strncmp(pch2, path, strlen(path)) == 0) uriok = 1;
 	}
@@ -419,6 +419,6 @@ char *getParam(struct uriparams *params, char *name){
 	int i;
 	for(i=(*params).paramcount-1; i>=0; --i){
 		if(strcmp((*params).params[i], name) == 0) return (*params).values[i];
-	}	
+	}
 	return "";
 }

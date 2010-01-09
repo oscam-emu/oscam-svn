@@ -1001,7 +1001,8 @@ int write_config()
 		fprintf_conf(f, CONFVARWIDTH, "port", "%d\n", cfg->c33_port);
 		fprintf_conf(f, CONFVARWIDTH, "serverip", "%s\n", inet_ntoa(*(struct in_addr *)&cfg->c33_srvip));
 		fprintf_conf(f, CONFVARWIDTH, "passive", "%d\n", cfg->c33_passive);
-		fprintf_conf(f, CONFVARWIDTH, "key", ""); for (i = 0; i < sizeof(cfg->c33_key); ++i) fprintf(f,"%02X", cfg->c33_key[i]); fputc((int)'\n', f);
+		unsigned int ui;
+		fprintf_conf(f, CONFVARWIDTH, "key", ""); for (ui = 0; ui < sizeof(cfg->c33_key); ++ui) fprintf(f,"%02X", cfg->c33_key[ui]); fputc((int)'\n', f);
 		fprintf_conf(f, CONFVARWIDTH, "nocrypt", "");
 		dot="";
 		for (cip = cfg->c33_plain; cip; cip = cip->next){
