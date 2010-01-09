@@ -45,7 +45,7 @@ DIV.message{float:right}"
     <H2>OSCAM ##CS_VERSION## build ###CS_SVN_VERSION##</H2>"
 
 #define TPLFOOTER "\
-  <HR/><H4>OSCAM Webinterface - ##CURDATE## ##CURTIME##</H4>\
+  <HR/><H4>OSCAM Webinterface - ##CURDATE## ##CURTIME## | Access from ##CURIP##</H4>\
   </BODY>\
 </HTML>"
 

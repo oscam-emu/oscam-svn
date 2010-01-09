@@ -9,11 +9,11 @@
 #include <dirent.h>
 #include <sys/socket.h>
 
-void refresh_oscam(enum refreshtypes refreshtype){
+void refresh_oscam(enum refreshtypes refreshtype, struct in_addr in){
 int i;
 	switch (refreshtype){
 		case REFR_ACCOUNTS:
-				cs_log("Refresh Accounts requested by WebIF");
+				cs_log("Refresh Accounts requested by WebIF from %s", inet_ntoa(*(struct in_addr *)&in));
 			  init_userdb();
 				cs_reinit_clients();
 #ifdef CS_ANTICASC
@@ -31,19 +31,19 @@ int i;
 			break;
 
 		case REFR_SERVER:
-			cs_log("Refresh Server requested by WebIF");
+			cs_log("Refresh Server requested by WebIF from %s", inet_ntoa(*(struct in_addr *)&in));
 			//kill(client[0].pid, SIGHUP);
 			//todo how I can refresh the server after global settings
 			break;
 
 		case REFR_SERVICES:
-			cs_log("Refresh Services requested by WebIF");
+			cs_log("Refresh Services requested by WebIF from %s", inet_ntoa(*(struct in_addr *)&in));
 			init_sidtab();
 			break;
 
 #ifdef CS_ANTICASC
 		case REFR_ANTICASC:
-			cs_log("Refresh Anticascading requested by WebIF");
+			cs_log("Refresh Anticascading requested by WebIF from %s", inet_ntoa(*(struct in_addr *)&in));
 			for (i=0; i<CS_MAXPID; i++)
 				if (client[i].typ=='a') {
 					kill(client[i].pid, SIGHUP);
@@ -54,7 +54,7 @@ int i;
 	}
 }
 
-void send_oscam_config_global(struct templatevars *vars, FILE *f, struct uriparams *params) {
+void send_oscam_config_global(struct templatevars *vars, FILE *f, struct uriparams *params, struct in_addr in) {
 	int i;
 
 	if (strcmp(getParam(params, "action"), "execute") == 0){
@@ -66,7 +66,7 @@ void send_oscam_config_global(struct templatevars *vars, FILE *f, struct uripara
 			}
 		}
 		tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration Global *DONE*</B><BR><BR>");
-		/*if(write_config()==0) */refresh_oscam(REFR_SERVER);
+		/*if(write_config()==0) */refresh_oscam(REFR_SERVER, in);
 	}
 	tpl_addVar(vars, 0, "SERVERIP", inet_ntoa(*(struct in_addr *)&cfg->srvip));
 	tpl_addVar(vars, 0, "LOGFILE", logfile);
@@ -92,7 +92,7 @@ void send_oscam_config_global(struct templatevars *vars, FILE *f, struct uripara
 	fputs(tpl_getTpl(vars, "CONFIGGLOBAL"), f);
 }
 
-void send_oscam_config_camd33(struct templatevars *vars, FILE *f, struct uriparams *params) {
+void send_oscam_config_camd33(struct templatevars *vars, FILE *f, struct uriparams *params, struct in_addr in) {
 	int i;
 
 	if (strcmp(getParam(params, "action"), "execute") == 0){
@@ -107,14 +107,13 @@ void send_oscam_config_camd33(struct templatevars *vars, FILE *f, struct uripara
 			}
 		}
 		tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration camd33 *DONE*</B><BR><BR>");
-		refresh_oscam(REFR_SERVER);
+		refresh_oscam(REFR_SERVER, in);
 	}
 	tpl_printf(vars, 0, "PORT", "%d", cfg->c33_port);
 	tpl_addVar(vars, 0, "SERVERIP", inet_ntoa(*(struct in_addr *)&cfg->c33_srvip));
 	tpl_printf(vars, 0, "PASSIVE", "%d",  cfg->c33_passive);
 
-	unsigned int ui;
-	for (ui = 0; ui < sizeof(cfg->c33_key); ++ui) tpl_printf(vars, 1, "KEY", "%02X",cfg->c33_key[ui]);
+	for (i = 0; i < (int) sizeof(cfg->c33_key); ++i) tpl_printf(vars, 1, "KEY", "%02X",cfg->c33_key[i]);
 	  struct s_ip *cip;
 	  char *dot="";
   for (cip = cfg->c33_plain; cip; cip = cip->next){
@@ -126,7 +125,7 @@ void send_oscam_config_camd33(struct templatevars *vars, FILE *f, struct uripara
 	fputs(tpl_getTpl(vars, "CONFIGCAMD33"), f);
 }
 
-void send_oscam_config_camd35(struct templatevars *vars, FILE *f, struct uriparams *params) {
+void send_oscam_config_camd35(struct templatevars *vars, FILE *f, struct uriparams *params, struct in_addr in) {
 	int i;
 	if (strcmp(getParam(params, "action"),"execute") == 0){
 			for(i = 0; i < (*params).paramcount; ++i){
@@ -137,7 +136,7 @@ void send_oscam_config_camd35(struct templatevars *vars, FILE *f, struct uripara
 				}
 			}
 			tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration camd35 *DONE*</B><BR><BR>");
-			refresh_oscam(REFR_SERVER);
+			refresh_oscam(REFR_SERVER, in);
 	}
 	tpl_printf(vars, 0, "PORT", "%d", cfg->c35_port);
 	tpl_addVar(vars, 1, "SERVERIP", inet_ntoa(*(struct in_addr *)&cfg->c35_tcp_srvip));
@@ -145,7 +144,7 @@ void send_oscam_config_camd35(struct templatevars *vars, FILE *f, struct uripara
 	fputs(tpl_getTpl(vars, "CONFIGCAMD35"), f);
 }
 
-void send_oscam_config_camd35tcp(struct templatevars *vars, FILE *f, struct uriparams *params) {
+void send_oscam_config_camd35tcp(struct templatevars *vars, FILE *f, struct uriparams *params, struct in_addr in) {
 	int i;
 	if (strcmp(getParam(params, "action"),"execute") == 0){
 			clear_ptab(&cfg->c35_tcp_ptab); /*clear Porttab*/
@@ -157,7 +156,7 @@ void send_oscam_config_camd35tcp(struct templatevars *vars, FILE *f, struct urip
 				}
 			}
 			tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration camd35 TCP *DONE*</B><BR><BR>");
-			refresh_oscam(REFR_SERVER);
+			refresh_oscam(REFR_SERVER, in);
 	}
 
 	int j;
@@ -182,7 +181,7 @@ void send_oscam_config_camd35tcp(struct templatevars *vars, FILE *f, struct urip
 	fputs(tpl_getTpl(vars, "CONFIGCAMD35TCP"), f);
 }
 
-void send_oscam_config_newcamd(struct templatevars *vars, FILE *f, struct uriparams *params) {
+void send_oscam_config_newcamd(struct templatevars *vars, FILE *f, struct uriparams *params, struct in_addr in) {
 	int i;
 	if (strcmp(getParam(params, "action"),"execute") == 0){
 		clear_ptab(&cfg->ncd_ptab); /*clear Porttab*/
@@ -194,7 +193,7 @@ void send_oscam_config_newcamd(struct templatevars *vars, FILE *f, struct uripar
 			}
 		}
 		tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration Newcamd *DONE*</B><BR><BR>");
-		refresh_oscam(REFR_SERVER);
+		refresh_oscam(REFR_SERVER, in);
 	}
 		int j;
 		char *dot1, *dot2;
@@ -220,7 +219,7 @@ void send_oscam_config_newcamd(struct templatevars *vars, FILE *f, struct uripar
 	fputs(tpl_getTpl(vars, "CONFIGNEWCAMD"), f);
 }
 
-void send_oscam_config_radegast(struct templatevars *vars, FILE *f, struct uriparams *params) {
+void send_oscam_config_radegast(struct templatevars *vars, FILE *f, struct uriparams *params, struct in_addr in) {
 	int i;
 	if (strcmp(getParam(params, "action"),"execute") == 0){
 		for(i = 0; i < (*params).paramcount; ++i){
@@ -234,7 +233,7 @@ void send_oscam_config_radegast(struct templatevars *vars, FILE *f, struct uripa
 			}
 		}
 		tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration Radegast *DONE*</B><BR><BR>");
-		refresh_oscam(REFR_SERVER);
+		refresh_oscam(REFR_SERVER, in);
 	}
 	tpl_printf(vars, 0, "PORT", "%d", cfg->rad_port);
 	tpl_addVar(vars, 0, "SERVERIP", inet_ntoa(*(struct in_addr *)&cfg->rad_srvip));
@@ -251,7 +250,7 @@ void send_oscam_config_radegast(struct templatevars *vars, FILE *f, struct uripa
 	fputs(tpl_getTpl(vars, "CONFIGRADEGAST"), f);
 }
 
-void send_oscam_config_cccam(struct templatevars *vars, FILE *f, struct uriparams *params) {
+void send_oscam_config_cccam(struct templatevars *vars, FILE *f, struct uriparams *params, struct in_addr in) {
 	int i;
 	if (strcmp(getParam(params, "action"),"execute") == 0){
 		for(i = 0; i < (*params).paramcount; ++i){
@@ -262,13 +261,13 @@ void send_oscam_config_cccam(struct templatevars *vars, FILE *f, struct uriparam
 			}
 		}
 		tpl_addVar(vars, 1, "MESSAGE", "<BR><BR>Configuration Cccam Do not yet implemented<BR><BR>");
-		refresh_oscam(REFR_SERVER);
+		refresh_oscam(REFR_SERVER, in);
 	}
 	fputs(tpl_getTpl(vars, "CONFIGCCCAM"), f);
 }
 
 #ifdef CS_WITH_GBOX
-void send_oscam_config_gbox(struct templatevars *vars, FILE *f, struct uriparams *params) {
+void send_oscam_config_gbox(struct templatevars *vars, FILE *f, struct uriparams *params, struct in_addr in) {
 	int i;
 	if (strcmp(getParam(params, "action"),"execute") == 0){
 		for(i = 0; i < (*params).paramcount; ++i){
@@ -279,7 +278,7 @@ void send_oscam_config_gbox(struct templatevars *vars, FILE *f, struct uriparams
 			}
 		}
 		tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration Gbox *DONE*</B><BR><BR>");
-		refresh_oscam(REFR_SERVER);
+		refresh_oscam(REFR_SERVER, in);
 	}
 	tpl_printf(vars, 0, "MAXDIST", "%d", cfg->maxdist);
 	for (i=0;i<4;i++) tpl_printf(vars, 1, "PASSWORD", "%02X", cfg->gbox_pwd[i]);
@@ -295,7 +294,7 @@ void send_oscam_config_gbox(struct templatevars *vars, FILE *f, struct uriparams
 }
 #endif
 
-void send_oscam_config_monitor(struct templatevars *vars, FILE *f, struct uriparams *params) {
+void send_oscam_config_monitor(struct templatevars *vars, FILE *f, struct uriparams *params, struct in_addr in) {
 	int i;
 	if (strcmp(getParam(params, "action"),"execute") == 0){
 		for(i = 0; i < (*params).paramcount; ++i){
@@ -309,7 +308,7 @@ void send_oscam_config_monitor(struct templatevars *vars, FILE *f, struct uripar
 			}
 		}
 		tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration Monitor *DONE*</B><BR><BR>");
-		refresh_oscam(REFR_SERVER);
+		refresh_oscam(REFR_SERVER, in);
 	}
 	tpl_printf(vars, 0, "MONPORT", "%d", cfg->mon_port);
 	tpl_addVar(vars, 0, "SERVERIP", inet_ntoa(*(struct in_addr *)&cfg->mon_srvip));
@@ -338,7 +337,7 @@ void send_oscam_config_monitor(struct templatevars *vars, FILE *f, struct uripar
 	fputs(tpl_getTpl(vars, "CONFIGMONITOR"), f);
 }
 
-void send_oscam_config_serial(struct templatevars *vars, FILE *f, struct uriparams *params) {
+void send_oscam_config_serial(struct templatevars *vars, FILE *f, struct uriparams *params, struct in_addr in) {
 	int i;
 	if (strcmp(getParam(params, "action"),"execute") == 0){
 			for(i = 0; i < (*params).paramcount; ++i){
@@ -349,7 +348,7 @@ void send_oscam_config_serial(struct templatevars *vars, FILE *f, struct uripara
 				}
 			}
 			tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration Serial *DONE*</B><BR><BR>");
-			refresh_oscam(REFR_SERVER);
+			refresh_oscam(REFR_SERVER, in);
 	}
 
 	tpl_addVar(vars, 0, "SERIALDEVICE", cfg->ser_device);
@@ -358,7 +357,7 @@ void send_oscam_config_serial(struct templatevars *vars, FILE *f, struct uripara
 }
 
 #ifdef HAVE_DVBAPI
-void send_oscam_config_dvbapi(struct templatevars *vars, FILE *f, struct uriparams *params) {
+void send_oscam_config_dvbapi(struct templatevars *vars, FILE *f, struct uriparams *params, struct in_addr in) {
 	int i;
 	if (strcmp(getParam(params, "action"),"execute") == 0){
 			for(i = 0; i < (*params).paramcount; ++i){
@@ -369,7 +368,7 @@ void send_oscam_config_dvbapi(struct templatevars *vars, FILE *f, struct uripara
 				}
 			}
 			tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration DVB Api *DONE*</B><BR><BR>");
-			refresh_oscam(REFR_SERVER);
+			refresh_oscam(REFR_SERVER, in);
 	}
 
 	if (cfg->dvbapi_enabled > 0) tpl_addVar(vars, 0, "ENABLEDCHECKED", "checked");
@@ -382,7 +381,7 @@ void send_oscam_config_dvbapi(struct templatevars *vars, FILE *f, struct uripara
 #endif
 
 #ifdef CS_ANTICASC
-void send_oscam_config_anticasc(struct templatevars *vars, FILE *f, struct uriparams *params) {
+void send_oscam_config_anticasc(struct templatevars *vars, FILE *f, struct uriparams *params, struct in_addr in) {
 	int i;
 	if (strcmp(getParam(params, "action"),"execute") == 0){
 		for(i = 0; i < (*params).paramcount; ++i){
@@ -393,7 +392,7 @@ void send_oscam_config_anticasc(struct templatevars *vars, FILE *f, struct uripa
 			}
 		}
 		tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration Anticascading *DONE*</B><BR><BR>");
-		refresh_oscam(REFR_ANTICASC);
+		refresh_oscam(REFR_ANTICASC, in);
 	}
 	if (cfg->ac_enabled > 0) tpl_addVar(vars, 0, "CHECKED", "checked");
 	tpl_printf(vars, 0, "NUMUSERS", "%d", cfg->ac_users);
@@ -407,26 +406,26 @@ void send_oscam_config_anticasc(struct templatevars *vars, FILE *f, struct uripa
 }
 #endif
 
-void send_oscam_config(struct templatevars *vars, FILE *f, struct uriparams *params) {
+void send_oscam_config(struct templatevars *vars, FILE *f, struct uriparams *params, struct in_addr in) {
 	char *part = getParam(params, "part");
-	if (!strcmp(part,"camd33")) send_oscam_config_camd33(vars, f, params);
-	else if (!strcmp(part,"camd35")) send_oscam_config_camd35(vars, f, params);
-	else if (!strcmp(part,"camd35tcp")) send_oscam_config_camd35tcp(vars, f, params);
-	else if (!strcmp(part,"newcamd")) send_oscam_config_newcamd(vars, f, params);
-	else if (!strcmp(part,"radegast")) send_oscam_config_radegast(vars, f, params);
-	else if (!strcmp(part,"cccam")) send_oscam_config_cccam(vars, f, params);
+	if (!strcmp(part,"camd33")) send_oscam_config_camd33(vars, f, params, in);
+	else if (!strcmp(part,"camd35")) send_oscam_config_camd35(vars, f, params, in);
+	else if (!strcmp(part,"camd35tcp")) send_oscam_config_camd35tcp(vars, f, params, in);
+	else if (!strcmp(part,"newcamd")) send_oscam_config_newcamd(vars, f, params, in);
+	else if (!strcmp(part,"radegast")) send_oscam_config_radegast(vars, f, params, in);
+	else if (!strcmp(part,"cccam")) send_oscam_config_cccam(vars, f, params, in);
 #ifdef CS_WITH_GBOX
-	else if (!strcmp(part,"gbox")) send_oscam_config_gbox(vars, f, params);
+	else if (!strcmp(part,"gbox")) send_oscam_config_gbox(vars, f, params, in);
 #endif
 #ifdef HAVE_DVBAPI
-	else if (!strcmp(part,"dvbapi")) send_oscam_config_dvbapi(vars, f, params);
+	else if (!strcmp(part,"dvbapi")) send_oscam_config_dvbapi(vars, f, params, in);
 #endif
 #ifdef CS_ANTICASC
-	else if (!strcmp(part,"anticasc")) send_oscam_config_anticasc(vars, f, params);
+	else if (!strcmp(part,"anticasc")) send_oscam_config_anticasc(vars, f, params, in);
 #endif
-	else if (!strcmp(part,"monitor")) send_oscam_config_monitor(vars, f, params);
-	else if (!strcmp(part,"serial")) send_oscam_config_serial(vars, f, params);
-	else send_oscam_config_global(vars, f, params);
+	else if (!strcmp(part,"monitor")) send_oscam_config_monitor(vars, f, params, in);
+	else if (!strcmp(part,"serial")) send_oscam_config_serial(vars, f, params, in);
+	else send_oscam_config_global(vars, f, params, in);
 }
 
 void send_oscam_reader(struct templatevars *vars, FILE *f) {
@@ -460,7 +459,7 @@ void send_oscam_reader(struct templatevars *vars, FILE *f) {
 	fputs(tpl_getTpl(vars, "READERS"), f);
 }
 
-void send_oscam_reader_config(struct templatevars *vars, FILE *f, struct uriparams *params) {
+void send_oscam_reader_config(struct templatevars *vars, FILE *f, struct uriparams *params, struct in_addr in) {
 	int ridx;
 	char *reader_ = getParam(params, "reader");
 	for(ridx = 0; ridx < CS_MAXREADER && strcmp(reader_, reader[ridx].label) != 0; ++ridx);
@@ -468,7 +467,7 @@ void send_oscam_reader_config(struct templatevars *vars, FILE *f, struct uripara
 		tpl_addVar(vars, 0, "MESSAGE", "<BR><BR>Reader not found<BR><BR>");
 	} else if(strcmp(getParam(params, "action"), "execute") == 0){
 		tpl_addVar(vars, 0, "MESSAGE", "<BR><BR>Saving not yet implemented<BR><BR>");
-		refresh_oscam(REFR_READERS);
+		refresh_oscam(REFR_READERS, in);
 	}
 	int i;
 	tpl_addVar(vars, 0, "READERNAME", reader[ridx].label);
@@ -534,7 +533,7 @@ void send_oscam_reader_config(struct templatevars *vars, FILE *f, struct uripara
 	fputs(tpl_getTpl(vars, "READERCONFIG"), f);
 	}
 
-void send_oscam_user_config_edit(struct templatevars *vars, FILE *f, struct uriparams *params){
+void send_oscam_user_config_edit(struct templatevars *vars, FILE *f, struct uriparams *params, struct in_addr in){
 	struct s_auth *account, *ptr;
 	char user[128];
 
@@ -577,7 +576,7 @@ void send_oscam_user_config_edit(struct templatevars *vars, FILE *f, struct urip
 			account->ac_idx = account->ac_idx + 1;
 #endif
 		tpl_addVar(vars, 1, "MESSAGE", "<b>New user has been added with default settings</b><BR>");
-		if (write_userdb()==0) refresh_oscam(REFR_ACCOUNTS);
+		if (write_userdb()==0) refresh_oscam(REFR_ACCOUNTS, in);
 		else tpl_addVar(vars, 1, "MESSAGE", "<b>Writing configuration to disk failed!</b><BR>");
 		// need to reget account as writing to disk changes account!
 		for (account = cfg->account; account != NULL && strcmp(user, account->usr) != 0; account = account->next);
@@ -598,7 +597,7 @@ void send_oscam_user_config_edit(struct templatevars *vars, FILE *f, struct urip
 	}
 	chk_account("services", servicelabels, account);
 		tpl_addVar(vars, 1, "MESSAGE", "<B>Settings updated</B><BR><BR>");
-		if (write_userdb()==0) refresh_oscam(REFR_ACCOUNTS);
+		if (write_userdb()==0) refresh_oscam(REFR_ACCOUNTS, in);
 		else tpl_addVar(vars, 1, "MESSAGE", "<B>Write Config failed</B><BR><BR>");
 	}
 
@@ -711,7 +710,7 @@ void send_oscam_user_config_edit(struct templatevars *vars, FILE *f, struct urip
 	fputs(tpl_getTpl(vars, "USEREDIT"), f);
 }
 
-void send_oscam_user_config(struct templatevars *vars, FILE *f, struct uriparams *params) {
+void send_oscam_user_config(struct templatevars *vars, FILE *f, struct uriparams *params, struct in_addr in) {
 	struct s_auth *account, *account2;
 	char *user = getParam(params, "user");
 	int i, found = 0;
@@ -736,7 +735,7 @@ void send_oscam_user_config(struct templatevars *vars, FILE *f, struct uriparams
 
 		if (found > 0){
 			tpl_addVar(vars, 1, "MESSAGE", "<b>Account has been deleted!</b><BR>");
-			if (write_userdb()==0) refresh_oscam(REFR_ACCOUNTS);
+			if (write_userdb()==0) refresh_oscam(REFR_ACCOUNTS, in);
 			else tpl_addVar(vars, 1, "MESSAGE", "<b>Writing configuration to disk failed!</b><BR>");
 		} else tpl_addVar(vars, 1, "MESSAGE", "<b>Sorry but the specified user doesn't exist. No deletion will be made!</b><BR>");
 	}
@@ -815,7 +814,7 @@ void send_oscam_entitlement(struct templatevars *vars, FILE *f, struct uriparams
 	fputs(tpl_getTpl(vars, "ENTITLEMENTS"), f);
 }
 
-void send_oscam_status(struct templatevars *vars, FILE *f, struct uriparams *params) {
+void send_oscam_status(struct templatevars *vars, FILE *f, struct uriparams *params, struct in_addr in) {
 	int i;
 	char *usr;
 	int lsec, isec, cnr, con, cau;
@@ -827,7 +826,7 @@ void send_oscam_status(struct templatevars *vars, FILE *f, struct uriparams *par
 		int oldval = cfg->http_hide_idle_clients;
 		chk_t_monitor("httphideidleclients", hideidle);
 		if(oldval != cfg->http_hide_idle_clients){
-			refresh_oscam(REFR_SERVER);
+			refresh_oscam(REFR_SERVER, in);
 		}
 	}
 
@@ -917,7 +916,7 @@ void send_oscam_status(struct templatevars *vars, FILE *f, struct uriparams *par
 	fputs(tpl_getTpl(vars, "STATUS"), f);
 }
 
-void send_oscam_services_edit(struct templatevars *vars, FILE *f, struct uriparams *params) {
+void send_oscam_services_edit(struct templatevars *vars, FILE *f, struct uriparams *params, struct in_addr in) {
   struct s_sidtab *sidtab,*ptr;
   char label[128];
 	int i;
@@ -949,7 +948,7 @@ void send_oscam_services_edit(struct templatevars *vars, FILE *f, struct uripara
 			strncpy((char *)sidtab->label, label, sizeof(sidtab->label)-1);
 
 			tpl_addVar(vars, 1, "MESSAGE", "<b>New service has been added</b><BR>");
-			if (write_services()==0) refresh_oscam(REFR_SERVICES);
+			if (write_services()==0) refresh_oscam(REFR_SERVICES, in);
 			else tpl_addVar(vars, 1, "MESSAGE", "<b>Writing services to disk failed!</b><BR>");
 
 			for (sidtab  = cfg->sidtab; sidtab != NULL && strcmp(label, sidtab->label) != 0; sidtab=sidtab->next);
@@ -962,7 +961,7 @@ void send_oscam_services_edit(struct templatevars *vars, FILE *f, struct uripara
 			}
 		}
 		tpl_addVar(vars, 1, "MESSAGE", "<B>Services updated</B><BR><BR>");
-		if (write_services()==0) refresh_oscam(REFR_SERVICES);
+		if (write_services()==0) refresh_oscam(REFR_SERVICES, in);
 		else tpl_addVar(vars, 1, "MESSAGE", "<B>Write Config failed</B><BR><BR>");
 
 		for (sidtab  = cfg->sidtab; sidtab != NULL && strcmp(label, sidtab->label) != 0; sidtab=sidtab->next);
@@ -986,7 +985,7 @@ void send_oscam_services_edit(struct templatevars *vars, FILE *f, struct uripara
 	fputs(tpl_getTpl(vars, "SERVICEEDIT"), f);
 }
 
-void send_oscam_services(struct templatevars *vars, FILE *f, struct uriparams *params) {
+void send_oscam_services(struct templatevars *vars, FILE *f, struct uriparams *params, struct in_addr in) {
   struct s_sidtab *sidtab, *sidtab2;
   char *service = getParam(params, "service");
 	int i, found = 0;
@@ -1010,7 +1009,7 @@ void send_oscam_services(struct templatevars *vars, FILE *f, struct uriparams *p
 		}
 		if (found > 0){
 			tpl_addVar(vars, 1, "MESSAGE", "<b>Service has been deleted!</b><BR>");
-			if (write_services()==0) refresh_oscam(REFR_SERVICES);
+			if (write_services()==0) refresh_oscam(REFR_SERVICES, in);
 			else tpl_addVar(vars, 1, "MESSAGE", "<b>Writing services to disk failed!</b><BR>");
 		} else tpl_addVar(vars, 1, "MESSAGE", "<b>Sorry but the specified service doesn't exist. No deletion will be made!</b><BR>");
 	}
@@ -1168,18 +1167,19 @@ int process_request(FILE *f, struct in_addr in) {
 		}
 		tpl_printf(vars, 0, "CURDATE", "%02d.%02d.%02d", lt->tm_mday, lt->tm_mon+1, lt->tm_year%100);
 		tpl_printf(vars, 0, "CURTIME", "%02d:%02d:%02d", lt->tm_hour, lt->tm_min, lt->tm_sec);
+		tpl_printf(vars, 0, "CURIP", "%s", inet_ntoa(*(struct in_addr *)&in));
 		switch(pgidx){
-	    case  0: send_oscam_config(vars, f, &params); break;
+	    case  0: send_oscam_config(vars, f, &params, in); break;
 	    case  1: send_oscam_reader(vars, f); break;
 	    case  2: send_oscam_entitlement(vars, f, &params); break;
-	    case  3: send_oscam_status(vars, f, &params); break;
-	    case  4: send_oscam_user_config(vars, f, &params); break;
-	    case  5: send_oscam_reader_config(vars, f, &params); break;
-	    case	6: send_oscam_services(vars, f, &params); break;
-	    case  7: send_oscam_user_config_edit(vars, f, &params); break;
-	    case  9: send_oscam_services_edit(vars, f, &params); break;
+	    case  3: send_oscam_status(vars, f, &params, in); break;
+	    case  4: send_oscam_user_config(vars, f, &params, in); break;
+	    case  5: send_oscam_reader_config(vars, f, &params, in); break;
+	    case	6: send_oscam_services(vars, f, &params, in); break;
+	    case  7: send_oscam_user_config_edit(vars, f, &params, in); break;
+	    case  9: send_oscam_services_edit(vars, f, &params, in); break;
 	    case  10: send_oscam_savetpls(vars, f); break;
-	    default: send_oscam_status(vars, f, &params); break;
+	    default: send_oscam_status(vars, f, &params, in); break;
 	  }
 		tpl_clear(vars);
 		}
