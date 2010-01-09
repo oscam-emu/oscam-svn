@@ -30,7 +30,7 @@ typedef enum cs_proto_type
   TAG_SERIAL,   // serial (static)
   TAG_CS357X,   // camd 3.5x UDP
   TAG_CS378X,    // camd 3.5x TCP
-#ifdef CS_WITH_GBOX
+#ifdef CS_WITH_GBOX   
   TAG_GBOX, // gbox
 #endif
   TAG_CCCAM,  // cccam
@@ -40,12 +40,12 @@ typedef enum cs_proto_type
 #endif
 } cs_proto_type_t;
 
-static char *cctag[]={"global", "monitor", "camd33", "camd35",
+static char *cctag[]={"global", "monitor", "camd33", "camd35", 
                       "newcamd", "radegast", "serial", "cs357x", "cs378x",
-#ifdef CS_WITH_GBOX
-                      "gbox",
+#ifdef CS_WITH_GBOX  
+		      "gbox",
 #endif
-                      "cccam", "dvbapi",
+		      "cccam", "dvbapi",
 #ifdef CS_ANTICASC
                       "anticasc",
 #endif
@@ -530,7 +530,7 @@ void chk_t_serial(char *token, char *value)
 }
 
 #ifdef CS_WITH_GBOX
-void chk_t_gbox(char *token, char *value)
+static void chk_t_gbox(char *token, char *value)
 {
 //  if (!strcmp(token, "password")) strncpy(cfg->gbox_pwd, i2b(4, a2i(value, 4)), 4);
   if (!strcmp(token, "password")) { cs_atob(cfg->gbox_pwd, value, 4); return; }
