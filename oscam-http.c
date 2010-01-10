@@ -741,6 +741,7 @@ void send_oscam_user_config_edit(struct templatevars *vars, FILE *f, struct urip
 		if (write_userdb()==0) refresh_oscam(REFR_ACCOUNTS, in);
 		else tpl_addVar(vars, 1, "MESSAGE", "<B>Write Config failed</B><BR><BR>");
 	}
+	for (account = cfg->account; account != NULL && strcmp(user, account->usr) != 0; account = account->next);
 
 	tpl_addVar(vars, 0, "USERNAME", account->usr);
 	tpl_addVar(vars, 0, "PASSWORD", account->pwd);
