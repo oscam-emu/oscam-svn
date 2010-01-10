@@ -1152,7 +1152,7 @@ int write_userdb()
 			fprintf_conf(f, CONFVARWIDTH, "expdate", "\n");
 
 		//group
-		char *value = mk_t_group(account->grp);
+		char *value = mk_t_group((long*)account->grp);
 		fprintf_conf(f, CONFVARWIDTH, "group", "%s\n", value);
 		free(value);
 
