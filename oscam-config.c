@@ -1150,17 +1150,12 @@ int write_userdb()
 			fprintf_conf(f, CONFVARWIDTH, "expdate", "%s\n", buf);
 		else
 			fprintf_conf(f, CONFVARWIDTH, "expdate", "\n");
-		fprintf_conf(f, CONFVARWIDTH, "group", "");
-		char grpbit[33];
-		long2bitchar(account->grp, grpbit);
-		dot = "";
-		for(i = 0; i < 32; i++){
-			if (grpbit[i] == '1'){
-					fprintf(f, "%s%d", dot, i+1);
-					dot = ",";
-				}
-		}
-		fputc((int)'\n', f);
+
+		//group
+		char *value = mk_t_group(account->grp);
+		fprintf_conf(f, CONFVARWIDTH, "group", "%s\n", value);
+		free(value);
+
 		fprintf_conf(f, CONFVARWIDTH, "hostname", "%s\n", account->dyndns);
 		fprintf_conf(f, CONFVARWIDTH, "uniq", "%d\n", account->uniq);
 		fprintf_conf(f, CONFVARWIDTH, "sleep", "%d\n", account->tosleep);
@@ -1184,7 +1179,7 @@ int write_userdb()
 		fputc((int)'\n', f);
 
 		//CAID
-		char *value = mk_t_caidtab(&account->ctab);
+		value = mk_t_caidtab(&account->ctab);
 		fprintf_conf(f, CONFVARWIDTH, "caid", "%s\n", value);
 		free(value);
 
@@ -1975,6 +1970,36 @@ char *mk_t_tuntab(TUNTAB *ttab){
 			pos += 5;
 		}
 		++i;
+	}
+	value[pos] = '\0';
+	return value;
+}
+
+char *mk_t_group(ulong *grp){
+	int i = 0, needed = 1, pos = 0;
+	char grpbit[33];
+	long2bitchar((long) grp, grpbit);
+
+	for(i = 0; i < 32; i++){
+		if (grpbit[i] == '1'){
+			needed += 2;
+			if(i > 9) needed += 1;
+		}
+	}
+	char *value = (char *) malloc(needed * sizeof(char));
+
+	for(i = 0; i < 32; i++){
+		if (grpbit[i] == '1'){
+			if (i == 0){
+				sprintf(value + pos, "%d", i+1);
+				if (i > 9)pos += 2;
+				else pos += 1;
+			} else {
+				sprintf(value + pos, ",%d", i+1);
+				if (i > 9)pos += 3;
+				else pos += 2;
+			}
+		}
 	}
 	value[pos] = '\0';
 	return value;
