@@ -91,7 +91,7 @@ DIV.message{float:right}"
 #endif
 
 #ifdef CS_WITH_GBOX
-#define TPLCONFIGMENUGBOX "<TD CLASS=\"menu\"><A HREF=\"config.html?part=gbox\">Gbox</TD>\n\"
+#define TPLCONFIGMENUGBOX "<TD CLASS=\"menu\"><A HREF=\"config.html?part=gbox\">Gbox</TD>\n"
 #endif
 
 #define TPLSTATUS "\
