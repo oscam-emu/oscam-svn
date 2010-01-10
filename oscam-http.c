@@ -539,23 +539,14 @@ void send_oscam_reader_config(struct templatevars *vars, FILE *f, struct uripara
 	tpl_addVar(vars, 0, "CAIDS", value);
 	free(value);
 
-	/*IDENT*/
-	int j;
-	char *dot="";
-	FTAB *ftab = &reader[ridx].ftab;
-	for (i = 0; i < ftab->nfilts; ++i){
-		tpl_printf(vars, 1, "IDENTS", "%s%04X", dot, ftab->filts[i].caid);
-		dot=":";
-		for (j = 0; j < ftab->filts[i].nprids; ++j) {
-			tpl_printf(vars, 1, "IDENTS", "%s%06lX", dot, ftab->filts[i].prids[j]);
-			dot=",";
-		}
-		dot=";";
-	}
+	//ident
+	value = mk_t_ftab(&reader[ridx].ftab);
+	tpl_printf(vars, 0, "IDENTS", "%s\n", value);
+	free(value);
 
 	//class
 	CLASSTAB *clstab = &reader[ridx].cltab;
-	dot="";
+	char *dot="";
 	for(i = 0; i < clstab->an; ++i){
 		tpl_printf(vars, 1, "CLASS", "%s%02x", dot, (int)clstab->aclass[i]);
 		dot=",";
@@ -566,8 +557,9 @@ void send_oscam_reader_config(struct templatevars *vars, FILE *f, struct uripara
 	}
 
 	//chid
+	int j;
 	dot="";
-	ftab = &reader[ridx].fchid;
+	FTAB *ftab = &reader[ridx].fchid;
 	for (i = 0; i < ftab->nfilts; ++i){
 		tpl_printf(vars, 1, "CHIDS", "%s%04X", dot, ftab->filts[i].caid);
 		dot=":";
@@ -675,7 +667,7 @@ void send_oscam_user_config_edit(struct templatevars *vars, FILE *f, struct urip
 	else strncpy(user, getParam(params, "user"), sizeof(user)/sizeof(char) - 1);
 	user[sizeof(user)/sizeof(char) - 1] = '\0';
 
-	int i, j;
+	int i;
 
 	for (account = cfg->account; account != NULL && strcmp(user, account->usr) != 0; account = account->next);
 
@@ -802,18 +794,10 @@ void send_oscam_user_config_edit(struct templatevars *vars, FILE *f, struct urip
 	tpl_addVar(vars, 0, "CAIDS", value);
 	free(value);
 
-	/*IDENT*/
-	char *dot="";
-	FTAB *ftab = &account->ftab;
-	for (i = 0; i < ftab->nfilts; ++i){
-		tpl_printf(vars, 1, "IDENTS", "%s%04X", dot, ftab->filts[i].caid);
-		dot=":";
-		for (j = 0; j < ftab->filts[i].nprids; ++j) {
-			tpl_printf(vars, 1, "IDENTS", "%s%06lX", dot, ftab->filts[i].prids[j]);
-			dot=",";
-		}
-		dot=";";
-	}
+	//ident
+	value = mk_t_ftab(&account->ftab);
+	tpl_printf(vars, 0, "IDENTS", "%s\n", value);
+	free(value);
 
 	//Betatunnel
 	value = mk_t_tuntab(&account->ttab);

@@ -1183,24 +1183,15 @@ int write_userdb()
 		fprintf_conf(f, CONFVARWIDTH, "caid", "%s\n", value);
 		free(value);
 
+		//betatunnel
 		value = mk_t_tuntab(&account->ttab);
 		fprintf_conf(f, CONFVARWIDTH, "betatunnel", "%s\n", value);
 		free(value);
 
-		fprintf_conf(f, CONFVARWIDTH, "ident", "");
-		int j;
-		dot="";
-		FTAB *ftab = &account->ftab;
-		for (i=0;i<ftab->nfilts;i++){
-			fprintf(f, "%s%04X", dot, ftab->filts[i].caid);
-			dot=":";
-			for (j=0;j<ftab->filts[i].nprids;j++){
-				fprintf(f, "%s%06lX", dot, ftab->filts[i].prids[j]);
-				dot=",";
-			}
-			dot=";";
-		}
-		fputc((int)'\n', f);
+		//ident
+		value = mk_t_ftab(&account->ftab);
+		fprintf_conf(f, CONFVARWIDTH, "ident", "%s\n", value);
+		free(value);
 
 #ifdef CS_ANTICASC
 		fprintf_conf(f, CONFVARWIDTH, "numusers", "%d\n", account->ac_users);
@@ -2002,6 +1993,33 @@ char *mk_t_group(ulong *grp){
 			}
 		}
 	}
+	value[pos] = '\0';
+	return value;
+}
+
+char *mk_t_ftab(FTAB *ftab){
+	int i = 0, j = 0, needed = 1, pos = 0;
+
+	needed = ftab->nfilts * 5;
+	for (i = 0; i < ftab->nfilts; ++i)
+		needed += ftab->filts[i].nprids * 7;
+
+	char *value = (char *) malloc(needed * sizeof(char));
+
+	char *dot="";
+	for (i = 0; i < ftab->nfilts; ++i){
+		sprintf(value + pos, "%s%04X", dot, ftab->filts[i].caid);
+		pos += 4;
+		if (i > 0) pos += 1;
+		dot=":";
+		for (j = 0; j < ftab->filts[i].nprids; ++j) {
+			sprintf(value + pos, "%s%06lX", dot, ftab->filts[i].prids[j]);
+			pos += 7;
+			dot=",";
+		}
+		dot=";";
+	}
+
 	value[pos] = '\0';
 	return value;
 }

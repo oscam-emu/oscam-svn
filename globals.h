@@ -799,6 +799,7 @@ extern int write_config();
 extern char *mk_t_caidtab(CAIDTAB *ctab);
 extern char *mk_t_tuntab(TUNTAB *ttab);
 extern char *mk_t_group(ulong *grp);
+extern char *mk_t_ftab(FTAB *ftab);
 
 // oscam-reader
 extern int ridx, logfd;
