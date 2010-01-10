@@ -542,14 +542,9 @@ void send_oscam_reader_config(struct templatevars *vars, FILE *f, struct uripara
 	}
 
 	// CAID
-	i = 0;
-	CAIDTAB *ctab = &reader[ridx].ctab;
-		while(ctab->caid[i]) {
-		if (i == 0) tpl_printf(vars, 1, "CAIDS", "%04X", ctab->caid[i]);
-		else tpl_printf(vars, 1, "CAIDS", ",%04X", ctab->caid[i]);;
-		if(ctab->mask[i])	tpl_printf(vars, 1, "CAIDS", "&%04X", ctab->mask[i]);
-			i++;
-		}
+	char *value = mk_t_caidtab(&reader[ridx].ctab);
+	tpl_addVar(vars, 0, "CAIDS", value);
+	free(value);
 
 	/*IDENT*/
 	int j;
@@ -812,17 +807,11 @@ void send_oscam_user_config_edit(struct templatevars *vars, FILE *f, struct urip
 		sidtab=sidtab->next;
 		i++;
 	}
-	/* CAID */
-	dot="";
-	i = 0;
-	CAIDTAB *ctab = &account->ctab;
-		while(ctab->caid[i]) {
-		tpl_printf(vars, 1, "CAIDS", "%s%04X", dot, ctab->caid[i]);
-		if(ctab->mask[i])	tpl_printf(vars, 1, "CAIDS", "&%04X", ctab->mask[i]);
-		if(ctab->cmap[i])	tpl_printf(vars, 1, "CAIDS", ":%04X", ctab->cmap[i]);
-		dot=",";
-		++i;
-	}
+
+	// CAID
+	char *value = mk_t_caidtab(&account->ctab);
+	tpl_addVar(vars, 0, "CAIDS", value);
+	free(value);
 
 	/*IDENT*/
 	dot="";
@@ -837,17 +826,10 @@ void send_oscam_user_config_edit(struct templatevars *vars, FILE *f, struct urip
 		dot=";";
 	}
 
-	/*Betatunnel*/
-	dot="";
-	i = 0;
-	TUNTAB *ttab = &account->ttab;
-		while(ttab->bt_caidfrom[i]) {
-		tpl_printf(vars, 1, "BETATUNNELS", "%s%04X", dot, ttab->bt_caidfrom[i]);
-		if(ttab->bt_srvid[i])	tpl_printf(vars, 1, "BETATUNNELS", ".%04X", ttab->bt_srvid[i]);
-		if(ttab->bt_caidto[i]) tpl_printf(vars, 1, "BETATUNNELS", ":%04X", ttab->bt_caidto[i]);
-		dot=",";
-		++i;
-	}
+	//Betatunnel
+	value = mk_t_tuntab(&account->ttab);
+	tpl_addVar(vars, 0, "BETATUNNELS", value);
+	free(value);
 
 #ifdef CS_ANTICASC
 	tpl_printf(vars, 0, "AC_USERS", "%d", account->ac_users);

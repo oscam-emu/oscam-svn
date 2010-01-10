@@ -30,7 +30,7 @@ typedef enum cs_proto_type
   TAG_SERIAL,   // serial (static)
   TAG_CS357X,   // camd 3.5x UDP
   TAG_CS378X,    // camd 3.5x TCP
-#ifdef CS_WITH_GBOX   
+#ifdef CS_WITH_GBOX
   TAG_GBOX, // gbox
 #endif
   TAG_CCCAM,  // cccam
@@ -40,9 +40,9 @@ typedef enum cs_proto_type
 #endif
 } cs_proto_type_t;
 
-static char *cctag[]={"global", "monitor", "camd33", "camd35", 
+static char *cctag[]={"global", "monitor", "camd33", "camd35",
                       "newcamd", "radegast", "serial", "cs357x", "cs378x",
-#ifdef CS_WITH_GBOX  
+#ifdef CS_WITH_GBOX
 		      "gbox",
 #endif
 		      "cccam", "dvbapi",
@@ -1183,31 +1183,14 @@ int write_userdb()
 		}
 		fputc((int)'\n', f);
 
-		fprintf_conf(f, CONFVARWIDTH, "caid", "");
-		CAIDTAB *ctab = &account->ctab;
-		i = 0; dot = "";
-		if (ctab->caid[i]){
-			while(ctab->caid[i]) {
-				fprintf(f, "%s%04X", dot, ctab->caid[i]);
-					if(ctab->mask[i])	fprintf(f, "&%04X", ctab->mask[i]);
-				if(ctab->cmap[i])	fprintf(f, ":%04X", ctab->cmap[i]);
-				i++; dot = ",";
-			}
-		}
-		fputc((int)'\n', f);
+		//CAID
+		char *value = mk_t_caidtab(&account->ctab);
+		fprintf_conf(f, CONFVARWIDTH, "caid", "%s\n", value);
+		free(value);
 
-		fprintf_conf(f, CONFVARWIDTH, "betatunnel", "");
-		TUNTAB *ttab = &account->ttab;
-		i = 0; dot = "";
-		if (ttab->bt_caidfrom[i]) {
-			while(ttab->bt_caidfrom[i]) {
-				fprintf(f, "%s%04X", dot, ttab->bt_caidfrom[i]);
-				if(ttab->bt_caidto[i]) fprintf(f, ".%04X", ttab->bt_srvid[i]);
-				if(ttab->bt_srvid[i])	fprintf(f, ":%04X", ttab->bt_caidto[i]);
-				i++; dot = ",";
-			}
-		}
-		fputc((int)'\n', f);
+		value = mk_t_tuntab(&account->ttab);
+		fprintf_conf(f, CONFVARWIDTH, "betatunnel", "%s\n", value);
+		free(value);
 
 		fprintf_conf(f, CONFVARWIDTH, "ident", "");
 		int j;
@@ -1931,3 +1914,68 @@ void init_ac()
   return;
 }
 #endif
+
+
+char *mk_t_caidtab(CAIDTAB *ctab){
+	int i = 0, needed = 1, pos = 0;
+	while(ctab->caid[i]){
+		if(ctab->mask[i]) needed += 10;
+		else needed += 5;
+		if(ctab->cmap[i]) needed += 5;
+		++i;
+	}
+	char *value = (char *) malloc(needed * sizeof(char));
+	i = 0;
+	while(ctab->caid[i]) {
+		if(i == 0) {
+			sprintf(value + pos, "%04X", ctab->caid[i]);
+			pos += 4;
+		} else {
+			sprintf(value + pos, ",%04X", ctab->caid[i]);
+			pos += 5;
+		}
+		if(ctab->mask[i]){
+			sprintf(value + pos, "&%04X", ctab->mask[i]);
+			pos += 5;
+		}
+		if(ctab->cmap[i]){
+			sprintf(value + pos, ":%04X", ctab->cmap[i]);
+			pos += 5;
+		}
+		++i;
+	}
+	value[pos] = '\0';
+	return value;
+}
+
+char *mk_t_tuntab(TUNTAB *ttab){
+	int i = 0, needed = 1, pos = 0;
+	while(ttab->bt_caidfrom[i]){
+		if(ttab->bt_srvid[i]) needed += 10;
+		else needed += 5;
+		if(ttab->bt_caidto[i]) needed += 5;
+		++i;
+	}
+	char *value = (char *) malloc(needed * sizeof(char));
+	i = 0;
+	while(ttab->bt_caidfrom[i]) {
+		if(i == 0) {
+			sprintf(value + pos, "%04X", ttab->bt_caidfrom[i]);
+			pos += 4;
+		} else {
+			sprintf(value + pos, ",%04X", ttab->bt_caidfrom[i]);
+			pos += 5;
+		}
+		if(ttab->bt_srvid[i]){
+			sprintf(value + pos, ".%04X", ttab->bt_srvid[i]);
+			pos += 5;
+		}
+		if(ttab->bt_caidto[i]){
+			sprintf(value + pos, ":%04X", ttab->bt_caidto[i]);
+			pos += 5;
+		}
+		++i;
+	}
+	value[pos] = '\0';
+	return value;
+}

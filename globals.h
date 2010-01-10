@@ -796,6 +796,8 @@ void chk_sidtab(char *token, char *value, struct s_sidtab *sidtab);
 int write_services();
 int write_userdb();
 int write_config();
+char *mk_t_caidtab(CAIDTAB *ctab);
+char *mk_t_tuntab(TUNTAB *ttab);
 
 // oscam-reader
 extern int ridx, logfd;
