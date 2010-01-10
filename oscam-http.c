@@ -509,17 +509,10 @@ void send_oscam_reader_config(struct templatevars *vars, FILE *f, struct uripara
 		else tpl_printf(vars, 0, "L_PORT", ",,%d", reader[ridx].l_port);
 	}
 
-	//Group
-	/*restore the settings format of group from long over bitarray*/
-	char *dot = ""; //flag for comma
-	char grpbit[33];
-	long2bitchar(reader[ridx].grp, grpbit);
-	for(i = 0; i < 32; i++){
-		if (grpbit[i] == '1'){
-			tpl_printf(vars, 1, "GRP", "%s%d", dot, i+1);
-				dot = ",";
-			}
-		}
+	//group
+	char *value = mk_t_group((long*)reader[ridx].grp);
+	tpl_printf(vars, 0, "GRP", "%s", value);
+	free(value);
 
 	//services
 	char sidok[33];
@@ -542,13 +535,13 @@ void send_oscam_reader_config(struct templatevars *vars, FILE *f, struct uripara
 	}
 
 	// CAID
-	char *value = mk_t_caidtab(&reader[ridx].ctab);
+	value = mk_t_caidtab(&reader[ridx].ctab);
 	tpl_addVar(vars, 0, "CAIDS", value);
 	free(value);
 
 	/*IDENT*/
 	int j;
-	dot="";
+	char *dot="";
 	FTAB *ftab = &reader[ridx].ftab;
 	for (i = 0; i < ftab->nfilts; ++i){
 		tpl_printf(vars, 1, "IDENTS", "%s%04X", dot, ftab->filts[i].caid);
@@ -751,17 +744,12 @@ void send_oscam_user_config_edit(struct templatevars *vars, FILE *f, struct urip
 	char buf [80];
 	strftime (buf,80,"%Y-%m-%d",timeinfo);
 	if(strcmp(buf,"1970-01-01")) tpl_addVar(vars, 0, "EXPDATE", buf);
+
 	//Group
-	/*restore the settings format of group from long over bitarray*/
-	char *dot = ""; //flag for comma
-	char grpbit[33];
-	long2bitchar(account->grp, grpbit);
-	for(i = 0; i < 32; i++){
-		if (grpbit[i] == '1'){
-				tpl_printf(vars, 1, "GROUPS", "%s%d", dot, i+1);
-				dot = ",";
-			}
-	}
+	char *value = mk_t_group((long*)account->grp);
+	tpl_addVar(vars, 0, "GROUPS", value);
+	free(value);
+
 	//Hostname
 	tpl_addVar(vars, 0, "DYNDNS", (char *)account->dyndns);
 
@@ -810,12 +798,12 @@ void send_oscam_user_config_edit(struct templatevars *vars, FILE *f, struct urip
 	}
 
 	// CAID
-	char *value = mk_t_caidtab(&account->ctab);
+	value = mk_t_caidtab(&account->ctab);
 	tpl_addVar(vars, 0, "CAIDS", value);
 	free(value);
 
 	/*IDENT*/
-	dot="";
+	char *dot="";
 	FTAB *ftab = &account->ftab;
 	for (i = 0; i < ftab->nfilts; ++i){
 		tpl_printf(vars, 1, "IDENTS", "%s%04X", dot, ftab->filts[i].caid);

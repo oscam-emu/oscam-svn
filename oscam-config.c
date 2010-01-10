@@ -1976,7 +1976,7 @@ char *mk_t_tuntab(TUNTAB *ttab){
 }
 
 char *mk_t_group(ulong *grp){
-	int i = 0, needed = 1, pos = 0;
+	int i = 0, needed = 1, pos = 0, dot = 0;
 	char grpbit[33];
 	long2bitchar((long) grp, grpbit);
 
@@ -1990,10 +1990,11 @@ char *mk_t_group(ulong *grp){
 
 	for(i = 0; i < 32; i++){
 		if (grpbit[i] == '1'){
-			if (i == 0){
+			if (dot == 0){
 				sprintf(value + pos, "%d", i+1);
 				if (i > 9)pos += 2;
 				else pos += 1;
+				dot = 1;
 			} else {
 				sprintf(value + pos, ",%d", i+1);
 				if (i > 9)pos += 3;
