@@ -696,6 +696,7 @@ void send_oscam_user_config_edit(struct templatevars *vars, FILE *f, struct urip
       account->tosleep=cfg->tosleep;
       for (i=1; i<CS_MAXCAIDTAB; account->ctab.mask[i++]=0xffff);
       for (i=1; i<CS_MAXTUNTAB; account->ttab.bt_srvid[i++]=0x0000);
+      account->expirationdate=(time_t)NULL;
 #ifdef CS_ANTICASC
       account->ac_users=cfg->ac_users;
       account->ac_penalty=cfg->ac_penalty;
@@ -715,6 +716,8 @@ void send_oscam_user_config_edit(struct templatevars *vars, FILE *f, struct urip
 
 	for(i=0;i<(*params).paramcount;i++){
 		if ((strcmp((*params).params[i], "action")) && (strcmp((*params).params[i], "user")) && (strcmp((*params).params[i], "newuser"))){
+			if (!strcmp((*params).params[i], "expdate"))
+				account->expirationdate=(time_t)NULL;
 			if (!strcmp((*params).params[i], "services"))
 				sprintf(servicelabels + strlen(servicelabels), "%s,", (*params).values[i]);
 			else

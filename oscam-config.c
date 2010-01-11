@@ -568,7 +568,9 @@ void chk_t_dvbapi(char *token, char *value)
 	if (!strcmp(token, "au"))		{ cfg->dvbapi_au=atoi(value); return; }
 	if (!strcmp(token, "boxtype")) 	{ strncpy(cfg->dvbapi_boxtype, value, sizeof(cfg->dvbapi_boxtype)-1); return; }
 	if (!strcmp(token, "user")) 	{ strncpy(cfg->dvbapi_usr, value, sizeof(cfg->dvbapi_usr)-1); return; }
-
+	if (!strcmp(token, "priority")) { strncpy(cfg->dvbapi_priority, value, sizeof(cfg->dvbapi_priority)-1); return; }
+	if (!strcmp(token, "ignore"))   { strncpy(cfg->dvbapi_ignore, value, sizeof(cfg->dvbapi_ignore)-1); return; }
+	
 	if (token[0] != '#')
 	    fprintf(stderr, "Warning: keyword '%s' in dvbapi section not recognized\n",token);
 }
