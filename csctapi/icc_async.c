@@ -23,10 +23,12 @@
 */
 
 #include "defines.h"
+#include "../globals.h"
 #include "icc_async.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include "ifd.h"
 
 /*
  * Not exported constants definition
@@ -72,17 +74,24 @@ int ICC_Async_Init (ICC_Async * icc, IFD * ifd)
 		return ICC_ASYNC_IFD_ERROR;
 	
 	/* Activate ICC */
-#ifdef SCI_DEV
 	if (IFD_Towitoko_ActivateICC (ifd) != IFD_TOWITOKO_OK)
 		return ICC_ASYNC_IFD_ERROR;
-#endif
 	/* Reset ICC */
+#ifdef COOL
+	if (ifd->io->com == RTYP_SCI) {
+		if (!Cool_Reset(&(icc->atr)))
+		{
+			icc->atr = NULL;
+			return ICC_ASYNC_IFD_ERROR;
+		}
+	}
+	else
+#endif
 	if (IFD_Towitoko_ResetAsyncICC (ifd, &(icc->atr)) != IFD_TOWITOKO_OK)
 	{
 		icc->atr = NULL;
 		return ICC_ASYNC_IFD_ERROR;
 	}
-	
 	/* Get ICC convention */
 	if (ATR_GetConvention (icc->atr, &(icc->convention)) != ATR_OK)
 	{
@@ -138,6 +147,9 @@ int ICC_Async_Init (ICC_Async * icc, IFD * ifd)
 		if (IFD_Towitoko_SetParity (icc->ifd, IFD_TOWITOKO_PARITY_EVEN) != IFD_TOWITOKO_OK)
 			return ICC_ASYNC_IFD_ERROR;		
 	}
+#ifdef COOL
+	if (icc->ifd->io->com != RTYP_SCI)
+#endif
 	IO_Serial_Flush(ifd->io);
 #endif
 	return ICC_ASYNC_OK;
@@ -199,6 +211,20 @@ int ICC_Async_GetTimings (ICC_Async * icc, ICC_Async_Timings * timings)
 int ICC_Async_SetBaudrate (ICC_Async * icc, unsigned long baudrate)
 {
 	icc->baudrate = baudrate;
+/*#ifdef COOL
+	if (icc->ifd->io->com==RTYP_SCI) {
+    typedef unsigned long u_int32;
+    u_int32 clk;
+    //clk = 357*10000; // MHZ
+		//clk = baudrate * 3570000L / 9600L;
+		  clk = 500*10000;
+    if (cnxt_smc_set_clock_freq(icc->ifd->io->handle, clk))
+			return ICC_ASYNC_IFD_ERROR;
+		printf("set clock to %lu Hz\n", clk);
+		return ICC_ASYNC_OK;
+	}
+	else
+#endif*/
 	if (IFD_Towitoko_SetBaudrate (icc->ifd, baudrate) !=  IFD_TOWITOKO_OK)
 	  return ICC_ASYNC_IFD_ERROR;
 	
@@ -211,10 +237,10 @@ int ICC_Async_GetBaudrate (ICC_Async * icc, unsigned long * baudrate)
 	return ICC_ASYNC_OK;  
 }
 
-#ifndef NO_PAR_SWITCH
 int ICC_Async_BeginTransmission (ICC_Async * icc)
 {
 	/* Setup parity for this ICC */
+#ifndef NO_PAR_SWITCH
 	if (icc->convention == ATR_CONVENTION_INVERSE)
 	{
 		if (IFD_Towitoko_SetParity (icc->ifd, IFD_TOWITOKO_PARITY_ODD) != IFD_TOWITOKO_OK)
@@ -235,18 +261,9 @@ int ICC_Async_BeginTransmission (ICC_Async * icc)
 /*	if (IFD_Towitoko_SetBaudrate (icc->ifd, icc->baudrate)!= IFD_TOWITOKO_OK)
 		return ICC_ASYNC_IFD_ERROR;
 */	
-	return ICC_ASYNC_OK;
-}
-
-int ICC_Async_EndTransmission (ICC_Async * icc)
-{
-	/* Restore parity */
-	if (IFD_Towitoko_SetParity (icc->ifd, IFD_TOWITOKO_PARITY_NONE) != IFD_TOWITOKO_OK)
-		return ICC_ASYNC_IFD_ERROR;		
-	
-	return ICC_ASYNC_OK;
-}
 #endif
+	return ICC_ASYNC_OK;
+}
 
 int ICC_Async_Transmit (ICC_Async * icc, unsigned size, BYTE * data)
 {
@@ -268,6 +285,13 @@ int ICC_Async_Transmit (ICC_Async * icc, unsigned size, BYTE * data)
 	timings.block_delay = icc->timings.block_delay;
 	timings.char_delay = icc->timings.char_delay;
 	
+#ifdef COOL
+	if (icc->ifd->io->com == RTYP_SCI) {
+		if (!Cool_Transmit(sent, size))
+			return ICC_ASYNC_IFD_ERROR;
+	}
+	else
+#endif
 	if (IFD_Towitoko_Transmit (icc->ifd, &timings, size, sent) != IFD_TOWITOKO_OK)
 		return ICC_ASYNC_IFD_ERROR;
 	
@@ -284,11 +308,30 @@ int ICC_Async_Receive (ICC_Async * icc, unsigned size, BYTE * data)
 	timings.block_timeout = icc->timings.block_timeout;
 	timings.char_timeout = icc->timings.char_timeout;
 	
+#ifdef COOL
+	if (icc->ifd->io->com == RTYP_SCI) {
+		if (!Cool_Receive(data, size))
+			return ICC_ASYNC_IFD_ERROR;
+	}
+	else
+#else
 	if (IFD_Towitoko_Receive (icc->ifd, &timings, size, data) != IFD_TOWITOKO_OK)
 		return ICC_ASYNC_IFD_ERROR;
+#endif
 	
 	if (icc->convention == ATR_CONVENTION_INVERSE && icc->ifd->io->com!=RTYP_SCI)
 		ICC_Async_InvertBuffer (size, data);
+	
+	return ICC_ASYNC_OK;
+}
+
+int ICC_Async_EndTransmission (ICC_Async * icc)
+{
+#ifndef NO_PAR_SWITCH
+	/* Restore parity */
+	if (IFD_Towitoko_SetParity (icc->ifd, IFD_TOWITOKO_PARITY_NONE) != IFD_TOWITOKO_OK)
+		return ICC_ASYNC_IFD_ERROR;		
+#endif
 	
 	return ICC_ASYNC_OK;
 }
@@ -306,10 +349,8 @@ IFD * ICC_Async_GetIFD (ICC_Async * icc)
 int ICC_Async_Close (ICC_Async * icc)
 {
 	/* Dectivate ICC */
-#ifdef SCI_DEV
 	if (IFD_Towitoko_DeactivateICC (icc->ifd) != IFD_TOWITOKO_OK)
 		return ICC_ASYNC_IFD_ERROR;
-#endif
 	
 	/* LED Off */
 	if (IFD_Towitoko_SetLED () != IFD_TOWITOKO_OK)

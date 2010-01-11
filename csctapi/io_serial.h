@@ -47,25 +47,13 @@
 /* Maximum size of PnP Com ID */
 #define IO_SERIAL_PNPID_SIZE 		256
 
-#define IO_SERIAL_FILENAME_LENGTH 	32
 /*
  * Exported datatypes definition
  */
-/* structure holding ATR value to be used for the smargo smartreader+ */
-typedef struct {
-	int F;
-	float D;
-	int fs;
-	int N;
-	int T;
-	int inv;
-	int init_done;
-} SR_Config;
 
 /* IO_Serial exported datatype */
 typedef struct
 {
-	char filename[IO_SERIAL_FILENAME_LENGTH];
 	int fd;				/* Handle of the serial device */
 	/* Settings that can be modified */
 	unsigned long input_bitrate;
@@ -84,7 +72,6 @@ typedef struct
 	int reader_type;
 	int mhz;			/* mhz specified in config = actual reader clock speed */
 	int cardmhz;			/* mhz specified in config = standard (non overclocked) clock speed of card*/
-	SR_Config *SmartReaderConf;
 }
 IO_Serial;
 

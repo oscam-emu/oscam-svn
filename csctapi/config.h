@@ -2,7 +2,6 @@
 /* config.h.in.  Generated from configure.ac by autoheader.  */
 
 #include "../oscam-config.h"
-#include "../globals.h"
 
 /* Debug CT-API */
 /* #undef DEBUG_CTAPI */
@@ -22,7 +21,7 @@
 
 /* Debug Input/Output */
 /* #undef DEBUG_IO */
-#define DEBUG_IO 1
+// #define DEBUG_IO 1
 
 /* Debug Protocol */
 /* #undef DEBUG_PROTOCOL */

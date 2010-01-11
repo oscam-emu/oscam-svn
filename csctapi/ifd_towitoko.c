@@ -46,6 +46,7 @@
 #include "io_serial.h"
 #include "sci_global.h"
 #include "sci_ioctl.h"
+#include "ifd.h"
 
 /*
  * Not exported constants
@@ -161,7 +162,7 @@ int IFD_Towitoko_Init (IFD * ifd, IO_Serial * io, BYTE slot)
 #endif
 	
 #ifdef DEBUG_IFD
-	printf ("IFD: Initialicing slot number %d, com=%d\n", slot, io->com);
+	printf ("IFD: Initializing slot number %d, com=%d\n", slot, io->com);
 #endif
 	
 //	if ((slot != IFD_TOWITOKO_SLOT_MULTICAM) && (slot != IFD_TOWITOKO_SLOT_A) && (slot != IFD_TOWITOKO_SLOT_B))
@@ -360,7 +361,15 @@ int IFD_Towitoko_GetStatus (IFD * ifd, BYTE * result)
 			return IFD_TOWITOKO_IO_ERROR;			
 	}
 	else
+#elif COOL
+	if(ifd->io->com==RTYP_SCI)
+	{	
+		if (!Cool_GetStatus(&in))
+			return IFD_TOWITOKO_IO_ERROR;
+	}
+	else
 #endif
+
 #if defined(TUXBOX) && defined(PPC)
 	if ((ifd->io->com==RTYP_DB2COM1) || (ifd->io->com==RTYP_DB2COM2))
 	{
@@ -454,12 +463,12 @@ int IFD_Towitoko_GetStatus (IFD * ifd, BYTE * result)
 	return IFD_TOWITOKO_OK;
 }
 
-#ifdef SCI_DEV
 int IFD_Towitoko_ActivateICC (IFD * ifd)
 {
 #ifdef DEBUG_IFD
 		printf ("IFD: Activating card\n");
 #endif
+#ifdef SCI_DEV
 	if(ifd->io->com==RTYP_SCI)
 	{
 		int in;
@@ -485,6 +494,7 @@ int IFD_Towitoko_ActivateICC (IFD * ifd)
 		}
 	}
 	else
+#endif
 	{
 		return IFD_TOWITOKO_OK;
 	}
@@ -496,6 +506,7 @@ int IFD_Towitoko_DeactivateICC (IFD * ifd)
 		printf ("IFD: Deactivating card\n");
 #endif
 
+#ifdef SCI_DEV
 	if(ifd->io->com==RTYP_SCI)
 	{
 		int in;
@@ -515,17 +526,15 @@ int IFD_Towitoko_DeactivateICC (IFD * ifd)
 		
 		
 	}
+#endif
 	
 	return IFD_TOWITOKO_OK;
 }
-#endif
 
 //extern void print_hex_data(unsigned char *data, int len);
 
 int IFD_Towitoko_ResetAsyncICC (IFD * ifd, ATR ** atr)
 {	 
-    double tmp_param;
-    BYTE tmp;
 
 #ifdef DEBUG_IFD
 	printf ("IFD: Resetting card:\n");
@@ -537,7 +546,6 @@ int IFD_Towitoko_ResetAsyncICC (IFD * ifd, ATR ** atr)
 		unsigned char buf[SCI_MAX_ATR_SIZE];
 		int n = 0;
 		SCI_PARAMETERS params;
-		static char irdeto[] = "IRDETO";
 #ifdef SH4
 		struct timeval tv, tv_spent;
 		int atr_size = 2, TDi_exists = 0;
@@ -611,7 +619,9 @@ int IFD_Towitoko_ResetAsyncICC (IFD * ifd, ATR ** atr)
 		
 		if(n==0)
 			return IFD_TOWITOKO_IO_ERROR;
+#endif
 			
+#ifdef SCI_DEV
 		(*atr) = ATR_New ();
 		if(ATR_InitFromArray ((*atr), buf, n) == ATR_OK)
 		{
@@ -619,6 +629,10 @@ int IFD_Towitoko_ResetAsyncICC (IFD * ifd, ATR ** atr)
 			req_ts.tv_sec = 0;
 			req_ts.tv_nsec = 50000000;
 			nanosleep (&req_ts, NULL);
+#ifdef SCI_DEV
+			if (ioctl(ifd->io->fd, IOCTL_SET_ATR_READY)<0)
+				return IFD_TOWITOKO_IO_ERROR;
+#endif
 			return IFD_TOWITOKO_OK;
 		}
 		else
@@ -705,30 +719,6 @@ int IFD_Towitoko_ResetAsyncICC (IFD * ifd, ATR ** atr)
 #ifndef NO_PAR_SWITCH
 		IFD_Towitoko_SetParity (ifd, IFD_TOWITOKO_PARITY_NONE);
 #endif
-		if(ifd->io->reader_type == RTYP_SMART)
-		{
-			if((*atr) && ret == IFD_TOWITOKO_OK)
-			{
-				if((ifd->io)->SmartReaderConf!=NULL)
-				{
-					// if we get here we have a valid ATR and can init the IO->SmartReaderConf structure.
-					ATR_GetParameter((*atr), ATR_PARAMETER_F, &tmp_param);
-					((ifd->io)->SmartReaderConf)->F=(int)tmp_param;
-					
-					ATR_GetParameter((*atr), ATR_PARAMETER_D, &tmp_param);
-					((ifd->io)->SmartReaderConf)->D=(float)tmp_param;
-					
-					((ifd->io)->SmartReaderConf)->fs = (ifd->io->mhz)*10000; // freq in Hz
-					
-					ATR_GetParameter((*atr), ATR_PARAMETER_N, &tmp_param);
-					((ifd->io)->SmartReaderConf)->N=(int)tmp_param;
-					
-					ATR_GetProtocolType((*atr), 2, &tmp);
-					((ifd->io)->SmartReaderConf)->T = (int)tmp_param && 0xFF;
-					ATR_GetConvention((*atr), &((ifd->io)->SmartReaderConf)->inv);
-				}
-			}
-		}
 
 /*
 		//PLAYGROUND faking ATR for test purposes only

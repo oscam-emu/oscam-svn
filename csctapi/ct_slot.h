@@ -26,10 +26,12 @@
 #define _CT_SLOT_
 
 #include "defines.h"
+#include "../globals.h"
 #include "apdu.h"
 #include "ctapi.h"
 #include "ctbcs.h"
 #include "ifd_towitoko.h"
+
 
 /* 
  * Exported constats definition
@@ -72,7 +74,7 @@ CT_Slot_Init (CT_Slot * slot, IO_Serial * io, int sn);
 
 /* Check for card inserted */
 extern char
-CT_Slot_Check (CT_Slot * slot, uint timeout, bool * card, bool * change);
+CT_Slot_Check (CT_Slot * slot, unsigned int timeout, bool * card, bool * change);
 
 /* Probe ICC type and protocol */
 extern char
