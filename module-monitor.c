@@ -350,7 +350,10 @@ static void monitor_process_info()
 
   now=time((time_t)0);
   for (i=0; i<CS_MAXPID; i++){
-    if ((cfg->mon_hideclient_to <= 0) || (((now-client[i].lastecm)/60)<cfg->mon_hideclient_to) || (((now-client[i].lastemm)/60)<cfg->mon_hideclient_to) || (client[i].typ!='c'))
+    if 	((cfg->mon_hideclient_to <= 0) ||
+				((now-client[i].lastecm)<cfg->mon_hideclient_to) ||
+				((now-client[i].lastemm)<cfg->mon_hideclient_to) ||
+				(client[i].typ!='c'))
       if (client[i].pid) {
         if ((client[cs_idx].monlvl<2) && (client[i].typ!='s'))  {
           if ((strcmp(client[cs_idx].usr, client[i].usr)) || ((client[i].typ!='c') && (client[i].typ!='m')))
