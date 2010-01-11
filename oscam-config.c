@@ -1901,7 +1901,9 @@ void init_ac()
 }
 #endif
 
-
+/*
+ * makes a char ready to write a token into config or webIf
+ */
 char *mk_t_caidtab(CAIDTAB *ctab){
 	int i = 0, needed = 1, pos = 0;
 	while(ctab->caid[i]){
@@ -1934,6 +1936,9 @@ char *mk_t_caidtab(CAIDTAB *ctab){
 	return value;
 }
 
+/*
+ * makes a char ready to write a token into config or webIf
+ */
 char *mk_t_tuntab(TUNTAB *ttab){
 	int i = 0, needed = 1, pos = 0;
 	while(ttab->bt_caidfrom[i]){
@@ -1966,6 +1971,9 @@ char *mk_t_tuntab(TUNTAB *ttab){
 	return value;
 }
 
+/*
+ * makes a char ready to write a token into config or webIf
+ */
 char *mk_t_group(ulong *grp){
 	int i = 0, needed = 1, pos = 0, dot = 0;
 	char grpbit[33];
@@ -1997,6 +2005,9 @@ char *mk_t_group(ulong *grp){
 	return value;
 }
 
+/*
+ * makes a char ready to write a token into config or webIf
+ */
 char *mk_t_ftab(FTAB *ftab){
 	int i = 0, j = 0, needed = 1, pos = 0;
 
