@@ -570,7 +570,7 @@ void chk_t_dvbapi(char *token, char *value)
 	if (!strcmp(token, "user")) 	{ strncpy(cfg->dvbapi_usr, value, sizeof(cfg->dvbapi_usr)-1); return; }
 	if (!strcmp(token, "priority")) { strncpy(cfg->dvbapi_priority, value, sizeof(cfg->dvbapi_priority)-1); return; }
 	if (!strcmp(token, "ignore"))   { strncpy(cfg->dvbapi_ignore, value, sizeof(cfg->dvbapi_ignore)-1); return; }
-	
+
 	if (token[0] != '#')
 	    fprintf(stderr, "Warning: keyword '%s' in dvbapi section not recognized\n",token);
 }
@@ -1154,7 +1154,7 @@ int write_userdb()
 			fprintf_conf(f, CONFVARWIDTH, "expdate", "\n");
 
 		//group
-		char *value = mk_t_group((long*)account->grp);
+		char *value = mk_t_group((ulong*)account->grp);
 		fprintf_conf(f, CONFVARWIDTH, "group", "%s\n", value);
 		free(value);
 

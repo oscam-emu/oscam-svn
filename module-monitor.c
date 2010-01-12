@@ -618,55 +618,34 @@ static void monitor_set_server(char *args){
 
 static int monitor_process_request(char *req)
 {
-  int i, rc;
-  char *cmd[]={"login", "exit", "log", "status", "shutdown", "reload", "details", "version", "debug", "setuser", "setserver"};
-  char *arg;
-  if( (arg=strchr(req, ' ')) )
-  {
-    *arg++=0;
-    trim(arg);
-  }
-  trim(req);
-  if ((!auth) && (strcmp(req, cmd[0])))
-    monitor_login(NULL);
-  for (rc=1, i=0; i<11; i++)
-    if (!strcmp(req, cmd[i]))
-    {
-      switch(i)
-      {
-        case  0:  monitor_login(arg);
-                    break;                              // login
-        case  1:  rc=0;
-                    break;                              // exit
-        case  2:  monitor_logsend(arg);
-                    break;                              // log
-        case  3:  monitor_process_info();
-                    break;                              // status
-        case  4:  if (client[cs_idx].monlvl>3)
-                    kill(client[0].pid, SIGQUIT);       // shutdown
-                      break;
-        case  5:  if (client[cs_idx].monlvl>2)
-                    kill(client[0].pid, SIGHUP);        // reload
-                      break;
-        case  6:  monitor_process_details(arg);
-                    break;                              // details
-        case  7:  monitor_send_details_version();
-                    break;                              // version
-        case  8:  if (client[cs_idx].monlvl>3)
-                    monitor_set_debuglevel(arg);        // debuglevel
-                      break;
-        case  9:  if (client[cs_idx].monlvl>3)
-                    monitor_set_account(arg);           // setuser
-                      break;
-        case  10: if (client[cs_idx].monlvl>3)
-                    monitor_set_server(arg);            // setserver
-                      break;
+	int i, rc;
+	char *cmd[] = {"login", "exit", "log", "status", "shutdown", "reload", "details", "version", "debug", "setuser", "setserver"};
+	int cmdcnt = sizeof(cmd)/sizeof(char *);  // Calculate the amount of items in array
+	char *arg;
 
-        default: continue;
-      }
-      break;
-    }
-  return(rc);
+	if( (arg = strchr(req, ' ')) ) { *arg++ = 0; trim(arg); }
+	//trim(req);
+	if ((!auth) && (strcmp(req, cmd[0])))	monitor_login(NULL);
+
+	for (rc=1, i = 0; i < cmdcnt; i++)
+		if (!strcmp(req, cmd[i])) {
+			switch(i) {
+				case  0:	monitor_login(arg); break;	// login
+				case  1:	rc=0; break;	// exit
+				case  2:	monitor_logsend(arg); break;	// log
+				case  3:	monitor_process_info(); break;	// status
+				case  4:	if (client[cs_idx].monlvl > 3) kill(client[0].pid, SIGQUIT); break;	// shutdown
+				case  5:	if (client[cs_idx].monlvl > 2) kill(client[0].pid, SIGHUP); break;	// reload
+				case  6:	monitor_process_details(arg); break;	// details
+				case  7:	monitor_send_details_version(); break;	// version
+				case  8:	if (client[cs_idx].monlvl > 3) monitor_set_debuglevel(arg); break;	// debuglevel
+				case  9:	if (client[cs_idx].monlvl > 3) monitor_set_account(arg); break;	// setuser
+				case 10:	if (client[cs_idx].monlvl > 3) monitor_set_server(arg); break;	// setserver
+				default:	continue;
+			}
+			break;
+		}
+	return(rc);
 }
 
 static void monitor_server(){
