@@ -792,8 +792,8 @@ void chk_account(char *token, char *value, struct s_auth *account)
         account->au=i;
     return;
   }
-  if (!strcmp(token, "group"))\
-  {
+  if (!strcmp(token, "group")) {
+  	account->grp = 0;
     for (ptr1=strtok(value, ","); ptr1; ptr1=strtok(NULL, ","))
     {
       int g;
@@ -1511,19 +1511,18 @@ static void chk_reader(char *token, char *value, struct s_reader *rdr)
     }
     return;
   }
-  if (!strcmp(token, "n3_rsakey"))
+  if ((!strcmp(token, "n3_rsakey")) || (!strcmp(token, "rsakey")) )
   {
-    rdr->nagra_native=1;
+    rdr->has_rsa=1;
     if (key_atob_l(value, rdr->rsa_mod, 128))
     {
-      fprintf(stderr, "Configuration reader: Error in n3_rsakey\n");
+      fprintf(stderr, "Configuration reader: Error in rsakey\n");
       exit(1);
     }
     return;
   }
   if (!strcmp(token, "tiger_rsakey"))
   {
-    rdr->nagra_native=1;
     if (key_atob_l(value, rdr->rsa_mod, 240))
     {
       fprintf(stderr, "Configuration reader: Error in tiger_rsakey\n");
@@ -1531,20 +1530,11 @@ static void chk_reader(char *token, char *value, struct s_reader *rdr)
     }
     return;
   }
-  if (!strcmp(token, "n3_boxkey"))
+  if ((!strcmp(token, "n3_boxkey")) || (!strcmp(token, "boxkey")))
   {
     if (key_atob_l(value, rdr->nagra_boxkey, 16))
     {
-      fprintf(stderr, "Configuration reader: Error in Nagra Boxkey\n");
-      exit(1);
-    }
-    return;
-  }
-  if (!strcmp(token, "tiger_ideakey"))
-  {
-    if (key_atob_l(value, rdr->nagra_boxkey, 32))
-    {
-      fprintf(stderr, "Configuration reader: Error in Nagra Boxkey\n");
+      fprintf(stderr, "Configuration reader: Error in boxkey\n");
       exit(1);
     }
     return;

@@ -39,6 +39,8 @@ int i;
 		case REFR_SERVICES:
 			cs_log("Refresh Services requested by WebIF from %s", inet_ntoa(*(struct in_addr *)&in));
 			init_sidtab();
+			init_userdb();
+			cs_reinit_clients();
 			break;
 
 #ifdef CS_ANTICASC
