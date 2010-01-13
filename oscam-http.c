@@ -14,8 +14,7 @@ int i;
 	switch (refreshtype){
 		case REFR_ACCOUNTS:
 				cs_log("Refresh Accounts requested by WebIF from %s", inet_ntoa(*(struct in_addr *)&in));
-			  init_userdb();
-				cs_reinit_clients();
+			  kill(client[0].pid, SIGHUP);
 #ifdef CS_ANTICASC
 				for (i=0; i<CS_MAXPID; i++)
 					if (client[i].typ=='a') {
