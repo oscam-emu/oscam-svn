@@ -47,6 +47,7 @@
 #include "sci_global.h"
 #include "sci_ioctl.h"
 #include "ifd.h"
+#include "../globals.h"
 
 /*
  * Not exported constants
@@ -162,14 +163,14 @@ int IFD_Towitoko_Init (IFD * ifd, IO_Serial * io, BYTE slot)
 #endif
 	
 #ifdef DEBUG_IFD
-	printf ("IFD: Initializing slot number %d, com=%d\n", slot, io->com);
+	printf ("IFD: Initializing slot number %d, com=%d\n", slot, io->reader_type);
 #endif
 	
 //	if ((slot != IFD_TOWITOKO_SLOT_MULTICAM) && (slot != IFD_TOWITOKO_SLOT_A) && (slot != IFD_TOWITOKO_SLOT_B))
 	if (slot != IFD_TOWITOKO_SLOT_MULTICAM )
 		return IFD_TOWITOKO_PARAM_ERROR;
 		
-	if(io->com==RTYP_SCI)
+	if(io->reader_type==R_INTERNAL)
 	{
 		ifd->io = io;
 		ifd->slot = slot;
@@ -258,7 +259,7 @@ int IFD_Towitoko_Close (IFD * ifd)
 
 int IFD_Towitoko_SetBaudrate (IFD * ifd, unsigned long baudrate)
 {
-	if(ifd->io->com==RTYP_SCI)
+	if(ifd->io->reader_type==R_INTERNAL)
 	{
 		return IFD_TOWITOKO_OK;
 	}
@@ -294,7 +295,7 @@ int IFD_Towitoko_SetBaudrate (IFD * ifd, unsigned long baudrate)
 
 int IFD_Towitoko_GetBaudrate (IFD * ifd, unsigned long *baudrate)
 {
-	if(ifd->io->com==RTYP_SCI)
+	if(ifd->io->reader_type==R_INTERNAL)
 	{
 		return IFD_TOWITOKO_OK;
 	}
@@ -310,7 +311,7 @@ int IFD_Towitoko_GetBaudrate (IFD * ifd, unsigned long *baudrate)
 
 extern int IFD_Towitoko_SetParity (IFD * ifd, BYTE parity)
 {
-	if(ifd->io->com==RTYP_SCI)
+	if(ifd->io->reader_type==R_INTERNAL)
 	{
 		return IFD_TOWITOKO_OK;
 	}
@@ -355,14 +356,14 @@ int IFD_Towitoko_GetStatus (IFD * ifd, BYTE * result)
 // status : 0 -start, 1 - card, 2- no card
 
 #ifdef SCI_DEV
-	if(ifd->io->com==RTYP_SCI)
+	if(ifd->io->reader_type==R_INTERNAL)
 	{
-		if(ioctl(ifd->io->fd, IOCTL_GET_IS_CARD_PRESENT, &in)<0)
+		if(!Sci_GetStatus(ifd->io->fd, &in))
 			return IFD_TOWITOKO_IO_ERROR;			
 	}
 	else
 #elif COOL
-	if(ifd->io->com==RTYP_SCI)
+	if(ifd->io->reader_type==R_INTERNAL)
 	{	
 		if (!Cool_GetStatus(&in))
 			return IFD_TOWITOKO_IO_ERROR;
@@ -371,13 +372,13 @@ int IFD_Towitoko_GetStatus (IFD * ifd, BYTE * result)
 #endif
 
 #if defined(TUXBOX) && defined(PPC)
-	if ((ifd->io->com==RTYP_DB2COM1) || (ifd->io->com==RTYP_DB2COM2))
+	if ((ifd->io->reader_type==R_DB2COM1) || (ifd->io->reader_type==R_DB2COM2))
 	{
 		ushort msr=1;
 		extern int fdmc;
 		IO_Serial_Ioctl_Lock(ifd->io, 1);
 		ioctl(fdmc, GET_PCDAT, &msr);
-		if (ifd->io->com==RTYP_DB2COM2)
+		if (ifd->io->reader_type==R_DB2COM2)
 			in=(!(msr & 1));
 		else
 			in=((msr & 0x0f00) == 0x0f00);
@@ -457,7 +458,7 @@ int IFD_Towitoko_GetStatus (IFD * ifd, BYTE * result)
 	(*result) = status[0];
 	
 #ifdef DEBUG_IFD
-	printf ("IFD: com%d Status = %s / %s\n", ifd->io->com, IFD_TOWITOKO_CARD(status[0])? "card": "no card", IFD_TOWITOKO_CHANGE(status[0])? "change": "no change");
+	printf ("IFD: com%d Status = %s / %s\n", ifd->io->reader_type, IFD_TOWITOKO_CARD(status[0])? "card": "no card", IFD_TOWITOKO_CHANGE(status[0])? "change": "no change");
 #endif
 	
 	return IFD_TOWITOKO_OK;
@@ -469,7 +470,7 @@ int IFD_Towitoko_ActivateICC (IFD * ifd)
 		printf ("IFD: Activating card\n");
 #endif
 #ifdef SCI_DEV
-	if(ifd->io->com==RTYP_SCI)
+	if(ifd->io->reader_type==R_INTERNAL)
 	{
 		int in;
 
@@ -507,7 +508,7 @@ int IFD_Towitoko_DeactivateICC (IFD * ifd)
 #endif
 
 #ifdef SCI_DEV
-	if(ifd->io->com==RTYP_SCI)
+	if(ifd->io->reader_type==R_INTERNAL)
 	{
 		int in;
 		
@@ -540,110 +541,6 @@ int IFD_Towitoko_ResetAsyncICC (IFD * ifd, ATR ** atr)
 	printf ("IFD: Resetting card:\n");
 #endif
 
-#ifdef SCI_DEV
-	if(ifd->io->com==RTYP_SCI)
-	{
-		unsigned char buf[SCI_MAX_ATR_SIZE];
-		int n = 0;
-		SCI_PARAMETERS params;
-#ifdef SH4
-		struct timeval tv, tv_spent;
-		int atr_size = 2, TDi_exists = 0;
-#endif
-		
-		(*atr) = NULL;
-
-#ifdef SH4		
-		memset(&params,0,sizeof(SCI_PARAMETERS));
-		
-		params.ETU = 372;
-		params.EGT = 3;
-		params.fs = 9;
-		params.T = 0;
-		
-		if(ioctl(ifd->io->fd, IOCTL_SET_PARAMETERS, &params)!=0)
-			return IFD_TOWITOKO_IO_ERROR;
-#endif
-		
-		if(ioctl(ifd->io->fd, IOCTL_SET_RESET)<0)
-			return IFD_TOWITOKO_IO_ERROR;
-
-#ifdef SH4
-		gettimeofday(&tv,0);
-		memcpy(&tv_spent,&tv,sizeof(struct timeval));
-
-		while(n<atr_size && (tv_spent.tv_sec-tv.tv_sec)<10)
- 		{
-			if(IO_Serial_Read(ifd->io, IFD_TOWITOKO_ATR_TIMEOUT, 1, buf+n))
-				n++;
-			gettimeofday(&tv_spent,0);
-			if(n==2) // format character
-			{
-				// high nibble = TA1 , TB1 , TC1 , TD1
-				if(buf[n-1] & 0x10)
-					atr_size++;
-				if(buf[n-1] & 0x20)
-					atr_size++;
-				if(buf[n-1] & 0x40)
-					atr_size++;
-				if(buf[n-1] & 0x80)
-				{
-					atr_size++;
-					TDi_exists=atr_size;
-				}
-				atr_size+=(buf[n-1] & 0x0F); // historical bytes
-			}
-			if( (TDi_exists>0) && (n==TDi_exists) )
-			{
-				TDi_exists=0;
-				// high nibble = TA1 , TB1 , TC1 , TD1
-				if(buf[n-1] & 0x10)
-					atr_size++;
-				if(buf[n-1] & 0x20)
-					atr_size++;
-				if(buf[n-1] & 0x40)
-					atr_size++;
-				if(buf[n-1] & 0x80)
-				{
-					atr_size++;
-					TDi_exists=atr_size;
-				}
-			}
-		}			
-#else
-		while(n<SCI_MAX_ATR_SIZE && IO_Serial_Read(ifd->io, IFD_TOWITOKO_ATR_TIMEOUT, 1, buf+n))
-		{
-			n++;
-		}
-#endif
-		
-		if(n==0)
-			return IFD_TOWITOKO_IO_ERROR;
-
-		if ((buf[0] !=0x3B) && (buf[0] != 0x3F)) //irdeto S02 reports FD as first byte ?!?
-			buf[0] = 0x3B;
-			
-		(*atr) = ATR_New ();
-		if(ATR_InitFromArray ((*atr), buf, n) == ATR_OK)
-		{
-			struct timespec req_ts;
-			req_ts.tv_sec = 0;
-			req_ts.tv_nsec = 50000000;
-			nanosleep (&req_ts, NULL);
-			if (ioctl(ifd->io->fd, IOCTL_SET_ATR_READY)<0)
-				return IFD_TOWITOKO_IO_ERROR;
-			return IFD_TOWITOKO_OK;
-		}
-		else
-		{
-			ATR_Delete (*atr);
-			(*atr) = NULL;
-			return IFD_TOWITOKO_IO_ERROR;
-		}
-	}
-	else
-#endif
-	{
 		int ret;
 		int parity;
 		int i;
@@ -733,7 +630,6 @@ int IFD_Towitoko_ResetAsyncICC (IFD * ifd, ATR ** atr)
 */
 		
 		return ret;
-	}
 }
 
 int IFD_Towitoko_Transmit (IFD * ifd, IFD_Timings * timings, unsigned size, BYTE * buffer)

@@ -30,6 +30,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "ifd.h"
+#include "../globals.h"
 
 /*
  * Not exported constants definition
@@ -137,8 +138,12 @@ int PPS_Perform (PPS * pps, BYTE * params, unsigned *length)
 	atr = ICC_Async_GetAtr (pps->icc);
 	if ((*length) <= 0 || !PPS_success) // If not by command, or PPS Exchange by command failed: Try PPS Exchange by ATR or Get parameters from ATR
 	{
-		int numprot = atr->pn-1;//number of protocol lines in ATR
+		int numprot = atr->pn;
+		//if there is a trailing TD, this number is one too high
 		BYTE tx;
+		if (ATR_GetInterfaceByte (atr, numprot-1, ATR_INTERFACE_BYTE_TD, &tx) == ATR_OK)
+			if ((tx & 0xF0) == 0)
+				numprot--;
 	  cs_debug("ATR reports %i protocol lines:",numprot);
 		int i,point;
 		char txt[50];
@@ -426,7 +431,7 @@ static int PPS_InitICC (PPS * pps)
 #include <sys/ioctl.h>
 #include "sci_global.h"
 #include "sci_ioctl.h"
-	if(pps->icc->ifd->io->com==RTYP_SCI)
+	if(pps->icc->ifd->io->reader_type == R_INTERNAL)
 	{
 		int n;
 		SCI_PARAMETERS params;
@@ -460,7 +465,7 @@ static int PPS_InitICC (PPS * pps)
 		
 	}
 #elif COOL
-	if(pps->icc->ifd->io->com==RTYP_SCI) {
+	if(pps->icc->ifd->io->com==R_INTERNAL) {
 		int mhz = atr_fs_table[pps->parameters.FI] / 10000;
 		if (!Cool_SetBaudrate(mhz))
 			return PPS_ICC_ERROR;
