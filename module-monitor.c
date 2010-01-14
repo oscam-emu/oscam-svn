@@ -355,7 +355,7 @@ static void monitor_process_info(){
 		}
 	}
 	monitor_send_info(NULL, 1);
-}
+} 
 
 static void monitor_send_details(char *txt, int pid){
 	char buf[256];

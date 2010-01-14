@@ -370,7 +370,6 @@ static void cs_sighup()
 static void cs_accounts_chk()
 {
   int i;
-
   init_userdb();
   cs_reinit_clients();
 #ifdef CS_ANTICASC
@@ -600,26 +599,26 @@ static void init_signal()
 {
   int i;
   for (i=1; i<NSIG; i++)
-    set_signal_handler(i, 3, cs_exit);
-  set_signal_handler(SIGWINCH, 1, SIG_IGN);
-//  set_signal_handler(SIGPIPE , 0, SIG_IGN);
-  set_signal_handler(SIGPIPE , 0, cs_sigpipe);
-//  set_signal_handler(SIGALRM , 0, cs_alarm);
-  set_signal_handler(SIGALRM , 0, cs_master_alarm);
-  set_signal_handler(SIGCHLD , 1, cs_child_chk);
-//  set_signal_handler(SIGHUP  , 1, cs_accounts_chk);
-  set_signal_handler(SIGHUP , 1, cs_sighup);
-  set_signal_handler(SIGUSR1, 1, cs_debug_level);
-  set_signal_handler(SIGUSR2, 1, cs_card_info);
-  set_signal_handler(SIGCONT, 1, SIG_IGN);
-  cs_log("signal handling initialized (type=%s)",
+		set_signal_handler(i, 3, cs_exit);
+		set_signal_handler(SIGWINCH, 1, SIG_IGN);
+		//  set_signal_handler(SIGPIPE , 0, SIG_IGN);
+		set_signal_handler(SIGPIPE , 0, cs_sigpipe);
+		//  set_signal_handler(SIGALRM , 0, cs_alarm);
+		set_signal_handler(SIGALRM , 0, cs_master_alarm);
+		set_signal_handler(SIGCHLD , 1, cs_child_chk);
+		//  set_signal_handler(SIGHUP  , 1, cs_accounts_chk);
+		set_signal_handler(SIGHUP , 1, cs_sighup);
+		set_signal_handler(SIGUSR1, 1, cs_debug_level);
+		set_signal_handler(SIGUSR2, 1, cs_card_info);
+		set_signal_handler(SIGCONT, 1, SIG_IGN);
+		cs_log("signal handling initialized (type=%s)",
 #ifdef CS_SIGBSD
-         "bsd"
+		"bsd"
 #else
-         "sysv"
+		"sysv"
 #endif
-        );
-  return;
+		);
+	return;
 }
 
 static void init_shm()

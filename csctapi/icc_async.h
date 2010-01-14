@@ -26,7 +26,7 @@
 #define _ICC_ASYNC_
 
 #include "defines.h"
-#include "ifd_towitoko.h"
+#include "ifd_towitoko.h" //FIXME
 #include "atr.h"
 
 /*
@@ -81,13 +81,11 @@ extern int ICC_Async_SetBaudrate (ICC_Async * icc, unsigned long baudrate);
 extern int ICC_Async_GetBaudrate (ICC_Async * icc, unsigned long * baudrate);
 extern ATR *ICC_Async_GetAtr (ICC_Async * icc);
 extern IFD *ICC_Async_GetIFD (ICC_Async * icc);
-extern unsigned long ICC_Async_GetClockRate (ICC_Async * icc);
+extern unsigned long ICC_Async_GetClockRate ();
 
 /* Operations */
-extern int ICC_Async_BeginTransmission (ICC_Async * icc);
 extern int ICC_Async_Transmit (ICC_Async * icc, unsigned size, BYTE * buffer);
 extern int ICC_Async_Receive (ICC_Async * icc, unsigned size, BYTE * buffer);
-extern int ICC_Async_EndTransmission (ICC_Async * icc);
 
 #endif /* _ICC_ASYNC_ */
 

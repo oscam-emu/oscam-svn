@@ -9,11 +9,14 @@
 
 #include <stdio.h>
 #include <time.h>
-//#include <string.h>
 #include <sys/ioctl.h>
 #include "sci_global.h"
 #include "sci_ioctl.h"
 #include "atr.h"
+#include "string.h"
+#ifdef SH4
+#include <fcntl.h> 
+#endif
 
 #include "ifd_towitoko.h"
 #define IFD_TOWITOKO_ATR_TIMEOUT	 800
@@ -45,17 +48,19 @@ int Sci_Reset (IFD * ifd, ATR ** atr)
 	
 	(*atr) = NULL;
 
-#ifdef SH4		
 	memset(&params,0,sizeof(SCI_PARAMETERS));
 	
-	params.ETU = 372;
-	params.EGT = 3;
-	params.fs = 9;
+	params.ETU = 372; 
+	params.EGT = 3; //not sure why this value is chosen
+#ifdef SH4		
+	params.fs = 9; //not sure why this value is chosen
+#else
+	params.fs = 5;
+#endif
 	params.T = 0;
 	
 	if(ioctl(ifd->io->fd, IOCTL_SET_PARAMETERS, &params)!=0)
 		return ERROR;
-#endif
 	
 	if(ioctl(ifd->io->fd, IOCTL_SET_RESET)<0)
 		return ERROR;
@@ -66,7 +71,7 @@ int Sci_Reset (IFD * ifd, ATR ** atr)
 
 	while(n<atr_size && (tv_spent.tv_sec-tv.tv_sec)<10)
  		{
-		if(IO_Serial_Read(ifd->io, IFD_TOWITOKO_ATR_TIMEOUT, 1, buf+n))
+		if(IO_Serial_Read(IFD_TOWITOKO_ATR_TIMEOUT, 1, buf+n))
 			n++;
 		gettimeofday(&tv_spent,0);
 		if(n==2) // format character
@@ -103,7 +108,7 @@ int Sci_Reset (IFD * ifd, ATR ** atr)
 		}
 	}			
 #else
-	while(n<SCI_MAX_ATR_SIZE && IO_Serial_Read(ifd->io, IFD_TOWITOKO_ATR_TIMEOUT, 1, buf+n))
+	while(n<SCI_MAX_ATR_SIZE && IO_Serial_Read(IFD_TOWITOKO_ATR_TIMEOUT, 1, buf+n))
 	{
 		n++;
 	}

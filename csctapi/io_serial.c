@@ -59,9 +59,9 @@
 
 static int IO_Serial_Bitrate(int bitrate);
 
-static bool IO_Serial_WaitToRead (int hnd, unsigned delay_ms, unsigned timeout_ms);
+static bool IO_Serial_WaitToRead (unsigned delay_ms, unsigned timeout_ms);
 
-static bool IO_Serial_WaitToWrite (IO_Serial *io, unsigned delay_ms, unsigned timeout_ms);
+static bool IO_Serial_WaitToWrite (unsigned delay_ms, unsigned timeout_ms);
 
 static void IO_Serial_DeviceName (char * filename, unsigned length);
 
@@ -72,20 +72,20 @@ static void IO_Serial_Clear (IO_Serial * io);
 static int _in_echo_read = 0;
 int io_serial_need_dummy_char = 0;
 
-int fdmc=(-1);
+extern int fdmc;
 
 #if defined(TUXBOX) && defined(PPC)
-void IO_Serial_Ioctl_Lock(IO_Serial * io, int flag)
+void IO_Serial_Ioctl_Lock(int flag)
 {
   extern int *oscam_sem;
-  if ((io->reader_type!=R_DB2COM1) && (io->reader_type!=R_DB2COM2)) return;
+  if ((reader[ridx].typ != R_DB2COM1) && (reader[ridx].typ != R_DB2COM2)) return;
   if (!flag)
     *oscam_sem=0;
-  else while (*oscam_sem!=io->reader_type)
+  else while (*oscam_sem!=reader[ridx].typ)
   {
     while (*oscam_sem)
-    usleep((io->reader_type)*2000);
-    *oscam_sem=io->reader_type;
+    usleep((reader[ridx].typ)*2000); //FIXME is this right ?!?!
+    *oscam_sem=reader[ridx].typ;
     usleep(1000);
   }
 }
@@ -175,55 +175,14 @@ IO_Serial * IO_Serial_New (int mhz, int cardmhz)
 
 bool IO_Serial_Init (IO_Serial * io, int reader_type)
 {
-	char filename[IO_SERIAL_FILENAME_LENGTH];
-	
-	IO_Serial_DeviceName (filename, IO_SERIAL_FILENAME_LENGTH);
-	
-#ifdef DEBUG_IO
-	printf ("IO: Opening serial port %s\n", filename);
-#endif
-	
 	io->reader_type = reader_type;
+	io->fd = reader[ridx].handle;
 
-#if defined(SCI_DEV) || defined(COOL)
-	if (reader_type==R_INTERNAL)
-#ifdef SH4
-		io->fd = open (filename, O_RDWR|O_NONBLOCK|O_NOCTTY);
-#elif COOL
-		return Cool_Init();
-#else
-		io->fd = open (filename, O_RDWR);
-#endif
-	else
-#endif
-
-//#ifdef OS_MACOSX
-		// on mac os x, make sure you use the /dev/cu.XXXX device in oscam.server
-		io->fd = open (filename,  O_RDWR | O_NOCTTY| O_NONBLOCK);
-//#else
-//              with O_SYNC set OSCam is very critical on opening a device, on certain installs
-//              (eg virtual Ubuntu with /dev/ttyUSB) it gives "Error activating card"
-//              with O_NONBLOCK this problem is solved
-//		io->fd = open (filename, O_RDWR | O_NOCTTY | O_SYNC);
-//#endif
-
-	if (io->fd < 0)
-		return FALSE;
-
-#if defined(TUXBOX) && defined(PPC)
-	if ((reader_type == R_DB2COM1) || (reader_type == R_DB2COM2))
-		if ((fdmc = open(DEV_MULTICAM, O_RDWR)) < 0)
-		{
-			close(io->fd);
-			return FALSE;
-		}
-#endif
-	
 	if (reader_type != R_INTERNAL)
 		IO_Serial_InitPnP (io);
 	
 	if(io->reader_type!=R_INTERNAL)
-		IO_Serial_Flush(io);
+		IO_Serial_Flush();
 		
 	return TRUE;
 }
@@ -608,10 +567,10 @@ bool IO_Serial_SetProperties (IO_Serial * io)
 //	if (tcsetattr (io->fd, TCSAFLUSH, &newtio) < 0)
 //		return FALSE;
 
-	IO_Serial_Ioctl_Lock(io, 1);
+	IO_Serial_Ioctl_Lock(1);
 	IO_Serial_DTR_RTS(io, 0, io->rts == IO_SERIAL_HIGH);
 	IO_Serial_DTR_RTS(io, 1, io->dtr == IO_SERIAL_HIGH);
-	IO_Serial_Ioctl_Lock(io, 0);
+	IO_Serial_Ioctl_Lock(0);
 	
 #ifdef DEBUG_IO
 	printf("IO: Setting properties: reader_type%d, %ld bps; %d bits/byte; %s parity; %d stopbits; dtr=%d; rts=%d\n", io->reader_type, io->input_bitrate, io->bits, io->parity == IO_SERIAL_PARITY_EVEN ? "Even" : io->parity == IO_SERIAL_PARITY_ODD ? "Odd" : "None", io->stopbits, io->dtr, io->rts);
@@ -619,10 +578,10 @@ bool IO_Serial_SetProperties (IO_Serial * io)
 	return TRUE;
 }
 
-void IO_Serial_Flush (IO_Serial * io)
+void IO_Serial_Flush ()
 {
 	BYTE b;
-	while(IO_Serial_Read(io, 1000, 1, &b));
+	while(IO_Serial_Read(1000, 1, &b));
 }
 
 
@@ -638,7 +597,7 @@ unsigned IO_Serial_GetCom (IO_Serial * io)
 }
 
 
-bool IO_Serial_Read (IO_Serial * io, unsigned timeout, unsigned size, BYTE * data)
+bool IO_Serial_Read (unsigned timeout, unsigned size, BYTE * data)
 {
 	BYTE c;
 	uint count = 0;
@@ -647,13 +606,13 @@ bool IO_Serial_Read (IO_Serial * io, unsigned timeout, unsigned size, BYTE * dat
 	struct timeval tv, tv_spent;
 #endif
 	
-	if((io->reader_type!=R_INTERNAL) && (io->wr>0))
+	if((reader[ridx].typ != R_INTERNAL) && (wr>0))
 	{
 		BYTE buf[256];
-		int n = io->wr;
-		io->wr = 0;
+		int n = wr;
+		wr = 0;
 	
-		if(!IO_Serial_Read (io, timeout, n, buf))
+		if(!IO_Serial_Read (timeout, n, buf))
 		{
 			return FALSE;
 		}
@@ -671,7 +630,7 @@ bool IO_Serial_Read (IO_Serial * io, unsigned timeout, unsigned size, BYTE * dat
 		readed=FALSE;
 		while( (((tv_spent.tv_sec-tv.tv_sec)*1000) + ((tv_spent.tv_usec-tv.tv_usec)/1000L))<timeout )
  		{
- 			if (read (io->fd, &c, 1) == 1)
+ 			if (read (reader[ridx].handle, &c, 1) == 1)
  			{
  				readed=TRUE;
 				break;
@@ -686,9 +645,9 @@ bool IO_Serial_Read (IO_Serial * io, unsigned timeout, unsigned size, BYTE * dat
 		fflush (stdout);
 #endif
 #else
-		if (IO_Serial_WaitToRead (io->fd, 0, timeout))
+		if (IO_Serial_WaitToRead (0, timeout))
 		{
-			if (read (io->fd, &c, 1) != 1)
+			if (read (reader[ridx].handle, &c, 1) != 1)
 			{
 #ifdef DEBUG_IO
 				printf ("ERROR\n");
@@ -709,7 +668,7 @@ bool IO_Serial_Read (IO_Serial * io, unsigned timeout, unsigned size, BYTE * dat
 			printf ("TIMEOUT\n");
 			fflush (stdout);
 #endif
-			tcflush (io->fd, TCIFLUSH);
+			tcflush (reader[ridx].handle, TCIFLUSH);
 			return FALSE;
 		}
 #endif
@@ -728,7 +687,7 @@ bool IO_Serial_Read (IO_Serial * io, unsigned timeout, unsigned size, BYTE * dat
 
 
 
-bool IO_Serial_Write (IO_Serial * io, unsigned delay, unsigned size, BYTE * data)
+bool IO_Serial_Write (unsigned delay, unsigned size, BYTE * data)
 {
 	unsigned count, to_send, i_w;
     BYTE data_w[512];
@@ -748,7 +707,7 @@ bool IO_Serial_Write (IO_Serial * io, unsigned delay, unsigned size, BYTE * data
 //		else
 			to_send = (delay? 1: size);
 		
-		if (IO_Serial_WaitToWrite (io, delay, 1000))
+		if (IO_Serial_WaitToWrite (delay, 1000))
 		{
             for (i_w=0; i_w < to_send; i_w++) {
             data_w [(1+io_serial_need_dummy_char)*i_w] = data [count + i_w];
@@ -756,7 +715,7 @@ bool IO_Serial_Write (IO_Serial * io, unsigned delay, unsigned size, BYTE * data
               data_w [2*i_w+1] = 0x00;
               }
             }
-            unsigned int u = write (io->fd, data_w, (1+io_serial_need_dummy_char)*to_send);
+            unsigned int u = write (reader[ridx].handle, data_w, (1+io_serial_need_dummy_char)*to_send);
             _in_echo_read = 1;
             if (u != (1+io_serial_need_dummy_char)*to_send)
 			{
@@ -764,13 +723,13 @@ bool IO_Serial_Write (IO_Serial * io, unsigned delay, unsigned size, BYTE * data
 				printf ("ERROR\n");
 				fflush (stdout);
 #endif
-				if(io->reader_type!=R_INTERNAL)
-					io->wr += u;
+				if(reader[ridx].typ != R_INTERNAL)
+					wr += u;
 				return FALSE;
 			}
 			
-			if(io->reader_type!=R_INTERNAL)
-				io->wr += to_send;
+			if(reader[ridx].typ != R_INTERNAL)
+				wr += to_send;
 			
 #ifdef DEBUG_IO
 			for (i=0; i<(1+io_serial_need_dummy_char)*to_send; i++)
@@ -884,7 +843,7 @@ static int IO_Serial_Bitrate(int bitrate)
 	return 0;	/* Should never get here */
 }
 
-static bool IO_Serial_WaitToRead (int hnd, unsigned delay_ms, unsigned timeout_ms)
+static bool IO_Serial_WaitToRead (unsigned delay_ms, unsigned timeout_ms)
 {
    fd_set rfds;
    fd_set erfds;
@@ -905,7 +864,7 @@ static bool IO_Serial_WaitToRead (int hnd, unsigned delay_ms, unsigned timeout_m
 #endif
    }
    
-   in_fd=hnd;
+   in_fd=reader[ridx].handle;
    
    FD_ZERO(&rfds);
    FD_SET(in_fd, &rfds);
@@ -935,7 +894,7 @@ static bool IO_Serial_WaitToRead (int hnd, unsigned delay_ms, unsigned timeout_m
    return(FD_ISSET(in_fd,&rfds));
 }
 
-static bool IO_Serial_WaitToWrite (IO_Serial *io, unsigned delay_ms, unsigned timeout_ms)
+static bool IO_Serial_WaitToWrite (unsigned delay_ms, unsigned timeout_ms)
 {
    fd_set wfds;
    fd_set ewfds;
@@ -944,7 +903,7 @@ static bool IO_Serial_WaitToWrite (IO_Serial *io, unsigned delay_ms, unsigned ti
    int out_fd;
    
 #ifdef SCI_DEV
-   if(io->reader_type==R_INTERNAL)
+   if(reader[ridx].typ == R_INTERNAL)
       return TRUE;
 #endif
 		
@@ -961,7 +920,7 @@ static bool IO_Serial_WaitToWrite (IO_Serial *io, unsigned delay_ms, unsigned ti
 #endif
    }
 
-   out_fd=io->fd;
+   out_fd=reader[ridx].handle;
     
    FD_ZERO(&wfds);
    FD_SET(out_fd, &wfds);
@@ -1000,7 +959,7 @@ static void IO_Serial_Clear (IO_Serial * io)
 	io->reader_type = 0;
 	memset (io->PnP_id, 0, IO_SERIAL_PNPID_SIZE);
 	io->PnP_id_size = 0;
-	io->wr = 0;
+	wr = 0;
 	//modifyable properties:
 	io->input_bitrate = 0;
 	io->output_bitrate = 0;
@@ -1032,7 +991,7 @@ static bool IO_Serial_InitPnP (IO_Serial * io)
 	if (!IO_Serial_SetProperties (io))
 		return FALSE;
 
-	while ((i < IO_SERIAL_PNPID_SIZE) && IO_Serial_Read (io, 200, 1, &(io->PnP_id[i])))
+	while ((i < IO_SERIAL_PNPID_SIZE) && IO_Serial_Read (200, 1, &(io->PnP_id[i])))
       i++;
 
 	io->PnP_id_size = i;
