@@ -67,11 +67,12 @@ typedef struct
 	int reader_type;
 	BYTE PnP_id[IO_SERIAL_PNPID_SIZE];	/* PnP Id of the serial device */
 	unsigned PnP_id_size;			/* Length of PnP Id */
-	int wr;
 	int mhz;			/* mhz specified in config = actual reader clock speed */
 	int cardmhz;			/* mhz specified in config = standard (non overclocked) clock speed of card*/
 }
 IO_Serial;
+
+int wr; //FIXME should be in ifd_phoenix.c or .h
 
 /* 
  * Exported functions declaration
@@ -79,7 +80,7 @@ IO_Serial;
 
 /* IO_Serial creation and deletion */
 //extern void IO_Serial_Reopen (IO_Serial * io);
-extern void IO_Serial_Flush (IO_Serial * io);
+extern void IO_Serial_Flush ();
 extern IO_Serial *IO_Serial_New (int mhz, int cardmhz);
 extern void IO_Serial_Delete (IO_Serial * io);
 
@@ -92,14 +93,14 @@ extern bool IO_Serial_SetProperties (IO_Serial * io);
 extern bool IO_Serial_GetProperties (IO_Serial * io);
 extern bool IO_Serial_DTR_RTS(IO_Serial * io, int, int);
 #if defined(TUXBOX) && defined(PPC)
-extern void IO_Serial_Ioctl_Lock(IO_Serial *, int);
+extern void IO_Serial_Ioctl_Lock(int);
 #else
-#define IO_Serial_Ioctl_Lock(a, b) {}
+#define IO_Serial_Ioctl_Lock(b) {} //FIXME ugly !!
 #endif
 
 /* Input and output */
-extern bool IO_Serial_Read (IO_Serial * io, unsigned timeout, unsigned size, BYTE * data);
-extern bool IO_Serial_Write (IO_Serial * io, unsigned delay, unsigned size, BYTE * data);
+extern bool IO_Serial_Read (unsigned timeout, unsigned size, BYTE * data);
+extern bool IO_Serial_Write (unsigned delay, unsigned size, BYTE * data);
 
 /* Serial port atributes */
 extern unsigned IO_Serial_GetCom (IO_Serial * io);

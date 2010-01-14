@@ -345,125 +345,6 @@ int IFD_Towitoko_SetLED ()
 	return IFD_TOWITOKO_OK;
 }
 
-int IFD_Towitoko_GetStatus (IFD * ifd, BYTE * result)
-{
-	BYTE status[2];
-	unsigned int modembits=0;
-	int in;
-	
-//	printf("\n%08X\n", (int)ifd->io);
-	
-// status : 0 -start, 1 - card, 2- no card
-
-#ifdef SCI_DEV
-	if(ifd->io->reader_type==R_INTERNAL)
-	{
-		if(!Sci_GetStatus(ifd->io->fd, &in))
-			return IFD_TOWITOKO_IO_ERROR;			
-	}
-	else
-#elif COOL
-	if(ifd->io->reader_type==R_INTERNAL)
-	{	
-		if (!Cool_GetStatus(&in))
-			return IFD_TOWITOKO_IO_ERROR;
-	}
-	else
-#endif
-
-#if defined(TUXBOX) && defined(PPC)
-	if ((ifd->io->reader_type==R_DB2COM1) || (ifd->io->reader_type==R_DB2COM2))
-	{
-		ushort msr=1;
-		extern int fdmc;
-		IO_Serial_Ioctl_Lock(ifd->io, 1);
-		ioctl(fdmc, GET_PCDAT, &msr);
-		if (ifd->io->reader_type==R_DB2COM2)
-			in=(!(msr & 1));
-		else
-			in=((msr & 0x0f00) == 0x0f00);
-		IO_Serial_Ioctl_Lock(ifd->io, 0);
-	}
-	else
-#endif
-#ifdef USE_GPIO
-	if (gpio_detect)
-		in=get_gpio();
-	else
-#endif
-	{
-		extern int oscam_card_detect;
-		if (ioctl(ifd->io->fd, TIOCMGET,&modembits)<0)
-			return IFD_TOWITOKO_IO_ERROR;
-		switch(oscam_card_detect&0x7f)
-		{
-			case  0: in=(modembits & TIOCM_CAR);	break;
-			case  1: in=(modembits & TIOCM_DSR);	break;
-			case  2: in=(modembits & TIOCM_CTS);	break;
-			case  3: in=(modembits & TIOCM_RNG);	break;
-			default: in=0;		// dummy
-		}
-		if (!(oscam_card_detect&0x80))
-			in=!in;
-	}
-
-	if (in)
-	{       
-		if(ifd->status == 0)
-		{
-			status[0] = IFD_TOWITOKO_CARD_CHANGE;
-			ifd->status = 1;
-#ifdef USE_GPIO
-			if (gpio_detect) set_gpio1(0);
-#endif
-		}
-		else if(ifd->status == 1)
-		{
-			status[0] = IFD_TOWITOKO_CARD_NOCHANGE;
-		}
-		else
-		{
-			status[0] = IFD_TOWITOKO_CARD_CHANGE;
-			ifd->status = 1;
-#ifdef USE_GPIO
-			if (gpio_detect) set_gpio1(0);
-#endif
-		}
-	}
-	else
-	{
-		if(ifd->status == 0)
-		{
-			status[0] = IFD_TOWITOKO_NOCARD_CHANGE;
-			ifd->status = 2;
-#ifdef USE_GPIO
-			if (gpio_detect) set_gpio1(1);
-#endif
-		}
-		else if(ifd->status == 1)
-		{
-			status[0] = IFD_TOWITOKO_NOCARD_CHANGE;
-			ifd->status = 2;
-#ifdef USE_GPIO
-			if (gpio_detect) set_gpio1(1);
-#endif
-		}
-		else
-		{
-			status[0] = IFD_TOWITOKO_NOCARD_NOCHANGE;
-		}
-	}
-	
-		
-	(*result) = status[0];
-	
-#ifdef DEBUG_IFD
-	printf ("IFD: com%d Status = %s / %s\n", ifd->io->reader_type, IFD_TOWITOKO_CARD(status[0])? "card": "no card", IFD_TOWITOKO_CHANGE(status[0])? "change": "no change");
-#endif
-	
-	return IFD_TOWITOKO_OK;
-}
-
 int IFD_Towitoko_ActivateICC (IFD * ifd)
 {
 #ifdef DEBUG_IFD
@@ -555,7 +436,7 @@ int IFD_Towitoko_ResetAsyncICC (IFD * ifd, ATR ** atr)
 		for(i=0; i<3; i++)
 		{
 			parity = par[i];
-			IO_Serial_Flush(ifd->io);
+			IO_Serial_Flush();
 
 			ret = IFD_Towitoko_SetParity (ifd, parity);
 			if (ret != IFD_TOWITOKO_OK)
@@ -563,7 +444,7 @@ int IFD_Towitoko_ResetAsyncICC (IFD * ifd, ATR ** atr)
 
 			ret = IFD_TOWITOKO_IO_ERROR;
 
-			IO_Serial_Ioctl_Lock(ifd->io, 1);
+			IO_Serial_Ioctl_Lock(1);
 #ifdef USE_GPIO
 			if (gpio_detect)
 			{
@@ -589,11 +470,11 @@ int IFD_Towitoko_ResetAsyncICC (IFD * ifd, ATR ** atr)
 #endif
 				IO_Serial_RTS_Clr(ifd->io);
 			
-			IO_Serial_Ioctl_Lock(ifd->io, 0);
+			IO_Serial_Ioctl_Lock(0);
 
 			(*atr) = ATR_New ();
 
-			if(ATR_InitFromStream ((*atr), ifd->io, IFD_TOWITOKO_ATR_TIMEOUT) == ATR_OK)
+			if(ATR_InitFromStream ((*atr), IFD_TOWITOKO_ATR_TIMEOUT) == ATR_OK)
 				ret = IFD_TOWITOKO_OK;
 
 			/* Succesfully retrive ATR */
@@ -611,10 +492,7 @@ int IFD_Towitoko_ResetAsyncICC (IFD * ifd, ATR ** atr)
 			}	
 		}
 	
-		IO_Serial_Flush(ifd->io);
-#ifndef NO_PAR_SWITCH
-		IFD_Towitoko_SetParity (ifd, IFD_TOWITOKO_PARITY_NONE);
-#endif
+		IO_Serial_Flush();
 
 /*
 		//PLAYGROUND faking ATR for test purposes only
@@ -659,15 +537,15 @@ int IFD_Towitoko_Transmit (IFD * ifd, IFD_Timings * timings, unsigned size, BYTE
 		/* Send data */
 		if ((sent == 0) && (block_delay != char_delay))
 		{
-			if (!IO_Serial_Write (ifd->io, block_delay, 1, buffer))
+			if (!IO_Serial_Write (block_delay, 1, buffer))
 				return IFD_TOWITOKO_IO_ERROR;
 			
-			if (!IO_Serial_Write (ifd->io, char_delay, to_send-1, buffer+1))
+			if (!IO_Serial_Write (char_delay, to_send-1, buffer+1))
 				return IFD_TOWITOKO_IO_ERROR;
 		}
 		else
 		{
-			if (!IO_Serial_Write (ifd->io, char_delay, to_send, buffer+sent))
+			if (!IO_Serial_Write (char_delay, to_send, buffer+sent))
 				return IFD_TOWITOKO_IO_ERROR;
 		}
 	}
@@ -693,20 +571,20 @@ int IFD_Towitoko_Receive (IFD * ifd, IFD_Timings * timings, unsigned size, BYTE 
 	if (block_timeout != char_timeout)
 	{
 		/* Read first byte using block timeout */
-		if (!IO_Serial_Read (ifd->io, block_timeout, 1, buffer))
+		if (!IO_Serial_Read (block_timeout, 1, buffer))
 			return IFD_TOWITOKO_IO_ERROR;
 		
 		if (size > 1)
 		{
 			/* Read remaining data bytes using char timeout */
-			if (!IO_Serial_Read (ifd->io, char_timeout, size - 1, buffer + 1))
+			if (!IO_Serial_Read (char_timeout, size - 1, buffer + 1))
 				return IFD_TOWITOKO_IO_ERROR;
 		}
 	}
 	else
 	{
 		/* Read all data bytes with the same timeout */
-		if (!IO_Serial_Read (ifd->io, char_timeout, size, buffer))
+		if (!IO_Serial_Read (char_timeout, size, buffer))
 			return IFD_TOWITOKO_IO_ERROR;
 	}
 #ifdef USE_GPIO
@@ -823,5 +701,5 @@ static void IFD_Towitoko_Clear (IFD * ifd)
 	ifd->slot = 0x00;
 	ifd->type = 0x00;
 	ifd->firmware = 0x00;
-	ifd->status = 0;
+	reader[ridx].status = 0;
 }

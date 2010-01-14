@@ -43,6 +43,8 @@
 static void ICC_Async_InvertBuffer (unsigned size, BYTE * buffer);
 static void ICC_Async_Clear (ICC_Async * icc);
 
+int fdmc=(-1);
+
 /*
  * Exported functions definition
  */
@@ -58,6 +60,148 @@ ICC_Async *ICC_Async_New (void)
 		ICC_Async_Clear (icc);
 	
 	return icc;
+}
+
+int ICC_Async_Device_Init ()
+{
+	
+#ifdef DEBUG_IO
+	printf ("IO: Opening serial port %s\n", reader[ridx].device);
+#endif
+	
+#if defined(SCI_DEV) || defined(COOL)
+	if (reader[ridx].typ == R_INTERNAL)
+#ifdef SH4
+		reader[ridx].handle = open (reader[ridx].device, O_RDWR|O_NONBLOCK|O_NOCTTY);
+#elif COOL
+		return Cool_Init();
+#else
+		reader[ridx].handle = open (reader[ridx].device, O_RDWR);
+#endif
+	else
+#endif
+
+	reader[ridx].handle = open (reader[ridx].device,  O_RDWR | O_NOCTTY| O_NONBLOCK);
+
+	if (reader[ridx].handle < 0)
+		return ICC_ASYNC_IFD_ERROR;
+
+#if defined(TUXBOX) && defined(PPC)
+	if ((reader[ridx].typ == R_DB2COM1) || (reader[ridx].typ == R_DB2COM2))
+		if ((fdmc = open(DEV_MULTICAM, O_RDWR)) < 0)
+		{
+			close(reader[ridx].handle);
+			return ICC_ASYNC_IFD_ERROR;
+		}
+#endif
+		
+	return ICC_ASYNC_OK;
+}
+
+int ICC_Async_GetStatus (BYTE * result)
+{
+	BYTE status[2];
+//	unsigned int modembits=0;
+	int in;
+	
+//	printf("\n%08X\n", (int)ifd->io);
+	
+// status : 0 -start, 1 - card, 2- no card
+
+#ifdef SCI_DEV
+	if(reader[ridx].typ == R_INTERNAL)
+	{
+		if(!Sci_GetStatus(reader[ridx].handle, &in))
+			return IFD_TOWITOKO_IO_ERROR;			
+	}
+	else
+#elif COOL
+	if(reader[ridx].typ == R_INTERNAL)
+	{	
+		if (!Cool_GetStatus(&in))
+			return IFD_TOWITOKO_IO_ERROR;
+	}
+	else
+#endif
+
+#if defined(TUXBOX) && defined(PPC)
+	if ((reader[ridx].typ == R_DB2COM1) || (reader[ridx].typ == R_DB2COM2))
+	{
+		ushort msr=1;
+		extern int fdmc;
+		IO_Serial_Ioctl_Lock(1);
+		ioctl(fdmc, GET_PCDAT, &msr);
+		if (reader[ridx].typ == R_DB2COM2)
+			in=(!(msr & 1));
+		else
+			in=((msr & 0x0f00) == 0x0f00);
+		IO_Serial_Ioctl_Lock(0);
+	}
+	else
+#endif
+#ifdef USE_GPIO
+	if (gpio_detect)
+		in=get_gpio();
+	else
+#endif
+  if (!Phoenix_GetStatus(&in))
+			return IFD_TOWITOKO_IO_ERROR;
+
+	if (in)
+	{       
+		if(reader[ridx].status == 0)
+		{
+			status[0] = IFD_TOWITOKO_CARD_CHANGE;
+			reader[ridx].status = 1;
+#ifdef USE_GPIO
+			if (gpio_detect) set_gpio1(0);
+#endif
+		}
+		else if(reader[ridx].status == 1)
+		{
+			status[0] = IFD_TOWITOKO_CARD_NOCHANGE;
+		}
+		else
+		{
+			status[0] = IFD_TOWITOKO_CARD_CHANGE;
+			reader[ridx].status = 1;
+#ifdef USE_GPIO
+			if (gpio_detect) set_gpio1(0);
+#endif
+		}
+	}
+	else
+	{
+		if(reader[ridx].status == 0)
+		{
+			status[0] = IFD_TOWITOKO_NOCARD_CHANGE;
+			reader[ridx].status = 2;
+#ifdef USE_GPIO
+			if (gpio_detect) set_gpio1(1);
+#endif
+		}
+		else if(reader[ridx].status == 1)
+		{
+			status[0] = IFD_TOWITOKO_NOCARD_CHANGE;
+			reader[ridx].status = 2;
+#ifdef USE_GPIO
+			if (gpio_detect) set_gpio1(1);
+#endif
+		}
+		else
+		{
+			status[0] = IFD_TOWITOKO_NOCARD_NOCHANGE;
+		}
+	}
+	
+		
+	(*result) = status[0];
+	
+#ifdef DEBUG_IFD
+	printf ("IFD: com%d Status = %s / %s\n", reader[ridx].typ, IFD_TOWITOKO_CARD(status[0])? "card": "no card", IFD_TOWITOKO_CHANGE(status[0])? "change": "no change");
+#endif
+	
+	return IFD_TOWITOKO_OK;
 }
 
 int ICC_Async_Init (ICC_Async * icc, IFD * ifd)
@@ -78,7 +222,7 @@ int ICC_Async_Init (ICC_Async * icc, IFD * ifd)
 		return ICC_ASYNC_IFD_ERROR;
 	/* Reset ICC */
 #ifdef SCI_DEV
-	if (ifd->io->reader_type == R_INTERNAL) {
+	if (reader[ridx].typ == R_INTERNAL) {
 		if (!Sci_Reset(ifd, &(icc->atr)))
 		{
 			icc->atr = NULL;
@@ -88,7 +232,7 @@ int ICC_Async_Init (ICC_Async * icc, IFD * ifd)
 	else
 #endif
 #ifdef COOL
-	if (ifd->io->reader_type == R_INTERNAL) {
+	if (reader[ridx].typ == R_INTERNAL) {
 		if (!Cool_Reset(&(icc->atr)))
 		{
 			icc->atr = NULL;
@@ -141,7 +285,6 @@ int ICC_Async_Init (ICC_Async * icc, IFD * ifd)
 	icc->baudrate = ICC_ASYNC_BAUDRATE;
 	icc->ifd = ifd;
 	
-#ifdef NO_PAR_SWITCH
 	if (icc->convention == ATR_CONVENTION_INVERSE)
 	{
 		if (IFD_Towitoko_SetParity (icc->ifd, IFD_TOWITOKO_PARITY_ODD) != IFD_TOWITOKO_OK)
@@ -158,10 +301,9 @@ int ICC_Async_Init (ICC_Async * icc, IFD * ifd)
 			return ICC_ASYNC_IFD_ERROR;		
 	}
 #ifdef COOL
-	if (icc->ifd->io->reader_type != R_INTERNAL)
+	if (reader[ridx].typ != R_INTERNAL)
 #endif
 	IO_Serial_Flush(ifd->io);
-#endif
 	return ICC_ASYNC_OK;
 #else
 	return ICC_ASYNC_ATR_ERROR;
@@ -183,9 +325,9 @@ int ICC_Async_SetTimings (ICC_Async * icc, ICC_Async_Timings * timings)
 #include <sys/ioctl.h>
 #include "sci_global.h"
 #include "sci_ioctl.h"
-	if (icc->ifd->io->reader_type == R_INTERNAL) {
+	if (reader[ridx].typ == R_INTERNAL) {
 		SCI_PARAMETERS params;
-		if (ioctl(icc->ifd->io->fd, IOCTL_GET_PARAMETERS, &params) < 0 )
+		if (ioctl(reader[ridx].handle, IOCTL_GET_PARAMETERS, &params) < 0 )
 			return ICC_ASYNC_IFD_ERROR;
 		switch (icc->protocol_type) {
 			case ATR_PROTOCOL_TYPE_T1:
@@ -199,7 +341,7 @@ int ICC_Async_SetTimings (ICC_Async * icc, ICC_Async_Timings * timings)
   			params.WWT = icc->timings.char_timeout;
 				break;
 		}
-		if (ioctl(icc->ifd->io->fd, IOCTL_SET_PARAMETERS, &params)!=0)
+		if (ioctl(reader[ridx].handle, IOCTL_SET_PARAMETERS, &params)!=0)
 			return ICC_ASYNC_IFD_ERROR;
 			
 		cs_debug("Set Timings: T=%d fs=%lu ETU=%d WWT=%d CWT=%d BWT=%d EGT=%d clock=%d check=%d P=%d I=%d U=%d", (int)params.T, params.fs, (int)params.ETU, (int)params.WWT, (int)params.CWT, (int)params.BWT, (int)params.EGT, (int)params.clock_stop_polarity, (int)params.check, (int)params.P, (int)params.I, (int)params.U);
@@ -221,20 +363,6 @@ int ICC_Async_GetTimings (ICC_Async * icc, ICC_Async_Timings * timings)
 int ICC_Async_SetBaudrate (ICC_Async * icc, unsigned long baudrate)
 {
 	icc->baudrate = baudrate;
-/*#ifdef COOL
-	if (icc->ifd->io->reader_type==R_INTERNAL) {
-    typedef unsigned long u_int32;
-    u_int32 clk;
-    //clk = 357*10000; // MHZ
-		//clk = baudrate * 3570000L / 9600L;
-		  clk = 500*10000;
-    if (cnxt_smc_set_clock_freq(icc->ifd->io->handle, clk))
-			return ICC_ASYNC_IFD_ERROR;
-		printf("set clock to %lu Hz\n", clk);
-		return ICC_ASYNC_OK;
-	}
-	else
-#endif*/
 	if (IFD_Towitoko_SetBaudrate (icc->ifd, baudrate) !=  IFD_TOWITOKO_OK)
 	  return ICC_ASYNC_IFD_ERROR;
 	
@@ -247,40 +375,12 @@ int ICC_Async_GetBaudrate (ICC_Async * icc, unsigned long * baudrate)
 	return ICC_ASYNC_OK;  
 }
 
-int ICC_Async_BeginTransmission (ICC_Async * icc)
-{
-	/* Setup parity for this ICC */
-#ifndef NO_PAR_SWITCH
-	if (icc->convention == ATR_CONVENTION_INVERSE)
-	{
-		if (IFD_Towitoko_SetParity (icc->ifd, IFD_TOWITOKO_PARITY_ODD) != IFD_TOWITOKO_OK)
-			return ICC_ASYNC_IFD_ERROR;
-	}
-	else if(icc->protocol_type == ATR_PROTOCOL_TYPE_T14)
-	{
-		if (IFD_Towitoko_SetParity (icc->ifd, IFD_TOWITOKO_PARITY_NONE) != IFD_TOWITOKO_OK)
-			return ICC_ASYNC_IFD_ERROR;		
-	}
-	else
-	{
-		if (IFD_Towitoko_SetParity (icc->ifd, IFD_TOWITOKO_PARITY_EVEN) != IFD_TOWITOKO_OK)
-			return ICC_ASYNC_IFD_ERROR;		
-	}
-	
-	/* Setup baudrate for  this ICC */
-/*	if (IFD_Towitoko_SetBaudrate (icc->ifd, icc->baudrate)!= IFD_TOWITOKO_OK)
-		return ICC_ASYNC_IFD_ERROR;
-*/	
-#endif
-	return ICC_ASYNC_OK;
-}
-
 int ICC_Async_Transmit (ICC_Async * icc, unsigned size, BYTE * data)
 {
 	BYTE *buffer = NULL, *sent; 
 	IFD_Timings timings;
 	
-	if (icc->convention == ATR_CONVENTION_INVERSE && icc->ifd->io->reader_type != R_INTERNAL)
+	if (icc->convention == ATR_CONVENTION_INVERSE && reader[ridx].typ != R_INTERNAL)
 	{
 		buffer = (BYTE *) calloc(sizeof (BYTE), size);
 		memcpy (buffer, data, size);
@@ -296,13 +396,13 @@ int ICC_Async_Transmit (ICC_Async * icc, unsigned size, BYTE * data)
 	timings.char_delay = icc->timings.char_delay;
 	
 #ifdef COOL
-	if (icc->ifd->io->reader_type == R_INTERNAL) {
+	if (reader[ridx].typ == R_INTERNAL) {
 		if (!Cool_Transmit(sent, size))
 			return ICC_ASYNC_IFD_ERROR;
 	}
 	else
 #endif
-	if (IFD_Towitoko_Transmit (icc->ifd, &timings, size, sent) != IFD_TOWITOKO_OK)
+	if (!Phoenix_Transmit (sent, size, &timings, size))
 		return ICC_ASYNC_IFD_ERROR;
 	
 	if (icc->convention == ATR_CONVENTION_INVERSE)
@@ -319,29 +419,18 @@ int ICC_Async_Receive (ICC_Async * icc, unsigned size, BYTE * data)
 	timings.char_timeout = icc->timings.char_timeout;
 	
 #ifdef COOL
-	if (icc->ifd->io->reader_type == R_INTERNAL) {
+	if (reader[ridx].typ == R_INTERNAL) {
 		if (!Cool_Receive(data, size))
 			return ICC_ASYNC_IFD_ERROR;
 	}
 	else
 #else
-	if (IFD_Towitoko_Receive (icc->ifd, &timings, size, data) != IFD_TOWITOKO_OK)
+	if (!Phoenix_Receive (data, size, &timings))
 		return ICC_ASYNC_IFD_ERROR;
 #endif
 	
-	if (icc->convention == ATR_CONVENTION_INVERSE && icc->ifd->io->reader_type!=R_INTERNAL)
+	if (icc->convention == ATR_CONVENTION_INVERSE && reader[ridx].typ != R_INTERNAL)
 		ICC_Async_InvertBuffer (size, data);
-	
-	return ICC_ASYNC_OK;
-}
-
-int ICC_Async_EndTransmission (ICC_Async * icc)
-{
-#ifndef NO_PAR_SWITCH
-	/* Restore parity */
-	if (IFD_Towitoko_SetParity (icc->ifd, IFD_TOWITOKO_PARITY_NONE) != IFD_TOWITOKO_OK)
-		return ICC_ASYNC_IFD_ERROR;		
-#endif
 	
 	return ICC_ASYNC_OK;
 }
@@ -374,16 +463,16 @@ int ICC_Async_Close (ICC_Async * icc)
 	return ICC_ASYNC_OK;
 }
 
-unsigned long ICC_Async_GetClockRate (ICC_Async * icc)
+unsigned long ICC_Async_GetClockRate ()
 {
-	switch (icc->ifd->io->cardmhz) {
+	switch (reader[ridx].cardmhz) {
 		case 357:
 		case 358:
 	  	return (372L * 9600L);
 		case 368:
 	  	return (384L * 9600L);
 		default:
- 	  	return icc->ifd->io->cardmhz * 10000L;
+ 	  	return reader[ridx].cardmhz * 10000L;
 	}
 }
 
