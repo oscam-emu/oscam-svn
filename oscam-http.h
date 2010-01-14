@@ -148,7 +148,7 @@ DIV.message{float:right}"
   <TD>##CLIENTLOGINTIME##</TD>\n\
   <TD>##CLIENTLOGINSECS##</TD>\n\
   <TD>##CLIENTCAID##:##CLIENTSRVID##</TD>\n\
-  <TD>##CLIENTSRVNAME##</TD>\n\
+  <TD>##CLIENTSRVPROVIDER####CLIENTSRVNAME##</TD>\n\
   <TD>##CLIENTIDLESECS##</TD>\n\
   <TD>##CWOK##</TD>\n\
   <TD>##CWNOK##</TD>\n\
