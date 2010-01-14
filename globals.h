@@ -504,9 +504,14 @@ struct s_auth
 
 struct s_srvid
 {
-  int  srvid;
-  char name[33];
-  struct s_srvid *next;
+int	srvid;
+int	ncaid;
+int	caid[10];
+char	prov[33];
+char	name[33];
+char	type[33];
+char	desc[33];
+struct	s_srvid *next;
 };
 
 struct s_ip
@@ -584,10 +589,10 @@ struct s_config
 #ifdef HAVE_DVBAPI
   int       dvbapi_enabled;
   int       dvbapi_au;
-  char      dvbapi_usr[33];  
+  char      dvbapi_usr[33];
   char      dvbapi_boxtype[20];
   char      dvbapi_priority[64];
-  char      dvbapi_ignore[64];  
+  char      dvbapi_ignore[64];
 #endif
 #ifdef CS_ANTICASC
   char      ac_enabled;
@@ -925,7 +930,7 @@ extern struct timeval *chk_pending(struct timeb tp_ctimeout);
 
 // module-monitor
 extern char *monitor_get_proto(int idx);
-extern char *monitor_get_srvname(int id);
+extern char *monitor_get_srvname(int srvid, int caid);
 extern int cs_idx2ridx(int idx);
 
 // oscam-http

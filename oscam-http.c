@@ -865,7 +865,7 @@ void send_oscam_user_config(struct templatevars *vars, FILE *f, struct uriparams
 				//30 secs without ecm is offline
 				if ((now - client[i].lastecm) < 30){
 					status = "<b>online</b>";classname="online";
-					lastchan = monitor_get_srvname(client[i].last_srvid);
+					lastchan = monitor_get_srvname(client[i].last_srvid, client[i].last_caid);
 					isec = now - client[i].last;
 		}
 	}
@@ -984,7 +984,7 @@ void send_oscam_status(struct templatevars *vars, FILE *f, struct uriparams *par
 				tpl_printf(vars, 0, "CLIENTLOGINSECS", "%02d:%02d:%02d", hours, mins, secs);
 				tpl_printf(vars, 0, "CLIENTCAID", "%04X", client[i].last_caid);
 				tpl_printf(vars, 0, "CLIENTSRVID", "%04X", client[i].last_srvid);
-				tpl_addVar(vars, 0, "CLIENTSRVNAME", monitor_get_srvname(client[i].last_srvid));
+				tpl_addVar(vars, 0, "CLIENTSRVNAME", monitor_get_srvname(client[i].last_srvid, client[i].last_caid));
 
 				secs = 0; fullmins =0; mins =0; hours =0;
 				if(isec > 0){
@@ -1125,7 +1125,7 @@ void send_oscam_services(struct templatevars *vars, FILE *f, struct uriparams *p
 		if ((strcmp(getParam(params, "service"), sidtab->label) == 0) && (strcmp(getParam(params, "action"), "list") == 0) ){
 			tpl_printf(vars, 0, "SIDCLASS","sidlist");
 			for (i=0; i<sidtab->num_srvid; i++){
-				tpl_printf(vars, 1, "SID", "%04X : %s<BR>", sidtab->srvid[i], monitor_get_srvname(sidtab->srvid[i]));
+				tpl_printf(vars, 1, "SID", "%04X : %s<BR>", sidtab->srvid[i], monitor_get_srvname(sidtab->srvid[i], sidtab->caid[0]));
 			}
 		}	else {
 			tpl_printf(vars, 0, "SIDCLASS","");

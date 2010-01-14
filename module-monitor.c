@@ -237,14 +237,19 @@ int cs_idx2ridx(int idx){
 	return(-1);
 }
 
-char *monitor_get_srvname(int id){
+char *monitor_get_srvname(int srvid, int caid){
+	int i;
 	struct s_srvid *this = cfg->srvid;
 	static char name[83];
+
 	for (name[0] = 0; this && (!name[0]); this = this->next)
-		if (this->srvid == id)
-			strncpy(name, this->name, 32);
-	if (!name[0]) sprintf(name, "[%04X]", id);
-	if (!id) name[0] = '\0';
+		if (this->srvid == srvid)
+			for (i=0; i<this->ncaid; i++)
+				if (this->caid[i] == caid)
+					strncpy(name, this->name, 32);
+
+	if (!name[0]) sprintf(name, "[%04X:%04X]", caid, srvid);
+	if (!srvid) name[0] = '\0';
 	return(name);
 }
 
@@ -329,7 +334,7 @@ static char *monitor_client_info(char id, int i){
 							id, client[i].pid, client[i].typ, cnr, usr, cau, client[i].crypted,
 							cs_inet_ntoa(client[i].ip), client[i].port, monitor_get_proto(i),
 							ldate, ltime, lsec, client[i].last_caid, client[i].last_srvid,
-							monitor_get_srvname(client[i].last_srvid), isec, con);
+							monitor_get_srvname(client[i].last_srvid, client[i].last_caid), isec, con);
 		}
 	}
 	return(sbuf);
@@ -355,7 +360,7 @@ static void monitor_process_info(){
 		}
 	}
 	monitor_send_info(NULL, 1);
-} 
+}
 
 static void monitor_send_details(char *txt, int pid){
 	char buf[256];
