@@ -7,7 +7,13 @@
 #define AUTHNONCEVALIDSECS 15
 #define MAXGETPARAMS 100
 
-#define CSS "p {color: white; }\n\
+#define CSS "\
+body {background-color: grey; font-family: Arial; font-size: 12px;}\n\
+A:link {text-decoration: none; color:#660000}\n\
+A:visited {text-decoration: none; color:#660000}\n\
+A:active {text-decoration: none; color:white}\n\
+A:hover {text-decoration: none; color: red;}\n\
+p {color: white; }\n\
 h2 {color: orange; font-family: Arial; font-size: 14px; line-height: 12px;}\n\
 h4 {color: black; font-family: Arial; font-size: 12px; line-height: 9px; }\n\
 TABLE{background-color:#66CCFF;}\n\
@@ -23,15 +29,13 @@ DIV.log{border:1px solid black;background-color: black; font-family:\"Courier Ne
 DIV.sidlist{background-color: #FFFF99; padding:2; text-align:left; font-family:\"Courier New\", monospace ; color:black; font-size: 10px; word-wrap:break-word;}\n\
 TABLE.menu{background-color:black; align:center; font-size: 10px;}\n\
 TABLE.menu TD{border:2px outset lightgrey; background-color:silver; font-color:black; font-family: Arial;}\n\
+TD.menu {border:2px outset lightgrey; background-color:silver; font-color:black; font-family: Arial; font-size:11px;}\n\
+TABLE.configmenu{background-color:black; align:center; font-size: 10px;}\n\
+TABLE.configmenu TD{border:2px outset lightgrey; background-color:silver; font-color:black; font-family: Arial;}\n\
+TD.configmenu {border:2px outset lightgrey; background-color:silver; font-color:black; font-family: Arial; font-size:11px;}\n\
 TABLE.status{background-color:#66CCFF;empty-cells:show;}\n\
 TABLE.config{width:750px;}\n\
 TABLE.invisible TD {border:0px; font-family: Arial; font-size: 12px; padding:5px; background-color:#6666FF;}}\n\
-TD.menu {border:2px outset lightgrey; background-color:silver; font-color:black; font-family: Arial; font-size:11px;}\n\
-body {background-color: grey; font-family: Arial; font-size: 12px;}\n\
-A:link {text-decoration: none; color:#660000}\n\
-A:visited {text-decoration: none; color:#660000}\n\
-A:active {text-decoration: none; color:white}\n\
-A:hover {text-decoration: none; color: red;}\n\
 DIV.message{float:right}"
 
 #define TPLHEADER "\
@@ -65,33 +69,33 @@ DIV.message{float:right}"
 
 #define TPLCONFIGMENU "\
 	<BR><BR>\n\
-	<TABLE border=0 class=\"menu\">\n\
+	<TABLE border=0 class=\"configmenu\">\n\
 		<TR>\n\
-			<TD CLASS=\"menu\"><A HREF=\"config.html?part=global\">Global</TD>\n\
-			<TD CLASS=\"menu\"><A HREF=\"config.html?part=camd33\">Camd3.3</TD>\n\
-			<TD CLASS=\"menu\"><A HREF=\"config.html?part=camd35\">Camd3.5</TD>\n\
-			<TD CLASS=\"menu\"><A HREF=\"config.html?part=camd35tcp\">Camd3.5 TCP</TD>\n\
-			<TD CLASS=\"menu\"><A HREF=\"config.html?part=newcamd\">Newcamd</TD>\n\
-			<TD CLASS=\"menu\"><A HREF=\"config.html?part=radegast\">Radegast</TD>\n\
-			<TD CLASS=\"menu\"><A HREF=\"config.html?part=cccam\">Cccam</TD>\n\
+			<TD CLASS=\"configmenu\"><A HREF=\"config.html?part=global\">Global</TD>\n\
+			<TD CLASS=\"configmenu\"><A HREF=\"config.html?part=camd33\">Camd3.3</TD>\n\
+			<TD CLASS=\"configmenu\"><A HREF=\"config.html?part=camd35\">Camd3.5</TD>\n\
+			<TD CLASS=\"configmenu\"><A HREF=\"config.html?part=camd35tcp\">Camd3.5 TCP</TD>\n\
+			<TD CLASS=\"configmenu\"><A HREF=\"config.html?part=newcamd\">Newcamd</TD>\n\
+			<TD CLASS=\"configmenu\"><A HREF=\"config.html?part=radegast\">Radegast</TD>\n\
+			<TD CLASS=\"configmenu\"><A HREF=\"config.html?part=cccam\">Cccam</TD>\n\
 			##TPLCONFIGMENUGBOX##\
 			##TPLCONFIGMENUANTICASC##\
-			<TD CLASS=\"menu\"><A HREF=\"config.html?part=monitor\">Monitor</TD>\n\
-			<TD CLASS=\"menu\"><A HREF=\"config.html?part=serial\">Serial</TD>\n\
+			<TD CLASS=\"configmenu\"><A HREF=\"config.html?part=monitor\">Monitor</TD>\n\
+			<TD CLASS=\"configmenu\"><A HREF=\"config.html?part=serial\">Serial</TD>\n\
 			##TPLCONFIGMENUDVBAPI##\
 		</TR>\n\
 	</TABLE>"
 
 #ifdef CS_ANTICASC
-#define TPLCONFIGMENUANTICASC "<TD CLASS=\"menu\"><A HREF=\"config.html?part=anticasc\">Anticascading</TD>\n"
+#define TPLCONFIGMENUANTICASC "<TD CLASS=\"configmenu\"><A HREF=\"config.html?part=anticasc\">Anticascading</TD>\n"
 #endif
 
 #ifdef HAVE_DVBAPI
-#define TPLCONFIGMENUDVBAPI "<TD CLASS=\"menu\"><A HREF=\"config.html?part=dvbapi\">DVB-Api</TD>\n"
+#define TPLCONFIGMENUDVBAPI "<TD CLASS=\"configmenu\"><A HREF=\"config.html?part=dvbapi\">DVB-Api</TD>\n"
 #endif
 
 #ifdef CS_WITH_GBOX
-#define TPLCONFIGMENUGBOX "<TD CLASS=\"menu\"><A HREF=\"config.html?part=gbox\">Gbox</TD>\n"
+#define TPLCONFIGMENUGBOX "<TD CLASS=\"configmenu\"><A HREF=\"config.html?part=gbox\">Gbox</TD>\n"
 #endif
 
 #define TPLSTATUS "\
