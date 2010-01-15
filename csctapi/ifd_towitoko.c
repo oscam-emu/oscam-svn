@@ -163,14 +163,14 @@ int IFD_Towitoko_Init (IFD * ifd, IO_Serial * io, BYTE slot)
 #endif
 	
 #ifdef DEBUG_IFD
-	printf ("IFD: Initializing slot number %d, com=%d\n", slot, io->reader_type);
+	printf ("IFD: Initializing slot number %d, com=%d\n", slot, reader[ridx].typ);
 #endif
 	
 //	if ((slot != IFD_TOWITOKO_SLOT_MULTICAM) && (slot != IFD_TOWITOKO_SLOT_A) && (slot != IFD_TOWITOKO_SLOT_B))
 	if (slot != IFD_TOWITOKO_SLOT_MULTICAM )
 		return IFD_TOWITOKO_PARAM_ERROR;
 		
-	if(io->reader_type==R_INTERNAL)
+	if(reader[ridx].typ == R_INTERNAL)
 	{
 		ifd->io = io;
 		ifd->slot = slot;
@@ -184,14 +184,14 @@ int IFD_Towitoko_Init (IFD * ifd, IO_Serial * io, BYTE slot)
 	io->output_bitrate = IFD_TOWITOKO_BAUDRATE;
 	io->bits = 8;
 	io->stopbits = 2;
-	io->parity = IO_SERIAL_PARITY_EVEN;
+	io->parity = PARITY_EVEN;
 	io->dtr = IO_SERIAL_HIGH;
 //	io->dtr = IO_SERIAL_LOW;
 //	io->rts = IO_SERIAL_HIGH;
 	io->rts = IO_SERIAL_LOW;
 	
 		
-	if (!IO_Serial_SetProperties (io))
+	if (!IO_Serial_SetPropertiesOld (io))
 		return IFD_TOWITOKO_IO_ERROR;
 		
 	/* Default ifd settings */
@@ -208,7 +208,8 @@ int IFD_Towitoko_Init (IFD * ifd, IO_Serial * io, BYTE slot)
 		return ret;
 	}
 	
-	ret = IFD_Towitoko_SetParity (ifd, IFD_TOWITOKO_PARITY_EVEN);
+	if (!IO_Serial_SetParity (PARITY_EVEN))
+		return IFD_TOWITOKO_IO_ERROR;
 	
 	if (ret != IFD_TOWITOKO_OK)
 	{
@@ -247,10 +248,6 @@ int IFD_Towitoko_Close (IFD * ifd)
 	printf ("IFD: Closing slot number %d\n", ifd->slot);
 #endif
 	
-	ret = IFD_Towitoko_SetLED ();
-	if (ret != IFD_TOWITOKO_OK)
-		return ret;
-		
 	IFD_Towitoko_Clear (ifd);
 	
 	
@@ -259,24 +256,15 @@ int IFD_Towitoko_Close (IFD * ifd)
 
 int IFD_Towitoko_SetBaudrate (IFD * ifd, unsigned long baudrate)
 {
-	if(ifd->io->reader_type==R_INTERNAL)
+	if(reader[ridx].typ == R_INTERNAL)
 	{
 		return IFD_TOWITOKO_OK;
 	}
-/*	
-	if (IFD_Towitoko_GetMaxBaudrate () < baudrate)
-	{
-#ifdef DEBUG_IFD
-		printf ("IFD: Tried to set unsupported baudrate: %lu", baudrate);
-#endif
-		return IFD_TOWITOKO_PARAM_ERROR;
-	}*/
-	
 #ifdef DEBUG_IFD
 	printf ("IFD: Setting baudrate to %lu\n", baudrate);
 #endif
 	/* Get current settings */
-	if (!IO_Serial_GetProperties (ifd->io))
+	if (!IO_Serial_GetPropertiesOld (ifd->io))
 		return IFD_TOWITOKO_IO_ERROR;
 	
 	if (ifd->io->output_bitrate == baudrate)
@@ -287,7 +275,7 @@ int IFD_Towitoko_SetBaudrate (IFD * ifd, unsigned long baudrate)
 	ifd->io->output_bitrate = baudrate;
 	ifd->io->input_bitrate = baudrate;
 	
-	if (!IO_Serial_SetProperties (ifd->io))
+	if (!IO_Serial_SetPropertiesOld (ifd->io))
 		return IFD_TOWITOKO_IO_ERROR;
 	
 	return IFD_TOWITOKO_OK;
@@ -295,53 +283,17 @@ int IFD_Towitoko_SetBaudrate (IFD * ifd, unsigned long baudrate)
 
 int IFD_Towitoko_GetBaudrate (IFD * ifd, unsigned long *baudrate)
 {
-	if(ifd->io->reader_type==R_INTERNAL)
+	if(reader[ridx].typ == R_INTERNAL)
 	{
 		return IFD_TOWITOKO_OK;
 	}
 	
 	/* Get current settings */
-	if (!IO_Serial_GetProperties (ifd->io))
+	if (!IO_Serial_GetPropertiesOld (ifd->io))
 		return IFD_TOWITOKO_IO_ERROR;
 	
 	(*baudrate) = ifd->io->output_bitrate;
 	
-	return IFD_TOWITOKO_OK;
-}
-
-extern int IFD_Towitoko_SetParity (IFD * ifd, BYTE parity)
-{
-	if(ifd->io->reader_type==R_INTERNAL)
-	{
-		return IFD_TOWITOKO_OK;
-	}
-	
-#ifdef DEBUG_IFD
-	printf ("IFD: Parity = %s\n",
-	parity == IFD_TOWITOKO_PARITY_ODD ? "Odd" :
-	parity == IFD_TOWITOKO_PARITY_EVEN ? "Even" : "Invalid");
-#endif
-	
-	if ((parity != IFD_TOWITOKO_PARITY_EVEN) && (parity != IFD_TOWITOKO_PARITY_ODD) && (parity != IFD_TOWITOKO_PARITY_NONE))
-		return IFD_TOWITOKO_PARAM_ERROR;
-	
-	/* Get current settings */
-	if (!IO_Serial_GetProperties (ifd->io))
-		return IFD_TOWITOKO_IO_ERROR;
-	
-	if (ifd->io->parity !=parity)
-	{
-		ifd->io->parity = parity;
-		
-		if (!IO_Serial_SetProperties (ifd->io))
-			return IFD_TOWITOKO_IO_ERROR;
-	}
-	
-	return IFD_TOWITOKO_OK;
-}
-
-int IFD_Towitoko_SetLED ()
-{	
 	return IFD_TOWITOKO_OK;
 }
 
@@ -351,14 +303,14 @@ int IFD_Towitoko_ActivateICC (IFD * ifd)
 		printf ("IFD: Activating card\n");
 #endif
 #ifdef SCI_DEV
-	if(ifd->io->reader_type==R_INTERNAL)
+	if(reader[ridx].typ == R_INTERNAL)
 	{
 		int in;
 
 #if defined(TUXBOX) && (defined(MIPSEL) || defined(PPC) || defined(SH4))
-		if(ioctl(ifd->io->fd, IOCTL_GET_IS_CARD_PRESENT, &in)<0)
+		if(ioctl(reader[ridx].handle, IOCTL_GET_IS_CARD_PRESENT, &in)<0)
 #else
-		if(ioctl(ifd->io->fd, IOCTL_GET_IS_CARD_ACTIVATED, &in)<0)
+		if(ioctl(reader[ridx].handle, IOCTL_GET_IS_CARD_ACTIVATED, &in)<0)
 #endif
 			return IFD_TOWITOKO_IO_ERROR;
 			
@@ -389,20 +341,20 @@ int IFD_Towitoko_DeactivateICC (IFD * ifd)
 #endif
 
 #ifdef SCI_DEV
-	if(ifd->io->reader_type==R_INTERNAL)
+	if(reader[ridx].typ == R_INTERNAL)
 	{
 		int in;
 		
 #if defined(TUXBOX) && (defined(MIPSEL) || defined(PPC) || defined(SH4))
-		if(ioctl(ifd->io->fd, IOCTL_GET_IS_CARD_PRESENT, &in)<0)
+		if(ioctl(reader[ridx].handle, IOCTL_GET_IS_CARD_PRESENT, &in)<0)
 #else
-		if(ioctl(ifd->io->fd, IOCTL_GET_IS_CARD_ACTIVATED, &in)<0)
+		if(ioctl(reader[ridx].handle, IOCTL_GET_IS_CARD_ACTIVATED, &in)<0)
 #endif
 			return IFD_TOWITOKO_IO_ERROR;
 			
 		if(in)
 		{
-			if(ioctl(ifd->io->fd, IOCTL_SET_DEACTIVATE)<0)
+			if(ioctl(reader[ridx].handle, IOCTL_SET_DEACTIVATE)<0)
 				return IFD_TOWITOKO_IO_ERROR;
 		}
 		
@@ -425,7 +377,7 @@ int IFD_Towitoko_ResetAsyncICC (IFD * ifd, ATR ** atr)
 		int ret;
 		int parity;
 		int i;
-		int par[3] = {IFD_TOWITOKO_PARITY_EVEN, IFD_TOWITOKO_PARITY_ODD, IFD_TOWITOKO_PARITY_NONE};
+		int par[3] = {PARITY_EVEN, PARITY_ODD, PARITY_NONE};
 #ifdef HAVE_NANOSLEEP
 		struct timespec req_ts;
 		req_ts.tv_sec = 0;
@@ -438,9 +390,8 @@ int IFD_Towitoko_ResetAsyncICC (IFD * ifd, ATR ** atr)
 			parity = par[i];
 			IO_Serial_Flush();
 
-			ret = IFD_Towitoko_SetParity (ifd, parity);
-			if (ret != IFD_TOWITOKO_OK)
-				return ret;
+			if (!IO_Serial_SetParity (parity))
+				return IFD_TOWITOKO_IO_ERROR;
 
 			ret = IFD_TOWITOKO_IO_ERROR;
 
@@ -453,7 +404,7 @@ int IFD_Towitoko_ResetAsyncICC (IFD * ifd, ATR ** atr)
 			}
 			else
 #endif
-				IO_Serial_RTS_Set(ifd->io);
+				IO_Serial_RTS_Set();
 
 #ifdef HAVE_NANOSLEEP
 			nanosleep (&req_ts, NULL);
@@ -468,7 +419,7 @@ int IFD_Towitoko_ResetAsyncICC (IFD * ifd, ATR ** atr)
 			}
 			else
 #endif
-				IO_Serial_RTS_Clr(ifd->io);
+				IO_Serial_RTS_Clr();
 			
 			IO_Serial_Ioctl_Lock(0);
 
@@ -509,98 +460,6 @@ int IFD_Towitoko_ResetAsyncICC (IFD * ifd, ATR ** atr)
 		
 		return ret;
 }
-
-int IFD_Towitoko_Transmit (IFD * ifd, IFD_Timings * timings, unsigned size, BYTE * buffer)
-{
-	unsigned block_delay, char_delay, sent=0, to_send = 0;
-
-#ifdef DEBUG_IFD
-	printf ("IFD: Transmit: ");
-	for (sent = 0; sent < size; sent++)
-	printf ("%X ", buffer[sent]);
-	printf ("\n");
-#endif
-
-
-	/* Calculate delays */
-	char_delay = IFD_TOWITOKO_DELAY + timings->char_delay;
-	block_delay = IFD_TOWITOKO_DELAY + timings->block_delay;
-
-#ifdef USE_GPIO
-	if (gpio_detect) set_gpio1(0);
-#endif
-	for (sent = 0; sent < size; sent = sent + to_send) 
-	{
-		/* Calculate number of bytes to send */
-		to_send = MIN(size, IFD_TOWITOKO_MAX_TRANSMIT);
-				
-		/* Send data */
-		if ((sent == 0) && (block_delay != char_delay))
-		{
-			if (!IO_Serial_Write (block_delay, 1, buffer))
-				return IFD_TOWITOKO_IO_ERROR;
-			
-			if (!IO_Serial_Write (char_delay, to_send-1, buffer+1))
-				return IFD_TOWITOKO_IO_ERROR;
-		}
-		else
-		{
-			if (!IO_Serial_Write (char_delay, to_send, buffer+sent))
-				return IFD_TOWITOKO_IO_ERROR;
-		}
-	}
-#ifdef USE_GPIO
-	if (gpio_detect) set_gpio1(1);
-#endif
-	return IFD_TOWITOKO_OK;
-}
-
-int IFD_Towitoko_Receive (IFD * ifd, IFD_Timings * timings, unsigned size, BYTE * buffer)
-{
-	unsigned char_timeout, block_timeout;
-#ifdef DEBUG_IFD
-	int i;
-#endif
-		
-	/* Calculate timeouts */
-	char_timeout = IFD_TOWITOKO_TIMEOUT + timings->char_timeout;
-	block_timeout = IFD_TOWITOKO_TIMEOUT + timings->block_timeout;
-#ifdef USE_GPIO
-	if (gpio_detect) set_gpio1(0);
-#endif
-	if (block_timeout != char_timeout)
-	{
-		/* Read first byte using block timeout */
-		if (!IO_Serial_Read (block_timeout, 1, buffer))
-			return IFD_TOWITOKO_IO_ERROR;
-		
-		if (size > 1)
-		{
-			/* Read remaining data bytes using char timeout */
-			if (!IO_Serial_Read (char_timeout, size - 1, buffer + 1))
-				return IFD_TOWITOKO_IO_ERROR;
-		}
-	}
-	else
-	{
-		/* Read all data bytes with the same timeout */
-		if (!IO_Serial_Read (char_timeout, size, buffer))
-			return IFD_TOWITOKO_IO_ERROR;
-	}
-#ifdef USE_GPIO
-	if (gpio_detect) set_gpio1(1);
-#endif
-	
-#ifdef DEBUG_IFD
-	printf ("IFD: Receive: ");
-	for (i = 0; i < size; i++)
-	printf ("%X ", buffer[i]);
-	printf ("\n");
-#endif
-	
-	return IFD_TOWITOKO_OK;
-}
-
 
 BYTE IFD_Towitoko_GetType (IFD * ifd)
 {
@@ -657,12 +516,6 @@ unsigned
 IFD_Towitoko_GetNumSlots ()
 {
 	return 1;
-}
-
-unsigned long 
-IFD_Towitoko_GetMaxBaudrate ()
-{
- 	return 115200L;
 }
 
 /*

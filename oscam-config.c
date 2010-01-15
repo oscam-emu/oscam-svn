@@ -1469,9 +1469,7 @@ int init_srvid()
   if (nr>0)
 		cs_log("%d service-id's loaded", nr);
 	else{
-		cs_log("oscam.srvid loading FAILED -> old format");
-		cs_log("New: caid[,caid]:srvid|providername|channelname|type|comment");
-		cs_log("See: http://streamboard.gmc.to/wiki/index.php/Srvid#microMon.srvid");
+		cs_log("oscam.srvid loading failed, old format");
 	}
   return(0);
 }

@@ -27,18 +27,18 @@
 
 #include "defines.h"
 
-#define IO_Serial_DTR_Set(io) IO_Serial_DTR_RTS(io, 1, 1)
-#define IO_Serial_DTR_Clr(io) IO_Serial_DTR_RTS(io, 1, 0)
-#define IO_Serial_RTS_Set(io) IO_Serial_DTR_RTS(io, 0, 1)
-#define IO_Serial_RTS_Clr(io) IO_Serial_DTR_RTS(io, 0, 0)
+//#define IO_Serial_DTR_Set() IO_Serial_DTR_RTS(1, 1)
+//#define IO_Serial_DTR_Clr() IO_Serial_DTR_RTS(1, 0)
+#define IO_Serial_RTS_Set() IO_Serial_DTR_RTS(0, 1)
+#define IO_Serial_RTS_Clr() IO_Serial_DTR_RTS(0, 0)
 /* 
  * Exported constants definition
  */
 
 /* Type of parity of the serial device */
-#define IO_SERIAL_PARITY_ODD		1
-#define IO_SERIAL_PARITY_EVEN		2
-#define IO_SERIAL_PARITY_NONE		3
+#define PARITY_ODD		1
+#define PARITY_EVEN		2
+#define PARITY_NONE		3
 
 /* Values for the modem lines */
 #define IO_SERIAL_HIGH			1
@@ -54,7 +54,6 @@
 /* IO_Serial exported datatype */
 typedef struct
 {
-	int fd;				/* Handle of the serial device */
 	/* Settings that can be modified */
 	unsigned long input_bitrate;
 	unsigned long  output_bitrate;
@@ -64,11 +63,8 @@ typedef struct
 	int dtr;
 	int rts;	
 	/* end settings that can be modified */
-	int reader_type;
 	BYTE PnP_id[IO_SERIAL_PNPID_SIZE];	/* PnP Id of the serial device */
 	unsigned PnP_id_size;			/* Length of PnP Id */
-	int mhz;			/* mhz specified in config = actual reader clock speed */
-	int cardmhz;			/* mhz specified in config = standard (non overclocked) clock speed of card*/
 }
 IO_Serial;
 
@@ -89,9 +85,9 @@ extern bool IO_Serial_Init (IO_Serial * io, int reader_type);
 extern bool IO_Serial_Close (IO_Serial * io);
 
 /* Transmission properties */
-extern bool IO_Serial_SetProperties (IO_Serial * io);
-extern bool IO_Serial_GetProperties (IO_Serial * io);
-extern bool IO_Serial_DTR_RTS(IO_Serial * io, int, int);
+extern bool IO_Serial_SetPropertiesOld (IO_Serial * io);
+extern bool IO_Serial_GetPropertiesOld (IO_Serial * io);
+extern bool IO_Serial_DTR_RTS(int, int);
 #if defined(TUXBOX) && defined(PPC)
 extern void IO_Serial_Ioctl_Lock(int);
 #else
@@ -103,7 +99,6 @@ extern bool IO_Serial_Read (unsigned timeout, unsigned size, BYTE * data);
 extern bool IO_Serial_Write (unsigned delay, unsigned size, BYTE * data);
 
 /* Serial port atributes */
-extern unsigned IO_Serial_GetCom (IO_Serial * io);
 extern void IO_Serial_GetPnPId (IO_Serial * io, BYTE * pnp_id, unsigned *length);
 
 #endif /* IO_SERIAL */
