@@ -988,16 +988,18 @@ void send_oscam_status(struct templatevars *vars, FILE *f, struct uriparams *par
 
 				int j, found = 0;
 				struct s_srvid *srvid = cfg->srvid;
-				while ((srvid = srvid->next) && (srvid->next != NULL)){
-					if (srvid->srvid == client[i].last_srvid){
-						for (j=0; j < srvid->ncaid; j++){
-							if (srvid->caid[j] == client[i].last_caid){
-								found = 1;
-								break;
+				if (srvid){
+					while ((srvid = srvid->next) && (srvid->next != NULL)){
+						if (srvid->srvid == client[i].last_srvid){
+							for (j=0; j < srvid->ncaid; j++){
+								if (srvid->caid[j] == client[i].last_caid){
+									found = 1;
+									break;
+								}
 							}
 						}
+						if (found == 1) break;
 					}
-					if (found == 1) break;
 				}
 				if (found == 1){
 					tpl_printf(vars, 0, "CLIENTSRVPROVIDER","%s : ", srvid->prov);
