@@ -410,6 +410,7 @@ struct s_reader
   int       online;
   int       card_status; //highlevel status
   unsigned short status; //lowlevel status: states whether card inserted and/or change of status FIXME look at integration with pcsc_has_card/detect/card_status
+	unsigned long baudrate; //we are storing baudrate to prevent unnecessary conversions from/to termios structure
   struct    s_module ph;
   uchar     ncd_key[16];
   uchar     ncd_skey[16];
@@ -504,9 +505,14 @@ struct s_auth
 
 struct s_srvid
 {
-  int  srvid;
-  char name[33];
-  struct s_srvid *next;
+  int     srvid;
+  int     ncaid;
+  int     caid[10];
+  char    prov[33];
+  char    name[33];
+  char    type[33];
+  char    desc[33];
+  struct  s_srvid *next;
 };
 
 struct s_ip

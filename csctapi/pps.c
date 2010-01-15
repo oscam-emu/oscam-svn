@@ -431,12 +431,12 @@ static int PPS_InitICC (PPS * pps)
 #include <sys/ioctl.h>
 #include "sci_global.h"
 #include "sci_ioctl.h"
-	if(pps->icc->ifd->io->reader_type == R_INTERNAL)
+	if(reader[ridx].typ == R_INTERNAL)
 	{
 		int n;
 		SCI_PARAMETERS params;
 		//memset(&params,0,sizeof(SCI_PARAMETERS));
-		if (ioctl(pps->icc->ifd->io->fd, IOCTL_GET_PARAMETERS, &params) < 0 )
+		if (ioctl(reader[ridx].handle, IOCTL_GET_PARAMETERS, &params) < 0 )
 			return PPS_ICC_ERROR;
 
 		ATR *atr = ICC_Async_GetAtr (pps->icc);
@@ -460,7 +460,7 @@ static int PPS_InitICC (PPS * pps)
 
 		cs_debug("Setting T=%d fs=%lu mhz ETU=%d WWT=%d CWT=%d BWT=%d EGT=%d clock=%d check=%d P=%d I=%d U=%d", (int)params.T, params.fs, (int)params.ETU, (int)params.WWT, (int)params.CWT, (int)params.BWT, (int)params.EGT, (int)params.clock_stop_polarity, (int)params.check, (int)params.P, (int)params.I, (int)params.U);
 
-		if (ioctl(pps->icc->ifd->io->fd, IOCTL_SET_PARAMETERS, &params)!=0)
+		if (ioctl(reader[ridx].handle, IOCTL_SET_PARAMETERS, &params)!=0)
 			return PPS_ICC_ERROR;
 		
 	}
