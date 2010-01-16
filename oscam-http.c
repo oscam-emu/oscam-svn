@@ -9,6 +9,8 @@
 #include <dirent.h>
 #include <sys/socket.h>
 
+static int running = 1;
+
 void refresh_oscam(enum refreshtypes refreshtype, struct in_addr in){
 int i;
 	switch (refreshtype){
@@ -1173,6 +1175,14 @@ void send_oscam_savetpls(struct templatevars *vars, FILE *f){
 	fputs(tpl_getTpl(vars, "SAVETEMPLATES"), f);
 }
 
+void send_oscam_shutdown(struct templatevars *vars, FILE *f){
+	tpl_printf(vars, 0, "REFRESHTIME", "%d", SHUTDOWNREFRESH);
+	tpl_addVar(vars, 0, "REFRESH", tpl_getTpl(vars, "REFRESH"));
+	tpl_printf(vars, 0, "SECONDS", "%d", SHUTDOWNREFRESH);
+	fputs(tpl_getTpl(vars, "SHUTDOWN"), f);
+	running = 0;
+}
+
 int process_request(FILE *f, struct in_addr in) {
   char buf[4096];
   char tmp[4096];
@@ -1197,7 +1207,8 @@ int process_request(FILE *f, struct in_addr in) {
 			"/user_edit.html",
 			"/site.css",
 			"/services_edit.html",
-			"/savetemplates.html"};
+			"/savetemplates.html",
+			"/shutdown.html"};
   int pagescnt = sizeof(pages)/sizeof(char *);  // Calculate the amount of items in array
 
   int pgidx = -1;
@@ -1304,10 +1315,11 @@ int process_request(FILE *f, struct in_addr in) {
 	    case  3: send_oscam_status(vars, f, &params, in); break;
 	    case  4: send_oscam_user_config(vars, f, &params, in); break;
 	    case  5: send_oscam_reader_config(vars, f, &params, in); break;
-	    case	6: send_oscam_services(vars, f, &params, in); break;
+	    case  6: send_oscam_services(vars, f, &params, in); break;
 	    case  7: send_oscam_user_config_edit(vars, f, &params, in); break;
 	    case  9: send_oscam_services_edit(vars, f, &params, in); break;
 	    case  10: send_oscam_savetpls(vars, f); break;
+	    case  11: send_oscam_shutdown(vars, f); break;
 	    default: send_oscam_status(vars, f, &params, in); break;
 	  }
 		tpl_clear(vars);
@@ -1357,7 +1369,7 @@ void http_srv() {
 		return;
 	}
 	cs_log("HTTP Server listening on port %d", cfg->http_port);
-	while (1)
+	while (running)
 	{
 		int s;
 		FILE *f;
@@ -1374,4 +1386,5 @@ void http_srv() {
 		close(s);
   }
   close(sock);
+  kill(client[0].pid, SIGQUIT);
 }

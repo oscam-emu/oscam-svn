@@ -6,6 +6,7 @@
 #define AUTHREALM "OScam"
 #define AUTHNONCEVALIDSECS 15
 #define MAXGETPARAMS 100
+#define SHUTDOWNREFRESH 30
 
 #define CSS "\
 body {background-color: grey; font-family: Arial; font-size: 12px;}\n\
@@ -29,6 +30,7 @@ DIV.log{border:1px solid black;background-color: black; font-family:\"Courier Ne
 DIV.sidlist{background-color: #FFFF99; padding:2; text-align:left; font-family:\"Courier New\", monospace ; color:black; font-size: 10px; word-wrap:break-word;}\n\
 TABLE.menu{background-color:black; align:center; font-size: 10px;}\n\
 TABLE.menu TD{border:2px outset lightgrey; background-color:silver; font-color:black; font-family: Arial;}\n\
+TABLE.menu TD.shutdown{border:2px outset lightgrey; background-color:orange; font-color:black; font-family: Arial;}\n\
 TD.menu {border:2px outset lightgrey; background-color:silver; font-color:black; font-family: Arial; font-size:11px;}\n\
 TABLE.configmenu{background-color:black; align:center; font-size: 10px;}\n\
 TABLE.configmenu TD{border:2px outset lightgrey; background-color:silver; font-color:black; font-family: Arial;}\n\
@@ -54,7 +56,7 @@ DIV.message{float:right}"
 </HTML>"
 
 #define TPLREFRESH "\
-<meta http-equiv=\"refresh\" content=\"##REFRESHTIME##\"; URL=/status.html\" />\n"
+<meta http-equiv=\"refresh\" content=\"##REFRESHTIME##; URL=/status.html\" />\n"
 
 #define TPLMENU "\
   <TABLE border=0 class=\"menu\">\n\
@@ -64,6 +66,7 @@ DIV.message{float:right}"
       <TD CLASS=\"menu\"><A HREF=\"readers.html\">READERS</TD>\n\
       <TD CLASS=\"menu\"><A HREF=\"userconfig.html\">USERS</TD>\n\
       <TD CLASS=\"menu\"><A HREF=\"services.html\">SERVICES</TD>\n\
+      <TD CLASS=\"shutdown\"><A HREF=\"shutdown.html\">SHUTDOWN</TD>\n\
     </TR>\n\
   </TABLE>"
 
@@ -854,6 +857,11 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 </form>\n\
 ##TPLFOOTER##"
 
+#define TPLSHUTDOWN "##TPLHEADER##\
+##TPLMENU##\n\
+<br><b>Oscam Shutdown - Try Reconnect in ##SECONDS## Seconds</b><br>\n\
+##TPLFOOTER##"
+
 enum refreshtypes {REFR_ACCOUNTS, REFR_READERS, REFR_SERVER, REFR_ANTICASC, REFR_SERVICES};
 
 char *tpl[]={
@@ -901,7 +909,8 @@ char *tpl[]={
 	"SERVICECONFIGLIST",
 	"SERVICECONFIGLISTBIT",
 	"SERVICECONFIGSIDBIT",
-	"SERVICEEDIT"
+	"SERVICEEDIT",
+	"SHUTDOWN"
 #ifdef HAVE_DVBAPI
 	,"CONFIGDVBAPI"
 	,"CONFIGMENUDVBAPI"
@@ -965,7 +974,8 @@ char *tplmap[]={
 	TPLSERVICECONFIGLIST,
 	TPLSERVICECONFIGLISTBIT,
 	TPLSERVICECONFIGSIDBIT,
-	TPLSERVICEEDIT
+	TPLSERVICEEDIT,
+	TPLSHUTDOWN
 #ifdef HAVE_DVBAPI
 	,TPLCONFIGDVBAPI
 	,TPLCONFIGMENUDVBAPI

@@ -387,8 +387,8 @@ void send_headers(FILE *f, int status, char *title, char *extra, char *mime){
 	fprintf(f, "Cache-Control: no-store, no-cache, must-revalidate\r\n");
 	fprintf(f, "Expires: Sat, 26 Jul 1997 05:00:00 GMT\r\n");
 	fprintf(f, "Last-Modified: %s\r\n", timebuf);
-  fprintf(f, "Connection: close\r\n");
-  fprintf(f, "\r\n");
+	fprintf(f, "Connection: close\r\n");
+	fprintf(f, "\r\n");
 }
 
 void send_css(FILE *f){
