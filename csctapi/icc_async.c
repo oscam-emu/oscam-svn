@@ -210,7 +210,7 @@ int ICC_Async_Init (ICC_Async * icc, IFD * ifd)
 	unsigned np=0;
 
 	/* Initialize Baudrate */
-	if (IFD_Towitoko_SetBaudrate (ifd, ICC_ASYNC_BAUDRATE)!= IFD_TOWITOKO_OK)
+	if (!Phoenix_SetBaudrate (ICC_ASYNC_BAUDRATE))
 		return ICC_ASYNC_IFD_ERROR;
 	
 	/* Activate ICC */
@@ -276,16 +276,19 @@ int ICC_Async_Init (ICC_Async * icc, IFD * ifd)
 	{
 		if (!IO_Serial_SetParity (PARITY_ODD))
 			return ICC_ASYNC_IFD_ERROR;
+		icc->ifd->io->parity = PARITY_ODD;
 	}
 	else if(icc->protocol_type == ATR_PROTOCOL_TYPE_T14)
 	{
 		if (!IO_Serial_SetParity (PARITY_NONE))
 			return ICC_ASYNC_IFD_ERROR;		
+		icc->ifd->io->parity = PARITY_NONE;
 	}
 	else
 	{
 		if (!IO_Serial_SetParity (PARITY_EVEN))
 			return ICC_ASYNC_IFD_ERROR;		
+		icc->ifd->io->parity = PARITY_EVEN;
 	}
 #ifdef COOL
 	if (reader[ridx].typ != R_INTERNAL)
@@ -350,7 +353,7 @@ int ICC_Async_GetTimings (ICC_Async * icc, ICC_Async_Timings * timings)
 int ICC_Async_SetBaudrate (ICC_Async * icc, unsigned long baudrate)
 {
 	icc->baudrate = baudrate;
-	if (IFD_Towitoko_SetBaudrate (icc->ifd, baudrate) !=  IFD_TOWITOKO_OK)
+	if (!Phoenix_SetBaudrate (baudrate))
 	  return ICC_ASYNC_IFD_ERROR;
 	
 	return ICC_ASYNC_OK;
