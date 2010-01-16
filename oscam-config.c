@@ -1413,11 +1413,11 @@ int init_srvid()
 
 		int l;
 		void *ptr;
-		char *tmp;
-		tmp = trim(token);
+                char *tmp;
+                tmp = trim(token);
 
-		if (tmp[0] == '#') continue;
-		if ((l=strlen(tmp)) < 6) continue;
+                if (tmp[0] == '#') continue;
+                if ((l=strlen(tmp)) < 6) continue;
 		if (!(payload=strchr(token, '|'))) continue;
 		*payload++ = '\0';
 
