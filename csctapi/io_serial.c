@@ -159,23 +159,23 @@ bool IO_Serial_DTR_RTS(int dtr, int set)
 IO_Serial * IO_Serial_New (int mhz, int cardmhz)
 {
 	IO_Serial *io;
-	
+
 	io = (IO_Serial *) malloc (sizeof (IO_Serial));
-	
+
 	if (io != NULL)
 		IO_Serial_Clear (io);
-	
+
 	return io;
 }
 
 bool IO_Serial_Init (IO_Serial * io, int reader_type)
 {
-	if (reader[ridx].typ != R_INTERNAL)
+	if (reader[ridx].typ != reader_type)
 		IO_Serial_InitPnP (io);
-	
-	if(reader[ridx].typ!=R_INTERNAL)
+
+	if(reader[ridx].typ != reader_type)
 		IO_Serial_Flush();
-		
+
 	return TRUE;
 }
 
@@ -192,12 +192,12 @@ bool IO_Serial_GetPropertiesOld (IO_Serial * io)
 
 	if (io->input_bitrate != 0 && io->output_bitrate != 0) //properties are already filled
 	  return TRUE;
-	
+
 	if (tcgetattr (reader[ridx].handle, &currtio) != 0)
 		return FALSE;
 
 	o_speed = cfgetospeed (&currtio);
-	
+
 	switch (o_speed)
 	{
 #ifdef B0
@@ -301,7 +301,7 @@ bool IO_Serial_GetPropertiesOld (IO_Serial * io)
 	}
 
 	i_speed = cfgetispeed (&currtio);
-	
+
 	switch (i_speed)
 	{
 #ifdef B0
@@ -403,7 +403,7 @@ bool IO_Serial_GetPropertiesOld (IO_Serial * io)
 			io->input_bitrate = 1200;
 			break;
 	}
-	
+
 	switch (currtio.c_cflag & CSIZE)
 	{
 		case CS5:
@@ -419,7 +419,7 @@ bool IO_Serial_GetPropertiesOld (IO_Serial * io)
 			io->bits = 8;
 			break;
 	}
-	
+
 	if (((currtio.c_cflag) & PARENB) == PARENB)
 	{
 		if (((currtio.c_cflag) & PARODD) == PARODD)
@@ -431,34 +431,34 @@ bool IO_Serial_GetPropertiesOld (IO_Serial * io)
 	{
 		io->parity = PARITY_NONE;
 	}
-	
+
 	if (((currtio.c_cflag) & CSTOPB) == CSTOPB)
 		io->stopbits = 2;
 	else
 		io->stopbits = 1;
-	
+
 	if (ioctl (reader[ridx].handle, TIOCMGET, &mctl) < 0)
 		return FALSE;
-	
+
 	io->dtr = ((mctl & TIOCM_DTR) ? IO_SERIAL_HIGH : IO_SERIAL_LOW);
 	io->rts = ((mctl & TIOCM_RTS) ? IO_SERIAL_HIGH : IO_SERIAL_LOW);
-	
+
 #ifdef DEBUG_IO
 	printf("IO: Getting properties: %ld bps; %d bits/byte; %s parity; %d stopbits; dtr=%d; rts=%d\n", io->input_bitrate, io->bits, io->parity == PARITY_EVEN ? "Even" : io->parity == PARITY_ODD ? "Odd" : "None", io->stopbits, io->dtr, io->rts);
 #endif
-	
+
 	return TRUE;
 }
 
 bool IO_Serial_SetPropertiesOld (IO_Serial * io)
 {
    struct termios newtio;
-	
+
 #ifdef SCI_DEV
    if(reader[ridx].typ == R_INTERNAL)
       return FALSE;
 #endif
-   
+
    //	printf("IO: Setting properties: reader_type%d, %ld bps; %d bits/byte; %s parity; %d stopbits; dtr=%d; rts=%d\n", reader[ridx].typ, io->input_bitrate, io->bits, io->parity == PARITY_EVEN ? "Even" : io->parity == PARITY_ODD ? "Odd" : "None", io->stopbits, io->dtr, io->rts);
    memset (&newtio, 0, sizeof (newtio));
 
@@ -479,7 +479,7 @@ bool IO_Serial_SetPropertiesOld (IO_Serial * io)
     ioctl(reader[ridx].handle, TIOCGSERIAL, &nuts);
     int custom_baud = io->output_bitrate * reader[ridx].mhz / reader[ridx].cardmhz;
     nuts.custom_divisor = (nuts.baud_base + (custom_baud/2))/ custom_baud;
-    cs_debug("custom baudrate: cardmhz=%d mhz=%d custom_baud=%d baud_base=%d divisor=%d -> effective baudrate %d", 
+    cs_debug("custom baudrate: cardmhz=%d mhz=%d custom_baud=%d baud_base=%d divisor=%d -> effective baudrate %d",
 	                      reader[ridx].cardmhz, reader[ridx].mhz, custom_baud, nuts.baud_base, nuts.custom_divisor, nuts.baud_base/nuts.custom_divisor);
     nuts.flags &= ~ASYNC_SPD_MASK;
     nuts.flags |= ASYNC_SPD_CUST;
@@ -488,27 +488,27 @@ bool IO_Serial_SetPropertiesOld (IO_Serial * io)
     cfsetispeed(&newtio, IO_Serial_Bitrate(38400));
    }
 #endif
-        
+
    /* Set the character size */
    switch (io->bits)
    {
 		case 5:
 			newtio.c_cflag |= CS5;
 			break;
-		
+
 		case 6:
 			newtio.c_cflag |= CS6;
 			break;
-		
+
 		case 7:
 			newtio.c_cflag |= CS7;
 			break;
-		
+
 		case 8:
 			newtio.c_cflag |= CS8;
 			break;
 	}
-	
+
 	/* Set the parity */
 	switch (io->parity)
 	{
@@ -516,17 +516,17 @@ bool IO_Serial_SetPropertiesOld (IO_Serial * io)
 			newtio.c_cflag |= PARENB;
 			newtio.c_cflag |= PARODD;
 			break;
-		
-		case PARITY_EVEN:	
+
+		case PARITY_EVEN:
 			newtio.c_cflag |= PARENB;
 			newtio.c_cflag &= ~PARODD;
 			break;
-		
+
 		case PARITY_NONE:
 			newtio.c_cflag &= ~PARENB;
 			break;
 	}
-	
+
 	/* Set the number of stop bits */
 	switch (io->stopbits)
 	{
@@ -537,7 +537,7 @@ bool IO_Serial_SetPropertiesOld (IO_Serial * io)
 			newtio.c_cflag |= CSTOPB;
 			break;
 	}
-	
+
 	/* Selects raw (non-canonical) input and output */
 	newtio.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
 	newtio.c_oflag &= ~OPOST;
@@ -547,7 +547,7 @@ bool IO_Serial_SetPropertiesOld (IO_Serial * io)
 #endif
 	/* Enable receiber, hang on close, ignore control line */
 	newtio.c_cflag |= CREAD | HUPCL | CLOCAL;
-	
+
 	/* Read 1 byte minimun, no timeout specified */
 	newtio.c_cc[VMIN] = 1;
 	newtio.c_cc[VTIME] = 0;
@@ -563,7 +563,7 @@ bool IO_Serial_SetPropertiesOld (IO_Serial * io)
 	IO_Serial_DTR_RTS(0, io->rts == IO_SERIAL_HIGH);
 	IO_Serial_DTR_RTS(1, io->dtr == IO_SERIAL_HIGH);
 	IO_Serial_Ioctl_Lock(0);
-	
+
 #ifdef DEBUG_IO
 	printf("IO: Setting properties: reader_type%d, %ld bps; %d bits/byte; %s parity; %d stopbits; dtr=%d; rts=%d\n", reader[ridx].typ, io->input_bitrate, io->bits, io->parity == PARITY_EVEN ? "Even" : io->parity == PARITY_ODD ? "Odd" : "None", io->stopbits, io->dtr, io->rts);
 #endif
@@ -584,7 +584,7 @@ bool IO_Serial_SetProperties (struct termios newtio)
 	unsigned int mctl;
 	if (ioctl (reader[ridx].handle, TIOCMGET, &mctl) < 0)
 		return FALSE;
-	
+
 	int dtr = ((mctl & TIOCM_DTR) ? IO_SERIAL_HIGH : IO_SERIAL_LOW);
 	int rts = ((mctl & TIOCM_RTS) ? IO_SERIAL_HIGH : IO_SERIAL_LOW);
 
@@ -635,7 +635,7 @@ int IO_Serial_SetParity (BYTE parity)
 	parity == PARITY_NONE ? "None" :
 	parity == PARITY_EVEN ? "Even" : "Invalid");
 #endif
-	
+
 	if (current_parity != parity)
 	{
 
@@ -646,12 +646,12 @@ int IO_Serial_SetParity (BYTE parity)
 				tio.c_cflag |= PARENB;
 				tio.c_cflag |= PARODD;
 				break;
-			
-			case PARITY_EVEN:	
+
+			case PARITY_EVEN:
 				tio.c_cflag |= PARENB;
 				tio.c_cflag &= ~PARODD;
 				break;
-			
+
 			case PARITY_NONE:
 				tio.c_cflag &= ~PARENB;
 				break;
@@ -684,19 +684,19 @@ bool IO_Serial_Read (unsigned timeout, unsigned size, BYTE * data)
 	bool readed;
 	struct timeval tv, tv_spent;
 #endif
-	
+
 	if((reader[ridx].typ != R_INTERNAL) && (wr>0))
 	{
 		BYTE buf[256];
 		int n = wr;
 		wr = 0;
-	
+
 		if(!IO_Serial_Read (timeout, n, buf))
 		{
 			return FALSE;
 		}
 	}
-	
+
 #ifdef DEBUG_IO
 	printf ("IO: Receiving: ");
 	fflush (stdout);
@@ -717,7 +717,7 @@ bool IO_Serial_Read (unsigned timeout, unsigned size, BYTE * data)
  			gettimeofday(&tv_spent,0);
 		}
 		if(!readed) return FALSE;
-		
+
 		data[_in_echo_read ? count/(1+io_serial_need_dummy_char) : count] = c;
 #ifdef DEBUG_IO
 		printf ("%X ", c);
@@ -735,7 +735,7 @@ bool IO_Serial_Read (unsigned timeout, unsigned size, BYTE * data)
 				return FALSE;
 			}
 			data[_in_echo_read ? count/(1+io_serial_need_dummy_char) : count] = c;
-			
+
 #ifdef DEBUG_IO
 			printf ("%X ", c);
 			fflush (stdout);
@@ -752,14 +752,14 @@ bool IO_Serial_Read (unsigned timeout, unsigned size, BYTE * data)
 		}
 #endif
 	}
-	
+
     _in_echo_read = 0;
 
 #ifdef DEBUG_IO
 	printf ("\n");
 	fflush (stdout);
 #endif
-	
+
 	return TRUE;
 }
 
@@ -772,20 +772,20 @@ bool IO_Serial_Write (unsigned delay, unsigned size, BYTE * data)
     BYTE data_w[512];
 #ifdef DEBUG_IO
 	unsigned i;
-	
+
 	printf ("IO: Sending: ");
 	fflush (stdout);
 #endif
 	/* Discard input data from previous commands */
 //	tcflush (reader[ridx].handle, TCIFLUSH);
-	
+
 	for (count = 0; count < size; count += to_send)
 	{
 //		if(reader[ridx].typ == R_INTERNAL)
 //			to_send = 1;
 //		else
 			to_send = (delay? 1: size);
-		
+
 		if (IO_Serial_WaitToWrite (delay, 1000))
 		{
             for (i_w=0; i_w < to_send; i_w++) {
@@ -806,10 +806,10 @@ bool IO_Serial_Write (unsigned delay, unsigned size, BYTE * data)
 					wr += u;
 				return FALSE;
 			}
-			
+
 			if(reader[ridx].typ != R_INTERNAL)
 				wr += to_send;
-			
+
 #ifdef DEBUG_IO
 			for (i=0; i<(1+io_serial_need_dummy_char)*to_send; i++)
 				printf ("%X ", data_w[count + i]);
@@ -826,30 +826,30 @@ bool IO_Serial_Write (unsigned delay, unsigned size, BYTE * data)
 			return FALSE;
 		}
 	}
-	
+
 #ifdef DEBUG_IO
 	printf ("\n");
 	fflush (stdout);
 #endif
-	
+
 	return TRUE;
 }
 
 bool IO_Serial_Close (IO_Serial * io)
 {
-	
+
 #ifdef DEBUG_IO
 	printf ("IO: Clossing serial port %s\n", reader[ridx].device);
 #endif
-	
+
 #if defined(TUXBOX) && defined(PPC)
 	close(fdmc);
 #endif
 	if (close (reader[ridx].handle) != 0)
 		return FALSE;
-	
+
 	IO_Serial_Clear (io);
-	
+
 	return TRUE;
 }
 
@@ -926,12 +926,12 @@ static bool IO_Serial_WaitToRead (unsigned delay_ms, unsigned timeout_ms)
    struct timeval tv;
    int select_ret;
    int in_fd;
-   
+
    if (delay_ms > 0)
    {
 #ifdef HAVE_NANOSLEEP
       struct timespec req_ts;
-      
+
       req_ts.tv_sec = delay_ms / 1000;
       req_ts.tv_nsec = (delay_ms % 1000) * 1000000L;
       nanosleep (&req_ts, NULL);
@@ -939,15 +939,15 @@ static bool IO_Serial_WaitToRead (unsigned delay_ms, unsigned timeout_ms)
       usleep (delay_ms * 1000L);
 #endif
    }
-   
+
    in_fd=reader[ridx].handle;
-   
+
    FD_ZERO(&rfds);
    FD_SET(in_fd, &rfds);
-   
+
    FD_ZERO(&erfds);
    FD_SET(in_fd, &erfds);
-   
+
    tv.tv_sec = timeout_ms/1000;
    tv.tv_usec = (timeout_ms % 1000) * 1000L;
    select_ret = select(in_fd+1, &rfds, NULL,  &erfds, &tv);
@@ -977,17 +977,17 @@ static bool IO_Serial_WaitToWrite (unsigned delay_ms, unsigned timeout_ms)
    struct timeval tv;
    int select_ret;
    int out_fd;
-   
+
 #ifdef SCI_DEV
    if(reader[ridx].typ == R_INTERNAL)
       return TRUE;
 #endif
-		
+
    if (delay_ms > 0)
 	{
 #ifdef HAVE_NANOSLEEP
       struct timespec req_ts;
-      
+
       req_ts.tv_sec = delay_ms / 1000;
       req_ts.tv_nsec = (delay_ms % 1000) * 1000000L;
       nanosleep (&req_ts, NULL);
@@ -997,13 +997,13 @@ static bool IO_Serial_WaitToWrite (unsigned delay_ms, unsigned timeout_ms)
    }
 
    out_fd=reader[ridx].handle;
-    
+
    FD_ZERO(&wfds);
    FD_SET(out_fd, &wfds);
-   
+
    FD_ZERO(&ewfds);
    FD_SET(out_fd, &ewfds);
-   
+
    tv.tv_sec = timeout_ms/1000L;
    tv.tv_usec = (timeout_ms % 1000) * 1000L;
 
@@ -1026,7 +1026,7 @@ static bool IO_Serial_WaitToWrite (unsigned delay_ms, unsigned timeout_ms)
    }
 
    return(FD_ISSET(out_fd,&wfds));
-    
+
 }
 
 static void IO_Serial_Clear (IO_Serial * io)
@@ -1056,7 +1056,7 @@ static bool IO_Serial_InitPnP (IO_Serial * io)
 	io->stopbits = 1;
 	io->dtr = IO_SERIAL_HIGH;
 	io->rts = IO_SERIAL_LOW;
-	
+
 	if (!IO_Serial_SetPropertiesOld (io))
 		return FALSE;
 
@@ -1066,4 +1066,4 @@ static bool IO_Serial_InitPnP (IO_Serial * io)
 	io->PnP_id_size = i;
 		return TRUE;
 }
- 
+
