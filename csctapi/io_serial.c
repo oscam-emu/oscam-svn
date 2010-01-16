@@ -173,7 +173,7 @@ bool IO_Serial_Init (IO_Serial * io, int reader_type)
 	if (reader[ridx].typ != reader_type)
 		IO_Serial_InitPnP (io);
 
-	if(reader[ridx].typ != reader_type)
+	if(reader[ridx].typ!=R_INTERNAL)
 		IO_Serial_Flush();
 
 	return TRUE;
