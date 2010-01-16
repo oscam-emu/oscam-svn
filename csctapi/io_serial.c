@@ -170,7 +170,8 @@ IO_Serial * IO_Serial_New (int mhz, int cardmhz)
 
 bool IO_Serial_Init (IO_Serial * io, int reader_type)
 {
-	if (reader[ridx].typ != reader_type)
+	reader[ridx].typ = reader_type;
+	if (reader[ridx].typ != R_INTERNAL)
 		IO_Serial_InitPnP (io);
 
 	if(reader[ridx].typ!=R_INTERNAL)
