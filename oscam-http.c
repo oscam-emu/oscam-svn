@@ -663,9 +663,8 @@ void send_oscam_user_config_edit(struct templatevars *vars, FILE *f, struct urip
 	struct s_auth *account, *ptr;
 	char user[128];
 
-	if (strcmp(getParam(params, "action"), "Save As") == 0) strncpy(user, getParam(params, "newuser"), sizeof(user)/sizeof(char) - 1);
-	else strncpy(user, getParam(params, "user"), sizeof(user)/sizeof(char) - 1);
-	user[sizeof(user)/sizeof(char) - 1] = '\0';
+	if (strcmp(getParam(params, "action"), "Save As") == 0) cs_strncpy(user, getParam(params, "newuser"), sizeof(user)/sizeof(char));
+	else cs_strncpy(user, getParam(params, "user"), sizeof(user)/sizeof(char));
 
 	int i;
 
@@ -690,7 +689,7 @@ void send_oscam_user_config_edit(struct templatevars *vars, FILE *f, struct urip
 	  	ptr->next = account;
 	  }
       memset(account, 0, sizeof(struct s_auth));
-			strncpy((char *)account->usr, user, sizeof(account->usr)-1);
+			cs_strncpy((char *)account->usr, user, sizeof(account->usr));
       account->au=(-1);
       account->monlvl=cfg->mon_level;
       account->tosleep=cfg->tosleep;
@@ -1052,8 +1051,7 @@ void send_oscam_services_edit(struct templatevars *vars, FILE *f, struct uripara
   char label[128];
 	int i;
 
-	strncpy(label, strtolower(getParam(params, "service")), sizeof(label)/sizeof(char) - 1);
-	label[sizeof(label)/sizeof(char) - 1] = '\0';
+	cs_strncpy(label, strtolower(getParam(params, "service")), sizeof(label)/sizeof(char));
 
 	for (sidtab  = cfg->sidtab; sidtab != NULL && strcmp(label, sidtab->label) != 0; sidtab=sidtab->next);
 
@@ -1076,7 +1074,7 @@ void send_oscam_services_edit(struct templatevars *vars, FILE *f, struct uripara
 	  	ptr->next = sidtab;
 	  }
       memset(sidtab, 0, sizeof(struct s_sidtab));
-			strncpy((char *)sidtab->label, label, sizeof(sidtab->label)-1);
+			cs_strncpy((char *)sidtab->label, label, sizeof(sidtab->label));
 
 			tpl_addVar(vars, 1, "MESSAGE", "<b>New service has been added</b><BR>");
 			if (write_services()==0) refresh_oscam(REFR_SERVICES, in);

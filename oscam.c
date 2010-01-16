@@ -439,7 +439,7 @@ static void cs_child_chk(int i)
           uchar     ac_penalty=0;
           if( cfg->ac_enabled )
           {
-            strncpy(usr, client[i].usr, sizeof(usr)-1);
+            cs_strncpy(usr, client[i].usr, sizeof(usr));
             ac_idx = client[i].ac_idx;
             ac_limit = client[i].ac_limit;
             ac_penalty = client[i].ac_penalty;
@@ -1248,8 +1248,8 @@ void store_logentry(char *txt)
   ptr[0]='\1';    // make username unusable
   ptr[1]='\0';
   if ((client[cs_idx].typ=='c') || (client[cs_idx].typ=='m'))
-    strncpy(ptr, client[cs_idx].usr, 31);
-  strncpy(ptr+32, txt, CS_LOGHISTSIZE-33);
+    cs_strncpy(ptr, client[cs_idx].usr, 31);
+  cs_strncpy(ptr+32, txt, CS_LOGHISTSIZE-33);
   *loghistidx=(*loghistidx+1) % CS_MAXLOGHIST;
 #endif
 }
@@ -1385,7 +1385,7 @@ void logCWtoFile(ECM_REQUEST *er)
         srvname[0] = 0;
         for (this=cfg->srvid; this; this=this->next) {
             if (this->srvid==er->srvid) {
-                strncpy(srvname, this->name, sizeof(srvname));
+                cs_strncpy(srvname, this->name, sizeof(srvname));
                 srvname[sizeof(srvname)-1] = 0;
                 for (i=0;srvname[i];i++)
                     if (srvname[i]==' ') srvname[i]='_';
@@ -2206,13 +2206,13 @@ int main (int argc, char *argv[])
     {
       case 'b': bg=1;
                 break;
-      case 'c': strncpy(cs_confdir, optarg, sizeof(cs_confdir)-1);
+      case 'c': cs_strncpy(cs_confdir, optarg, sizeof(cs_confdir));
                 break;
       case 'd': cs_dblevel=atoi(optarg);
                 break;
       case 'm':
 #ifdef CS_NOSHM
-                strncpy(cs_memfile, optarg, sizeof(cs_memfile)-1);
+                cs_strncpy(cs_memfile, optarg, sizeof(cs_memfile));
                 break;
 #endif
       case 'h':

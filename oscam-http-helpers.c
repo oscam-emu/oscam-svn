@@ -131,7 +131,7 @@ void tpl_clear(struct templatevars *vars){
 /* Creates a path to a template file. You need to set the resultsize to the correct size of result. */
 char *tpl_getTplPath(const char *name, const char *path, char *result, unsigned int resultsize){
 	char *pch;
-	if((strlen(path) + strlen(name) + 5) <= resultsize){
+	if((strlen(path) + strlen(name) + 6) <= resultsize){
 		strcpy(result, path);
 		strcat(result, name);
 		strcat(result, ".tpl");
@@ -279,8 +279,7 @@ void calculate_nonce(char *result, int resultlen){
   strcat(noncetmp, noncekey);
   fflush(stdout);
   expectednonce =char_to_hex(MD5((unsigned char*)noncetmp, strlen(noncetmp), NULL), MD5_DIGEST_LENGTH, hex2ascii);
-  strncpy(result, expectednonce, resultlen);
-  result[resultlen - 1] = '\0';
+  cs_strncpy(result, expectednonce, resultlen);
   free(noncetmp);
 	free(expectednonce);
 }

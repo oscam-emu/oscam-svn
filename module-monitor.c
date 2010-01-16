@@ -204,7 +204,7 @@ static void monitor_send_info(char *txt, int last)
   if (!last)
   {
     if (btxt[0]) monitor_send(btxt);
-    strncpy(btxt, txt, sizeof(btxt));
+    cs_strncpy(btxt, txt, sizeof(btxt));
     return;
   }
 
@@ -212,12 +212,12 @@ static void monitor_send_info(char *txt, int last)
   {
     monitor_send(btxt);
     txt[2]='E';
-    strncpy(btxt, txt, sizeof(btxt));
+    cs_strncpy(btxt, txt, sizeof(btxt));
   }
   else
   {
     if (txt)
-      strncpy(btxt, txt, sizeof(btxt));
+      cs_strncpy(btxt, txt, sizeof(btxt));
     btxt[2]=(btxt[2]=='B') ? 'S' : 'E';
   }
 
@@ -246,7 +246,7 @@ char *monitor_get_srvname(int srvid, int caid){
 		if (this->srvid == srvid)
 			for (i=0; i<this->ncaid; i++)
 				if (this->caid[i] == caid)
-					strncpy(name, this->name, 32);
+					cs_strncpy(name, this->name, 32);
 
 	if (!name[0]) sprintf(name, "[%04X:%04X]", caid, srvid);
 	if (!srvid) name[0] = '\0';
@@ -589,11 +589,10 @@ static void monitor_set_server(char *args){
 	trim(argarray[1]);
 	strtolower(argarray[0]);
 
-	found = 0;
 	for (i = 0; i < 14; i++)
-		if (!strcmp(argarray[0], token[i]))	found = 1;
+		if (!strcmp(argarray[0], token[i]))	break;
 
-	if (found != 1){
+	if (i < 14){
 		chk_t_global(token[i],argarray[1]);
 		sprintf(buf, "[S-0000]setserver done - param %s set to %s\n", argarray[0], argarray[1]);
 		monitor_send_info(buf, 1);

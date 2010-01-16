@@ -1057,7 +1057,7 @@ int dvbapi_main_local()
 	}
 
 	if (cfg->dvbapi_boxtype[0]==0) {
-		strncpy(cfg->dvbapi_boxtype, "dreambox", sizeof(cfg->dvbapi_boxtype)-1);
+		cs_strncpy(cfg->dvbapi_boxtype, "dreambox", sizeof(cfg->dvbapi_boxtype));
 		cs_log("dvbapi: boxtype not set. Assume boxtype=%s.", cfg->dvbapi_boxtype);
 	} else
 		cs_log("dvbapi: boxtype=%s.", cfg->dvbapi_boxtype);

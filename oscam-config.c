@@ -316,10 +316,10 @@ static void chk_srvip(char *value, in_addr_t *ip)
 void chk_t_global(char *token, char *value)
 {
   if (!strcmp(token, "serverip")) { cfg->srvip=inet_addr(value); return; }
-  if (!strcmp(token, "logfile")) { strncpy(logfile, value, sizeof(logfile)-1); return; }
-  if (!strcmp(token, "pidfile")) { strncpy(cfg->pidfile, value, sizeof(cfg->pidfile)-1); return; }
-  if (!strcmp(token, "usrfile")) { strncpy(cfg->usrfile, value, sizeof(cfg->usrfile)-1); return; }
-  if (!strcmp(token, "cwlogdir")) { strncpy(cfg->cwlogdir, value, sizeof(cfg->cwlogdir)-1); return; }
+  if (!strcmp(token, "logfile")) { cs_strncpy(logfile, value, sizeof(logfile)); return; }
+  if (!strcmp(token, "pidfile")) { cs_strncpy(cfg->pidfile, value, sizeof(cfg->pidfile)); return; }
+  if (!strcmp(token, "usrfile")) { cs_strncpy(cfg->usrfile, value, sizeof(cfg->usrfile)); return; }
+  if (!strcmp(token, "cwlogdir")) { cs_strncpy(cfg->cwlogdir, value, sizeof(cfg->cwlogdir)); return; }
   if (!strcmp(token, "clienttimeout"))
   {
       cfg->ctimeout = atoi(value);
@@ -410,7 +410,7 @@ void chk_t_ac(char *token, char *value)
   }
   if (!strcmp(token, "aclogfile"))
   {
-    strncpy(cfg->ac_logfile, value, sizeof(cfg->ac_logfile)-1);
+    cs_strncpy(cfg->ac_logfile, value, sizeof(cfg->ac_logfile));
     return;
   }
   if( !strcmp(token, "fakedelay") )
@@ -441,10 +441,17 @@ void chk_t_monitor(char *token, char *value)
   if (!strcmp(token, "aulow")) { cfg->mon_aulow=atoi(value); return; }
   if (!strcmp(token, "monlevel")) { cfg->mon_level=atoi(value); return; }
   if (!strcmp(token, "httpport")) { cfg->http_port=atoi(value); return; }
-  if (!strcmp(token, "httpuser")) { strncpy(cfg->http_user, value, sizeof(cfg->http_user)-1); cfg->http_user[sizeof(cfg->http_user)-1] = '\0'; return; }
-  if (!strcmp(token, "httppwd")) { strncpy(cfg->http_pwd, value, sizeof(cfg->http_pwd)-1); cfg->http_pwd[sizeof(cfg->http_pwd)-1] = '\0'; return; }
-  if (!strcmp(token, "httpcss")) { strncpy(cfg->http_css, value, sizeof(cfg->http_css)-1); cfg->http_css[sizeof(cfg->http_css)-1] = '\0'; return; }
-  if (!strcmp(token, "httptpl")) { strncpy(cfg->http_tpl, value, sizeof(cfg->http_tpl)-1); cfg->http_css[sizeof(cfg->http_tpl)-1] = '\0'; return; }
+  if (!strcmp(token, "httpuser")) { cs_strncpy(cfg->http_user, value, sizeof(cfg->http_user)); return; }
+  if (!strcmp(token, "httppwd")) { cs_strncpy(cfg->http_pwd, value, sizeof(cfg->http_pwd)); return; }
+  if (!strcmp(token, "httpcss")) { cs_strncpy(cfg->http_css, value, sizeof(cfg->http_css)); return; }
+  if (!strcmp(token, "httptpl")) {  	
+  	cs_strncpy(cfg->http_tpl, value, sizeof(cfg->http_tpl));
+  	if(strlen(cfg->http_tpl) < (sizeof(cfg->http_tpl)-2) && cfg->http_tpl[strlen(cfg->http_tpl)-1] != '/'){
+  		cfg->http_tpl[strlen(cfg->http_tpl)] = '/';
+  		cfg->http_tpl[strlen(cfg->http_tpl)] = '\0';
+  	}
+  	return;
+  }
   if (!strcmp(token, "httprefresh")) { cfg->http_refresh=atoi(value); return; }
   if (!strcmp(token, "httphideidleclients")) { cfg->http_hide_idle_clients=atoi(value); return; }
   if (!strcmp(token, "hideclient_to")) { cfg->mon_hideclient_to=atoi(value); return; }
@@ -510,7 +517,7 @@ void chk_t_radegast(char *token, char *value)
   if (!strcmp(token, "port")) { cfg->rad_port=atoi(value); return; }
   if (!strcmp(token, "serverip")) { cfg->rad_srvip=inet_addr(value); return; }
   if (!strcmp(token, "allowed")) { chk_iprange(value, &cfg->rad_allowed); return; }
-  if (!strcmp(token, "user")) { strncpy(cfg->rad_usr, value, sizeof(cfg->rad_usr)-1); return; }
+  if (!strcmp(token, "user")) { cs_strncpy(cfg->rad_usr, value, sizeof(cfg->rad_usr)); return; }
   if (token[0] != '#')
     fprintf(stderr, "Warning: keyword '%s' in radegast section not recognized\n",token);
 }
@@ -522,7 +529,7 @@ void chk_t_serial(char *token, char *value)
     int l;
     l=strlen(cfg->ser_device);
     if (l) cfg->ser_device[l++]=1;  // use ctrl-a as delimiter
-    strncpy(cfg->ser_device+l, value, sizeof(cfg->ser_device)-1-l);
+    cs_strncpy(cfg->ser_device+l, value, sizeof(cfg->ser_device)-l);
     return;
   }
   if (token[0] != '#')
@@ -535,9 +542,9 @@ static void chk_t_gbox(char *token, char *value)
 //  if (!strcmp(token, "password")) strncpy(cfg->gbox_pwd, i2b(4, a2i(value, 4)), 4);
   if (!strcmp(token, "password")) { cs_atob(cfg->gbox_pwd, value, 4); return; }
   if (!strcmp(token, "maxdist")) { cfg->maxdist=atoi(value); return; }
-  if (!strcmp(token, "ignorelist")) { strncpy((char *)cfg->ignorefile, value, sizeof(cfg->ignorefile)-1); return; }
-  if (!strcmp(token, "onlineinfos")) { strncpy((char *)cfg->gbxShareOnl, value, sizeof(cfg->gbxShareOnl)-1); return; }
-  if (!strcmp(token, "cardinfos")) { strncpy((char *)cfg->cardfile, value, sizeof(cfg->cardfile)-1); return; }
+  if (!strcmp(token, "ignorelist")) { cs_strncpy((char *)cfg->ignorefile, value, sizeof(cfg->ignorefile)); return; }
+  if (!strcmp(token, "onlineinfos")) { cs_strncpy((char *)cfg->gbxShareOnl, value, sizeof(cfg->gbxShareOnl)); return; }
+  if (!strcmp(token, "cardinfos")) { cs_strncpy((char *)cfg->cardfile, value, sizeof(cfg->cardfile)); return; }
   if (!strcmp(token, "locals"))
   {
     char *ptr1;
@@ -566,10 +573,10 @@ void chk_t_dvbapi(char *token, char *value)
 {
 	if (!strcmp(token, "enabled")) 	{ cfg->dvbapi_enabled=atoi(value); return; }
 	if (!strcmp(token, "au"))		{ cfg->dvbapi_au=atoi(value); return; }
-	if (!strcmp(token, "boxtype")) 	{ strncpy(cfg->dvbapi_boxtype, value, sizeof(cfg->dvbapi_boxtype)-1); return; }
-	if (!strcmp(token, "user")) 	{ strncpy(cfg->dvbapi_usr, value, sizeof(cfg->dvbapi_usr)-1); return; }
-	if (!strcmp(token, "priority")) { strncpy(cfg->dvbapi_priority, value, sizeof(cfg->dvbapi_priority)-1); return; }
-	if (!strcmp(token, "ignore"))   { strncpy(cfg->dvbapi_ignore, value, sizeof(cfg->dvbapi_ignore)-1); return; }
+	if (!strcmp(token, "boxtype")) 	{ cs_strncpy(cfg->dvbapi_boxtype, value, sizeof(cfg->dvbapi_boxtype)); return; }
+	if (!strcmp(token, "user")) 	{ cs_strncpy(cfg->dvbapi_usr, value, sizeof(cfg->dvbapi_usr)); return; }
+	if (!strcmp(token, "priority")) { cs_strncpy(cfg->dvbapi_priority, value, sizeof(cfg->dvbapi_priority)); return; }
+	if (!strcmp(token, "ignore"))   { cs_strncpy(cfg->dvbapi_ignore, value, sizeof(cfg->dvbapi_ignore)); return; }
 
 	if (token[0] != '#')
 	    fprintf(stderr, "Warning: keyword '%s' in dvbapi section not recognized\n",token);
@@ -767,9 +774,9 @@ void chk_account(char *token, char *value, struct s_auth *account)
   int i;
   char *ptr1;//, *ptr2;
 
-  if (!strcmp(token, "user")) { strncpy(account->usr, value, sizeof(account->usr)-1); return; }
-  if (!strcmp(token, "pwd")) { strncpy(account->pwd, value, sizeof(account->pwd)-1); return; }
-  if (!strcmp(token, "hostname")) { strncpy((char *)account->dyndns, value, sizeof(account->dyndns)-1);return; }
+  if (!strcmp(token, "user")) { cs_strncpy(account->usr, value, sizeof(account->usr)); return; }
+  if (!strcmp(token, "pwd")) { cs_strncpy(account->pwd, value, sizeof(account->pwd)); return; }
+  if (!strcmp(token, "hostname")) { cs_strncpy((char *)account->dyndns, value, sizeof(account->dyndns));return; }
   if (!strcmp(token, "betatunnel")) { chk_tuntab(value, &account->ttab); return; }
   if (!strcmp(token, "uniq")) { account->uniq=atoi(value); return; }
   if (!strcmp(token, "sleep")) { account->tosleep=atoi(value); return; }
@@ -1287,7 +1294,7 @@ static void chk_entry4sidtab(char *value, struct s_sidtab *sidtab, int what)
   ulong *llist=(ulong *) 0;
   ulong caid;
   char buf[strlen(value) + 1];
-  strncpy(buf, value, sizeof(buf));
+  cs_strncpy(buf, value, sizeof(buf));
   b=(what==1) ? sizeof(ulong) : sizeof(ushort);
   for (i=0, ptr=strtok(value, ","); ptr; ptr=strtok(NULL, ","))
   {
@@ -1378,7 +1385,7 @@ int init_sidtab()
       sidtab=ptr;
       nr++;
       memset(sidtab, 0, sizeof(struct s_sidtab));
-      strncpy(sidtab->label, strtolower(token+1), sizeof(sidtab->label));
+      cs_strncpy(sidtab->label, strtolower(token+1), sizeof(sidtab->label));
       continue;
     }
     if (!sidtab) continue;
@@ -1439,16 +1446,16 @@ int init_srvid()
     for (i = 0, ptr1 = strtok(payload, "|"); ptr1; ptr1 = strtok(NULL, "|"), i++){
 			switch(i){
 				case 0:
-					strncpy(srvid->prov, trim(ptr1), sizeof(srvid->prov)-1);
+					cs_strncpy(srvid->prov, trim(ptr1), sizeof(srvid->prov));
 					break;
 				case 1:
-					strncpy(srvid->name, trim(ptr1), sizeof(srvid->name)-1);
+					cs_strncpy(srvid->name, trim(ptr1), sizeof(srvid->name));
 					break;
 				case 2:
-					strncpy(srvid->type, trim(ptr1), sizeof(srvid->type)-1);
+					cs_strncpy(srvid->type, trim(ptr1), sizeof(srvid->type));
 					break;
 				case 3:
-					strncpy(srvid->desc, trim(ptr1), sizeof(srvid->desc)-1);
+					cs_strncpy(srvid->desc, trim(ptr1), sizeof(srvid->desc));
 					break;
 			}
 		}
@@ -1488,7 +1495,7 @@ static void chk_reader(char *token, char *value, struct s_reader *rdr)
       trim(ptr);
       switch(i)
       {
-        case 0: strncpy(rdr->device, ptr, sizeof(rdr->device)-1); break;
+        case 0: cs_strncpy(rdr->device, ptr, sizeof(rdr->device)); break;
         case 1: rdr->r_port=atoi(ptr); break;
         case 2: rdr->l_port=atoi(ptr); break;
       }
@@ -1505,7 +1512,7 @@ static void chk_reader(char *token, char *value, struct s_reader *rdr)
     return;
   }
 #ifdef CS_WITH_GBOX
-  if (!strcmp(token, "password")) { strncpy((char *)rdr->gbox_pwd, (const char *)i2b(4, a2i(value, 4)), 4); return; }
+  if (!strcmp(token, "password")) { cs_strncpy((char *)rdr->gbox_pwd, (const char *)i2b(4, a2i(value, 4)), 4); return; }
   if (!strcmp(token, "premium")) { rdr->gbox_prem=1; return; }
 #endif
   if (!strcmp(token, "account"))
@@ -1515,14 +1522,14 @@ static void chk_reader(char *token, char *value, struct s_reader *rdr)
       trim(ptr);
       switch(i)
       {
-        case 0: strncpy(rdr->r_usr, ptr, sizeof(rdr->r_usr)-1); break;
-        case 1: strncpy(rdr->r_pwd, ptr, sizeof(rdr->r_pwd)-1); break;
+        case 0: cs_strncpy(rdr->r_usr, ptr, sizeof(rdr->r_usr)); break;
+        case 1: cs_strncpy(rdr->r_pwd, ptr, sizeof(rdr->r_pwd)); break;
       }
     }
     return;
   }
-  if( !strcmp(token, "pincode")) { strncpy(rdr->pincode, value, sizeof(rdr->pincode)-1); return; }
-  if (!strcmp(token, "readnano")) { strncpy((char *)rdr->emmfile, value, sizeof(rdr->emmfile)-1); return; }
+  if( !strcmp(token, "pincode")) { cs_strncpy(rdr->pincode, value, sizeof(rdr->pincode)); return; }
+  if (!strcmp(token, "readnano")) { cs_strncpy((char *)rdr->emmfile, value, sizeof(rdr->emmfile)); return; }
   /*
    *  case insensitive
    */
@@ -1533,7 +1540,7 @@ static void chk_reader(char *token, char *value, struct s_reader *rdr)
   if (!strcmp(token, "reconnecttimeout")) {    rdr->tcp_rto = atoi(value);  return; }
   if (!strcmp(token, "disableserverfilter")) { rdr->ncd_disable_server_filt = atoi(value);  return; }
 
-  if (!strcmp(token, "label")) { strncpy(rdr->label, value, sizeof(rdr->label)-1); return; }
+  if (!strcmp(token, "label")) { cs_strncpy(rdr->label, value, sizeof(rdr->label)); return; }
   if (!strcmp(token, "fallback")) { rdr->fallback=atoi(value) ? 1 : 0; return; }
   if (!strcmp(token, "logport")) { rdr->log_port=atoi(value); return; }
   if (!strcmp(token, "caid")) { chk_caidtab(value, &rdr->ctab); return; }
@@ -1683,7 +1690,7 @@ static void chk_reader(char *token, char *value, struct s_reader *rdr)
       exit(1);
     }
     bzero(rdr->cc_version, sizeof(rdr->cc_version));
-    strncpy(rdr->cc_version, value, sizeof(rdr->cc_version)-1);
+    cs_strncpy(rdr->cc_version, value, sizeof(rdr->cc_version));
     return;
   }
   if (!strcmp(token, "cccbuild")) {  // cccam build number
@@ -1692,7 +1699,7 @@ static void chk_reader(char *token, char *value, struct s_reader *rdr)
       exit(1);
     }
     bzero(rdr->cc_build, sizeof(rdr->cc_build));
-    strncpy(rdr->cc_build, value, sizeof(rdr->cc_build)-1);
+    cs_strncpy(rdr->cc_build, value, sizeof(rdr->cc_build));
     return;
   }
   if (!strcmp(token, "cccmaxhop")) {  // cccam max card distance

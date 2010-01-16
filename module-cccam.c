@@ -846,7 +846,7 @@ static int cc_cli_connect(void)
 
   cs_debug("cccam: 'CCcam' xor");
   memcpy(buf, "CCcam", 5);
-  strncpy(pwd, reader[ridx].r_pwd, 63);
+  cs_strncpy(pwd, reader[ridx].r_pwd, sizeof(reader[ridx].r_pwd));
   cc_crypt(&cc->block[ENCRYPT], (uint8 *)pwd, strlen(pwd), ENCRYPT);
   cc_cmd_send(buf, 6, MSG_NO_HEADER); // send 'CCcam' xor w/ pwd
 
