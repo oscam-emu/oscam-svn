@@ -160,18 +160,18 @@ char *tpl_getUnparsedTpl(const char* name){
   	if(strlen(tpl_getTplPath(name, cfg->http_tpl, path, 200)) > 0 && file_exists(path)){
 			FILE *fp;
 			char buffer[1024];
-			int read, allocated = 1025, size = 1;
+			int read, allocated = 1025, size = 0;
 			result = (char *) malloc(allocated * sizeof(char));
 			if((fp = fopen(path,"r"))!=NULL){
 			while((read = fread(&buffer,sizeof(char),1024,fp)) > 0){
-				size += read;
-				if(allocated < size) {
+				if(allocated < size + read + 1) {
 					allocated += size + 1024;
 					result = (char *) realloc(result, allocated * sizeof(char));
 				}
-				memcpy(result, buffer, read);
+				memcpy(result + size, buffer, read);
+				size += read;
 			}
-			result[size - 1] = '\0';
+			result[size] = '\0';
 			fclose (fp);
 			return result;
 			}
