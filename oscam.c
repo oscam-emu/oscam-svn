@@ -1816,7 +1816,7 @@ void get_cw(ECM_REQUEST *er)
     if(client[cs_idx].expirationdate && client[cs_idx].expirationdate<client[cs_idx].lastecm)
       er->rc=11; //expired
     if(client[cs_idx].disabled != 0)
-    	er->rc=12; //disabled
+      er->rc=12; //disabled
     if ((client[cs_idx].tosleep) &&
         (now-client[cs_idx].lastswitch>client[cs_idx].tosleep))
       er->rc=6; // sleeping
