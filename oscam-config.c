@@ -1468,6 +1468,7 @@ int init_srvid()
 		for (i = 0, ptr1 = strtok(token, ","); (ptr1) && (i < 10) ; ptr1 = strtok(NULL, ","), i++){
 			srvid->caid[i] = word_atob(ptr1);
 			srvid->ncaid = i+1;
+			cs_debug("ld caid: %04X srvid: %04X Prov: %s Chan: %s",srvid->caid[i],srvid->srvid,srvid->prov,srvid->name);
 		}
 		nr++;
 	}
