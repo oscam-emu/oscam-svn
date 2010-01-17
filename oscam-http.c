@@ -992,11 +992,14 @@ void send_oscam_status(struct templatevars *vars, FILE *f, struct uriparams *par
 				if (srvid){
 					while ((srvid = srvid->next) && (srvid->next != NULL)){
 						if (srvid->srvid == client[i].last_srvid){
+							cs_debug("Srvid: %04X found - search for caid: %04X now", client[i].last_srvid, client[i].last_caid);
 							for (j=0; j < srvid->ncaid; j++){
 								if (srvid->caid[j] == client[i].last_caid){
+									cs_debug("Caid%d: %04X match %04X found!",j,srvid->caid[j],client[i].last_caid);
 									found = 1;
 									break;
 								}
+								cs_debug("Caid%d: %04X not match %04X",j,srvid->caid[j],client[i].last_caid);
 							}
 						}
 						if (found == 1) break;
@@ -1008,6 +1011,7 @@ void send_oscam_status(struct templatevars *vars, FILE *f, struct uriparams *par
 					tpl_addVar(vars, 0, "CLIENTSRVTYPE", srvid->type);
 					tpl_addVar(vars, 0, "CLIENTSRVDESCRIPTION", srvid->desc);
 				}else{
+					cs_debug("Srvid: %04X not found",client[i].last_srvid);
 					tpl_addVar(vars, 0, "CLIENTSRVPROVIDER","");
 					tpl_printf(vars, 0, "CLIENTSRVNAME","");
 					tpl_addVar(vars, 0, "CLIENTSRVTYPE","");
