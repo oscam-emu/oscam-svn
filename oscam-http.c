@@ -989,22 +989,25 @@ void send_oscam_status(struct templatevars *vars, FILE *f, struct uriparams *par
 
 				int j, found = 0;
 				struct s_srvid *srvid = cfg->srvid;
-				if (srvid){
-					while ((srvid = srvid->next) && (srvid->next != NULL)){
-						if (srvid->srvid == client[i].last_srvid){
-							cs_debug("Srvid: %04X found - search for caid: %04X now", client[i].last_srvid, client[i].last_caid);
-							for (j=0; j < srvid->ncaid; j++){
-								if (srvid->caid[j] == client[i].last_caid){
-									cs_debug("Caid%d: %04X match %04X found!",j,srvid->caid[j],client[i].last_caid);
-									found = 1;
-									break;
-								}
-								cs_debug("Caid%d: %04X not match %04X",j,srvid->caid[j],client[i].last_caid);
+
+				while (srvid != NULL){
+					if (srvid->srvid == client[i].last_srvid){
+						cs_debug("Srvid: %04X found - search for caid: %04X now", client[i].last_srvid, client[i].last_caid);
+						for (j=0; j < srvid->ncaid; j++){
+							if (srvid->caid[j] == client[i].last_caid){
+								cs_debug("Caid%d: %04X match %04X found!",j,srvid->caid[j],client[i].last_caid);
+								found = 1;
+								break;
 							}
+							cs_debug("Caid%d: %04X not match %04X",j,srvid->caid[j],client[i].last_caid);
 						}
-						if (found == 1) break;
 					}
+					if (found == 1)
+						break;
+					else
+						srvid = srvid->next;
 				}
+
 				if (found == 1){
 					tpl_printf(vars, 0, "CLIENTSRVPROVIDER","%s : ", srvid->prov);
 					tpl_addVar(vars, 0, "CLIENTSRVNAME", srvid->name);
