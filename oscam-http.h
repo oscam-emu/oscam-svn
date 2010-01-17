@@ -26,6 +26,7 @@ TR.p TD{background-color:yellow;}\n\
 TR.c TD{background-color:green;}\n\
 TR.online TD{background-color:#009900;}\n\
 TR.expired TD{background-color:orange;}\n\
+TR.disabled TD{background-color:#FFFF00;}\n\
 DIV.log{border:1px solid black;background-color: black; font-family:\"Courier New\", monospace ; color:yellow; font-size: 11px; word-wrap:break-word;}\n\
 DIV.sidlist{background-color: #FFFF99; padding:2; text-align:left; font-family:\"Courier New\", monospace ; color:black; font-size: 10px; word-wrap:break-word;}\n\
 TABLE.menu{background-color:black; align:center; font-size: 10px;}\n\
@@ -203,6 +204,7 @@ DIV.message{float:right}"
 <BR><BR>\n\
   <form action=\"user_edit.html\" method=\"get\">\n\
   <input name=\"user\" type=\"hidden\" value=\"##USERNAME##\">\n\
+  <input name=\"disabled\" type=\"hidden\" value=\"0\">\n\
   <TABLE cellspacing=\"0\">\n\
     <TR>\n\
       <TH>&nbsp;</TH>\n\
@@ -211,6 +213,9 @@ DIV.message{float:right}"
       <TD>Password:</TD>\n\
       <TD><input name=\"pwd\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##PASSWORD##\"></TD>\n\
     </TR>\n\
+    <TR>\
+		<TD>Disabled:</TD>\
+		<TD><input name=\"disabled\" type=\"checkbox\" value=\"1\" ##DISABLEDCHECKED##>\n\
     <TR>\n\
       <TD>Exp. Date:</TD>\n\
       <TD><input name=\"expdate\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##EXPDATE##\"></TD>\n\

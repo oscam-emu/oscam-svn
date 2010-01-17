@@ -333,6 +333,7 @@ void cs_reinit_clients()
         client[i].au      = account->au;
         client[i].autoau  = account->autoau;
         client[i].expirationdate = account->expirationdate;
+        client[i].disabled = account->disabled;
         client[i].tosleep = (60*account->tosleep);
         client[i].monlvl  = account->monlvl;
         client[i].fchid   = account->fchid;  // CHID filters
@@ -1530,7 +1531,7 @@ int send_dcw(ECM_REQUEST *er)
 {
   static char *stxt[]={"found", "cache1", "cache2", "emu",
                        "not found", "timeout", "sleeping",
-                       "fake", "invalid", "corrupt", "no card", "expdate"};
+                       "fake", "invalid", "corrupt", "no card", "expdate", "disabled"};
   static char *stxtEx[]={"", "group", "caid", "ident", "class", "chid", "queue", "peer"};
   static char *stxtWh[]={"", "user ", "reader ", "server ", "lserver "};
   char sby[32]="";
@@ -1814,6 +1815,8 @@ void get_cw(ECM_REQUEST *er)
       client[cs_idx].lastswitch=now;
     if(client[cs_idx].expirationdate && client[cs_idx].expirationdate<client[cs_idx].lastecm)
       er->rc=11; //expired
+    if(client[cs_idx].disabled != 0)
+    	er->rc=12; //disabled
     if ((client[cs_idx].tosleep) &&
         (now-client[cs_idx].lastswitch>client[cs_idx].tosleep))
       er->rc=6; // sleeping

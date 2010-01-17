@@ -735,6 +735,10 @@ void send_oscam_user_config_edit(struct templatevars *vars, FILE *f, struct urip
 	tpl_addVar(vars, 0, "USERNAME", account->usr);
 	tpl_addVar(vars, 0, "PASSWORD", account->pwd);
 
+	//Disabled
+	if(account->disabled)
+		tpl_addVar(vars, 0, "DISABLEDCHECKED", "checked");
+
 	//Expirationdate
 	struct tm * timeinfo = localtime (&account->expirationdate);
 	char buf [80];
@@ -857,7 +861,11 @@ void send_oscam_user_config(struct templatevars *vars, FILE *f, struct uriparams
 		if(account->expirationdate && account->expirationdate<time(NULL)){
 			expired = " (expired)";
 			classname = "expired";
-			}
+		}
+		if(account->disabled != 0){
+			expired = " (disabled)";
+			classname = "disabled";
+		}
 		status="offline";
 
 		//search account in active clients
