@@ -75,7 +75,7 @@ user assingment to reader group, default=none, \fIrequired\fR
 user [de]assingment to service group, default:none
 .RE
 .PP
-\fBident\fP = \fB<CAID>:<ident>[,<CAID>:<ident>]...\fP
+\fBident\fP = \fB<CAID>:<ident>[,<ident>,...][;<CAID>:<ident>[,<ident>,...]]...\fP
 .RS 3n
 user assingment to idents, default:none
 .RE
@@ -109,6 +109,11 @@ expiration date for account, default:none
 
  example: expdate = 2001-11-21
           expdate = 2002/12/22
+.RE
+.PP
+\fBdisabled\fP = \fB0\fP|\fB1\fP
+.RS 3n
+1 = account disabled, default:0
 .RE
 .PP
 \fBnumusers\fP = \fBquantity\fP \fI(only if anti-cascading enabled)\fR
