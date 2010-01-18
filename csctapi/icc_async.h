@@ -57,40 +57,34 @@ typedef struct
   unsigned char_timeout;         /* Max timeout (ms) to receive sucesive characters */
 }
 ICC_Async_Timings;
-
+/*
 typedef struct
 {
-  ATR *atr;                     /* Answer to reset of this ICC */
-  int convention;               /* Convention of this ICC */
-  unsigned long baudrate;	/* Current baudrate (bps) for transmiting to this ICC */
-  ICC_Async_Timings timings;    /* Current timings for transmiting to this ICC */
-  BYTE protocol_type;		/* Type of protocol */
 }
 ICC_Async;
+*/
+ATR *atr;                     /* Answer to reset of this ICC */
+int convention;               /* Convention of this ICC */
+BYTE protocol_type;		/* Type of protocol */
+ICC_Async_Timings icc_timings;    /* Current timings for transmiting to this ICC */
 
 /*
  * Exported functions declaration
  */
 
-/* Creation and Deletion */
-extern ICC_Async * ICC_Async_New (void);
-extern void ICC_Async_Delete (ICC_Async * icc);
-
 /* Initialization and Deactivation */
-extern int ICC_Async_Init (ICC_Async * icc);
-extern int ICC_Async_Close (ICC_Async * icc);
+extern int ICC_Async_Init ();
+extern int ICC_Async_Close ();
 
 /* Attributes */
-extern int ICC_Async_SetTimings (ICC_Async * icc, ICC_Async_Timings * timings);
-extern int ICC_Async_GetTimings (ICC_Async * icc, ICC_Async_Timings * timings);
-extern int ICC_Async_SetBaudrate (ICC_Async * icc, unsigned long baudrate);
-extern int ICC_Async_GetBaudrate (ICC_Async * icc, unsigned long * baudrate);
-extern ATR *ICC_Async_GetAtr (ICC_Async * icc);
+extern int ICC_Async_SetTimings ();
+extern int ICC_Async_SetBaudrate (unsigned long baudrate);
+extern int ICC_Async_GetBaudrate (unsigned long * baudrate);
 extern unsigned long ICC_Async_GetClockRate ();
 
 /* Operations */
-extern int ICC_Async_Transmit (ICC_Async * icc, unsigned size, BYTE * buffer);
-extern int ICC_Async_Receive (ICC_Async * icc, unsigned size, BYTE * buffer);
+extern int ICC_Async_Transmit (unsigned size, BYTE * buffer);
+extern int ICC_Async_Receive (unsigned size, BYTE * buffer);
 
 #endif /* _ICC_ASYNC_ */
 
