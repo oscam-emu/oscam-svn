@@ -215,7 +215,7 @@ DIV.message{float:right}"
     </TR>\n\
     <TR>\
 		<TD>Disabled:</TD>\
-		<TD><input name=\"disabled\" type=\"checkbox\" value=\"1\" ##DISABLEDCHECKED##>\n\
+		<TD><input name=\"disabled\" type=\"checkbox\" value=\"1\" ##DISABLEDCHECKED##></TD>\n\
     <TR>\n\
       <TD>Exp. Date:</TD>\n\
       <TD><input name=\"expdate\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##EXPDATE##\"></TD>\n\

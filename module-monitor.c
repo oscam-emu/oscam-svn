@@ -304,9 +304,9 @@ static char *monitor_client_info(char id, int i){
 		now=time((time_t)0);
 
 		if	((cfg->mon_hideclient_to <= 0) ||
-				(now-client[i].lastecm < cfg->mon_hideclient_to) ||
-				(now-client[i].lastemm < cfg->mon_hideclient_to) ||
-				(client[i].typ != 'c'))
+			(now-client[i].lastecm < cfg->mon_hideclient_to) ||
+			(now-client[i].lastemm < cfg->mon_hideclient_to) ||
+			(client[i].typ != 'c'))
 		{
 			lsec=now-client[i].login;
 			isec=now-client[i].last;
