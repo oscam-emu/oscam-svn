@@ -15,6 +15,7 @@ A:visited {text-decoration: none; color:#660000}\n\
 A:active {text-decoration: none; color:white}\n\
 A:hover {text-decoration: none; color: red;}\n\
 p {color: white; }\n\
+DIV.warning {width:200px;border:1px solid white;background-color:red;color:white;font-family: Arial; font-size: 12px;font-weight:bold;padding:3px;}\
 h2 {color: orange; font-family: Arial; font-size: 14px; line-height: 12px;}\n\
 h4 {color: black; font-family: Arial; font-size: 12px; line-height: 9px; }\n\
 TABLE{background-color:#66CCFF;}\n\
@@ -862,7 +863,20 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 </form>\n\
 ##TPLFOOTER##"
 
-#define TPLSHUTDOWN "##TPLHEADER##\
+#define TPLPRESHUTDOWN "\
+##TPLHEADER##\
+##TPLMENU##\n\
+<br><br><br><DIV class = \"warning\">You are really want to shutdown Oscam?<br>\
+All user will become disconnected.<br>\
+You will not be able to restart Oscam from Webinterface.<br>\
+The Webinterface will try to connect oscam 30 seconds after shutdown one time.</b><br>\n\
+</DIV><br><form action=\"shutdown.html\" method=\"get\">\n\
+<input type=\"submit\" name=\"action\" value=\"Shutdown\" title=\"Save service and reload services\"></TD>\n\
+</form>\
+##TPLFOOTER##"
+
+#define TPLSHUTDOWN "\
+##TPLHEADER##\
 ##TPLMENU##\n\
 <br><b>Oscam Shutdown - Try Reconnect in ##SECONDS## Seconds</b><br>\n\
 ##TPLFOOTER##"
@@ -915,6 +929,7 @@ char *tpl[]={
 	"SERVICECONFIGLISTBIT",
 	"SERVICECONFIGSIDBIT",
 	"SERVICEEDIT",
+	"PRESHUTDOWN",
 	"SHUTDOWN"
 #ifdef HAVE_DVBAPI
 	,"CONFIGDVBAPI"
@@ -980,6 +995,7 @@ char *tplmap[]={
 	TPLSERVICECONFIGLISTBIT,
 	TPLSERVICECONFIGSIDBIT,
 	TPLSERVICEEDIT,
+	TPLPRESHUTDOWN,
 	TPLSHUTDOWN
 #ifdef HAVE_DVBAPI
 	,TPLCONFIGDVBAPI

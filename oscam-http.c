@@ -1187,12 +1187,16 @@ void send_oscam_savetpls(struct templatevars *vars, FILE *f){
 	fputs(tpl_getTpl(vars, "SAVETEMPLATES"), f);
 }
 
-void send_oscam_shutdown(struct templatevars *vars, FILE *f){
-	tpl_printf(vars, 0, "REFRESHTIME", "%d", SHUTDOWNREFRESH);
-	tpl_addVar(vars, 0, "REFRESH", tpl_getTpl(vars, "REFRESH"));
-	tpl_printf(vars, 0, "SECONDS", "%d", SHUTDOWNREFRESH);
-	fputs(tpl_getTpl(vars, "SHUTDOWN"), f);
-	running = 0;
+void send_oscam_shutdown(struct templatevars *vars, FILE *f, struct uriparams *params){
+	if (strcmp(getParam(params, "action"), "Shutdown") == 0){
+		tpl_printf(vars, 0, "REFRESHTIME", "%d", SHUTDOWNREFRESH);
+		tpl_addVar(vars, 0, "REFRESH", tpl_getTpl(vars, "REFRESH"));
+		tpl_printf(vars, 0, "SECONDS", "%d", SHUTDOWNREFRESH);
+		fputs(tpl_getTpl(vars, "SHUTDOWN"), f);
+		running = 0;
+	}else{
+		fputs(tpl_getTpl(vars, "PRESHUTDOWN"), f);
+	}
 }
 
 int process_request(FILE *f, struct in_addr in) {
@@ -1331,7 +1335,7 @@ int process_request(FILE *f, struct in_addr in) {
 	    case  7: send_oscam_user_config_edit(vars, f, &params, in); break;
 	    case  9: send_oscam_services_edit(vars, f, &params, in); break;
 	    case  10: send_oscam_savetpls(vars, f); break;
-	    case  11: send_oscam_shutdown(vars, f); break;
+	    case  11: send_oscam_shutdown(vars, f, &params); break;
 	    default: send_oscam_status(vars, f, &params, in); break;
 	  }
 		tpl_clear(vars);
