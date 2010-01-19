@@ -444,6 +444,7 @@ void chk_t_monitor(char *token, char *value)
   if (!strcmp(token, "httpuser")) { cs_strncpy(cfg->http_user, value, sizeof(cfg->http_user)); return; }
   if (!strcmp(token, "httppwd")) { cs_strncpy(cfg->http_pwd, value, sizeof(cfg->http_pwd)); return; }
   if (!strcmp(token, "httpcss")) { cs_strncpy(cfg->http_css, value, sizeof(cfg->http_css)); return; }
+  if (!strcmp(token, "httpscript")) { cs_strncpy(cfg->http_script, value, sizeof(cfg->http_script)); return; }
   if (!strcmp(token, "httptpl")) {  	
   	cs_strncpy(cfg->http_tpl, value, sizeof(cfg->http_tpl));
   	if(strlen(cfg->http_tpl) < (sizeof(cfg->http_tpl)-2) && cfg->http_tpl[strlen(cfg->http_tpl)-1] != '/'){
@@ -980,6 +981,7 @@ int write_config()
 	fprintf_conf(f, CONFVARWIDTH, "httpuser", "%s\n", cfg->http_user);
 	fprintf_conf(f, CONFVARWIDTH, "httppwd", "%s\n", cfg->http_pwd);
 	fprintf_conf(f, CONFVARWIDTH, "httpcss", "%s\n", cfg->http_css);
+	fprintf_conf(f, CONFVARWIDTH, "httpscript", "%s\n", cfg->http_script);
 	fprintf_conf(f, CONFVARWIDTH, "httprefresh", "%d\n", cfg->http_refresh);
 	fprintf_conf(f, CONFVARWIDTH, "httphideidleclients", "%d\n", cfg->http_hide_idle_clients);
 	fputc((int)'\n', f);

@@ -33,6 +33,7 @@ DIV.sidlist{background-color: #FFFF99; padding:2; text-align:left; font-family:\
 TABLE.menu{background-color:black; align:center; font-size: 10px;}\n\
 TABLE.menu TD{border:2px outset lightgrey; background-color:silver; font-color:black; font-family: Arial;}\n\
 TABLE.menu TD.shutdown{border:2px outset lightgrey; background-color:orange; font-color:black; font-family: Arial;}\n\
+TABLE.menu TD.script{border:2px outset lightgrey; background-color:yellow; font-color:black; font-family: Arial;}\n\
 TD.menu {border:2px outset lightgrey; background-color:silver; font-color:black; font-family: Arial; font-size:11px;}\n\
 TABLE.configmenu{background-color:black; align:center; font-size: 10px;}\n\
 TABLE.configmenu TD{border:2px outset lightgrey; background-color:silver; font-color:black; font-family: Arial;}\n\
@@ -68,6 +69,7 @@ DIV.message{float:right}"
       <TD CLASS=\"menu\"><A HREF=\"readers.html\">READERS</TD>\n\
       <TD CLASS=\"menu\"><A HREF=\"userconfig.html\">USERS</TD>\n\
       <TD CLASS=\"menu\"><A HREF=\"services.html\">SERVICES</TD>\n\
+      <TD CLASS=\"script\"><A HREF=\"script.html\">SCRIPT</TD>\n\
       <TD CLASS=\"shutdown\"><A HREF=\"shutdown.html\">SHUTDOWN</TD>\n\
     </TR>\n\
   </TABLE>"
@@ -628,8 +630,9 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 		<TR><TD>Httppwd:</TD><TD><input name=\"httppwd\" type=\"text\" size=\"20\" maxlength=\"20\" value=\"##HTTPPASSWORD##\"></TD></TR>\n\
 		<TR><TD>Httpcss:</TD><TD><input name=\"httpcss\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"##HTTPCSS##\"></TD></TR>\n\
 		<TR><TD>Httprefresh:</TD><TD><input name=\"httprefresh\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##HTTPREFRESH##\"> s</TD></TR>\n\
-		<TR><TD>Httptpl:</TD><TD><input name=\"httptpl\" type=\"text\" size=\"50\" maxlength=\"100\" value=\"##HTTPTPL##\"></TD></TR>\n\
-    <TR><TD>HttpHideIdleClients:</TD><TD><input name=\"httphideidleclients\" type=\"checkbox\" value=\"1\" ##CHECKED##>\n\
+		<TR><TD>Httptpl:</TD><TD><input name=\"httptpl\" type=\"text\" size=\"50\" maxlength=\"128\" value=\"##HTTPTPL##\"></TD></TR>\n\
+		<TR><TD>Httpscript:</TD><TD><input name=\"httpscript\" type=\"text\" size=\"50\" maxlength=\"128\" value=\"##HTTPSCRIPT##\"></TD></TR>\n\
+		<TR><TD>HttpHideIdleClients:</TD><TD><input name=\"httphideidleclients\" type=\"checkbox\" value=\"1\" ##CHECKED##>\n\
     <TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\">\n</TD></TR>\n\
 	</TABLE>\n\
 </form>\n\
@@ -881,6 +884,12 @@ The Webinterface will try to connect oscam 30 seconds after shutdown one time.</
 <br><b>Oscam Shutdown - Try Reconnect in ##SECONDS## Seconds</b><br>\n\
 ##TPLFOOTER##"
 
+#define TPLSCRIPT "\
+##TPLHEADER##\
+##TPLMENU##\n\
+<br><br><b>Oscam execute script: ##SCRIPTNAME## --> Status: ##SCRIPTRESULT## --> Returncode: ##CODE##</b><br>\n\
+##TPLFOOTER##"
+
 enum refreshtypes {REFR_ACCOUNTS, REFR_READERS, REFR_SERVER, REFR_ANTICASC, REFR_SERVICES};
 
 char *tpl[]={
@@ -930,7 +939,8 @@ char *tpl[]={
 	"SERVICECONFIGSIDBIT",
 	"SERVICEEDIT",
 	"PRESHUTDOWN",
-	"SHUTDOWN"
+	"SHUTDOWN",
+	"SCRIPT"
 #ifdef HAVE_DVBAPI
 	,"CONFIGDVBAPI"
 	,"CONFIGMENUDVBAPI"
@@ -996,7 +1006,8 @@ char *tplmap[]={
 	TPLSERVICECONFIGSIDBIT,
 	TPLSERVICEEDIT,
 	TPLPRESHUTDOWN,
-	TPLSHUTDOWN
+	TPLSHUTDOWN,
+	TPLSCRIPT
 #ifdef HAVE_DVBAPI
 	,TPLCONFIGDVBAPI
 	,TPLCONFIGMENUDVBAPI

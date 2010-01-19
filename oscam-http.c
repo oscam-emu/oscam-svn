@@ -322,6 +322,7 @@ void send_oscam_config_monitor(struct templatevars *vars, FILE *f, struct uripar
 	tpl_addVar(vars, 0, "HTTPCSS", cfg->http_css);
 	tpl_printf(vars, 0, "HTTPREFRESH", "%d", cfg->http_refresh);
 	tpl_addVar(vars, 0, "HTTPTPL", cfg->http_tpl);
+	tpl_addVar(vars, 0, "HTTPSCRIPT", cfg->http_script);
 	if (cfg->http_hide_idle_clients > 0) tpl_addVar(vars, 0, "CHECKED", "checked");
 
 	struct s_ip *cip;
@@ -1212,6 +1213,25 @@ void send_oscam_shutdown(struct templatevars *vars, FILE *f, struct uriparams *p
 	}
 }
 
+void send_oscam_script(struct templatevars *vars, FILE *f){
+	char *result = "not found";
+	int rc = 0;
+	if(cfg->http_script[0]){
+		tpl_addVar(vars, 0, "SCRIPTNAME",cfg->http_script);
+		rc = system(cfg->http_script);
+		if(rc == -1){
+			result = "done";
+		}else{
+			result = "failed";
+		}
+	}else{
+		tpl_addVar(vars, 0, "SCRIPTNAME", "no script defined");
+	}
+	tpl_addVar(vars, 0, "SCRIPTRESULT", result);
+	tpl_printf(vars, 0, "CODE", "%d", rc);
+	fputs(tpl_getTpl(vars, "SCRIPT"), f);
+}
+
 int process_request(FILE *f, struct in_addr in) {
   char buf[4096];
   char tmp[4096];
@@ -1237,7 +1257,8 @@ int process_request(FILE *f, struct in_addr in) {
 			"/site.css",
 			"/services_edit.html",
 			"/savetemplates.html",
-			"/shutdown.html"};
+			"/shutdown.html",
+			"/script.html"};
   int pagescnt = sizeof(pages)/sizeof(char *);  // Calculate the amount of items in array
 
   int pgidx = -1;
@@ -1349,6 +1370,7 @@ int process_request(FILE *f, struct in_addr in) {
 	    case  9: send_oscam_services_edit(vars, f, &params, in); break;
 	    case  10: send_oscam_savetpls(vars, f); break;
 	    case  11: send_oscam_shutdown(vars, f, &params); break;
+	    case  12: send_oscam_script(vars, f); break;
 	    default: send_oscam_status(vars, f, &params, in); break;
 	  }
 		tpl_clear(vars);
