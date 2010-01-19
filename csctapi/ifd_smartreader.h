@@ -56,5 +56,5 @@ void EnableSmartReader(struct ftdi_context* ftdic, int clock, unsigned short Fi,
 void ResetSmartReader(struct ftdi_context* ftdic);
 void* ReaderThread(void *p);
 
-#endf // USE_PTHREAD
+#endif // USE_PTHREAD
 #endif //HAVE_LIBUSB

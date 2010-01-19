@@ -366,5 +366,5 @@ void* ReaderThread(void *p)
     pthread_exit(NULL);
 }
 
-#endf // USE_PTHREAD
+#endif // USE_PTHREAD
 #endif //HAVE_LIBUSB
