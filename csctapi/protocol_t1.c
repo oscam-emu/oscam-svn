@@ -30,28 +30,14 @@
 #include "t1_block.h"
 
 /*
- * Not exported constants definition
- */
-#define PROTOCOL_T1_DEFAULT_IFSC        32
-#define PROTOCOL_T1_DEFAULT_IFSD        32
-#define PROTOCOL_T1_MAX_IFSC            251  /* Cannot send > 255 buffer */
-#define PROTOCOL_T1_DEFAULT_CWI         13
-#define PROTOCOL_T1_DEFAULT_BWI         4
-#define PROTOCOL_T1_EDC_LRC             0
-#define PROTOCOL_T1_EDC_CRC             1
-
-/*
  * Not exported functions declaration
  */
-
-static void 
-Protocol_T1_Clear (Protocol_T1 * t1);
 
 static int
 Protocol_T1_SendBlock (T1_Block * block);
 
 static int
-Protocol_T1_ReceiveBlock (Protocol_T1 * t1, T1_Block ** block);
+Protocol_T1_ReceiveBlock (T1_Block ** block);
 
 static int
 Protocol_T1_UpdateBWT (unsigned short bwt);
@@ -60,105 +46,8 @@ Protocol_T1_UpdateBWT (unsigned short bwt);
  * Exproted funtions definition
  */
 
-Protocol_T1 *
-Protocol_T1_New (void)
-{
-  Protocol_T1 *t1;
-
-  t1 = (Protocol_T1 *) malloc (sizeof (Protocol_T1));
-
-  if (t1 != NULL)
-    Protocol_T1_Clear (t1);
-
-  return t1;
-}
-
 int
-Protocol_T1_Init (Protocol_T1 * t1, int selected_protocol)
-{
-  BYTE ta, tb, tc, cwi, bwi;
-  unsigned long baudrate;
-  double work_etu;
-  int i;
-
-  /* Set IFSC */
-  if (ATR_GetInterfaceByte (atr, selected_protocol, ATR_INTERFACE_BYTE_TA, &ta) == ATR_NOT_FOUND)
-    t1->ifsc = PROTOCOL_T1_DEFAULT_IFSC;
-  else if ((ta != 0x00) && (ta != 0xFF))
-    t1->ifsc = ta;
-  else
-    t1->ifsc = PROTOCOL_T1_DEFAULT_IFSC;
-
-  /* Towitoko does not allow IFSC > 251 */
-  t1->ifsc = MIN (t1->ifsc, PROTOCOL_T1_MAX_IFSC);
-
-  /* Set IFSD */
-  t1->ifsd = PROTOCOL_T1_DEFAULT_IFSD;
-
-#ifndef PROTOCOL_T1_USE_DEFAULT_TIMINGS
-  /* Calculate CWI and BWI */
-  if (ATR_GetInterfaceByte (atr, selected_protocol, ATR_INTERFACE_BYTE_TB, &tb) == ATR_NOT_FOUND)
-    {
-#endif
-      cwi  = PROTOCOL_T1_DEFAULT_CWI;
-      bwi = PROTOCOL_T1_DEFAULT_BWI;
-#ifndef PROTOCOL_T1_USE_DEFAULT_TIMINGS
-    }
-  else
-    {
-      cwi  = tb & 0x0F;
-      bwi = (tb & 0xF0) >> 4;
-    }
-#endif
-  
-  /* Work etu  = (1000 / baudrate) milliseconds */
-  ICC_Async_GetBaudrate (&baudrate);
-  work_etu = 1000 / (double)baudrate;
-
-  /* Set CWT = (2^CWI + 11) work etu */
-  t1->cwt = 1;
-
-  for (i = 0; i < cwi ; i++)
-    t1->cwt *= 2;
-
-  t1->cwt = (unsigned short) ((t1->cwt + 11) * work_etu);
-
-  /* Set BWT = (2^BWI * 960 + 11) work etu */
-  t1->bwt = 1;
-  for (i = 0; i < bwi; i++)
-    t1->bwt *= 2;
-
-  t1->bwt = (unsigned short) ((t1->bwt * 960 + 11) * work_etu);
-
-  /* Set BGT = 22 * work etu */
-  t1->bgt = (unsigned short) (22 * work_etu);
-
-  /* Set the error detection code type */
-  if (ATR_GetInterfaceByte (atr, selected_protocol, ATR_INTERFACE_BYTE_TC, &tc) == ATR_NOT_FOUND)
-    t1->edc = PROTOCOL_T1_EDC_LRC;
-  else
-    t1->edc = tc & 0x01;
-
-  /* Set initial send sequence (NS) */
-  t1->ns = 1;
-  
-  /* Set timings */
-  icc_timings.block_timeout = t1->bwt;
-  icc_timings.char_timeout = t1->cwt;
-  icc_timings.block_delay = t1->bgt;
-	ICC_Async_SetTimings ();
-
-#ifdef DEBUG_PROTOCOL
-  printf ("Protocol: T=1: IFSC=%d, IFSD=%d, CWT=%d, BWT=%d, BGT=%d, EDC=%s\n",
-          t1->ifsc, t1->ifsd, t1->cwt, t1->bwt, t1->bgt,
-          (t1->edc == PROTOCOL_T1_EDC_LRC) ? "LRC" : "CRC");
-#endif
-
-  return PROTOCOL_T1_OK;
-}
-
-int
-Protocol_T1_Command (Protocol_T1 * t1, APDU_Cmd * cmd, APDU_Rsp ** rsp)
+Protocol_T1_Command (APDU_Cmd * cmd, APDU_Rsp ** rsp)
 {
   T1_Block *block;
   BYTE *buffer, rsp_type, bytes, nr, wtx;
@@ -182,7 +71,7 @@ Protocol_T1_Command (Protocol_T1 * t1, APDU_Cmd * cmd, APDU_Rsp ** rsp)
       T1_Block_Delete (block);
 
       /* Receive a block */
-      ret = Protocol_T1_ReceiveBlock (t1, &block);
+      ret = Protocol_T1_ReceiveBlock (&block);
 
       if (ret == PROTOCOL_T1_OK)
         {
@@ -193,7 +82,7 @@ Protocol_T1_Command (Protocol_T1 * t1, APDU_Cmd * cmd, APDU_Rsp ** rsp)
             {
               /* Update IFSD value */
               inf = (*T1_Block_GetInf (block));
-              t1->ifsd = inf;
+              ifsd = inf;
 #ifdef DEBUG_PROTOCOL
               printf ("Protocol: Received block S(IFS response, %d)\n", inf);
 #endif
@@ -205,19 +94,19 @@ Protocol_T1_Command (Protocol_T1 * t1, APDU_Cmd * cmd, APDU_Rsp ** rsp)
 
   /* Calculate the number of bytes to send */
   counter = 0;
-  bytes = MIN (APDU_Cmd_RawLen (cmd), t1->ifsc);
+  bytes = MIN (APDU_Cmd_RawLen (cmd), ifsc);
 
   /* See if chaining is needed */
-  more = (APDU_Cmd_RawLen (cmd) > t1->ifsc);
+  more = (APDU_Cmd_RawLen (cmd) > ifsc);
 
   /* Increment ns */
-  t1->ns = (t1->ns + 1) %2;
+  ns = (ns + 1) %2;
 
   /* Create an I-Block */
-  block = T1_Block_NewIBlock (bytes, APDU_Cmd_Raw (cmd), t1->ns, more);
+  block = T1_Block_NewIBlock (bytes, APDU_Cmd_Raw (cmd), ns, more);
 
 #ifdef DEBUG_PROTOCOL
-  printf ("Sending block I(%d,%d)\n", t1->ns, more);
+  printf ("Sending block I(%d,%d)\n", ns, more);
 #endif
 
   /* Send a block */
@@ -229,7 +118,7 @@ Protocol_T1_Command (Protocol_T1 * t1, APDU_Cmd * cmd, APDU_Rsp ** rsp)
   while ((ret == PROTOCOL_T1_OK) && more)
     {
       /* Receive a block */
-      ret = Protocol_T1_ReceiveBlock (t1, &block);
+      ret = Protocol_T1_ReceiveBlock (&block);
 
       if (ret == PROTOCOL_T1_OK)
         {
@@ -245,21 +134,21 @@ Protocol_T1_Command (Protocol_T1 * t1, APDU_Cmd * cmd, APDU_Rsp ** rsp)
               T1_Block_Delete (block);
  
               /* Increment ns  */
-              t1->ns = (t1->ns + 1) % 2;
+              ns = (ns + 1) % 2;
 
               /* Calculate the number of bytes to send */
               counter += bytes;
-              bytes = MIN (APDU_Cmd_RawLen (cmd) - counter, t1->ifsc);
+              bytes = MIN (APDU_Cmd_RawLen (cmd) - counter, ifsc);
 
               /* See if chaining is needed */
-              more = (APDU_Cmd_RawLen (cmd) - counter > t1->ifsc);
+              more = (APDU_Cmd_RawLen (cmd) - counter > ifsc);
 
               /* Create an I-Block */
               block =
                 T1_Block_NewIBlock (bytes, APDU_Cmd_Raw (cmd) + counter,
-                                    t1->ns, more);
+                                    ns, more);
 #ifdef DEBUG_PROTOCOL
-              printf ("Protocol: Sending block I(%d,%d)\n", t1->ns, more);
+              printf ("Protocol: Sending block I(%d,%d)\n", ns, more);
 #endif
               /* Send a block */
               ret = Protocol_T1_SendBlock (block);
@@ -292,14 +181,14 @@ Protocol_T1_Command (Protocol_T1 * t1, APDU_Cmd * cmd, APDU_Rsp ** rsp)
   while ((ret == PROTOCOL_T1_OK) && more)
     {
       if (wtx > 1)
-        Protocol_T1_UpdateBWT (wtx * (t1->bwt));          
+        Protocol_T1_UpdateBWT (wtx * (bwt));          
 
       /* Receive a block */
-      ret = Protocol_T1_ReceiveBlock (t1, &block);
+      ret = Protocol_T1_ReceiveBlock (&block);
 
       if (wtx > 1)
         {
-          Protocol_T1_UpdateBWT (t1->bwt);          
+          Protocol_T1_UpdateBWT (bwt);          
           wtx = 0;
         }
 
@@ -382,20 +271,6 @@ Protocol_T1_Command (Protocol_T1 * t1, APDU_Cmd * cmd, APDU_Rsp ** rsp)
   return ret;
 }
 
-int
-Protocol_T1_Close (Protocol_T1 * t1)
-{
-  Protocol_T1_Clear (t1);
-
-  return PROTOCOL_T1_OK;
-}
-
-void
-Protocol_T1_Delete (Protocol_T1 * t1)
-{
-  free (t1);
-}
-
 /*
  * Not exported functions definition
  */
@@ -424,7 +299,7 @@ Protocol_T1_SendBlock (T1_Block * block)
 }
 
 static int
-Protocol_T1_ReceiveBlock (Protocol_T1 * t1, T1_Block ** block)
+Protocol_T1_ReceiveBlock (T1_Block ** block)
 {
   BYTE buffer[T1_BLOCK_MAX_SIZE];
   int ret;
@@ -441,7 +316,7 @@ Protocol_T1_ReceiveBlock (Protocol_T1 * t1, T1_Block ** block)
       if (buffer[2] != 0x00)
         {
           /* Set timings to read the remaining block */
-          Protocol_T1_UpdateBWT (t1->cwt);
+          Protocol_T1_UpdateBWT (cwt);
 
           /* Receive remaining bytes */
           if (ICC_Async_Receive (buffer[2], buffer + 4) !=
@@ -458,7 +333,7 @@ Protocol_T1_ReceiveBlock (Protocol_T1 * t1, T1_Block ** block)
             }
 
           /* Restore timings */
-          Protocol_T1_UpdateBWT (t1->bwt);
+          Protocol_T1_UpdateBWT (bwt);
         }
       else
         {
@@ -468,18 +343,6 @@ Protocol_T1_ReceiveBlock (Protocol_T1 * t1, T1_Block ** block)
     }
 
   return ret;
-}
-
-static void
-Protocol_T1_Clear (Protocol_T1 * t1)
-{
-  t1->ifsc = 0;
-  t1->ifsd = 0;
-  t1->bgt = 0;
-  t1->bwt = 0;
-  t1->cwt = 0;
-  t1->edc = 0;
-  t1->ns = 0;
 }
 
 static int
