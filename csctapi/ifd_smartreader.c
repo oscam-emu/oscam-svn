@@ -1,4 +1,5 @@
 #ifdef HAVE_LIBUSB
+#ifdef USE_PTHREAD
 /*
 		ifd_smartreader.c
 		This module provides IFD handling functions for for Argolis smartreader+.
@@ -365,5 +366,5 @@ void* ReaderThread(void *p)
     pthread_exit(NULL);
 }
 
-
-#endif
+#endf // USE_PTHREAD
+#endif //HAVE_LIBUSB
