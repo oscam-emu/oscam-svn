@@ -3,6 +3,8 @@
     Header file for Argolis smartreader+.
 */
 #ifdef HAVE_LIBUSB
+#ifdef USE_PTHREAD
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
@@ -54,4 +56,5 @@ void EnableSmartReader(struct ftdi_context* ftdic, int clock, unsigned short Fi,
 void ResetSmartReader(struct ftdi_context* ftdic);
 void* ReaderThread(void *p);
 
-#endif
+#endf // USE_PTHREAD
+#endif //HAVE_LIBUSB
