@@ -1,5 +1,4 @@
-#ifdef HAVE_LIBUSB
-#ifdef USE_PTHREAD
+#if defined(HAVE_LIBUSB) && defined(USE_PTHREAD)
 /*
 		ifd_smartreader.c
 		This module provides IFD handling functions for for Argolis smartreader+.
@@ -28,9 +27,10 @@ int SR_Init (int device_index)
     ftdic.in_ep = 0x1;
     ftdic.out_ep = 0x82;
 
+    
     //open the first smartreader if found by find_smartreader
     if ((ret = ftdi_usb_open(&ftdic, 0x0403, 0x6001)) < 0) {
-        cs_log("unable to open ftdi device: %d (%s)\n", ret, ftdi_get_error_string(&ftdic));
+        cs_log("unable to open ftdi device: %d (%s)", ret, ftdi_get_error_string(&ftdic));
         return ERROR;
     }
 
@@ -46,9 +46,13 @@ int SR_Init (int device_index)
     //Disable flow control
     ftdi_setflowctrl(&ftdic, 0);
 
+    // star the reading thread
+    g_read_buffer_size = 0;
+    pthread_mutex_init(&g_read_mutex,NULL);
+    pthread_mutex_init(&g_usb_mutex,NULL);
     ret = pthread_create(&rt, NULL, ReaderThread, (void *)&ftdic);
     if (ret) {
-        cs_log("ERROR; return code from pthread_create() is %d\n", ret);
+        cs_log("ERROR; return code from pthread_create() is %d", ret);
         return ERROR;
     }
 
@@ -132,7 +136,7 @@ int SR_SetBaudrate (int mhz)
 {
 
     sr_config.fs=mhz*1000; //freq in KHz
-    EnableSmartReader(&ftdic, sr_config.fs, sr_config.F, sr_config.D, sr_config.N, sr_config.inv);
+    EnableSmartReader(&ftdic, sr_config.fs, sr_config.F, (BYTE)sr_config.D, sr_config.N, sr_config.inv);
 
 	return OK;
 }
@@ -146,32 +150,35 @@ bool find_smartreader(int index, struct ftdi_context* ftdic)
     char manufacturer[128], description[128];
     
     if (ftdi_init(ftdic) < 0) {
-        fprintf(stderr, "ftdi_init failed\n");
+        cs_log("ftdi_init failed");
         return ERROR;
     }
 
     if ((ret = ftdi_usb_find_all(ftdic, &devlist, 0x0403, 0x6001)) < 0)
     {
-        fprintf(stderr, "ftdi_usb_find_all failed: %d (%s)\n", ret, ftdi_get_error_string(ftdic));
+        cs_log( "ftdi_usb_find_all failed: %d (%s)", ret, ftdi_get_error_string(ftdic));
         return ERROR;
     }
-
-    printf("Number of FTDI devices found: %d\n", ret);
-
+#ifdef DEBUG_IO
+    cs_log("Number of FTDI devices found: %d", ret);
+#endif
     i = 0;
     dev_found=FALSE;
     for (curdev = devlist; curdev != NULL; i++)
     {
-        printf("Checking device: %d\n", i);
-        if ((ret = ftdi_usb_get_strings(ftdic, curdev->dev, manufacturer, 128, description, 128, NULL, 0)) < 0)
-        {
-            fprintf(stderr, "ftdi_usb_get_strings failed: %d (%s)\n", ret, ftdi_get_error_string(ftdic));
+#ifdef DEBUG_IO
+        cs_log("Checking device: %d", i);
+        if ((ret = ftdi_usb_get_strings(ftdic, curdev->dev, manufacturer, 128, description, 128, NULL, 0)) < 0) {
+            cs_log( "ftdi_usb_get_strings failed: %d (%s)", ret, ftdi_get_error_string(ftdic));
             return ERROR;
         }
-        printf("Manufacturer: %s, Description: %s\n\n", manufacturer, description);
+        cs_log("Manufacturer: %s, Description: %s", manufacturer, description);
+#endif
         if (i==index)
             {
-            printf("Found device index %d\n",i);
+#ifdef DEBUG_IO
+            cs_log("Found device index %d",i);
+#endif
             dev_found=TRUE;
             break;
             }
@@ -182,7 +189,7 @@ bool find_smartreader(int index, struct ftdi_context* ftdic)
     
     if(!dev_found)
         {
-        printf("Device not found\n");
+        cs_log("Smartreader device number %d not found",index);
         
         ftdi_deinit(ftdic);
         return FALSE;
@@ -237,11 +244,11 @@ int smart_write(struct ftdi_context* ftdic, unsigned char* buff, size_t size, in
 
     int ret = 0;
     int idx;
-    printf("write: ");
-    hexdump(buff, size, 0);
 
+#ifdef DEBUG_IO
     struct timeval start, stop, taken;
     gettimeofday(&start, NULL);
+#endif
 
     if (udelay == 0) {
         pthread_mutex_lock(&g_usb_mutex);
@@ -260,9 +267,11 @@ int smart_write(struct ftdi_context* ftdic, unsigned char* buff, size_t size, in
         }
     }
 
+#ifdef DEBUG_IO
     gettimeofday(&stop, NULL);
     timersub(&stop, &start, &taken);
-    printf(" took %u.000%u seconds\n", (unsigned int) taken.tv_sec, (unsigned int) taken.tv_usec);
+    cs_log(" took %u.000%u seconds", (unsigned int) taken.tv_sec, (unsigned int) taken.tv_usec);
+#endif
     return ret;
 }
 
@@ -315,7 +324,7 @@ void ResetSmartReader(struct ftdi_context* ftdic)
 {
 
     smart_flush(ftdic);
-    EnableSmartReader(ftdic, 3571200, 372, 1, 0, 0);
+
     // set smartreader+ default values 
     sr_config.F=372; 
     sr_config.D=1.0; 
@@ -323,6 +332,7 @@ void ResetSmartReader(struct ftdi_context* ftdic)
     sr_config.N=0; 
     sr_config.T=0; 
     sr_config.inv=0; 
+    EnableSmartReader(ftdic, sr_config.fs, sr_config.F, (BYTE)sr_config.D, sr_config.N, sr_config.inv);
 
 }
 
@@ -332,6 +342,7 @@ void* ReaderThread(void *p)
     struct ftdi_context* ftdic = (struct ftdi_context*)p;
     bool running = TRUE;
     int ret;
+    int copy_size;
     unsigned char local_buffer[64];  //64 is max transfer size of FTDI bulk pipe
 
     while(running){
@@ -349,15 +360,15 @@ void* ReaderThread(void *p)
         pthread_mutex_unlock(&g_usb_mutex);
         pthread_yield_np();
 
-        if(ret>2){  //FTDI always sends modem status bytes as first 2 chars with the 232BM
+        if(ret>2) {  //FTDI always sends modem status bytes as first 2 chars with the 232BM
             pthread_mutex_lock(&g_read_mutex);
 
-            int copy_size = sizeof(g_read_buffer) - g_read_buffer_size > ret-2 ?ret-2: sizeof(g_read_buffer) - g_read_buffer_size;
+            copy_size = sizeof(g_read_buffer) - g_read_buffer_size > ret-2 ?ret-2: sizeof(g_read_buffer) - g_read_buffer_size;
             memcpy(g_read_buffer+g_read_buffer_size,local_buffer+2,copy_size);
             g_read_buffer_size += copy_size;            
-            //printf("Transferred %u bytes to read buffer - current buffer = ",copy_size); hexdump(g_read_buffer,g_read_buffer_size); printf("\n");
             pthread_mutex_unlock(&g_read_mutex);
-        }else{
+        } 
+        else {
             //sleep for 50ms since there was nothing to read last time
             usleep(50000);
         }
@@ -366,5 +377,4 @@ void* ReaderThread(void *p)
     pthread_exit(NULL);
 }
 
-#endif // USE_PTHREAD
-#endif //HAVE_LIBUSB
+#endif // HAVE_LIBUSB && USE_PTHREAD

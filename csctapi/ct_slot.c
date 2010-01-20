@@ -68,8 +68,18 @@ CT_Slot * CT_Slot_New ()
 
 char CT_Slot_Init (CT_Slot * slot, int sn)
 {
-	if (!Phoenix_Init())
-		return ERR_TRANS;
+#if defined(HAVE_LIBUSB) && defined(USE_PTHREAD)
+    int dev_index;
+    if (reader[ridx].typ == R_SMART) {
+    cs_log("device type is R_SMART XXX");
+        dev_index=atoi((const char *)reader[ridx].device);
+        if(!SR_Init(dev_index))
+            return ERR_TRANS;
+    }
+    else 
+#endif
+        if (!Phoenix_Init())
+            return ERR_TRANS;
 	
 	return OK;
 }

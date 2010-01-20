@@ -75,10 +75,12 @@ char CardTerminal_Init (CardTerminal * ct)
 	char ret;
 	int i;
 	
+#if defined(HAVE_LIBUSB) && defined(USE_PTHREAD)
+    if (reader[ridx].typ != R_SMART) 
+#endif
 	/* Initialise serial port */
-	if (ICC_Async_Device_Init ()) 
-		return ERR_TRANS;
-
+        if (ICC_Async_Device_Init ()) 
+            return ERR_TRANS;
 	/* Cearte all reader slots */
 	ct->num_slots = 0;
 	do
@@ -117,7 +119,10 @@ char CardTerminal_Init (CardTerminal * ct)
 			i--;
 		}
 		
-		IO_Serial_Close ();
+#if defined(HAVE_LIBUSB) && defined(USE_PTHREAD)
+        if (reader[ridx].typ != R_SMART) 
+#endif
+            IO_Serial_Close ();
 	}
 #ifdef HAVE_PTHREAD_H
 	else
@@ -195,8 +200,11 @@ char CardTerminal_Close (CardTerminal * ct)
 		}
 	}
 	
-		if (!IO_Serial_Close ())
-			ret = ERR_TRANS;
+#if defined(HAVE_LIBUSB) && defined(USE_PTHREAD)
+    if (reader[ridx].typ != R_SMART) 
+#endif
+        if (!IO_Serial_Close ())
+            ret = ERR_TRANS;
 		
 	CardTerminal_Clear (ct);
 	

@@ -2,8 +2,9 @@
     ifd_smartreader.h
     Header file for Argolis smartreader+.
 */
-#ifdef HAVE_LIBUSB
-#ifdef USE_PTHREAD
+#if defined(HAVE_LIBUSB) && defined(USE_PTHREAD)
+#ifndef __SMARTREADER__
+#define __SMARTREADER__
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -33,9 +34,9 @@ typedef struct  {
 } SR_CONFIG;
 
 unsigned char g_read_buffer[4096];
-unsigned short g_read_buffer_size = 0;
-pthread_mutex_t g_read_mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t g_usb_mutex = PTHREAD_MUTEX_INITIALIZER;
+unsigned short g_read_buffer_size;
+pthread_mutex_t g_read_mutex;
+pthread_mutex_t g_usb_mutex;
 struct ftdi_context ftdic;
 pthread_t rt;
 
@@ -56,5 +57,5 @@ void EnableSmartReader(struct ftdi_context* ftdic, int clock, unsigned short Fi,
 void ResetSmartReader(struct ftdi_context* ftdic);
 void* ReaderThread(void *p);
 
-#endif // USE_PTHREAD
-#endif //HAVE_LIBUSB
+#endif // __SMARTREADER__
+#endif // HAVE_LIBUSB && USE_PTHREAD
