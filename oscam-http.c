@@ -1233,6 +1233,17 @@ void send_oscam_script(struct templatevars *vars, FILE *f){
 }
 
 int process_request(FILE *f, struct in_addr in) {
+  int ok=0;
+  struct s_ip *p_ip;
+  in_addr_t addr = cs_inet_order(in.s_addr);
+
+  for (p_ip = cfg->mon_allowed; (p_ip) && (!ok); p_ip = p_ip->next)
+    ok =((addr >= p_ip->ip[0]) && (addr <= p_ip->ip[1]));
+  if (!ok){
+	  cs_log("unauthorized access from %s", inet_ntoa(*(struct in_addr *)&in));
+	  return 0;
+  }
+
   char buf[4096];
   char tmp[4096];
 
