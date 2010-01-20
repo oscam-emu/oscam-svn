@@ -71,7 +71,6 @@ char CT_Slot_Init (CT_Slot * slot, int sn)
 #if defined(HAVE_LIBUSB) && defined(USE_PTHREAD)
     int dev_index;
     if (reader[ridx].typ == R_SMART) {
-    cs_log("device type is R_SMART XXX");
         dev_index=atoi((const char *)reader[ridx].device);
         if(!SR_Init(dev_index))
             return ERR_TRANS;

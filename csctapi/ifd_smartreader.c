@@ -65,6 +65,8 @@ int SR_GetStatus (int * in)
 {
 	int state;
 
+    state =(modem_status & 0x80) == 0x80 ? 0 : 2;
+    
 	//state = 0 no card, 1 = not ready, 2 = ready
 	if (state)
 		*in = 1; //CARD, even if not ready report card is in, or it will never get activated
@@ -359,6 +361,8 @@ void* ReaderThread(void *p)
         ret = usb_bulk_read(ftdic->usb_dev,ftdic->out_ep,(char*)local_buffer,64,1000);
         pthread_mutex_unlock(&g_usb_mutex);
         pthread_yield_np();
+
+        modem_status=local_buffer[0];
 
         if(ret>2) {  //FTDI always sends modem status bytes as first 2 chars with the 232BM
             pthread_mutex_lock(&g_read_mutex);

@@ -39,6 +39,7 @@ pthread_mutex_t g_read_mutex;
 pthread_mutex_t g_usb_mutex;
 struct ftdi_context ftdic;
 pthread_t rt;
+unsigned char modem_status;
 
 SR_CONFIG sr_config;
 
