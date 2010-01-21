@@ -48,6 +48,7 @@ int SR_Init (int device_index)
 
     // star the reading thread
     g_read_buffer_size = 0;
+    modem_status = 0 ;
     pthread_mutex_init(&g_read_mutex,NULL);
     pthread_mutex_init(&g_usb_mutex,NULL);
     ret = pthread_create(&rt, NULL, ReaderThread, (void *)&ftdic);
