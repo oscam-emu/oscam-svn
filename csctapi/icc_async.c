@@ -406,7 +406,9 @@ int ICC_Async_Close ()
 #endif
 	
 	/* Delete atr */
+	   cs_log("ATR_Delete ");
 	ATR_Delete (atr);
+	   cs_log("ATR_Delete done");
 	
 	ICC_Async_Clear ();
 	

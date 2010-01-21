@@ -320,6 +320,7 @@ int ATR_InitFromStream (ATR * atr, unsigned timeout)
 
 void ATR_Delete (ATR * atr)
 {
+	cs_log("Free1");
 	free (atr);
 }
 

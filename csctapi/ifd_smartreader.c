@@ -65,7 +65,10 @@ int SR_GetStatus (int * in)
 {
 	int state;
 
+    pthread_mutex_lock(&g_read_mutex);
     state =(modem_status & 0x80) == 0x80 ? 0 : 2;
+    pthread_mutex_unlock(&g_read_mutex);
+
     
 	//state = 0 no card, 1 = not ready, 2 = ready
 	if (state)
@@ -346,10 +349,10 @@ void* ReaderThread(void *p)
         pthread_mutex_unlock(&g_usb_mutex);
         sched_yield();
 
-        modem_status=local_buffer[0];
 
         if(ret>2) {  //FTDI always sends modem status bytes as first 2 chars with the 232BM
             pthread_mutex_lock(&g_read_mutex);
+            modem_status=local_buffer[0];
 
             copy_size = sizeof(g_read_buffer) - g_read_buffer_size > ret-2 ?ret-2: sizeof(g_read_buffer) - g_read_buffer_size;
             memcpy(g_read_buffer+g_read_buffer_size,local_buffer+2,copy_size);
@@ -357,6 +360,11 @@ void* ReaderThread(void *p)
             pthread_mutex_unlock(&g_read_mutex);
         } 
         else {
+            if(ret==2) {
+                pthread_mutex_lock(&g_read_mutex);
+                modem_status=local_buffer[0];
+                pthread_mutex_unlock(&g_read_mutex);
+            }
             //sleep for 50ms since there was nothing to read last time
             usleep(50000);
         }
