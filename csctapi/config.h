@@ -21,11 +21,11 @@
 
 /* Debug Input/Output */
 /* #undef DEBUG_IO */
-// #define DEBUG_IO 1
+#define DEBUG_IO 1
 
 /* Debug Protocol */
 /* #undef DEBUG_PROTOCOL */
-//#define DEBUG_PROTOCOL 1
+#define DEBUG_PROTOCOL 1
 
 //#define PROTOCOL_T0_ISO 1
 //#define PROTOCOL_T1_ISO 1

@@ -27,14 +27,14 @@ int SR_Init (int device_index)
     ftdic.out_ep = 0x82;
 
     
-    //open the first smartreader if found by find_smartreader
+    //open the smartreader device if found by find_smartreader
     if ((ret = ftdi_usb_open_dev(&ftdic,smartreader_usb_dev)) < 0) {
         cs_log("unable to open ftdi device: %d (%s)", ret, ftdi_get_error_string(&ftdic));
         return ERROR;
     }
 
 #ifdef DEBUG_IO
-                cs_log("Setting smartreader latency timer to 1ms");
+    cs_log("IO:SR: Setting smartreader latency timer to 1ms");
 #endif
     //Set the FTDI latency timer to 1ms
     ret = ftdi_set_latency_timer(&ftdic, 1);
@@ -58,7 +58,6 @@ int SR_Init (int device_index)
         cs_log("ERROR; return code from pthread_create() is %d", ret);
         return ERROR;
     }
-
 
 	return OK;
 }
@@ -95,8 +94,16 @@ int SR_Reset (ATR ** atr)
     usleep(200000);
     ftdi_setdtr_rts(&ftdic, 1, 0);
     pthread_mutex_unlock(&g_usb_mutex);
+
     //Read the ATR
     ret = smart_read(&ftdic, data, 32,1);
+#ifdef DEBUG_IO
+    cs_log("IO:SR: get ATR ret = %d" , ret);
+#endif
+    // did we get any data for the ATR ?
+    if(!ret)
+        return ERROR;
+
     if(data[0]==0x03) {
         sr_config.inv=1;
         EnableSmartReader(&ftdic, 3571200, 372, 1, 0, 0, sr_config.inv);
@@ -290,24 +297,40 @@ void EnableSmartReader(struct ftdi_context* ftdic, int clock, unsigned short Fi,
     ret = ftdi_set_baudrate(ftdic, 9600);
     ret = ftdi_set_line_property(ftdic, (enum ftdi_bits_type) 5, STOP_BIT_2, NONE);
     pthread_mutex_unlock(&g_usb_mutex);
+#ifdef DEBUG_IO
+    cs_log("IO:SR: sending F=%04X to smartreader",Fi);
+    cs_log("IO:SR: sending D=%02X to smartreader",Di);
+#endif
 
     unsigned char FiDi[] = {0x01, HIBYTE(Fi), LOBYTE(Fi), Di};
     ret = smart_write(ftdic, FiDi, sizeof (FiDi),0);
     usleep(delay);
 
     unsigned short freqk = (unsigned short) (clock / 1000);
+#ifdef DEBUG_IO
+    cs_log("IO:SR: sending Freq=%d to smartreader",freqk);
+#endif
     unsigned char Freq[] = {0x02, HIBYTE(freqk), LOBYTE(freqk)};
     ret = smart_write(ftdic, Freq, sizeof (Freq),0);
     usleep(delay);
 
+#ifdef DEBUG_IO
+    cs_log("IO:SR: sending N=%02X to smartreader",Ni);
+#endif
     unsigned char N[] = {0x03, Ni};
     ret = smart_write(ftdic, N, sizeof (N),0);
     usleep(delay);
 
+#ifdef DEBUG_IO
+    cs_log("IO:SR: sending T=%02X to smartreader",T);
+#endif
     unsigned char Prot[] = {0x04, T};
     ret = smart_write(ftdic, Prot, sizeof (Prot),0);
     usleep(delay);
 
+#ifdef DEBUG_IO
+    cs_log("IO:SR: sending inv=%02X to smartreader",inv);
+#endif
     unsigned char Invert[] = {0x05, inv};
     ret = smart_write(ftdic, Invert, sizeof (Invert),0);
     usleep(delay);
@@ -367,6 +390,7 @@ void* ReaderThread(void *p)
 
 
         if(ret>2) {  //FTDI always sends modem status bytes as first 2 chars with the 232BM
+            cs_log("Got data");
             pthread_mutex_lock(&g_read_mutex);
             modem_status=local_buffer[0];
 
