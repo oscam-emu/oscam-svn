@@ -13,11 +13,11 @@
 
 /* Debug Interface Device */
 /* #undef DEBUG_IFD */
-// #define DEBUG_IFD 1
+//#define DEBUG_IFD 1
 
 /* Debug IFD Handler */
 /* #undef DEBUG_IFDH */
-// #define DEBUG_IFDH 1
+//#define DEBUG_IFDH 1
 
 /* Debug Input/Output */
 /* #undef DEBUG_IO */
@@ -25,10 +25,10 @@
 
 /* Debug Protocol */
 /* #undef DEBUG_PROTOCOL */
-// #define DEBUG_PROTOCOL 1
+//#define DEBUG_PROTOCOL 1
 
 //#define PROTOCOL_T0_ISO 1
-#define PROTOCOL_T1_ISO 1
+//#define PROTOCOL_T1_ISO 1
 
 
 /* Define to 1 if you have the <dlfcn.h> header file. */
@@ -89,12 +89,6 @@
 
 /* Smartcard of type synchronoys */
 /* #undef ICC_TYPE_SYNC */
-
-/* Smartcard with direct convention */
-/* #undef IFD_TOWITOKO_CONVENTION_DIRECT */
-
-/* Smartcard with inverse convention */
-/* #undef IFD_TOWITOKO_CONVENTION_INVERSE */
 
 /* ATR for asynchronous cards is cheked */
 #define IFD_TOWITOKO_STRICT_ATR_CHECK 1
