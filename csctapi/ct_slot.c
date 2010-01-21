@@ -35,6 +35,7 @@
 #ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
 #endif
+#include "ifd.h"
 
 /* Card status *///FIXME simplify this + duplicate in icc_async.h
 #define IFD_TOWITOKO_CARD(status)       (((status) & 0x40) == 0x40)
@@ -83,7 +84,7 @@ char CT_Slot_Init (CT_Slot * slot, int sn)
 	return OK;
 }
 
-char CT_Slot_Check (CT_Slot * slot, uint timeout, bool * card, bool * change)
+char CT_Slot_Check (uint timeout, bool * card, bool * change)
 {
 	BYTE status;
 #ifdef HAVE_NANOSLEEP
@@ -128,6 +129,7 @@ char CT_Slot_Probe (CT_Slot * slot, BYTE * userdata, unsigned length)
 	//PPS * pps;
 	BYTE buffer[PPS_MAX_LENGTH];
 	unsigned buffer_len  = 0;
+	
 	if (ICC_Async_Init () != ICC_ASYNC_OK)
 	{
 		return ERR_TRANS;
@@ -141,7 +143,7 @@ char CT_Slot_Probe (CT_Slot * slot, BYTE * userdata, unsigned length)
 		slot->icc_type = CT_SLOT_ICC_ASYNC;
 	}
 	
-
+	
 	/* Initialise protocol */
 	if (slot->icc_type == CT_SLOT_ICC_ASYNC)
 	{
@@ -244,17 +246,12 @@ void * CT_Slot_GetAtr (CT_Slot * slot)
 	return NULL;
 }
 
-bool CT_Slot_IsLast (CT_Slot * slot)
-{
-	//return (IFD_Towitoko_GetSlot(slot->ifd) >= IFD_Towitoko_GetNumSlots()-1);
-	return 1; //GetSlot always returns 0, and GetNumSlots returns always 1
-}
-
-void CT_Slot_GetType (CT_Slot * slot, BYTE * buffer, int len)
+void CT_Slot_GetType (BYTE * buffer, int len)
 {
 	//IFD_Towitoko_GetDescription (slot->ifd, buffer, len)
-	buffer="dummy";
+	char temp[5] = "dummy";
 	len=5;
+	buffer = (BYTE *) temp;
 }
 
 char CT_Slot_Close (CT_Slot * slot)

@@ -90,7 +90,7 @@ int do_cmd(unsigned char cmd, int ilen, unsigned char res, int rlen, unsigned ch
     	}
     	if(!reader_cmd2icc(msg,msglen))
   	{
-  		cs_sleepms(10);
+  		//cs_sleepms(10);
 		if(cta_res[0]!=res) 
 	      	{
 	      		cs_debug("[nagra-reader] result not expected (%02x != %02x)",cta_res[0],res);
@@ -650,6 +650,8 @@ int nagra2_card_init(uchar *atr)
 		cs_debug("[nagra-reader] NegotiateSessionKey failed");
 		return 0;
 	}
+	if (reader[ridx].cardmhz != 368)
+		cs_log("WARNING: For Nagra2 cards you will have to set 'cardmhz = 368' in oscam.server");
 	
 	return 1;
 }
@@ -696,15 +698,15 @@ int nagra2_do_ecm(ECM_REQUEST *er)
 			}
 	
 		}
-		cs_sleepms(15);
-		while(!CamStateRequest() && retry < 5)
+		cs_sleepms(10);
+		while(!CamStateRequest() && retry < 3)
 		{
 			cs_debug("[nagra-reader] CamStateRequest failed, try: %d", retry);
 			retry++;
-	                cs_sleepms(15);
+	                cs_sleepms(10);
 		}
-		cs_sleepms(10);
-		if (HAS_CW && do_cmd(0x1C,0x02,0x9C,0x36,NULL))
+		//cs_sleepms(10);
+		if (HAS_CW && (do_cmd(0x1C,0x02,0x9C,0x36,NULL)))
 		{
 			unsigned char v[8];
 			memset(v,0,sizeof(v));
@@ -761,7 +763,12 @@ int nagra2_do_emm(EMM_PACKET *ep)
 			cs_debug("[nagra-reader] nagra2_do_emm failed");
 			return (0);
 		}
-		cs_sleepms(300);
+		// for slow t14 nagra cards, we must do 250ms additional timeout
+		if (is_pure_nagra==1) 
+		{
+			cs_sleepms(250);
+		}
+		cs_sleepms(250);
 		nagra2_post_process();
 	}
 	else

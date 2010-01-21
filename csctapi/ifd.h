@@ -4,4 +4,5 @@
 */
 
 #include "ifd_cool.h"
+#include "ifd_phoenix.h"
 #include "ifd_smartreader.h"

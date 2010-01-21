@@ -27,6 +27,8 @@
 #include "atr.h"
 #include <stdlib.h>
 #include <string.h>
+#include "icc_async.h"
+
 
 /*
  * Not exported constants definition
@@ -81,6 +83,7 @@ char CardTerminal_Init (CardTerminal * ct)
 	/* Initialise serial port */
         if (ICC_Async_Device_Init ()) 
             return ERR_TRANS;
+
 	/* Cearte all reader slots */
 	ct->num_slots = 0;
 	do
@@ -97,12 +100,14 @@ char CardTerminal_Init (CardTerminal * ct)
 		}
 		
 		/* Initialise slot */
-		ret = CT_Slot_Init (ct->slots[i], i);
+		ret = CT_Slot_Init (i);
 		
 		if (ret != OK)
 			break;
 	}
-	while (!CT_Slot_IsLast(ct->slots[i]));
+	//while (!CT_Slot_IsLast(ct->slots[i]));
+	//there is always 1 slot!!!
+	while(0);
 	
 	/* On error restore initial state */
 	if (ret != OK)
@@ -281,7 +286,7 @@ static char CardTerminal_ResetCT (CardTerminal * ct, APDU_Cmd * cmd, APDU_Rsp **
 			}
 			
 			/* Initialise this slot */
-			ret = CT_Slot_Init (ct->slots[sn],sn);
+			ret = CT_Slot_Init (sn);
 			
 			if (ret != OK)
 			{
@@ -324,7 +329,7 @@ static char CardTerminal_ResetCT (CardTerminal * ct, APDU_Cmd * cmd, APDU_Rsp **
 		}
 		
 		/* Check for card */
-		ret = CT_Slot_Check (ct->slots[sn], 0, &card, &change);
+		ret = CT_Slot_Check (0, &card, &change);
 		
 		if (ret != OK)
 		{
@@ -464,7 +469,7 @@ static char CardTerminal_RequestICC (CardTerminal * ct, APDU_Cmd * cmd, APDU_Rsp
 			timeout = 0;
 		
 		/* Check for card */
-		ret = CT_Slot_Check (ct->slots[sn], timeout, &card, &change);
+		ret = CT_Slot_Check (timeout, &card, &change);
 		
 		if (ret != OK)
 		{
@@ -603,7 +608,7 @@ static char CardTerminal_GetStatus (CardTerminal * ct, APDU_Cmd * cmd, APDU_Rsp 
 		
 		/* CT type */
 		if (ct->slots[0] != NULL)
-			CT_Slot_GetType(ct->slots[0], buffer + 5,5);
+			CT_Slot_GetType(buffer + 5,5);
 		
 		/* CT version */
 		memcpy(buffer+10,VERSION,5);
@@ -616,7 +621,7 @@ static char CardTerminal_GetStatus (CardTerminal * ct, APDU_Cmd * cmd, APDU_Rsp 
 	{
 		for (i = 0; i < ct->num_slots; i++)
 		{
-			ret = CT_Slot_Check (ct->slots[i], 0, &card, &change);
+			ret = CT_Slot_Check (0, &card, &change);
 			
 			if (ret != OK)
 			{
@@ -796,7 +801,7 @@ static char CardTerminal_EjectICC (CardTerminal * ct, APDU_Cmd * cmd, APDU_Rsp *
 		timeout = 0;
 	
 	/* Check for card removal */
-	ret = CT_Slot_Check (ct->slots[sn], timeout, &card, &change);
+	ret = CT_Slot_Check (timeout, &card, &change);
 	
 	if (ret != OK)
 	{
