@@ -405,14 +405,13 @@ void send_css(FILE *f){
 	}
 }
 
-//void send_error(FILE *f, int status, char *title, char *extra, char *text)
-//{
-//  send_headers(f, status, title, extra, "text/html");
-//  fprintf(f, "<HTML><HEAD><TITLE>%d %s</TITLE></HEAD>\r\n", status, title);
-//  fprintf(f, "<BODY><H4>%d %s</H4>\r\n", status, title);
-//  fprintf(f, "%s\r\n", text);
-//  fprintf(f, "</BODY></HTML>\r\n");
-//}
+void send_error(FILE *f, int status, char *title, char *extra, char *text){
+  send_headers(f, status, title, extra, "text/html");
+  fprintf(f, "<HTML><HEAD><TITLE>%d %s</TITLE></HEAD>\r\n", status, title);
+  fprintf(f, "<BODY><H4>%d %s</H4>\r\n", status, title);
+  fprintf(f, "%s\r\n", text);
+  fprintf(f, "</BODY></HTML>\r\n");
+}
 
 char *getParam(struct uriparams *params, char *name){
 	int i;

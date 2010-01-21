@@ -3,7 +3,7 @@
 #define SERVER "webserver/1.0"
 #define PROTOCOL "HTTP/1.0"
 #define RFC1123FMT "%a, %d %b %Y %H:%M:%S GMT"
-#define AUTHREALM "OScam"
+#define AUTHREALM "Forbidden"
 #define AUTHNONCEVALIDSECS 15
 #define MAXGETPARAMS 100
 #define SHUTDOWNREFRESH 30
