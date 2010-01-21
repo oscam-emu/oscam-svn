@@ -409,13 +409,18 @@ unsigned int ETU_to_ms(unsigned long WWT)
 	else
 		WWT = 0;
 	double work_etu = 1000 / (double)reader[ridx].baudrate;//FIXME sometimes work_etu should be used, sometimes initial etu
-	return (unsigned int) WWT * work_etu;
+	return (unsigned int) WWT * work_etu * reader[ridx].cardmhz / reader[ridx].mhz;
 }
 
 
 static int PPS_InitICC ()
 {
 	unsigned long WWT, BWT, CWT, BGT, edc, EGT, CGT;
+	//initialize timings for internal readers
+	icc_timings.block_timeout = 0;
+	icc_timings.char_timeout = 0;
+	icc_timings.block_delay = 0;
+	icc_timings.char_delay = 0;
 
 	if (parameters.n == 255) //Extra Guard Time
 		EGT = 0;
@@ -450,7 +455,7 @@ static int PPS_InitICC ()
 				cs_debug("Setting timings: block_timeout=%u ms, char_timeout=%u ms, block_delay=%u ms, char_delay=%u ms",icc_timings.block_timeout, icc_timings.char_timeout, icc_timings.block_delay, icc_timings.char_delay);
 			}
 #ifdef DEBUG_PROTOCOL
-			printf ("Protocol: T=%i: WWT=%d, Clockrate=%lu\n", params->t, (int)(wwt),ICC_Async_GetClockRate());
+			printf ("Protocol: T=%i: WWT=%d, Clockrate=%lu\n", parameters.t, (int)(WWT), ICC_Async_GetClockRate());
 #endif
 			}
 			break;

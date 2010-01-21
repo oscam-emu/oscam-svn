@@ -42,7 +42,6 @@
  */
 
 static void ICC_Async_InvertBuffer (unsigned size, BYTE * buffer);
-static void ICC_Async_Clear ();
 
 int fdmc=(-1);
 
@@ -276,6 +275,8 @@ int ICC_Async_SetTimings (unsigned short bwt)
 {
 	if (protocol_type != ATR_PROTOCOL_TYPE_T1)
 			return ICC_ASYNC_IFD_ERROR;
+
+	bwt = bwt;
 	
 	//currently not supporting update BWT for T1
 	return ICC_ASYNC_OK;
@@ -350,8 +351,10 @@ int ICC_Async_Close ()
 	
 	/* Delete atr */
 	ATR_Delete (atr);
-	
-	ICC_Async_Clear ();
+
+	atr = NULL;
+	convention = 0;
+	protocol_type = -1;
 	
 	return ICC_ASYNC_OK;
 }
@@ -379,15 +382,4 @@ static void ICC_Async_InvertBuffer (unsigned size, BYTE * buffer)
 	
 	for (i = 0; i < size; i++)
 		buffer[i] = ~(INVERT_BYTE (buffer[i]));
-}
-
-static void ICC_Async_Clear ()
-{
-	atr = NULL;
-	convention = 0;
-	protocol_type = -1;
-	icc_timings.block_delay = 0;
-	icc_timings.char_delay = 0;
-	icc_timings.block_timeout = 0;
-	icc_timings.char_timeout = 0;
 }
