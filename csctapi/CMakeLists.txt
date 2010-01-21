@@ -6,11 +6,15 @@ file (GLOB csctapi_hdrs "*.h")
 check_include_file ("usb.h" HAVE_LIBUSB)
 if (HAVE_LIBUSB)
     add_definitions ("-DHAVE_LIBUSB")
-endif (HAVE_LIBUSB)
-
-if (HAVE_LIBUSB)
     target_link_libraries (${exe_name} usb)
 endif (HAVE_LIBUSB)
+
+check_include_file ("pthread.h" HAVE_PTHREAD)
+if (HAVE_PTHREAD)
+    add_definitions ("-DHAVE_PTHREAD_H -DUSE_PTHREAD")
+    target_link_libraries (${exe_name} pthread)
+endif (HAVE_PTHREAD)
+
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     add_definitions ("-O2 -Winline -Werror -finline-functions -fomit-frame-pointer -s -m32")
