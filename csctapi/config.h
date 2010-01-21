@@ -21,7 +21,7 @@
 
 /* Debug Input/Output */
 /* #undef DEBUG_IO */
-#define DEBUG_IO 1
+// #define DEBUG_IO 1
 
 /* Debug Protocol */
 /* #undef DEBUG_PROTOCOL */

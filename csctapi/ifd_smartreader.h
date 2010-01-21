@@ -38,6 +38,7 @@ unsigned short g_read_buffer_size;
 pthread_mutex_t g_read_mutex;
 pthread_mutex_t g_usb_mutex;
 struct ftdi_context ftdic;
+struct usb_device *smartreader_usb_dev;
 pthread_t rt;
 unsigned char modem_status;
 
@@ -50,13 +51,15 @@ int SR_Transmit (BYTE * buffer, unsigned size);
 int SR_Receive (BYTE * buffer, unsigned size);
 int SR_SetBaudrate (int mhz);
 
-bool find_smartreader(int index, struct ftdi_context* ftdic);
+// bool find_smartreader(int index, struct ftdi_context* ftdic,struct usb_device *dev);
+struct usb_device * find_smartreader(int index, struct ftdi_context* ftdic);
 void smart_flush(struct ftdi_context* ftdic);
 int smart_read(struct ftdi_context* ftdic, unsigned char* buff, size_t size, int timeout_sec);
 int smart_write(struct ftdi_context* ftdic, unsigned char* buff, size_t size, int udelay);
 void EnableSmartReader(struct ftdi_context* ftdic, int clock, unsigned short Fi, unsigned char Di, unsigned char Ni, unsigned char T,unsigned char inv);
 void ResetSmartReader(struct ftdi_context* ftdic);
 void* ReaderThread(void *p);
+bool smartreader_check_endpoint(struct usb_device *dev);
 
 #endif // __SMARTREADER__
 #endif // HAVE_LIBUSB && USE_PTHREAD

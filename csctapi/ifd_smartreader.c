@@ -16,10 +16,9 @@ int SR_Init (int device_index)
 {
     
     int ret;
-
-    if(!find_smartreader(device_index, &ftdic))
+    smartreader_usb_dev=NULL;
+    if(!(smartreader_usb_dev=find_smartreader(device_index, &ftdic)))
         return ERROR;
-    
     //The smartreader has different endpoint addresses
     //compared to a real FT232 device, so change them here,
     //also a good way to compare a real FT232 with a smartreader
@@ -29,11 +28,14 @@ int SR_Init (int device_index)
 
     
     //open the first smartreader if found by find_smartreader
-    if ((ret = ftdi_usb_open(&ftdic, 0x0403, 0x6001)) < 0) {
+    if ((ret = ftdi_usb_open_dev(&ftdic,smartreader_usb_dev)) < 0) {
         cs_log("unable to open ftdi device: %d (%s)", ret, ftdi_get_error_string(&ftdic));
         return ERROR;
     }
 
+#ifdef DEBUG_IO
+                cs_log("Setting smartreader latency timer to 1ms");
+#endif
     //Set the FTDI latency timer to 1ms
     ret = ftdi_set_latency_timer(&ftdic, 1);
 
@@ -153,46 +155,59 @@ int SR_SetBaudrate (int mhz)
 }
 
 
-bool find_smartreader(int index, struct ftdi_context* ftdic)
+struct usb_device * find_smartreader(int index, struct ftdi_context* ftdic)
 {
     int ret, i;
     bool dev_found;
-    struct ftdi_device_list *devlist, *curdev;
-    char manufacturer[128], description[128];
-    
+    struct usb_bus *bus;
+    struct usb_device *dev;
+
     if (ftdi_init(ftdic) < 0) {
         cs_log("ftdi_init failed");
-        return ERROR;
+        return NULL;
+    }
+    usb_init();
+    if (usb_find_busses() < 0) {
+        cs_log("usb_find_busses() failed");
+        return NULL;
+    }
+    if (usb_find_devices() < 0) {
+        cs_log("usb_find_devices() failed");
+        return NULL;
     }
 
-    if ((ret = ftdi_usb_find_all(ftdic, &devlist, 0x0403, 0x6001)) < 0)
-    {
-        cs_log( "ftdi_usb_find_all failed: %d (%s)", ret, ftdi_get_error_string(ftdic));
-        return ERROR;
-    }
-    i = 0;
+
+    i = -1;
     dev_found=FALSE;
-    for (curdev = devlist; curdev != NULL; i++)
-    {
-        if (i==index)
-            {
-            dev_found=TRUE;
-            break;
+    for (bus = usb_get_busses(); bus; bus = bus->next) {
+        for (dev = bus->devices; dev; dev = dev->next) {
+            if ( (dev->descriptor.idVendor != 0x0403) || (dev->descriptor.idProduct != 0x6001))
+                    continue;
+#ifdef DEBUG_IO
+            cs_log("IO:SR: Checking FTDI device: %d", i+1);
+#endif
+            if(smartreader_check_endpoint(dev)) {
+                i++;
+                if (i==index) {
+                    dev_found=TRUE;
+                    break;
+                }
             }
-        curdev = curdev->next;
+        }
+    if(dev_found)
+        break;    
     }
+#ifdef DEBUG_IO
+    cs_log("IO:SR: Found smartreader device %d",index);
+#endif
 
-    ftdi_list_free(&devlist);
-    
-    if(!dev_found)
-        {
-        cs_log("Smartreader device number %d not found",index);
-        
+    if(!dev_found) {
+        cs_log("IO:SR: Smartreader device number %d not found",index);
         ftdi_deinit(ftdic);
-        return FALSE;
+        return NULL;
         }
 
-    return TRUE;
+    return dev;
 }
 
 void smart_flush(struct ftdi_context* ftdic)
@@ -372,6 +387,48 @@ void* ReaderThread(void *p)
     }
 
     pthread_exit(NULL);
+}
+
+
+bool smartreader_check_endpoint(struct usb_device *dev)
+{
+    int nb_interfaces;
+    int i,j,k,l;
+    u_int8_t tmpEndpointAddress;
+    int nb_endpoint_ok;
+
+    if (!dev->config) {
+#ifdef DEBUG_IO
+        cs_log("IO:SR:  Couldn't retrieve descriptors");
+#endif
+        return FALSE;
+    }
+        
+    nb_interfaces=dev->config->bNumInterfaces;
+    // smartreader only has 1 interface
+    if(nb_interfaces!=1) {
+#ifdef DEBUG_IO
+        cs_log("IO:SR:  Couldn't retrieve interfaces");
+#endif
+        return FALSE;
+    }
+
+    nb_endpoint_ok=0;
+    for (i = 0; i < dev->descriptor.bNumConfigurations; i++)
+        for (j = 0; j < dev->config[i].bNumInterfaces; j++)
+            for (k = 0; k < dev->config[i].interface[j].num_altsetting; k++)
+                for (l = 0; l < dev->config[i].interface[j].altsetting[k].bNumEndpoints; l++) {
+                    tmpEndpointAddress=dev->config[i].interface[j].altsetting[k].endpoint[l].bEndpointAddress;
+#ifdef DEBUG_IO
+                    cs_log("IO:SR:  checking endpoint address %02X",tmpEndpointAddress);
+#endif
+                    if((tmpEndpointAddress== 0x1) || (tmpEndpointAddress== 0x82))
+                        nb_endpoint_ok++;
+                }
+
+    if(nb_endpoint_ok!=2)
+        return FALSE;
+    return TRUE;
 }
 
 #endif // HAVE_LIBUSB && USE_PTHREAD
