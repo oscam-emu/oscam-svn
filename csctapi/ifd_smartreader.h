@@ -54,7 +54,7 @@ bool find_smartreader(int index, struct ftdi_context* ftdic);
 void smart_flush(struct ftdi_context* ftdic);
 int smart_read(struct ftdi_context* ftdic, unsigned char* buff, size_t size, int timeout_sec);
 int smart_write(struct ftdi_context* ftdic, unsigned char* buff, size_t size, int udelay);
-void EnableSmartReader(struct ftdi_context* ftdic, int clock, unsigned short Fi, unsigned char Di, unsigned char Ni, unsigned char inv);
+void EnableSmartReader(struct ftdi_context* ftdic, int clock, unsigned short Fi, unsigned char Di, unsigned char Ni, unsigned char T,unsigned char inv);
 void ResetSmartReader(struct ftdi_context* ftdic);
 void* ReaderThread(void *p);
 

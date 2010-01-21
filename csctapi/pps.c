@@ -247,13 +247,13 @@ int PPS_Perform (BYTE * params, unsigned *length)
 	
 				if (NeedsPTS) { 
 					if ((parameters.d == 32) || (parameters.d == 12) || (parameters.d == 20))
-						parameters.d = 0; //behave conform "old" atr_d_table; viaccess cards that fail PTS need this
+						parameters.d = ATR_DEFAULT_D; // viaccess cards that fail PTS need this
 				}
 				/////Here all non-ISO behaviour
 				/////End  all non-ISO behaviour
 
 				cs_debug("No PTS %s, selected protocol T%i, F=%.0f, D=%.6f, N=%.0f\n", NeedsPTS?"happened":"needed", parameters.t, (double) atr_f_table[parameters.FI], parameters.d, parameters.n);
-			}
+			}//end if (!PPS_success)
 		}//end negotiable mode
 	}//end length<0
 		
@@ -280,8 +280,18 @@ int PPS_Perform (BYTE * params, unsigned *length)
 	/* Initialize selected protocol with selected parameters */
 //	if (PPS_InitProtocol () != PPS_OK)
 //		return PPS_ICC_ERROR;
-
-	return PPS_InitICC();
+#if defined(HAVE_LIBUSB) && defined(USE_PTHREAD)
+    if (reader[ridx].typ == R_SMART) {
+        sr_config.F=atr_f_table[parameters.FI];
+        sr_config.D=parameters.d;
+        sr_config.N=parameters.n;
+        sr_config.T=parameters.t;
+        SR_SetBaudrate(reader[ridx].mhz*10);
+        return PPS_OK;
+    }
+    else
+#endif
+    	return PPS_InitICC();
 }
 
 PPS_ProtocolParameters *PPS_GetProtocolParameters ()
@@ -450,7 +460,7 @@ static int PPS_InitICC ()
 				cs_debug("Setting timings: block_timeout=%u ms, char_timeout=%u ms, block_delay=%u ms, char_delay=%u ms",icc_timings.block_timeout, icc_timings.char_timeout, icc_timings.block_delay, icc_timings.char_delay);
 			}
 #ifdef DEBUG_PROTOCOL
-			printf ("Protocol: T=%i: WWT=%d, Clockrate=%lu\n", params->t, (int)(wwt),ICC_Async_GetClockRate());
+			printf ("Protocol: T=%i: WWT=%lu, Clockrate=%lu\n", parameters.t, WWT,ICC_Async_GetClockRate());
 #endif
 			}
 			break;
