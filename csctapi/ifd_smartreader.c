@@ -390,7 +390,6 @@ void* ReaderThread(void *p)
 
 
         if(ret>2) {  //FTDI always sends modem status bytes as first 2 chars with the 232BM
-            cs_log("Got data");
             pthread_mutex_lock(&g_read_mutex);
             modem_status=local_buffer[0];
 
