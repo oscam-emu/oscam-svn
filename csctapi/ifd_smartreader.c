@@ -16,7 +16,9 @@ int SR_Init (int device_index)
 {
     
     int ret;
-    
+#ifdef DEBUG_IO
+    cs_log("SR_Init");
+#endif
     if(!find_smartreader(device_index, &ftdic))
         return ERROR;
     
@@ -64,6 +66,9 @@ int SR_Init (int device_index)
 int SR_GetStatus (int * in)
 {
 	int state;
+#ifdef DEBUG_IO
+    cs_log("SR_GetStatus");
+#endif
 
     state =(modem_status & 0x80) == 0x80 ? 0 : 2;
     
@@ -79,6 +84,10 @@ int SR_Reset (ATR ** atr)
 {
     unsigned char data[ATR_MAX_SIZE] = {0};
     int ret;
+
+#ifdef DEBUG_IO
+    cs_log("SR_Reset");
+#endif
     
     //Reset smartreader to defaults
     ResetSmartReader(&ftdic);
@@ -272,7 +281,7 @@ int smart_write(struct ftdi_context* ftdic, unsigned char* buff, size_t size, in
 #ifdef DEBUG_IO
     gettimeofday(&stop, NULL);
     timersub(&stop, &start, &taken);
-    cs_log(" took %u.000%u seconds", (unsigned int) taken.tv_sec, (unsigned int) taken.tv_usec);
+    cs_log("smart_write took %u.000%u seconds", (unsigned int) taken.tv_sec, (unsigned int) taken.tv_usec);
 #endif
     return ret;
 }
@@ -282,6 +291,10 @@ void EnableSmartReader(struct ftdi_context* ftdic, int clock, unsigned short Fi,
     int ret = 0;
     unsigned char buff[4];
     int delay=50000;
+
+#ifdef DEBUG_IO
+    cs_log("EnableSmartReader");
+#endif
     
     pthread_mutex_lock(&g_usb_mutex);
     ret = ftdi_set_baudrate(ftdic, 9600);
@@ -289,24 +302,24 @@ void EnableSmartReader(struct ftdi_context* ftdic, int clock, unsigned short Fi,
     pthread_mutex_unlock(&g_usb_mutex);
 
     unsigned char FiDi[] = {0x01, HIBYTE(Fi), LOBYTE(Fi), Di};
-    ret = smart_write(ftdic, FiDi, sizeof (FiDi),-1);
+    ret = smart_write(ftdic, FiDi, sizeof (FiDi),0);
     usleep(delay);
 
     unsigned short freqk = (unsigned short) (clock / 1000);
     unsigned char Freq[] = {0x02, HIBYTE(freqk), LOBYTE(freqk)};
-    ret = smart_write(ftdic, Freq, sizeof (Freq),-1);
+    ret = smart_write(ftdic, Freq, sizeof (Freq),0);
     usleep(delay);
 
     unsigned char N[] = {0x03, Ni};
-    ret = smart_write(ftdic, N, sizeof (N),-1);
+    ret = smart_write(ftdic, N, sizeof (N),0);
     usleep(delay);
 
     unsigned char Prot[] = {0x04, 0x00};
-    ret = smart_write(ftdic, Prot, sizeof (Prot),-1);
+    ret = smart_write(ftdic, Prot, sizeof (Prot),0);
     usleep(delay);
 
     unsigned char Invert[] = {0x05, inv};
-    ret = smart_write(ftdic, Invert, sizeof (Invert),-1);
+    ret = smart_write(ftdic, Invert, sizeof (Invert),0);
     usleep(delay);
 
     pthread_mutex_lock(&g_usb_mutex);
@@ -325,8 +338,10 @@ void EnableSmartReader(struct ftdi_context* ftdic, int clock, unsigned short Fi,
 void ResetSmartReader(struct ftdi_context* ftdic) 
 {
 
+#ifdef DEBUG_IO
+    cs_log("ResetSmartReader");
+#endif
     smart_flush(ftdic);
-
     // set smartreader+ default values 
     sr_config.F=372; 
     sr_config.D=1.0; 
@@ -334,6 +349,7 @@ void ResetSmartReader(struct ftdi_context* ftdic)
     sr_config.N=0; 
     sr_config.T=0; 
     sr_config.inv=0; 
+
     EnableSmartReader(ftdic, sr_config.fs, sr_config.F, (BYTE)sr_config.D, sr_config.N, sr_config.inv);
 
 }

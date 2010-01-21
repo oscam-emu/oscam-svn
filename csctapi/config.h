@@ -5,19 +5,19 @@
 
 /* Debug CT-API */
 /* #undef DEBUG_CTAPI */
-// #define DEBUG_CTAPI 1
+#define DEBUG_CTAPI 1
 
 /* Debug Integrated Circuit Card */
 /* #undef DEBUG_ICC */
-// #define DEBUG_ICC 1
+#define DEBUG_ICC 1
 
 /* Debug Interface Device */
 /* #undef DEBUG_IFD */
-//#define DEBUG_IFD 1
+#define DEBUG_IFD 1
 
 /* Debug IFD Handler */
 /* #undef DEBUG_IFDH */
-//#define DEBUG_IFDH 1
+#define DEBUG_IFDH 1
 
 /* Debug Input/Output */
 /* #undef DEBUG_IO */

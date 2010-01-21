@@ -128,7 +128,6 @@ char CT_Slot_Probe (CT_Slot * slot, BYTE * userdata, unsigned length)
 	//PPS * pps;
 	BYTE buffer[PPS_MAX_LENGTH];
 	unsigned buffer_len  = 0;
-	
 	if (ICC_Async_Init () != ICC_ASYNC_OK)
 	{
 		return ERR_TRANS;
@@ -142,7 +141,7 @@ char CT_Slot_Probe (CT_Slot * slot, BYTE * userdata, unsigned length)
 		slot->icc_type = CT_SLOT_ICC_ASYNC;
 	}
 	
-	
+
 	/* Initialise protocol */
 	if (slot->icc_type == CT_SLOT_ICC_ASYNC)
 	{

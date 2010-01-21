@@ -104,23 +104,20 @@ int ICC_Async_GetStatus (BYTE * result)
 // status : 0 -start, 1 - card, 2- no card
 
 #ifdef SCI_DEV
-	if(reader[ridx].typ == R_INTERNAL)
-	{
+	if(reader[ridx].typ == R_INTERNAL) {
 		if(!Sci_GetStatus(reader[ridx].handle, &in))
 			return ICC_ASYNC_IFD_ERROR;			
 	}
 	else
 #elif COOL
-	if(reader[ridx].typ == R_INTERNAL)
-	{	
+	if(reader[ridx].typ == R_INTERNAL) {	
 		if (!Cool_GetStatus(&in))
 			return ICC_ASYNC_IFD_ERROR;
 	}
 	else
 #endif
 #if defined(HAVE_LIBUSB) && defined(USE_PTHREAD)
-	if(reader[ridx].typ == R_SMART)
-	{	
+	if(reader[ridx].typ == R_SMART) {	
 		if (!SR_GetStatus(&in))
 			return ICC_ASYNC_IFD_ERROR;
 	}
@@ -128,8 +125,7 @@ int ICC_Async_GetStatus (BYTE * result)
 #endif
 
 #if defined(TUXBOX) && defined(PPC)
-	if ((reader[ridx].typ == R_DB2COM1) || (reader[ridx].typ == R_DB2COM2))
-	{
+	if ((reader[ridx].typ == R_DB2COM1) || (reader[ridx].typ == R_DB2COM2)) {
 		ushort msr=1;
 		extern int fdmc;
 		IO_Serial_Ioctl_Lock(1);
@@ -142,8 +138,8 @@ int ICC_Async_GetStatus (BYTE * result)
 	}
 	else
 #endif
-  if (!Phoenix_GetStatus(&in))
-			return ICC_ASYNC_IFD_ERROR;
+    if (!Phoenix_GetStatus(&in))
+            return ICC_ASYNC_IFD_ERROR;
 
 	if (in)
 	{       
@@ -344,17 +340,17 @@ int ICC_Async_Transmit (unsigned size, BYTE * data)
 	}
 	
 #ifdef COOL
-	if (reader[ridx].typ == R_INTERNAL) {
-		if (!Cool_Transmit(sent, size))
-			return ICC_ASYNC_IFD_ERROR;
-	}
-	else
+    if (reader[ridx].typ == R_INTERNAL) {
+        if (!Cool_Transmit(sent, size))
+            return ICC_ASYNC_IFD_ERROR;
+    }
+    else
 #endif
 #if defined(HAVE_LIBUSB) && defined(USE_PTHREAD)
-	if (reader[ridx].typ == R_SMART) {
-		if (!SR_Transmit(sent, size))
-			return ICC_ASYNC_IFD_ERROR;
-	}
+    if (reader[ridx].typ == R_SMART) {
+        if (!SR_Transmit(sent, size))
+            return ICC_ASYNC_IFD_ERROR;
+    }
 	else
 #endif
 	if (!Phoenix_Transmit (sent, size, icc_timings.block_delay, icc_timings.char_delay))
@@ -373,18 +369,18 @@ int ICC_Async_Transmit (unsigned size, BYTE * data)
 int ICC_Async_Receive (unsigned size, BYTE * data)
 {
 #ifdef COOL
-	if (reader[ridx].typ == R_INTERNAL) {
-		if (!Cool_Receive(data, size))
-			return ICC_ASYNC_IFD_ERROR;
-	}
-	else
+    if (reader[ridx].typ == R_INTERNAL) {
+        if (!Cool_Receive(data, size))
+            return ICC_ASYNC_IFD_ERROR;
+    }
+    else
 #endif
 #if defined(HAVE_LIBUSB) && defined(USE_PTHREAD)
-	if (reader[ridx].typ == R_SMART) {
-		if (!SR_Receive(data, size))
-			return ICC_ASYNC_IFD_ERROR;
-	}
-	else
+    if (reader[ridx].typ == R_SMART) {
+        if (!SR_Receive(data, size))
+            return ICC_ASYNC_IFD_ERROR;
+    }
+    else
 #else
 
 	if (!Phoenix_Receive (data, size, icc_timings.block_timeout, icc_timings.char_timeout))
