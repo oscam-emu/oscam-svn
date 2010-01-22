@@ -47,7 +47,7 @@ static int cw_is_valid(unsigned char *cw) //returns 1 if cw_is_valid, returns 0 
 //////  special thanks to an "italian forum" !!!!
 
 
-void postprocess_cw(unsigned char *cw)
+static void postprocess_cw(unsigned char *cw)
 {
 
   if (!cw_is_valid(cw)) //if cw is all zero, keep it that way
@@ -441,7 +441,7 @@ static void cCamCryptVG2_RotateRightAndHash(unsigned char *p)
 
 //////  ====================================================================================
 
-static unsigned char CW1[8], CW2[8];
+unsigned char CW1[8], CW2[8];
 
 extern uchar cta_cmd[], cta_res[];
 extern ushort cta_lr;
@@ -464,12 +464,12 @@ struct CmdTab {
 };
 
 struct CmdTab *cmd_table=NULL;
-void memorize_cmd_table (const unsigned char *mem, int size){
+static void memorize_cmd_table (const unsigned char *mem, int size){
   cmd_table=(struct CmdTab *)malloc(sizeof(unsigned char) * size);
   memcpy(cmd_table,mem,size);
 }
 
-int cmd_table_get_info(const unsigned char *cmd, unsigned char *rlen, unsigned char *rmode)
+static int cmd_table_get_info(const unsigned char *cmd, unsigned char *rlen, unsigned char *rmode)
 {
   struct CmdTabEntry *pcte=cmd_table->e;
   int i;
