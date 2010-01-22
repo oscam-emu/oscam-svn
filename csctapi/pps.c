@@ -280,11 +280,11 @@ int PPS_Perform (BYTE * params, unsigned *length)
 	/* Initialize selected protocol with selected parameters */
 #if defined(HAVE_LIBUSB) && defined(USE_PTHREAD)
     if (reader[ridx].typ == R_SMART) {
-        sr_config.F=atr_f_table[parameters.FI];
-        sr_config.D=parameters.d;
-        sr_config.N=parameters.n;
-        sr_config.T=parameters.t;
-        SR_SetBaudrate(reader[ridx].mhz*10);
+        reader[ridx].sr_config.F=atr_f_table[parameters.FI];
+        reader[ridx].sr_config.D=parameters.d;
+        reader[ridx].sr_config.N=parameters.n;
+        reader[ridx].sr_config.T=parameters.t;
+        SR_SetBaudrate(&reader[ridx]);
         return PPS_OK;
     }
     else

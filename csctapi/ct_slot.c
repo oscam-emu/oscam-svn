@@ -73,7 +73,7 @@ char CT_Slot_Init (CT_Slot * slot, int sn)
     int dev_index;
     if (reader[ridx].typ == R_SMART) {
         dev_index=atoi((const char *)reader[ridx].device);
-        if(!SR_Init(dev_index))
+        if(!SR_Init(&reader[ridx],dev_index))
             return ERR_TRANS;
     }
     else 

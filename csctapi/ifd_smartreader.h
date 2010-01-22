@@ -25,40 +25,21 @@
 #define LOBYTE(w) ((BYTE)((w) & 0xff))
 #define HIBYTE(w) ((BYTE)((w) >> 8))
 
-typedef struct  {
-    int F;
-    float D;
-    int fs;
-    int N;
-    int T;
-    int inv;
-} SR_CONFIG;
 
-unsigned char g_read_buffer[4096];
-unsigned short g_read_buffer_size;
-pthread_mutex_t g_read_mutex;
-pthread_mutex_t g_usb_mutex;
-struct ftdi_context ftdic;
-struct usb_device *smartreader_usb_dev;
-pthread_t rt;
-unsigned char modem_status;
-
-SR_CONFIG sr_config;
-
-
-int SR_Init (int device_index);
-int SR_Reset (ATR ** atr);
-int SR_Transmit (BYTE * buffer, unsigned size);
-int SR_Receive (BYTE * buffer, unsigned size);
-int SR_SetBaudrate (int mhz);
+int SR_Init (struct s_reader *reader,int device_index);
+int SR_GetStatus (struct s_reader *reader,int * in);
+int SR_Reset (struct s_reader *reader, ATR ** atr);
+int SR_Transmit (struct s_reader *reader, BYTE * buffer, unsigned size);
+int SR_Receive (struct s_reader *reader, BYTE * buffer, unsigned size);
+int SR_SetBaudrate (struct s_reader *reader);
 
 // bool find_smartreader(int index, struct ftdi_context* ftdic,struct usb_device *dev);
 static struct usb_device * find_smartreader(int index, struct ftdi_context* ftdic);
-static void smart_flush(struct ftdi_context* ftdic);
-static unsigned int smart_read(unsigned char* buff, size_t size, int timeout_sec);
-static unsigned int smart_write(struct ftdi_context* ftdic, unsigned char* buff, size_t size, int udelay);
-static void EnableSmartReader(struct ftdi_context* ftdic, int clock, unsigned short Fi, unsigned char Di, unsigned char Ni, unsigned char T,unsigned char inv);
-static void ResetSmartReader(struct ftdi_context* ftdic);
+static void smart_flush(struct s_reader *reader);
+static unsigned int smart_read(struct s_reader *reader, unsigned char* buff, size_t size, int timeout_sec);
+static unsigned int smart_write(struct s_reader *reader, unsigned char* buff, size_t size, int udelay);
+static void EnableSmartReader(struct s_reader *reader, int clock, unsigned short Fi, unsigned char Di, unsigned char Ni, unsigned char T,unsigned char inv);
+static void ResetSmartReader(struct s_reader *reader);
 static void* ReaderThread(void *p);
 static bool smartreader_check_endpoint(struct usb_device *dev);
 

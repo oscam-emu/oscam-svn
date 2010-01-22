@@ -117,7 +117,7 @@ int ICC_Async_GetStatus (BYTE * result)
 #endif
 #if defined(HAVE_LIBUSB) && defined(USE_PTHREAD)
 	if(reader[ridx].typ == R_SMART) {	
-		if (!SR_GetStatus(&in))
+		if (!SR_GetStatus(&reader[ridx],&in))
 			return ICC_ASYNC_IFD_ERROR;
 	}
 	else
@@ -191,7 +191,7 @@ int ICC_Async_Init ()
 
 #if defined(HAVE_LIBUSB) && defined(USE_PTHREAD)
     if (reader[ridx].typ == R_SMART) {
-        if (!SR_Reset(&(atr))) {
+        if (!SR_Reset(&reader[ridx],&(atr))) {
             atr = NULL;
             return ICC_ASYNC_IFD_ERROR;
         }
@@ -264,7 +264,7 @@ int ICC_Async_Init ()
 	{
 #if defined(HAVE_LIBUSB) && defined(USE_PTHREAD)
         if (reader[ridx].typ == R_SMART) {
-            sr_config.inv= (convention == ATR_CONVENTION_INVERSE) ? 1: 0;
+            reader[ridx].sr_config.inv= (convention == ATR_CONVENTION_INVERSE) ? 1: 0;
         }
     else
 #endif
@@ -348,7 +348,7 @@ int ICC_Async_Transmit (unsigned size, BYTE * data)
 #endif
 #if defined(HAVE_LIBUSB) && defined(USE_PTHREAD)
     if (reader[ridx].typ == R_SMART) {
-        if (!SR_Transmit(sent, size))
+        if (!SR_Transmit(&reader[ridx], sent, size))
             return ICC_ASYNC_IFD_ERROR;
     }
 	else
@@ -377,7 +377,7 @@ int ICC_Async_Receive (unsigned size, BYTE * data)
 #endif
 #if defined(HAVE_LIBUSB) && defined(USE_PTHREAD)
     if (reader[ridx].typ == R_SMART) {
-        if (!SR_Receive(data, size))
+        if (!SR_Receive(&reader[ridx], data, size))
             return ICC_ASYNC_IFD_ERROR;
     }
     else

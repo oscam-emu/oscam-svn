@@ -52,6 +52,10 @@
 #endif
 #endif
 
+#if defined(HAVE_LIBUSB) && defined(USE_PTHREAD)
+#include "csctapi/ftdi.h"
+#endif
+
 #ifndef CS_CONFDIR
 #define CS_CONFDIR    "/usr/local/etc"
 #endif
@@ -260,6 +264,15 @@ typedef struct s_ptab
   PORT   ports[CS_MAXPORTS];
 } GCC_PACK PTAB;
 
+typedef struct  {
+    int F;
+    float D;
+    int fs;
+    int N;
+    int T;
+    int inv;
+} SR_CONFIG;
+
 struct s_ecm
 {
   uchar  ecmd5[CS_ECMSTORESIZE];
@@ -449,6 +462,17 @@ struct s_reader
   SCARDCONTEXT hContext;
   SCARDHANDLE hCard;
   DWORD dwActiveProtocol;
+#endif
+#if defined(HAVE_LIBUSB) && defined(USE_PTHREAD)
+    unsigned char g_read_buffer[4096];
+    unsigned short g_read_buffer_size;
+    pthread_mutex_t g_read_mutex;
+    pthread_mutex_t g_usb_mutex;
+    struct ftdi_context ftdic;
+    struct usb_device *smartreader_usb_dev;
+    pthread_t rt;
+    unsigned char modem_status;
+    SR_CONFIG sr_config;
 #endif
 
 };

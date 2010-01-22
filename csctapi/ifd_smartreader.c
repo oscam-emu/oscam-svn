@@ -12,24 +12,24 @@
 #define OK 		1 
 #define ERROR 0
 
-int SR_Init (int device_index)
+int SR_Init (struct s_reader *reader, int device_index)
 {
     
     int ret;
-    smartreader_usb_dev=NULL;
-    if(!(smartreader_usb_dev=find_smartreader(device_index, &ftdic)))
+    reader->smartreader_usb_dev=NULL;
+    if(!(reader->smartreader_usb_dev=find_smartreader(device_index, &reader->ftdic)))
         return ERROR;
     //The smartreader has different endpoint addresses
     //compared to a real FT232 device, so change them here,
     //also a good way to compare a real FT232 with a smartreader
     //if you enumarate usb devices
-    ftdic.in_ep = 0x1;
-    ftdic.out_ep = 0x82;
+    reader->ftdic.in_ep = 0x1;
+    reader->ftdic.out_ep = 0x82;
 
     
     //open the smartreader device if found by find_smartreader
-    if ((ret = ftdi_usb_open_dev(&ftdic,smartreader_usb_dev)) < 0) {
-        cs_log("unable to open ftdi device: %d (%s)", ret, ftdi_get_error_string(&ftdic));
+    if ((ret = ftdi_usb_open_dev(&reader->ftdic,reader->smartreader_usb_dev)) < 0) {
+        cs_log("unable to open ftdi device: %d (%s)", ret, ftdi_get_error_string(&reader->ftdic));
         return ERROR;
     }
 
@@ -37,23 +37,23 @@ int SR_Init (int device_index)
     cs_log("IO:SR: Setting smartreader latency timer to 1ms");
 #endif
     //Set the FTDI latency timer to 1ms
-    ret = ftdi_set_latency_timer(&ftdic, 1);
+    ret = ftdi_set_latency_timer(&reader->ftdic, 1);
 
     //Set databits to 8o2
-    ret = ftdi_set_line_property(&ftdic, BITS_8, STOP_BIT_2, ODD);
+    ret = ftdi_set_line_property(&reader->ftdic, BITS_8, STOP_BIT_2, ODD);
 
     //Set the DTR HIGH and RTS LOW
-    ftdi_setdtr_rts(&ftdic, 1, 1);
+    ftdi_setdtr_rts(&reader->ftdic, 1, 1);
 
     //Disable flow control
-    ftdi_setflowctrl(&ftdic, 0);
+    ftdi_setflowctrl(&reader->ftdic, 0);
 
     // star the reading thread
-    g_read_buffer_size = 0;
-    modem_status = 0 ;
-    pthread_mutex_init(&g_read_mutex,NULL);
-    pthread_mutex_init(&g_usb_mutex,NULL);
-    ret = pthread_create(&rt, NULL, ReaderThread, (void *)&ftdic);
+    reader->g_read_buffer_size = 0;
+    reader->modem_status = 0 ;
+    pthread_mutex_init(&reader->g_read_mutex,NULL);
+    pthread_mutex_init(&reader->g_usb_mutex,NULL);
+    ret = pthread_create(&reader->rt, NULL, ReaderThread, (void *)(reader));
     if (ret) {
         cs_log("ERROR; return code from pthread_create() is %d", ret);
         return ERROR;
@@ -63,13 +63,13 @@ int SR_Init (int device_index)
 }
 
 
-int SR_GetStatus (int * in)
+int SR_GetStatus (struct s_reader *reader, int * in)
 {
 	int state;
 
-    pthread_mutex_lock(&g_read_mutex);
-    state =(modem_status & 0x80) == 0x80 ? 0 : 2;
-    pthread_mutex_unlock(&g_read_mutex);
+    pthread_mutex_lock(&reader->g_read_mutex);
+    state =(reader->modem_status & 0x80) == 0x80 ? 0 : 2;
+    pthread_mutex_unlock(&reader->g_read_mutex);
 
     
 	//state = 0 no card, 1 = not ready, 2 = ready
@@ -80,25 +80,26 @@ int SR_GetStatus (int * in)
 	return OK;
 }
 
-int SR_Reset (ATR ** atr)
+int SR_Reset (struct s_reader *reader, ATR ** atr)
 {
-    unsigned char data[ATR_MAX_SIZE] = {0};
+    unsigned char data[ATR_MAX_SIZE*2];
     int ret;
     
+    memset(data,0,sizeof(data));
     //Reset smartreader to defaults
-    ResetSmartReader(&ftdic);
+    ResetSmartReader(reader);
 
     //Reset smartcard
-    pthread_mutex_lock(&g_usb_mutex);
-    ftdi_setdtr_rts(&ftdic, 1, 1);
+    pthread_mutex_lock(&reader->g_usb_mutex);
+    ftdi_setdtr_rts(&reader->ftdic, 1, 1);
     usleep(200000);
-    ftdi_setdtr_rts(&ftdic, 1, 0);
-    pthread_mutex_unlock(&g_usb_mutex);
+    ftdi_setdtr_rts(&reader->ftdic, 1, 0);
+    pthread_mutex_unlock(&reader->g_usb_mutex);
     usleep(2000);
     sched_yield();
 
     //Read the ATR
-    ret = smart_read(data, ATR_MAX_SIZE,1);
+    ret = smart_read(reader,data, ATR_MAX_SIZE,1);
 #ifdef DEBUG_IO
     cs_log("IO:SR: get ATR ret = %d" , ret);
 #endif
@@ -107,8 +108,8 @@ int SR_Reset (ATR ** atr)
         return ERROR;
 
     if(data[0]==0x03) {
-        sr_config.inv=1;
-        EnableSmartReader(&ftdic, 3571200, 372, 1, 0, 0, sr_config.inv);
+        reader->sr_config.inv=1;
+        EnableSmartReader(reader, 3571200, 372, 1, 0, 0, reader->sr_config.inv);
     }
     // parse atr
 	(*atr) = ATR_New ();
@@ -129,36 +130,36 @@ int SR_Reset (ATR ** atr)
     
 }
 
-int SR_Transmit (BYTE * sent, unsigned size)
+int SR_Transmit (struct s_reader *reader, BYTE * buffer, unsigned size)
+
 { 
     unsigned int ret;
-    ret = smart_write(&ftdic, sent, size, 0);
+    ret = smart_write(reader, buffer, size, 0);
     if (ret!=size)
         return ERROR;
         
 	return OK;
 }
 
-int SR_Receive (BYTE * data, unsigned size)
+int SR_Receive (struct s_reader *reader, BYTE * buffer, unsigned size)
 { 
     unsigned int ret;
-    ret = smart_read(data, size,1);
+    ret = smart_read(reader, buffer, size, 1);
     if (ret!=size)
         return ERROR;
 
 	return OK;
 }	
 
-int SR_SetBaudrate (int mhz)
+int SR_SetBaudrate (struct s_reader *reader)
 {
-
-    sr_config.fs=mhz*1000; //freq in KHz
-    EnableSmartReader(&ftdic, sr_config.fs, sr_config.F, (BYTE)sr_config.D, sr_config.N, sr_config.T, sr_config.inv);
+    reader->sr_config.fs=reader->mhz*10000; //freq in KHz
+    EnableSmartReader(reader, reader->sr_config.fs, reader->sr_config.F, (BYTE)reader->sr_config.D, reader->sr_config.N, reader->sr_config.T, reader->sr_config.inv);
     //baud rate not really used in native mode since
     //it's handled by the card, so just set to maximum 3Mb/s
-    pthread_mutex_lock(&g_usb_mutex);
-    ftdi_set_baudrate(&ftdic, 3000000);
-    pthread_mutex_unlock(&g_usb_mutex);
+    pthread_mutex_lock(&reader->g_usb_mutex);
+    ftdi_set_baudrate(&reader->ftdic, 3000000);
+    pthread_mutex_unlock(&reader->g_usb_mutex);
     sched_yield();
 
 	return OK;
@@ -221,21 +222,21 @@ static struct usb_device * find_smartreader(int index, struct ftdi_context* ftdi
     return dev;
 }
 
-static void smart_flush(struct ftdi_context* ftdic)
+static void smart_flush(struct s_reader *reader)
 {
 
-    pthread_mutex_lock(&g_usb_mutex);
-    ftdi_usb_purge_buffers(ftdic);
-    pthread_mutex_unlock(&g_usb_mutex);
+    pthread_mutex_lock(&reader->g_usb_mutex);
+    ftdi_usb_purge_buffers(&reader->ftdic);
+    pthread_mutex_unlock(&reader->g_usb_mutex);
 
-    pthread_mutex_lock(&g_read_mutex);
-    g_read_buffer_size = 0;
-    pthread_mutex_unlock(&g_read_mutex);
+    pthread_mutex_lock(&reader->g_read_mutex);
+    reader->g_read_buffer_size = 0;
+    pthread_mutex_unlock(&reader->g_read_mutex);
     usleep(500);
     sched_yield();
 }
 
-static unsigned int smart_read(unsigned char* buff, size_t size, int timeout_sec)
+static unsigned int smart_read(struct s_reader *reader, unsigned char* buff, size_t size, int timeout_sec)
 {
 
     int ret = 0;
@@ -246,15 +247,15 @@ static unsigned int smart_read(unsigned char* buff, size_t size, int timeout_sec
 
     while(total_read < size && dif.tv_sec < timeout_sec) {
 
-        pthread_mutex_lock(&g_read_mutex);
-        if(g_read_buffer_size > 0) {
+        pthread_mutex_lock(&reader->g_read_mutex);
+        if(reader->g_read_buffer_size > 0) {
         
-            ret = g_read_buffer_size>size-total_read ? size-total_read : g_read_buffer_size;
-            memcpy(buff+total_read,g_read_buffer,ret);
-            g_read_buffer_size -= ret;
+            ret = reader->g_read_buffer_size > size-total_read ? size-total_read : reader->g_read_buffer_size;
+            memcpy(buff+total_read,reader->g_read_buffer,ret);
+            reader->g_read_buffer_size -= ret;
             total_read+=ret;
         }
-        pthread_mutex_unlock(&g_read_mutex);
+        pthread_mutex_unlock(&reader->g_read_mutex);
        
         gettimeofday(&now,NULL);
         timersub(&now, &start, &dif);
@@ -266,25 +267,25 @@ static unsigned int smart_read(unsigned char* buff, size_t size, int timeout_sec
     return total_read;
 }
 
-static unsigned int smart_write(struct ftdi_context* ftdic, unsigned char* buff, size_t size, int udelay)
+static unsigned int smart_write(struct s_reader *reader, unsigned char* buff, size_t size, int udelay)
 {
 
     int ret = 0;
     unsigned int idx;
 
     if (udelay == 0) {
-        pthread_mutex_lock(&g_usb_mutex);
-        ret = ftdi_write_data(ftdic, buff, size);
-        pthread_mutex_unlock(&g_usb_mutex);
+        pthread_mutex_lock(&reader->g_usb_mutex);
+        ret = ftdi_write_data(&reader->ftdic, buff, size);
+        pthread_mutex_unlock(&reader->g_usb_mutex);
     }
     else {
         for (idx = 0; idx < size; idx++) {
-            pthread_mutex_lock(&g_usb_mutex);
-            if ((ret = ftdi_write_data(ftdic, &buff[idx], 1)) < 0){
-                pthread_mutex_unlock(&g_usb_mutex);
+            pthread_mutex_lock(&reader->g_usb_mutex);
+            if ((ret = ftdi_write_data(&reader->ftdic, &buff[idx], 1)) < 0){
+                pthread_mutex_unlock(&reader->g_usb_mutex);
                 break;
             }
-            pthread_mutex_unlock(&g_usb_mutex);
+            pthread_mutex_unlock(&reader->g_usb_mutex);
             usleep(udelay);
         }
     }
@@ -293,23 +294,23 @@ static unsigned int smart_write(struct ftdi_context* ftdic, unsigned char* buff,
     return ret;
 }
 
-static void EnableSmartReader(struct ftdi_context* ftdic, int clock, unsigned short Fi, unsigned char Di, unsigned char Ni, unsigned char T, unsigned char inv) {
+static void EnableSmartReader(struct s_reader *reader, int clock, unsigned short Fi, unsigned char Di, unsigned char Ni, unsigned char T, unsigned char inv) {
 
     int ret = 0;
     int delay=50000;
 
     
-    pthread_mutex_lock(&g_usb_mutex);
-    ret = ftdi_set_baudrate(ftdic, 9600);
-    ret = ftdi_set_line_property(ftdic, (enum ftdi_bits_type) 5, STOP_BIT_2, NONE);
-    pthread_mutex_unlock(&g_usb_mutex);
+    pthread_mutex_lock(&reader->g_usb_mutex);
+    ret = ftdi_set_baudrate(&reader->ftdic, 9600);
+    ret = ftdi_set_line_property(&reader->ftdic, (enum ftdi_bits_type) 5, STOP_BIT_2, NONE);
+    pthread_mutex_unlock(&reader->g_usb_mutex);
 #ifdef DEBUG_IO
     cs_log("IO:SR: sending F=%04X to smartreader",Fi);
     cs_log("IO:SR: sending D=%02X to smartreader",Di);
 #endif
 
     unsigned char FiDi[] = {0x01, HIBYTE(Fi), LOBYTE(Fi), Di};
-    ret = smart_write(ftdic, FiDi, sizeof (FiDi),0);
+    ret = smart_write(reader,FiDi, sizeof (FiDi),0);
     usleep(delay);
 
     unsigned short freqk = (unsigned short) (clock / 1000);
@@ -317,56 +318,56 @@ static void EnableSmartReader(struct ftdi_context* ftdic, int clock, unsigned sh
     cs_log("IO:SR: sending Freq=%d to smartreader",freqk);
 #endif
     unsigned char Freq[] = {0x02, HIBYTE(freqk), LOBYTE(freqk)};
-    ret = smart_write(ftdic, Freq, sizeof (Freq),0);
+    ret = smart_write(reader, Freq, sizeof (Freq),0);
     usleep(delay);
 
 #ifdef DEBUG_IO
     cs_log("IO:SR: sending N=%02X to smartreader",Ni);
 #endif
     unsigned char N[] = {0x03, Ni};
-    ret = smart_write(ftdic, N, sizeof (N),0);
+    ret = smart_write(reader, N, sizeof (N),0);
     usleep(delay);
 
 #ifdef DEBUG_IO
     cs_log("IO:SR: sending T=%02X to smartreader",T);
 #endif
     unsigned char Prot[] = {0x04, T};
-    ret = smart_write(ftdic, Prot, sizeof (Prot),0);
+    ret = smart_write(reader, Prot, sizeof (Prot),0);
     usleep(delay);
 
 #ifdef DEBUG_IO
     cs_log("IO:SR: sending inv=%02X to smartreader",inv);
 #endif
     unsigned char Invert[] = {0x05, inv};
-    ret = smart_write(ftdic, Invert, sizeof (Invert),0);
+    ret = smart_write(reader, Invert, sizeof (Invert),0);
     usleep(delay);
 
-    pthread_mutex_lock(&g_usb_mutex);
-    ret = ftdi_set_line_property2(ftdic, BITS_8, STOP_BIT_2, ODD, BREAK_ON);
-    pthread_mutex_unlock(&g_usb_mutex);
+    pthread_mutex_lock(&reader->g_usb_mutex);
+    ret = ftdi_set_line_property2(&reader->ftdic, BITS_8, STOP_BIT_2, ODD, BREAK_ON);
+    pthread_mutex_unlock(&reader->g_usb_mutex);
    
     usleep(50000);
 
-    pthread_mutex_lock(&g_usb_mutex);
-    ret = ftdi_set_line_property2(ftdic, BITS_8, STOP_BIT_2, ODD, BREAK_OFF);
-    pthread_mutex_unlock(&g_usb_mutex);
+    pthread_mutex_lock(&reader->g_usb_mutex);
+    ret = ftdi_set_line_property2(&reader->ftdic, BITS_8, STOP_BIT_2, ODD, BREAK_OFF);
+    pthread_mutex_unlock(&reader->g_usb_mutex);
 
-    smart_flush(ftdic);
+    smart_flush(reader);
 }
 
-static void ResetSmartReader(struct ftdi_context* ftdic) 
+static void ResetSmartReader(struct s_reader *reader) 
 {
 
-    smart_flush(ftdic);
+    smart_flush(reader);
     // set smartreader+ default values 
-    sr_config.F=372; 
-    sr_config.D=1.0; 
-    sr_config.fs=3571200; 
-    sr_config.N=0; 
-    sr_config.T=0; 
-    sr_config.inv=0; 
+    reader->sr_config.F=372; 
+    reader->sr_config.D=1.0; 
+    reader->sr_config.fs=3571200; 
+    reader->sr_config.N=0; 
+    reader->sr_config.T=0; 
+    reader->sr_config.inv=0; 
 
-    EnableSmartReader(ftdic, sr_config.fs, sr_config.F, (BYTE)sr_config.D, sr_config.N, sr_config.T, sr_config.inv);
+    EnableSmartReader(reader, reader->sr_config.fs, reader->sr_config.F, (BYTE)reader->sr_config.D, reader->sr_config.N, reader->sr_config.T, reader->sr_config.inv);
     sched_yield();
 
 }
@@ -374,15 +375,17 @@ static void ResetSmartReader(struct ftdi_context* ftdic)
 static void* ReaderThread(void *p)
 {
 
-    struct ftdi_context* ftdic = (struct ftdi_context*)p;
+    struct s_reader *reader;
     bool running = TRUE;
     unsigned int ret;
     unsigned int copy_size;
     unsigned char local_buffer[64];  //64 is max transfer size of FTDI bulk pipe
 
+    reader = (struct s_reader *)p;
+
     while(running){
 
-        if(g_read_buffer_size == sizeof(g_read_buffer)){
+        if(reader->g_read_buffer_size == sizeof(reader->g_read_buffer)){
             //if out read buffer is full then delay
             //slightly and go around again
             struct timespec req = {0,200000000}; //20ms
@@ -390,26 +393,26 @@ static void* ReaderThread(void *p)
             continue;
         }
 
-        pthread_mutex_lock(&g_usb_mutex);
-        ret = usb_bulk_read(ftdic->usb_dev,ftdic->out_ep,(char*)local_buffer,64,1000);
-        pthread_mutex_unlock(&g_usb_mutex);
+        pthread_mutex_lock(&reader->g_usb_mutex);
+        ret = usb_bulk_read(reader->ftdic.usb_dev,reader->ftdic.out_ep,(char*)local_buffer,64,1000);
+        pthread_mutex_unlock(&reader->g_usb_mutex);
         sched_yield();
 
 
         if(ret>2) {  //FTDI always sends modem status bytes as first 2 chars with the 232BM
-            pthread_mutex_lock(&g_read_mutex);
-            modem_status=local_buffer[0];
+            pthread_mutex_lock(&reader->g_read_mutex);
+            reader->modem_status=local_buffer[0];
 
-            copy_size = sizeof(g_read_buffer) - g_read_buffer_size > ret-2 ?ret-2: sizeof(g_read_buffer) - g_read_buffer_size;
-            memcpy(g_read_buffer+g_read_buffer_size,local_buffer+2,copy_size);
-            g_read_buffer_size += copy_size;            
-            pthread_mutex_unlock(&g_read_mutex);
+            copy_size = sizeof(reader->g_read_buffer) - reader->g_read_buffer_size > ret-2 ?ret-2: sizeof(reader->g_read_buffer) - reader->g_read_buffer_size;
+            memcpy(reader->g_read_buffer+reader->g_read_buffer_size,local_buffer+2,copy_size);
+            reader->g_read_buffer_size += copy_size;            
+            pthread_mutex_unlock(&reader->g_read_mutex);
         } 
         else {
             if(ret==2) {
-                pthread_mutex_lock(&g_read_mutex);
-                modem_status=local_buffer[0];
-                pthread_mutex_unlock(&g_read_mutex);
+                pthread_mutex_lock(&reader->g_read_mutex);
+                reader->modem_status=local_buffer[0];
+                pthread_mutex_unlock(&reader->g_read_mutex);
             }
             //sleep for 50ms since there was nothing to read last time
             usleep(50000);
