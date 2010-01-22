@@ -94,9 +94,11 @@ int SR_Reset (ATR ** atr)
     usleep(200000);
     ftdi_setdtr_rts(&ftdic, 1, 0);
     pthread_mutex_unlock(&g_usb_mutex);
+    usleep(2000);
+    sched_yield();
 
     //Read the ATR
-    ret = smart_read(data, 32,1);
+    ret = smart_read(data, ATR_MAX_SIZE,1);
 #ifdef DEBUG_IO
     cs_log("IO:SR: get ATR ret = %d" , ret);
 #endif
@@ -157,6 +159,7 @@ int SR_SetBaudrate (int mhz)
     pthread_mutex_lock(&g_usb_mutex);
     ftdi_set_baudrate(&ftdic, 3000000);
     pthread_mutex_unlock(&g_usb_mutex);
+    sched_yield();
 
 	return OK;
 }
@@ -227,6 +230,8 @@ void smart_flush(struct ftdi_context* ftdic)
     pthread_mutex_lock(&g_read_mutex);
     g_read_buffer_size = 0;
     pthread_mutex_unlock(&g_read_mutex);
+    usleep(500);
+    sched_yield();
 }
 
 unsigned int smart_read(unsigned char* buff, size_t size, int timeout_sec)
@@ -253,7 +258,7 @@ unsigned int smart_read(unsigned char* buff, size_t size, int timeout_sec)
         gettimeofday(&now,NULL);
         timersub(&now, &start, &dif);
         usleep(500);
-
+        sched_yield();
     }
 
     
@@ -282,7 +287,8 @@ unsigned int smart_write(struct ftdi_context* ftdic, unsigned char* buff, size_t
             usleep(udelay);
         }
     }
-
+    usleep(500);
+    sched_yield();
     return ret;
 }
 
@@ -360,6 +366,7 @@ void ResetSmartReader(struct ftdi_context* ftdic)
     sr_config.inv=0; 
 
     EnableSmartReader(ftdic, sr_config.fs, sr_config.F, (BYTE)sr_config.D, sr_config.N, sr_config.T, sr_config.inv);
+    sched_yield();
 
 }
 
