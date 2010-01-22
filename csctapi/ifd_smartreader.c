@@ -480,7 +480,13 @@ static void sr_hexdump(const unsigned char* data, size_t size, bool single)
             memset(buffer,0,512);
             i=0;
         }
-        snprintf(buffer+i*3,512,"%02X ", data[idx]);
+        if((i+1)*3 >= 509) {
+            cs_log("IO:SR: %s",buffer);
+            memset(buffer,0,512);
+            i=0;
+        }
+
+        sprintf(buffer+i*3,"%02X ", data[idx]);
         i++;
     }
 }
