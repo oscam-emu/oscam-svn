@@ -96,7 +96,7 @@ int SR_Reset (ATR ** atr)
     pthread_mutex_unlock(&g_usb_mutex);
 
     //Read the ATR
-    ret = smart_read(&ftdic, data, 32,1);
+    ret = smart_read(data, 32,1);
 #ifdef DEBUG_IO
     cs_log("IO:SR: get ATR ret = %d" , ret);
 #endif
@@ -129,7 +129,7 @@ int SR_Reset (ATR ** atr)
 
 int SR_Transmit (BYTE * sent, unsigned size)
 { 
-    int ret;
+    unsigned int ret;
     ret = smart_write(&ftdic, sent, size, 0);
     if (ret!=size)
         return ERROR;
@@ -139,8 +139,8 @@ int SR_Transmit (BYTE * sent, unsigned size)
 
 int SR_Receive (BYTE * data, unsigned size)
 { 
-    int ret;
-    ret = smart_read(&ftdic, data, size,1);
+    unsigned int ret;
+    ret = smart_read(data, size,1);
     if (ret!=size)
         return ERROR;
 
@@ -164,7 +164,7 @@ int SR_SetBaudrate (int mhz)
 
 struct usb_device * find_smartreader(int index, struct ftdi_context* ftdic)
 {
-    int ret, i;
+    int i;
     bool dev_found;
     struct usb_bus *bus;
     struct usb_device *dev;
@@ -229,12 +229,12 @@ void smart_flush(struct ftdi_context* ftdic)
     pthread_mutex_unlock(&g_read_mutex);
 }
 
-int smart_read(struct ftdi_context* ftdic, unsigned char* buff, size_t size, int timeout_sec)
+unsigned int smart_read(unsigned char* buff, size_t size, int timeout_sec)
 {
 
     int ret = 0;
-    int total_read = 0;
-    struct timeval start, now, dif = {0};
+    unsigned int total_read = 0;
+    struct timeval start, now, dif = {0,0};
     gettimeofday(&start,NULL);
 
 
@@ -260,11 +260,11 @@ int smart_read(struct ftdi_context* ftdic, unsigned char* buff, size_t size, int
     return total_read;
 }
 
-int smart_write(struct ftdi_context* ftdic, unsigned char* buff, size_t size, int udelay)
+unsigned int smart_write(struct ftdi_context* ftdic, unsigned char* buff, size_t size, int udelay)
 {
 
     int ret = 0;
-    int idx;
+    unsigned int idx;
 
     if (udelay == 0) {
         pthread_mutex_lock(&g_usb_mutex);
@@ -289,7 +289,6 @@ int smart_write(struct ftdi_context* ftdic, unsigned char* buff, size_t size, in
 void EnableSmartReader(struct ftdi_context* ftdic, int clock, unsigned short Fi, unsigned char Di, unsigned char Ni, unsigned char T, unsigned char inv) {
 
     int ret = 0;
-    unsigned char buff[4];
     int delay=50000;
 
     
@@ -369,8 +368,8 @@ void* ReaderThread(void *p)
 
     struct ftdi_context* ftdic = (struct ftdi_context*)p;
     bool running = TRUE;
-    int ret;
-    int copy_size;
+    unsigned int ret;
+    unsigned int copy_size;
     unsigned char local_buffer[64];  //64 is max transfer size of FTDI bulk pipe
 
     while(running){

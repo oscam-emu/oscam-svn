@@ -17,6 +17,7 @@
 #include <pthread.h>
 #include <memory.h>
 
+#include "../globals.h"
 #include "ftdi.h"
 #include "atr.h"
 
@@ -54,8 +55,8 @@ int SR_SetBaudrate (int mhz);
 // bool find_smartreader(int index, struct ftdi_context* ftdic,struct usb_device *dev);
 struct usb_device * find_smartreader(int index, struct ftdi_context* ftdic);
 void smart_flush(struct ftdi_context* ftdic);
-int smart_read(struct ftdi_context* ftdic, unsigned char* buff, size_t size, int timeout_sec);
-int smart_write(struct ftdi_context* ftdic, unsigned char* buff, size_t size, int udelay);
+unsigned int smart_read(unsigned char* buff, size_t size, int timeout_sec);
+unsigned int smart_write(struct ftdi_context* ftdic, unsigned char* buff, size_t size, int udelay);
 void EnableSmartReader(struct ftdi_context* ftdic, int clock, unsigned short Fi, unsigned char Di, unsigned char Ni, unsigned char T,unsigned char inv);
 void ResetSmartReader(struct ftdi_context* ftdic);
 void* ReaderThread(void *p);

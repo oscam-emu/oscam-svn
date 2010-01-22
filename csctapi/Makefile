@@ -19,7 +19,9 @@ OBJECTS1	= $(LIBFILE1)(apdu.o) \
 		  $(LIBFILE1)(pps.o) \
 		  $(LIBFILE1)(protocol_t0.o) \
 		  $(LIBFILE1)(protocol_t1.o) \
-		  $(LIBFILE1)(t1_block.o)
+		  $(LIBFILE1)(t1_block.o) \
+		  $(LIBFILE1)(ftdi.o) \
+		  $(LIBFILE1)(ifd_smartreader.o)
 
 all:		$(LIBFILE1) 
 
