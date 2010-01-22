@@ -165,7 +165,7 @@ int SR_SetBaudrate (int mhz)
 }
 
 
-struct usb_device * find_smartreader(int index, struct ftdi_context* ftdic)
+static struct usb_device * find_smartreader(int index, struct ftdi_context* ftdic)
 {
     int i;
     bool dev_found;
@@ -204,12 +204,13 @@ struct usb_device * find_smartreader(int index, struct ftdi_context* ftdic)
                 }
             }
         }
-    if(dev_found)
-        break;    
-    }
+        if(dev_found) {
 #ifdef DEBUG_IO
-    cs_log("IO:SR: Found smartreader device %d",index);
+            cs_log("IO:SR: Found smartreader device %d",index);
 #endif
+            break;
+        }
+    }
 
     if(!dev_found) {
         cs_log("IO:SR: Smartreader device number %d not found",index);
@@ -220,7 +221,7 @@ struct usb_device * find_smartreader(int index, struct ftdi_context* ftdic)
     return dev;
 }
 
-void smart_flush(struct ftdi_context* ftdic)
+static void smart_flush(struct ftdi_context* ftdic)
 {
 
     pthread_mutex_lock(&g_usb_mutex);
@@ -234,7 +235,7 @@ void smart_flush(struct ftdi_context* ftdic)
     sched_yield();
 }
 
-unsigned int smart_read(unsigned char* buff, size_t size, int timeout_sec)
+static unsigned int smart_read(unsigned char* buff, size_t size, int timeout_sec)
 {
 
     int ret = 0;
@@ -265,7 +266,7 @@ unsigned int smart_read(unsigned char* buff, size_t size, int timeout_sec)
     return total_read;
 }
 
-unsigned int smart_write(struct ftdi_context* ftdic, unsigned char* buff, size_t size, int udelay)
+static unsigned int smart_write(struct ftdi_context* ftdic, unsigned char* buff, size_t size, int udelay)
 {
 
     int ret = 0;
@@ -292,7 +293,7 @@ unsigned int smart_write(struct ftdi_context* ftdic, unsigned char* buff, size_t
     return ret;
 }
 
-void EnableSmartReader(struct ftdi_context* ftdic, int clock, unsigned short Fi, unsigned char Di, unsigned char Ni, unsigned char T, unsigned char inv) {
+static void EnableSmartReader(struct ftdi_context* ftdic, int clock, unsigned short Fi, unsigned char Di, unsigned char Ni, unsigned char T, unsigned char inv) {
 
     int ret = 0;
     int delay=50000;
@@ -353,7 +354,7 @@ void EnableSmartReader(struct ftdi_context* ftdic, int clock, unsigned short Fi,
     smart_flush(ftdic);
 }
 
-void ResetSmartReader(struct ftdi_context* ftdic) 
+static void ResetSmartReader(struct ftdi_context* ftdic) 
 {
 
     smart_flush(ftdic);
@@ -370,7 +371,7 @@ void ResetSmartReader(struct ftdi_context* ftdic)
 
 }
 
-void* ReaderThread(void *p)
+static void* ReaderThread(void *p)
 {
 
     struct ftdi_context* ftdic = (struct ftdi_context*)p;
@@ -419,7 +420,7 @@ void* ReaderThread(void *p)
 }
 
 
-bool smartreader_check_endpoint(struct usb_device *dev)
+static bool smartreader_check_endpoint(struct usb_device *dev)
 {
     int nb_interfaces;
     int i,j,k,l;

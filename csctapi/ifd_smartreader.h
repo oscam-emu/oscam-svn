@@ -53,14 +53,14 @@ int SR_Receive (BYTE * buffer, unsigned size);
 int SR_SetBaudrate (int mhz);
 
 // bool find_smartreader(int index, struct ftdi_context* ftdic,struct usb_device *dev);
-struct usb_device * find_smartreader(int index, struct ftdi_context* ftdic);
-void smart_flush(struct ftdi_context* ftdic);
-unsigned int smart_read(unsigned char* buff, size_t size, int timeout_sec);
-unsigned int smart_write(struct ftdi_context* ftdic, unsigned char* buff, size_t size, int udelay);
-void EnableSmartReader(struct ftdi_context* ftdic, int clock, unsigned short Fi, unsigned char Di, unsigned char Ni, unsigned char T,unsigned char inv);
-void ResetSmartReader(struct ftdi_context* ftdic);
-void* ReaderThread(void *p);
-bool smartreader_check_endpoint(struct usb_device *dev);
+static struct usb_device * find_smartreader(int index, struct ftdi_context* ftdic);
+static void smart_flush(struct ftdi_context* ftdic);
+static unsigned int smart_read(unsigned char* buff, size_t size, int timeout_sec);
+static unsigned int smart_write(struct ftdi_context* ftdic, unsigned char* buff, size_t size, int udelay);
+static void EnableSmartReader(struct ftdi_context* ftdic, int clock, unsigned short Fi, unsigned char Di, unsigned char Ni, unsigned char T,unsigned char inv);
+static void ResetSmartReader(struct ftdi_context* ftdic);
+static void* ReaderThread(void *p);
+static bool smartreader_check_endpoint(struct usb_device *dev);
 
 #endif // __SMARTREADER__
 #endif // HAVE_LIBUSB && USE_PTHREAD
