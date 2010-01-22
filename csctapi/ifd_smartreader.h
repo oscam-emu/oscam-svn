@@ -43,5 +43,9 @@ static void ResetSmartReader(struct s_reader *reader);
 static void* ReaderThread(void *p);
 static bool smartreader_check_endpoint(struct usb_device *dev);
 
+#ifdef DEBUG_IO
+static void sr_hexdump(const unsigned char* data, size_t size, bool single);
+#endif
+
 #endif // __SMARTREADER__
 #endif // HAVE_LIBUSB && USE_PTHREAD

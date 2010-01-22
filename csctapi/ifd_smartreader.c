@@ -99,9 +99,10 @@ int SR_Reset (struct s_reader *reader, ATR ** atr)
     sched_yield();
 
     //Read the ATR
-    ret = smart_read(reader,data, ATR_MAX_SIZE,1);
+    ret = smart_read(reader,data, ATR_MAX_SIZE*2,1);
 #ifdef DEBUG_IO
     cs_log("IO:SR: get ATR ret = %d" , ret);
+    sr_hexdump(data,ATR_MAX_SIZE*2,FALSE);
 #endif
     // did we get any data for the ATR ?
     if(!ret)
@@ -463,5 +464,26 @@ static bool smartreader_check_endpoint(struct usb_device *dev)
         return FALSE;
     return TRUE;
 }
+
+#ifdef DEBUG_IO
+static void sr_hexdump(const unsigned char* data, size_t size, bool single)
+{
+    int idx;
+    int i;
+    char buffer[512];
+
+    memset(buffer,0,512);
+    i=0;
+    for (idx = 0; idx < size; idx++) {
+        if(!single && idx % 16 == 0 && idx != 0){
+            cs_log("IO:SR: %s",buffer);
+            memset(buffer,0,512);
+            i=0;
+        }
+        snprintf(buffer+i*3,512,"%02X ", data[idx]);
+        i++;
+    }
+}
+#endif
 
 #endif // HAVE_LIBUSB && USE_PTHREAD
