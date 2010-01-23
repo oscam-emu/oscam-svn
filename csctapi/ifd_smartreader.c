@@ -11,6 +11,21 @@
 
 #define OK 		1 
 #define ERROR 0
+#define LOBYTE(w) ((BYTE)((w) & 0xff))
+#define HIBYTE(w) ((BYTE)((w) >> 8))
+static struct usb_device * find_smartreader(int index, struct ftdi_context* ftdic);
+static void smart_flush(struct s_reader *reader);
+static unsigned int smart_read(struct s_reader *reader, unsigned char* buff, size_t size, int timeout_sec);
+static unsigned int smart_write(struct s_reader *reader, unsigned char* buff, size_t size, int udelay);
+static void EnableSmartReader(struct s_reader *reader, int clock, unsigned short Fi, unsigned char Di, unsigned char Ni, unsigned char T,unsigned char inv);
+static void ResetSmartReader(struct s_reader *reader);
+static void* ReaderThread(void *p);
+static bool smartreader_check_endpoint(struct usb_device *dev);
+
+#ifdef DEBUG_IO
+static void sr_hexdump(const unsigned char* data, size_t size, bool single);
+#endif
+
 
 int SR_Init (struct s_reader *reader, int device_index)
 {
@@ -485,8 +500,8 @@ static bool smartreader_check_endpoint(struct usb_device *dev)
 #ifdef DEBUG_IO
 static void sr_hexdump(const unsigned char* data, size_t size, bool single)
 {
-    int idx;
-    int i;
+    unsigned int idx;
+    unsigned int i;
     char buffer[512];
 
     memset(buffer,0,512);

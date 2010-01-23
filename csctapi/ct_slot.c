@@ -67,7 +67,7 @@ CT_Slot * CT_Slot_New ()
 	return slot;
 }
 
-char CT_Slot_Init (CT_Slot * slot, int sn)
+char CT_Slot_Init ()
 {
 #if defined(HAVE_LIBUSB) && defined(USE_PTHREAD)
     int dev_index;

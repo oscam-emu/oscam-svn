@@ -87,8 +87,8 @@ i386-pc-linux-libusb:
 		OS_LIBS="-lcrypto -lm" \
 		OS_CULI="-lncurses" \
 		OS_PTLI="-lpthread" \
-		DS_OPTS="-O2 -DOS_LINUX -DUSE_PTHREAD -DHAVE_LIBUSB -DCS_CONFDIR=${CS_CONFDIR} -Winline -Wall -Wextra -finline-functions -fomit-frame-pointer -D'CS_SVN_VERSION="\"$(SVN_REV)\""'" \
-		DS_CFLAGS="-c `libusb-config --cflags`" \
+		DS_OPTS="-O2 -DOS_LINUX -DUSE_PTHREAD -DHAVE_LIBUSB -DCS_CONFDIR=${CS_CONFDIR} -Winline -Wall -Wextra -finline-functions -fomit-frame-pointer -D'CS_SVN_VERSION="\"$(SVN_REV)\""' `libusb-config --cflags`" \
+		DS_CFLAGS="-c" \
 		DS_LDFLAGS="`libusb-config --libs`" \
 		DS_ARFLAGS="-rvsl" \
 		DS_CC=gcc \
@@ -129,8 +129,8 @@ i386-pc-linux-pcsc-libusb:
 		OS_LIBS="-lcrypto -lm" \
 		OS_CULI="-lncurses" \
 		OS_PTLI="-lpthread -lpcsclite" \
-		DS_OPTS="-O2 -DOS_LINUX -DUSE_PTHREAD -DHAVE_LIBUSB -DCS_CONFDIR=${CS_CONFDIR} -DHAVE_PCSC=1 -I/usr/include/PCSC -Winline -Wall -Wextra -finline-functions -fomit-frame-pointer -D'CS_SVN_VERSION="\"$(SVN_REV)\""'" \
-		DS_CFLAGS="-c `libusb-config --cflags`" \
+		DS_OPTS="-O2 -DOS_LINUX -DUSE_PTHREAD -DHAVE_LIBUSB -DCS_CONFDIR=${CS_CONFDIR} -DHAVE_PCSC=1 -I/usr/include/PCSC -Winline -Wall -Wextra -finline-functions -fomit-frame-pointer -D'CS_SVN_VERSION="\"$(SVN_REV)\""' `libusb-config --cflags`" \
+		DS_CFLAGS="-c" \
 		DS_LDFLAGS="`libusb-config --libs`" \
 		DS_ARFLAGS="-rvsl" \
 		DS_CC=gcc \
@@ -171,8 +171,8 @@ macosx-libusb:
 		OS_LIBS="-lcrypto -lm " \
 		OS_CULI="-lncurses" \
 		OS_PTLI="-lpthread" \
-		DS_OPTS="-O2 -DOS_MACOSX -DNEED_DAEMON -DCS_NOSHM -DHAVE_PTHREAD_H -DUSE_PTHREAD -DCS_CONFDIR=${CS_CONFDIR} -DHAVE_PCSC=1 -DHAVE_LIBUSB -m32 -Winline -Wall -Wextra -finline-functions -fomit-frame-pointer -D'CS_SVN_VERSION="\"$(SVN_REV)\""'" \
-		DS_CFLAGS="-c `libusb-config --cflags`" \
+		DS_OPTS="-O2 -DOS_MACOSX -DNEED_DAEMON -DCS_NOSHM -DHAVE_PTHREAD_H -DUSE_PTHREAD -DCS_CONFDIR=${CS_CONFDIR} -DHAVE_PCSC=1 -DHAVE_LIBUSB -m32 -Winline -Wall -Wextra -finline-functions -fomit-frame-pointer -D'CS_SVN_VERSION="\"$(SVN_REV)\""' `libusb-config --cflags`" \
+		DS_CFLAGS="-c" \
 		DS_LDFLAGS="-framework PCSC `libusb-config --libs`" \
 		DS_ARFLAGS="-rvsl" \
 		DS_CC=gcc \

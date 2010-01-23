@@ -86,7 +86,9 @@ static int ftdi_usb_close_internal (struct ftdi_context *ftdi)
 */
 int ftdi_init(struct ftdi_context *ftdi)
 {
+#ifdef LIBFTDI_LINUX_ASYNC_MODE
     unsigned int i;
+#endif
 
     ftdi->usb_dev = NULL;
     ftdi->usb_read_timeout = 5000;
@@ -442,7 +444,9 @@ static unsigned int _ftdi_determine_max_packet_size(struct ftdi_context *ftdi, s
 int ftdi_usb_open_dev(struct ftdi_context *ftdi, struct usb_device *dev)
 {
     int detach_errno = 0;
+#ifdef __WIN32__
     int config_val = 1;
+#endif
     if (!(ftdi->usb_dev = usb_open(dev)))
         ftdi_error_return(-4, "usb_open() failed");
 
@@ -1177,7 +1181,7 @@ int ftdi_write_data(struct ftdi_context *ftdi, unsigned char *buf, int size)
         if (offset+write_size > size)
             write_size = size-offset;
 
-        ret = usb_bulk_write(ftdi->usb_dev, ftdi->in_ep, buf+offset, write_size, ftdi->usb_write_timeout);
+        ret = usb_bulk_write(ftdi->usb_dev, ftdi->in_ep, (char *)buf+offset, write_size, ftdi->usb_write_timeout);
         if (ret < 0)
             ftdi_error_return(ret, "usb bulk write failed");
 
@@ -1455,7 +1459,7 @@ int ftdi_read_data(struct ftdi_context *ftdi, unsigned char *buf, int size)
         ftdi_error_return(-1, "max_packet_size is bogus (zero)");
 
     // everything we want is still in the readbuffer?
-    if (size <= ftdi->readbuffer_remaining)
+    if ((unsigned int)size <= ftdi->readbuffer_remaining)
     {
         memcpy (buf, ftdi->readbuffer+ftdi->readbuffer_offset, size);
 
@@ -1481,7 +1485,7 @@ int ftdi_read_data(struct ftdi_context *ftdi, unsigned char *buf, int size)
         ftdi->readbuffer_remaining = 0;
         ftdi->readbuffer_offset = 0;
         /* returns how much received */
-        ret = usb_bulk_read (ftdi->usb_dev, ftdi->out_ep, ftdi->readbuffer, ftdi->readbuffer_chunksize, ftdi->usb_read_timeout);
+        ret = usb_bulk_read (ftdi->usb_dev, ftdi->out_ep, (char *)ftdi->readbuffer, ftdi->readbuffer_chunksize, ftdi->usb_read_timeout);
         if (ret < 0)
             ftdi_error_return(ret, "usb bulk read failed");
 
@@ -2174,26 +2178,11 @@ int ftdi_eeprom_decode(struct ftdi_eeprom *eeprom, unsigned char *buf, int size)
     unsigned char i, j;
     unsigned short checksum, eeprom_checksum, value;
     unsigned char manufacturer_size = 0, product_size = 0, serial_size = 0;
-    int size_check;
     int eeprom_size = 128;
-#if 0
-    size_check = eeprom->size;
-    size_check -= 28; // 28 are always in use (fixed)
 
-    // Top half of a 256byte eeprom is used just for strings and checksum
-    // it seems that the FTDI chip will not read these strings from the lower half
-    // Each string starts with two bytes; offset and type (0x03 for string)
-    // the checksum needs two bytes, so without the string data that 8 bytes from the top half
-    if (eeprom->size>=256)size_check = 120;
-    size_check -= manufacturer_size*2;
-    size_check -= product_size*2;
-    size_check -= serial_size*2;
-
-    // eeprom size exceeded?
-    if (size_check < 0)
-        return (-1);
-#endif
-
+    if(!size)
+        return -1;
+        
     // empty eeprom struct
     memset(eeprom, 0, sizeof(struct ftdi_eeprom));
 
@@ -2355,7 +2344,7 @@ int ftdi_read_eeprom(struct ftdi_context *ftdi, unsigned char *eeprom)
 
     for (i = 0; i < ftdi->eeprom_size/2; i++)
     {
-        if (usb_control_msg(ftdi->usb_dev, FTDI_DEVICE_IN_REQTYPE, SIO_READ_EEPROM_REQUEST, 0, i, eeprom+(i*2), 2, ftdi->usb_read_timeout) != 2)
+        if (usb_control_msg(ftdi->usb_dev, FTDI_DEVICE_IN_REQTYPE, SIO_READ_EEPROM_REQUEST, 0, i, (char *)eeprom+(i*2), 2, ftdi->usb_read_timeout) != 2)
             ftdi_error_return(-1, "reading eeprom failed");
     }
 
@@ -2430,7 +2419,7 @@ int ftdi_read_eeprom_getsize(struct ftdi_context *ftdi, unsigned char *eeprom, i
         {
             if (usb_control_msg(ftdi->usb_dev, FTDI_DEVICE_IN_REQTYPE,
                                 SIO_READ_EEPROM_REQUEST, 0, i,
-                                eeprom+(i*2), 2, ftdi->usb_read_timeout) != 2)
+                                (char *)eeprom+(i*2), 2, ftdi->usb_read_timeout) != 2)
                 ftdi_error_return(-1, "reading eeprom failed");
             i++;
         }

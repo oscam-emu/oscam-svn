@@ -308,7 +308,7 @@ static int PPS_Exchange (BYTE * params, unsigned *length)
 	unsigned len_request, len_confirm;
 	int ret;
 #ifdef DEBUG_PROTOCOL
-	int i;
+	unsigned int i;
 #endif
 	
 	len_request = PPS_GetLength (params);
