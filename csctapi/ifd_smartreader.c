@@ -47,7 +47,10 @@ int SR_Init (struct s_reader *reader, int device_index)
 
     //Disable flow control
     ftdi_setflowctrl(&reader->ftdic, 0);
-
+    
+    // set the chunk size to 64
+    ftdi_write_data_set_chunksize(&reader->ftdic,64);
+    
     // star the reading thread
     reader->g_read_buffer_size = 0;
     reader->modem_status = 0 ;
@@ -82,7 +85,7 @@ int SR_GetStatus (struct s_reader *reader, int * in)
 
 int SR_Reset (struct s_reader *reader, ATR ** atr)
 {
-    unsigned char data[ATR_MAX_SIZE]={0};
+    unsigned char data[ATR_MAX_SIZE];
     int ret;
     
     memset(data,0,sizeof(data));
@@ -395,9 +398,9 @@ static void* ReaderThread(void *p)
             continue;
         }
 
-        pthread_mutex_lock(&reader->g_usb_mutex);
+        // pthread_mutex_lock(&reader->g_usb_mutex);
         ret = usb_bulk_read(reader->ftdic.usb_dev,reader->ftdic.out_ep,(char*)local_buffer,64,1000);
-        pthread_mutex_unlock(&reader->g_usb_mutex);
+        // pthread_mutex_unlock(&reader->g_usb_mutex);
         sched_yield();
 
 
