@@ -82,7 +82,7 @@ int SR_GetStatus (struct s_reader *reader, int * in)
 
 int SR_Reset (struct s_reader *reader, ATR ** atr)
 {
-    unsigned char data[ATR_MAX_SIZE*2];
+    unsigned char data[ATR_MAX_SIZE]={0};
     int ret;
     
     memset(data,0,sizeof(data));
@@ -99,10 +99,11 @@ int SR_Reset (struct s_reader *reader, ATR ** atr)
     sched_yield();
 
     //Read the ATR
-    ret = smart_read(reader,data, ATR_MAX_SIZE*2,1);
+    ret = smart_read(reader,data, ATR_MAX_SIZE,1);
 #ifdef DEBUG_IO
     cs_log("IO:SR: get ATR ret = %d" , ret);
-    sr_hexdump(data,ATR_MAX_SIZE*2,FALSE);
+    if(ret)
+        sr_hexdump(data,ATR_MAX_SIZE*2,FALSE);
 #endif
     // did we get any data for the ATR ?
     if(!ret)
