@@ -303,7 +303,12 @@ static void EnableSmartReader(struct s_reader *reader, int clock, unsigned short
 
     int ret = 0;
     int delay=50000;
-
+    unsigned char FiDi[4];
+    unsigned short freqk;
+    unsigned char Freq[3];
+    unsigned char N[2];
+    unsigned char Prot[2];
+    unsigned char Invert[2];
     
     pthread_mutex_lock(&reader->g_usb_mutex);
     ret = ftdi_set_baudrate(&reader->ftdic, 9600);
@@ -314,36 +319,44 @@ static void EnableSmartReader(struct s_reader *reader, int clock, unsigned short
     cs_log("IO:SR: sending D=%02X to smartreader",Di);
 #endif
 
-    unsigned char FiDi[] = {0x01, HIBYTE(Fi), LOBYTE(Fi), Di};
+    FiDi[0]=0x01;
+    FiDi[1]=HIBYTE(Fi);
+    FiDi[2]=LOBYTE(Fi);
+    FiDi[3]=Di;
     ret = smart_write(reader,FiDi, sizeof (FiDi),0);
     usleep(delay);
 
-    unsigned short freqk = (unsigned short) (clock / 1000);
+    freqk = (unsigned short) (clock / 1000);
 #ifdef DEBUG_IO
     cs_log("IO:SR: sending Freq=%d to smartreader",freqk);
 #endif
-    unsigned char Freq[] = {0x02, HIBYTE(freqk), LOBYTE(freqk)};
+    Freq[0]=0x02;
+    Freq[1]=HIBYTE(freqk);
+    Freq[2]=LOBYTE(freqk);
     ret = smart_write(reader, Freq, sizeof (Freq),0);
     usleep(delay);
 
 #ifdef DEBUG_IO
     cs_log("IO:SR: sending N=%02X to smartreader",Ni);
 #endif
-    unsigned char N[] = {0x03, Ni};
+    N[0]=0x03;
+    N[1]=Ni;
     ret = smart_write(reader, N, sizeof (N),0);
     usleep(delay);
 
 #ifdef DEBUG_IO
     cs_log("IO:SR: sending T=%02X to smartreader",T);
 #endif
-    unsigned char Prot[] = {0x04, T};
+    Prot[0]=0x04;
+    Prot[1]=T;
     ret = smart_write(reader, Prot, sizeof (Prot),0);
     usleep(delay);
 
 #ifdef DEBUG_IO
     cs_log("IO:SR: sending inv=%02X to smartreader",inv);
 #endif
-    unsigned char Invert[] = {0x05, inv};
+    Invert[0]=0x05;
+    Invert[1]=inv;
     ret = smart_write(reader, Invert, sizeof (Invert),0);
     usleep(delay);
 
