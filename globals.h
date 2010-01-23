@@ -110,8 +110,9 @@
 #define CS_MAXPENDING   (CS_MAXPID<<1)
 #define CS_ECMCACHESIZE   CS_MAXPID
 #define CS_EMMCACHESIZE   (CS_MAXPID<<1)
-#define CS_RDR_INIT_HIST
 #endif
+
+#define CS_RDR_INIT_HIST
 
 #define D_DUMP      1 // Debug Dumps
 #define D_MASTER    2 // Debug Master Process
