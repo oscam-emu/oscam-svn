@@ -1818,8 +1818,10 @@ void get_cw(ECM_REQUEST *er)
     er->ocaid=er->caid;
 
     i=er->srvid;
-    if ((i!=client[cs_idx].last_srvid) || (!client[cs_idx].lastswitch))
+    if ((i!=client[cs_idx].last_srvid) || (!client[cs_idx].lastswitch)){
       client[cs_idx].lastswitch=now;
+  	  cs_statistics(cs_idx);
+    }
     if(client[cs_idx].expirationdate && client[cs_idx].expirationdate<client[cs_idx].lastecm)
       er->rc=11; //expired
     if(client[cs_idx].disabled != 0)
