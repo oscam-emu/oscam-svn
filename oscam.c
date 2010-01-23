@@ -1127,6 +1127,7 @@ int cs_auth_client(struct s_auth *account, char *e_txt)
         if (client[cs_idx].typ=='c')
         {
           client[cs_idx].expirationdate=account->expirationdate;
+          client[cs_idx].disabled=account->disabled;
           client[cs_idx].grp=account->grp;
           client[cs_idx].au=account->au;
           client[cs_idx].autoau=account->autoau;

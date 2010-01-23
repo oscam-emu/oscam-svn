@@ -506,11 +506,12 @@ static void monitor_set_account(char *args){
 	char *ptr;
 	int argidx, i, found;
 	char *argarray[3];
-	char *token[]={"au", "sleep", "uniq", "monlevel", "group", "services", "betatunnel", "ident", "caid", "chid", "class", "hostname"};
+	char *token[]={"au", "sleep", "uniq", "monlevel", "group", "services", "betatunnel", "ident", "caid", "chid", "class", "hostname", "refresh"};
+	int tokencnt = sizeof(token)/sizeof(char *);
 	char buf[256];
 
-	argidx=0;
-	found=0;
+	argidx = 0;
+	found = 0;
 
 	ptr = strtok(args, delimiter);
 
@@ -521,10 +522,14 @@ static void monitor_set_account(char *args){
 		argidx++;
 	}
 
-	if(argidx != 3) {
-		sprintf(buf, "[S-0000]setuser failed - wrong number of parameters (%d)\n", argidx);
-		monitor_send_info(buf, 1);
-		return;
+	if(!strcmp(argarray[1], "refresh")){
+		kill(client[0].pid, SIGHUP);
+	}else{
+		if(argidx != 3) {
+			sprintf(buf, "[S-0000]setuser failed - wrong number of parameters (%d)\n", argidx);
+			monitor_send_info(buf, 1);
+			return;
+		}
 	}
 
 	//search account
@@ -541,8 +546,8 @@ static void monitor_set_account(char *args){
 		return;
 	}
 
-	found=0;
-	for (i=0; i<12; i++){
+	found = 0;
+	for (i = 0; i < tokencnt; i++){
 		if (!strcmp(argarray[1], token[i])){
 			chk_account(token[i],argarray[2],account);
 			found = 1;
