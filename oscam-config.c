@@ -3,7 +3,7 @@
 #  include "oscam-boxkeys.np"
 #endif
 
-#define CONFVARWIDTH 16
+#define CONFVARWIDTH 20
 
 static char *cs_conf="oscam.conf";
 static char *cs_user="oscam.user";
@@ -944,6 +944,7 @@ int write_config()
 	fprintf_conf(f, CONFVARWIDTH, "logfile", "%s\n", logfile);
 	fprintf_conf(f, CONFVARWIDTH, "pidfile", "%s\n", cfg->pidfile);
 	fprintf_conf(f, CONFVARWIDTH, "usrfile", "%s\n", cfg->usrfile);
+	fprintf_conf(f, CONFVARWIDTH, "usrfileflag", "%d\n", cfg->usrfileflag);
 	fprintf_conf(f, CONFVARWIDTH, "cwlogdir", "%s\n", cfg->cwlogdir);
 	fprintf_conf(f, CONFVARWIDTH, "clienttimeout", "%ld\n", cfg->ctimeout/1000);
 	fprintf_conf(f, CONFVARWIDTH, "fallbacktimeout", "%ld\n", cfg->ftimeout/1000);

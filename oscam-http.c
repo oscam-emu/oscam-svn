@@ -67,13 +67,15 @@ void send_oscam_config_global(struct templatevars *vars, FILE *f, struct uripara
 				chk_t_global((*params).params[i], (*params).values[i]);
 			}
 		}
-		tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration Global *DONE*</B><BR><BR>");
-		/*if(write_config()==0) */refresh_oscam(REFR_SERVER, in);
+		tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration Global done. You should restart Oscam now.</B><BR><BR>");
+		if(write_config()==0) refresh_oscam(REFR_SERVER, in);
+		else tpl_addVar(vars, 1, "MESSAGE", "<B>Write Config failed</B><BR><BR>");
 	}
 	tpl_addVar(vars, 0, "SERVERIP", inet_ntoa(*(struct in_addr *)&cfg->srvip));
 	tpl_addVar(vars, 0, "LOGFILE", logfile);
 	tpl_addVar(vars, 0, "PIDFILE", cfg->pidfile);
 	tpl_addVar(vars, 0, "USERFILE", cfg->usrfile);
+	tpl_printf(vars, 0, "USERFILEFLAG", "%d", cfg->usrfileflag);
 	tpl_addVar(vars, 0, "CWLOGDIR", cfg->cwlogdir);
 	tpl_printf(vars, 0, "CLIENTTIMEOUT", "%ld", cfg->ctimeout/1000);
 	tpl_printf(vars, 0, "FALLBACKTIMEOUT", "%ld", cfg->ftimeout/1000);
@@ -108,8 +110,9 @@ void send_oscam_config_camd33(struct templatevars *vars, FILE *f, struct uripara
 				chk_t_camd33((*params).params[i], (*params).values[i]);
 			}
 		}
-		tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration camd33 *DONE*</B><BR><BR>");
-		refresh_oscam(REFR_SERVER, in);
+		tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration camd33 done. You should restart Oscam now.</B><BR><BR>");
+		if(write_config()==0) refresh_oscam(REFR_SERVER, in);
+		else tpl_addVar(vars, 1, "MESSAGE", "<B>Write Config failed</B><BR><BR>");
 	}
 	tpl_printf(vars, 0, "PORT", "%d", cfg->c33_port);
 	tpl_addVar(vars, 0, "SERVERIP", inet_ntoa(*(struct in_addr *)&cfg->c33_srvip));
@@ -137,8 +140,9 @@ void send_oscam_config_camd35(struct templatevars *vars, FILE *f, struct uripara
 					chk_t_camd35((*params).params[i], (*params).values[i]);
 				}
 			}
-			tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration camd35 *DONE*</B><BR><BR>");
-			refresh_oscam(REFR_SERVER, in);
+			tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration camd35 done. You should restart Oscam now.</B><BR><BR>");
+			if(write_config()==0) refresh_oscam(REFR_SERVER, in);
+			else tpl_addVar(vars, 1, "MESSAGE", "<B>Write Config failed</B><BR><BR>");
 	}
 	tpl_printf(vars, 0, "PORT", "%d", cfg->c35_port);
 	tpl_addVar(vars, 1, "SERVERIP", inet_ntoa(*(struct in_addr *)&cfg->c35_tcp_srvip));
@@ -157,8 +161,9 @@ void send_oscam_config_camd35tcp(struct templatevars *vars, FILE *f, struct urip
 					chk_t_camd35_tcp((*params).params[i], (*params).values[i]);
 				}
 			}
-			tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration camd35 TCP *DONE*</B><BR><BR>");
-			refresh_oscam(REFR_SERVER, in);
+			tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration camd35 TCP done. You should restart Oscam now.</B><BR><BR>");
+			if(write_config()==0) refresh_oscam(REFR_SERVER, in);
+			else tpl_addVar(vars, 1, "MESSAGE", "<B>Write Config failed</B><BR><BR>");
 	}
 
 	int j;
@@ -194,8 +199,9 @@ void send_oscam_config_newcamd(struct templatevars *vars, FILE *f, struct uripar
 				chk_t_newcamd((*params).params[i], (*params).values[i]);
 			}
 		}
-		tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration Newcamd *DONE*</B><BR><BR>");
-		refresh_oscam(REFR_SERVER, in);
+		tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration Newcamd done. You should restart Oscam now.</B><BR><BR>");
+		if(write_config()==0) refresh_oscam(REFR_SERVER, in);
+		else tpl_addVar(vars, 1, "MESSAGE", "<B>Write Config failed</B><BR><BR>");
 	}
 		int j;
 		char *dot1, *dot2;
@@ -234,8 +240,9 @@ void send_oscam_config_radegast(struct templatevars *vars, FILE *f, struct uripa
 				chk_t_radegast((*params).params[i], (*params).values[i]);
 			}
 		}
-		tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration Radegast *DONE*</B><BR><BR>");
-		refresh_oscam(REFR_SERVER, in);
+		tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration Radegast done. You should restart Oscam now.</B><BR><BR>");
+		if(write_config()==0) refresh_oscam(REFR_SERVER, in);
+		else tpl_addVar(vars, 1, "MESSAGE", "<B>Write Config failed</B><BR><BR>");
 	}
 	tpl_printf(vars, 0, "PORT", "%d", cfg->rad_port);
 	tpl_addVar(vars, 0, "SERVERIP", inet_ntoa(*(struct in_addr *)&cfg->rad_srvip));
@@ -263,7 +270,8 @@ void send_oscam_config_cccam(struct templatevars *vars, FILE *f, struct uriparam
 			}
 		}
 		tpl_addVar(vars, 1, "MESSAGE", "<BR><BR>Configuration Cccam Do not yet implemented<BR><BR>");
-		refresh_oscam(REFR_SERVER, in);
+		//if(write_config()==0) refresh_oscam(REFR_SERVER, in);
+		//else tpl_addVar(vars, 1, "MESSAGE", "<B>Write Config failed</B><BR><BR>");
 	}
 	fputs(tpl_getTpl(vars, "CONFIGCCCAM"), f);
 }
@@ -279,8 +287,9 @@ void send_oscam_config_gbox(struct templatevars *vars, FILE *f, struct uriparams
 				chk_t_gbox((*params).params[i], (*params).values[i]);
 			}
 		}
-		tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration Gbox *DONE*</B><BR><BR>");
-		refresh_oscam(REFR_SERVER, in);
+		tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration Gbox done. You should restart Oscam now.</B><BR><BR>");
+		if(write_config()==0) refresh_oscam(REFR_SERVER, in);
+		else tpl_addVar(vars, 1, "MESSAGE", "<B>Write Config failed</B><BR><BR>");
 	}
 	tpl_printf(vars, 0, "MAXDIST", "%d", cfg->maxdist);
 	for (i=0;i<4;i++) tpl_printf(vars, 1, "PASSWORD", "%02X", cfg->gbox_pwd[i]);
@@ -309,8 +318,9 @@ void send_oscam_config_monitor(struct templatevars *vars, FILE *f, struct uripar
 				chk_t_monitor((*params).params[i], (*params).values[i]);
 			}
 		}
-		tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration Monitor *DONE*</B><BR><BR>");
-		refresh_oscam(REFR_SERVER, in);
+		tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration Monitor done. You should restart Oscam now.</B><BR><BR>");
+		if(write_config()==0) refresh_oscam(REFR_SERVER, in);
+		else tpl_addVar(vars, 1, "MESSAGE", "<B>Write Config failed</B><BR><BR>");
 	}
 	tpl_printf(vars, 0, "MONPORT", "%d", cfg->mon_port);
 	tpl_addVar(vars, 0, "SERVERIP", inet_ntoa(*(struct in_addr *)&cfg->mon_srvip));
@@ -347,10 +357,10 @@ void send_oscam_config_serial(struct templatevars *vars, FILE *f, struct uripara
 				if ((strcmp((*params).params[i], "part")) && (strcmp((*params).params[i], "action"))){
 					tpl_printf(vars, 1, "MESSAGE", "Parameter: %s set to Value: %s<BR>\n", (*params).params[i], (*params).values[i]);
 					//we use the same function as used for parsing the config tokens
-					chk_t_serial((*params).params[i], (*params).values[i]);
+					//chk_t_serial((*params).params[i], (*params).values[i]);
 				}
 			}
-			tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration Serial *DONE*</B><BR><BR>");
+			tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration Serial Not yet implemented</B><BR><BR>");
 			refresh_oscam(REFR_SERVER, in);
 	}
 
@@ -370,8 +380,9 @@ void send_oscam_config_dvbapi(struct templatevars *vars, FILE *f, struct uripara
 					chk_t_dvbapi((*params).params[i], (*params).values[i]);
 				}
 			}
-			tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration DVB Api *DONE*</B><BR><BR>");
-			refresh_oscam(REFR_SERVER, in);
+			tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration DVB Api done. You should restart Oscam now.</B><BR><BR>");
+			if(write_config()==0) refresh_oscam(REFR_SERVER, in);
+			else tpl_addVar(vars, 1, "MESSAGE", "<B>Write Config failed</B><BR><BR>");
 	}
 
 	if (cfg->dvbapi_enabled > 0) tpl_addVar(vars, 0, "ENABLEDCHECKED", "checked");
@@ -394,8 +405,10 @@ void send_oscam_config_anticasc(struct templatevars *vars, FILE *f, struct uripa
 				chk_t_ac((*params).params[i], (*params).values[i]);
 			}
 		}
-		tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration Anticascading *DONE*</B><BR><BR>");
+		tpl_addVar(vars, 1, "MESSAGE", "<BR><BR><B>Configuration Anticascading done. You should restart Oscam now.</B><BR><BR>");
 		refresh_oscam(REFR_ANTICASC, in);
+		if(write_config()==0) refresh_oscam(REFR_SERVER, in);
+		else tpl_addVar(vars, 1, "MESSAGE", "<B>Write Config failed</B><BR><BR>");
 	}
 	if (cfg->ac_enabled > 0) tpl_addVar(vars, 0, "CHECKED", "checked");
 	tpl_printf(vars, 0, "NUMUSERS", "%d", cfg->ac_users);

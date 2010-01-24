@@ -595,7 +595,6 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
     <TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\">\n</TD></TR>\n\
 	</TABLE>\n\
 </form>\n\
-<BR><BR>Configuration Cccam not yet implemented<BR><BR>\n\
 ##TPLFOOTER##"
 
 #define TPLCONFIGMONITOR "\
@@ -692,6 +691,7 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 		<TR><TD>Logfile:</TD><TD><input name=\"logfile\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##LOGFILE##\"></TD></TR>\n\
 		<TR><TD>PID File:</TD><TD><input name=\"pidfile\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##PIDFILE##\"></TD></TR>\n\
 		<TR><TD>Usrfile:</TD><TD><input name=\"usrfile\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##USERFILE##\"></TD></TR>\n\
+		<TR><TD>Usrfileflag:</TD><TD><input name=\"usrfileflag\" type=\"text\" size=\"5\" maxlength=\"1\" value=\"##USERFILEFLAG##\"></TD></TR>\n\
 		<TR><TD>CWlogdir:</TD><TD><input name=\"cwlogdir\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##CWLOGDIR##\"></TD></TR>\n\
 		<TR><TD>Clienttimeout:</TD><TD><input name=\"clienttimeout\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##CLIENTTIMEOUT##\"> s</TD></TR>\n\
 		<TR><TD>Fallbacktimeout:</TD><TD><input name=\"fallbacktimeout\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##FALLBACKTIMEOUT##\"> s</TD></TR>\n\
@@ -711,7 +711,6 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
     <TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\">\n</TD></TR>\n\
 	</TABLE>\n\
 </form>\n\
-<BR><BR>Configuration Global not yet implemented changings havn't any effect<BR><BR>\n\
 ##TPLFOOTER##"
 
 #define TPLCONFIGCAMD33 "\
@@ -733,7 +732,6 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
     <TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\">\n</TD></TR>\n\
 	</TABLE>\n\
 </form>\n\
-<BR><BR>Configuration camd33 not yet implemented<BR><BR>\n\
 ##TPLFOOTER##"
 
 #define TPLCONFIGCAMD35 "\
@@ -752,7 +750,6 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
     <TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\">\n</TD></TR>\n\
 	</TABLE>\n\
 </form>\n\
-<BR><BR>Configuration camd35 not yet implemented<BR><BR>\n\
 ##TPLFOOTER##"
 
 #define TPLCONFIGCAMD35TCP "\
@@ -771,7 +768,6 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
     <TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\">\n</TD></TR>\n\
 	</TABLE>\n\
 </form>\n\
-<BR><BR>Configuration camd35 TCP not yet implemented<BR><BR>\n\
 ##TPLFOOTER##"
 
 #define TPLCONFIGSERIAL "\
@@ -813,7 +809,6 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
     <TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\">\n</TD></TR>\n\
 	</TABLE>\n\
 </form>\n\
-<BR><BR>Configuration DVB Api not yet implemented<BR><BR>\n\
 ##TPLFOOTER##"
 #endif
 
