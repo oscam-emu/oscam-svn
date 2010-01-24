@@ -24,7 +24,7 @@
 
 int SR_Init (struct s_reader *reader,int device_index);
 int SR_GetStatus (struct s_reader *reader,int * in);
-int SR_Reset (struct s_reader *reader, ATR ** atr);
+int SR_Reset (struct s_reader *reader, ATR * atr);
 int SR_Transmit (struct s_reader *reader, BYTE * buffer, unsigned size);
 int SR_Receive (struct s_reader *reader, BYTE * buffer, unsigned size);
 int SR_SetBaudrate (struct s_reader *reader);

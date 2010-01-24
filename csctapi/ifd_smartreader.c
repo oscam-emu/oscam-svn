@@ -98,9 +98,9 @@ int SR_GetStatus (struct s_reader *reader, int * in)
 	return OK;
 }
 
-int SR_Reset (struct s_reader *reader, ATR ** atr)
+int SR_Reset (struct s_reader *reader, ATR *atr)
 {
-    unsigned char data[ATR_MAX_SIZE];
+    unsigned char data[40];
     int ret;
     
     memset(data,0,sizeof(data));
@@ -117,7 +117,7 @@ int SR_Reset (struct s_reader *reader, ATR ** atr)
     sched_yield();
 
     //Read the ATR
-    ret = smart_read(reader,data, ATR_MAX_SIZE,1);
+    ret = smart_read(reader,data, 40,1);
 #ifdef DEBUG_IO
     cs_log("IO:SR: get ATR ret = %d" , ret);
     if(ret)
@@ -132,22 +132,19 @@ int SR_Reset (struct s_reader *reader, ATR ** atr)
         EnableSmartReader(reader, 3571200, 372, 1, 0, 0, reader->sr_config.inv);
     }
     // parse atr
-	(*atr) = ATR_New ();
-	if(ATR_InitFromArray ((*atr), data, ret) == ATR_OK)
+	if(ATR_InitFromArray (atr, data, ret) == ATR_OK)
 	{
 		struct timespec req_ts;
 		req_ts.tv_sec = 0;
 		req_ts.tv_nsec = 50000000;
 		nanosleep (&req_ts, NULL);
-		return OK;
 	}
 	else
 	{
-		ATR_Delete (*atr);
-		(*atr) = NULL;
 		return ERROR;
 	}
-    
+
+    return OK;
 }
 
 int SR_Transmit (struct s_reader *reader, BYTE * buffer, unsigned size)

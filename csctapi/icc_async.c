@@ -187,11 +187,14 @@ int ICC_Async_GetStatus (BYTE * result)
 
 int ICC_Async_Init ()
 {
+#ifndef ICC_TYPE_SYNC 
     unsigned np=0;
+	atr = &icc_atr;	
+#endif
 
 #if defined(HAVE_LIBUSB) && defined(USE_PTHREAD)
     if (reader[ridx].typ == R_SMART) {
-        if (!SR_Reset(&reader[ridx],&(atr))) {
+        if (!SR_Reset(&reader[ridx],atr)) {
             atr = NULL;
             return ICC_ASYNC_IFD_ERROR;
         }
@@ -211,7 +214,7 @@ int ICC_Async_Init ()
             return ICC_ASYNC_IFD_ERROR;
         /* Reset ICC */
         if (reader[ridx].typ == R_INTERNAL) {
-            if (!Sci_Reset(&(atr))) {
+            if (!Sci_Reset(atr)) {
                 atr = NULL;
                 return ICC_ASYNC_IFD_ERROR;
             }
@@ -220,14 +223,14 @@ int ICC_Async_Init ()
 #endif
 #ifdef COOL
         if (reader[ridx].typ == R_INTERNAL) {
-            if (!Cool_Reset(&(atr))) {
+            if (!Cool_Reset(atr)) {
                 atr = NULL;
                 return ICC_ASYNC_IFD_ERROR;
             }
         }
         else
 #endif
-        if (!Phoenix_Reset(&(atr))) {
+        if (!Phoenix_Reset(atr)) {
             atr = NULL;
             return ICC_ASYNC_IFD_ERROR;
         }
@@ -236,10 +239,8 @@ int ICC_Async_Init ()
 #endif
 	/* Get ICC convention */
 	if (ATR_GetConvention (atr, &(convention)) != ATR_OK) {
-		ATR_Delete (atr);
-		atr = NULL;
 		convention = 0;
-		
+	  //no protocol_type = -1 ???	
 		return ICC_ASYNC_ATR_ERROR;
 	}
 	
@@ -405,10 +406,6 @@ int ICC_Async_Close ()
 		return ICC_ASYNC_IFD_ERROR;
 #endif
 	
-	/* Delete atr */
-	ATR_Delete (atr);
-
-	atr = NULL;
 	convention = 0;
 	protocol_type = -1;
 	

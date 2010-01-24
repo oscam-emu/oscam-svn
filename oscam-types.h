@@ -5,10 +5,11 @@
 typedef unsigned char uchar;
 #endif
 
-//typedef unsigned short ushort;
+
 
 #if defined(OS_CYGWIN32) || defined(OS_HPUX) || defined(OS_FREEBSD)  || defined(OS_MACOSX)
 typedef unsigned long ulong;
+typedef unsigned short ushort;
 #endif
 
 typedef unsigned long long ullong;
