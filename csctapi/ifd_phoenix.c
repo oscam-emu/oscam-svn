@@ -10,7 +10,6 @@
 #include "../globals.h"
 #include "atr.h"
 #include <termios.h>
-#include "ifd.h" //FIXME kill this after IFD timings
 
 #define OK 		1
 #define ERROR 0
@@ -57,10 +56,9 @@ static int get_gpio(void)
 int Phoenix_Init ()
 {
 #ifdef USE_GPIO	//felix: define gpio number used for card detect and reset. ref to globals.h				
-	extern int oscam_card_detect;
-	if (oscam_card_detect>4)
+	if (reader[ridx].detect>4)
 	{
-		gpio_detect=oscam_card_detect-4;
+		gpio_detect=reader[ridx].detect-4;
 		pin = 1<<gpio_detect;
 		gpio_outen=open("/dev/gpio/outen",O_RDWR);
 		gpio_out=open("/dev/gpio/out",O_RDWR);
@@ -108,10 +106,9 @@ int Phoenix_GetStatus (int * status)
 #endif
  {
 	unsigned int modembits=0;
-	extern int oscam_card_detect; //FIXME kill global variable
 	if (ioctl(reader[ridx].handle, TIOCMGET,&modembits)<0)
 		return ERROR;
-	switch(oscam_card_detect&0x7f)
+	switch(reader[ridx].detect&0x7f)
 	{
 		case	0: *status=(modembits & TIOCM_CAR);	break;
 		case	1: *status=(modembits & TIOCM_DSR);	break;
@@ -119,15 +116,14 @@ int Phoenix_GetStatus (int * status)
 		case	3: *status=(modembits & TIOCM_RNG);	break;
 		default: *status=0;		// dummy
 	}
-	if (!(oscam_card_detect&0x80))
+	if (!(reader[ridx].detect&0x80))
 		*status=!*status;
  }
  return OK;
 }
 
-int Phoenix_Reset (ATR ** atr)
+int Phoenix_Reset (ATR * atr)
 {	
-
 #ifdef DEBUG_IFD
 	printf ("IFD: Resetting card:\n");
 #endif
@@ -141,7 +137,6 @@ int Phoenix_Reset (ATR ** atr)
 		req_ts.tv_nsec = 50000000;
 #endif
 		
-		(*atr) = NULL;
 		for(i=0; i<3; i++) {
 			IO_Serial_Flush();
 			if (!IO_Serial_SetParity (parity[i]))
@@ -168,17 +163,11 @@ int Phoenix_Reset (ATR ** atr)
 #endif
 				IO_Serial_RTS_Clr();
 			IO_Serial_Ioctl_Lock(0);
-			(*atr) = ATR_New ();
-			if(ATR_InitFromStream ((*atr), IFD_TOWITOKO_ATR_TIMEOUT) == ATR_OK)
+			if(ATR_InitFromStream (atr, IFD_TOWITOKO_ATR_TIMEOUT) == ATR_OK)
 				ret = OK;
 			// Succesfully retrieve ATR
 			if (ret == OK)
 				break;
-			else
-			{
-				ATR_Delete (*atr);
-				(*atr) = NULL;
-			}
 		}
 		IO_Serial_Flush();
 
@@ -189,8 +178,6 @@ int Phoenix_Reset (ATR ** atr)
 		// HD+ unsigned char atr_test[] = { 0x3F, 0xFF, 0x95, 0x00, 0xFF, 0x91, 0x81, 0x71, 0xFE, 0x47, 0x00, 0x44, 0x4E, 0x41, 0x53, 0x50, 0x31, 0x34, 0x32, 0x20, 0x52, 0x65, 0x76, 0x47, 0x43, 0x34, 0x63 };
 		// S02 = irdeto unsigned char atr_test[] = { 0x3B, 0x9F, 0x21, 0x0E, 0x49, 0x52, 0x44, 0x45, 0x54, 0x4F, 0x20, 0x41, 0x43, 0x53, 0x03};
 		//cryptoworks 	unsigned char atr_test[] = { 0x3B, 0x78, 0x12, 0x00, 0x00, 0x65, 0xC4, 0x05, 0xFF, 0x8F, 0xF1, 0x90, 0x00 };
-		ATR_Delete(*atr); //throw away actual ATR
-		(*atr) = ATR_New ();
 		ATR_InitFromArray ((*atr), atr_test, sizeof(atr_test));
 		//END OF PLAYGROUND
 */
