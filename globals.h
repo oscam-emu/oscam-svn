@@ -539,6 +539,7 @@ struct s_config
   in_addr_t srvip;
   char      pidfile[128];
   char      usrfile[128];
+  int		usrfileflag;
   char      cwlogdir[128];
   struct s_auth *account;
   struct s_srvid *srvid;

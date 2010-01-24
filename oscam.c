@@ -1820,7 +1820,8 @@ void get_cw(ECM_REQUEST *er)
     i=er->srvid;
     if ((i!=client[cs_idx].last_srvid) || (!client[cs_idx].lastswitch)){
       client[cs_idx].lastswitch=now;
-  	  cs_statistics(cs_idx);
+      if(cfg->usrfileflag)
+    	  cs_statistics(cs_idx);
     }
     if(client[cs_idx].expirationdate && client[cs_idx].expirationdate<client[cs_idx].lastecm)
       er->rc=11; //expired

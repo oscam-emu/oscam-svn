@@ -319,6 +319,7 @@ void chk_t_global(char *token, char *value)
   if (!strcmp(token, "logfile")) { cs_strncpy(logfile, value, sizeof(logfile)); return; }
   if (!strcmp(token, "pidfile")) { cs_strncpy(cfg->pidfile, value, sizeof(cfg->pidfile)); return; }
   if (!strcmp(token, "usrfile")) { cs_strncpy(cfg->usrfile, value, sizeof(cfg->usrfile)); return; }
+  if (!strcmp(token, "usrfileflag")) { cfg->usrfileflag=atoi(value); return; }
   if (!strcmp(token, "cwlogdir")) { cs_strncpy(cfg->cwlogdir, value, sizeof(cfg->cwlogdir)); return; }
   if (!strcmp(token, "clienttimeout"))
   {
