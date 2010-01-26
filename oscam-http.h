@@ -9,39 +9,40 @@
 #define SHUTDOWNREFRESH 30
 
 #define CSS "\
-body {background-color: grey; font-family: Arial; font-size: 12px;}\n\
-A:link {text-decoration: none; color:#660000}\n\
-A:visited {text-decoration: none; color:#660000}\n\
-A:active {text-decoration: none; color:white}\n\
-A:hover {text-decoration: none; color: red;}\n\
+body {background-color: white; font-family: Arial; font-size: 11px; text-align:center}\n\
 p {color: white; }\n\
-DIV.warning {width:200px;border:1px solid white;background-color:red;color:white;font-family: Arial; font-size: 12px;font-weight:bold;padding:3px;}\
-h2 {color: orange; font-family: Arial; font-size: 14px; line-height: 12px;}\n\
-h4 {color: black; font-family: Arial; font-size: 12px; line-height: 9px; }\n\
-TABLE{background-color:#66CCFF;}\n\
-TD{height:10px; border:1px solid gray; font-family: Arial; font-size: 11px; padding:5px; background-color:#6666FF;}\n\
-TH{height:10px; border:1px solid gray; font-family: Arial; font-size: 12px; padding:5px; background-color:#330033;color:#FFFF00;}\n\
-TR.s TD{background-color:#6666FF;}\n\
-TR.r TD{background-color:orange;}\n\
-TR.p TD{background-color:yellow;}\n\
-TR.c TD{background-color:green;}\n\
-TR.online TD{background-color:#009900;}\n\
-TR.expired TD{background-color:orange;}\n\
-TR.disabled TD{background-color:#FFFF00;}\n\
-DIV.log{border:1px solid black;background-color: black; font-family:\"Courier New\", monospace ; color:yellow; font-size: 11px; word-wrap:break-word;}\n\
-DIV.sidlist{background-color: #FFFF99; padding:2; text-align:left; font-family:\"Courier New\", monospace ; color:black; font-size: 10px; word-wrap:break-word;}\n\
-TABLE.menu{background-color:black; align:center; font-size: 10px;}\n\
-TABLE.menu TD{border:2px outset lightgrey; background-color:silver; font-color:black; font-family: Arial;}\n\
-TABLE.menu TD.shutdown{border:2px outset lightgrey; background-color:orange; font-color:black; font-family: Arial;}\n\
-TABLE.menu TD.script{border:2px outset lightgrey; background-color:yellow; font-color:black; font-family: Arial;}\n\
-TD.menu {border:2px outset lightgrey; background-color:silver; font-color:black; font-family: Arial; font-size:11px;}\n\
-TABLE.configmenu{background-color:black; align:center; font-size: 10px;}\n\
-TABLE.configmenu TD{border:2px outset lightgrey; background-color:silver; font-color:black; font-family: Arial;}\n\
-TD.configmenu {border:2px outset lightgrey; background-color:silver; font-color:black; font-family: Arial; font-size:11px;}\n\
-TABLE.status{background-color:#66CCFF;empty-cells:show;}\n\
-TABLE.config{width:750px;}\n\
-TABLE.invisible TD {border:0px; font-family: Arial; font-size: 12px; padding:5px; background-color:#6666FF;}}\n\
-DIV.message{float:right}"
+h2 {color: #F7F7F7; font-family: Arial; font-size: 50px; line-height: 50px; text-align:center; margin-top:0px; margin-bottom:0px}\n\
+h4 {color: #AAAAAA; font-family: Arial; font-size: 12px; line-height: 9px; text-align:center}\n\
+TABLE {border-spacing:1px; border:0px; padding:0px; margin-left:auto; margin-right:auto;}\n\
+TH {height:10px; border:0px; font-family: Arial; font-size: 11px; padding:5px; background-color:#CCCCCC; color:black;}\n\
+TD {height:10px; border:0px; font-family: Arial; font-size: 11px; padding:5px; background-color:#EEEEEE; color:black;}\n\
+HR {height:1px; border-width:0; color:white; background-color:#AAAAAA}\n\
+TR.s TD {background-color:#e1e1ef;}\n\
+TR.l TD {background-color:#e1e1ef;}\n\
+TR.n TD {background-color:#e1e1ef;}\n\
+TR.h TD {background-color:#e1e1ef;}\n\
+TR.r TD {background-color:#fff3e7;}\n\
+TR.p TD {background-color:#fdfbe1;}\n\
+TR.c TD {background-color:#f1f5e6;}\n\
+TR.online TD {background-color:#f1f5e6;}\n\
+TR.expired TD {background-color:#ffe2d4;}\n\
+DIV.log {border:1px dotted #AAAAAA; background-color: #FAFAFA; padding:10; font-family:\"Courier New\", monospace; color:#666666; font-size: 11px; word-wrap:break-word; text-align:left; }\n\
+DIV.sidlist {border:1px dotted #AAAAAA; background-color: #fffdf5; padding:2; font-family:\"Courier New\", monospace ; color:#666666; font-size: 11px; word-wrap:break-word; text-align:left;}\n\
+TABLE.menu {border-spacing:0px; border:0px; padding:0px; margin-left:auto; margin-right:auto;}\n\
+TABLE.status {border-spacing:1px; border:0px; padding:0px; background-color:white; empty-cells:show;}\n\
+TABLE.config {width:750px;}\n\
+TABLE.invisible TD {border:0px; font-family: Arial; font-size: 12px; padding:5px; background-color:#6666FF;}\n\
+TD.menu {font-color:wblack; background-color:white; font-family: Arial; font-size:14px; font-weight:bold;}\n\
+TD.script {font-color:black; background-color:white; font-family: Arial; font-size:14px; font-weight:bold;}\n\
+TD.shutdown {font-color:black; background-color:white; font-family: Arial; font-size:14px; font-weight:bold;}\n\
+TD.shutdown A:hover {color: red;}\n\
+TD.configmenu {font-color:black; background-color:white; font-family: Arial; font-size:11px; font-weight:bold;}\n\
+A:link {color: #050840}\n\
+A:visited {color: #050840}\n\
+A:active {color: #050840}\n\
+A:hover {color: #ff9e5f;}\n\
+DIV.message {float:right}"
+
 
 #define TPLHEADER "\
 <HTML>\n\
@@ -54,7 +55,7 @@ DIV.message{float:right}"
     <H2>OSCAM ##CS_VERSION## build ###CS_SVN_VERSION##</H2>"
 
 #define TPLFOOTER "\
-  <HR/><H4>OSCAM Webinterface - ##CURDATE## ##CURTIME## | Access from ##CURIP##</H4>\
+  <HR/><H4>OSCAM Webinterface - ##CURDATE## ##CURTIME## | Access from ##CURIP##</H4><H4>Style by Eneen</H4>\
   </BODY>\
 </HTML>"
 
