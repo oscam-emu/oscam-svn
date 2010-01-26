@@ -225,7 +225,7 @@ DIV.message{float:right}"
     </TR>\n\
     <TR>\n\
       <TD>Group:</TD>\n\
-      <TD><input name=\"group\" type=\"text\" size=\"10\" maxlength=\"10\" value=\"##GROUPS##\"></TD>\n\
+      <TD><input name=\"group\" type=\"text\" size=\"20\" maxlength=\"20\" value=\"##GROUPS##\"></TD>\n\
     </TR>\n\
     <TR>\n\
       <TD>Hostname:</TD>\n\
