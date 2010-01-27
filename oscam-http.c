@@ -1048,10 +1048,10 @@ void send_oscam_status(struct templatevars *vars, FILE *f, struct uriparams *par
 				}
 
 				secs = 0, fullmins =0, mins =0, fullhours =0, hours =0, days =0;
-				if(lsec > 0){
-					secs = lsec % 60;
-					if (lsec > 60){
-						fullmins = lsec / 60;
+				if(isec > 0){
+					secs = isec % 60;
+					if (isec > 60){
+						fullmins = isec / 60;
 						mins = fullmins % 60;
 						if(fullmins > 60){
 							fullhours = fullmins / 60;
