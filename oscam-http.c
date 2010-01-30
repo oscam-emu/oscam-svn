@@ -27,7 +27,8 @@ int i;
 			break;
 
 		case REFR_READERS:
-			cs_log("Refresh Reader");
+			kill(client[0].pid, SIGUSR2);
+			cs_log("Refresh Reader/Tiers requested by WebIF from %s", inet_ntoa(*(struct in_addr *)&in));
 			//todo how I can refresh the readers
 			break;
 
@@ -444,7 +445,12 @@ void send_oscam_config(struct templatevars *vars, FILE *f, struct uriparams *par
 	else send_oscam_config_global(vars, f, params, in);
 }
 
-void send_oscam_reader(struct templatevars *vars, FILE *f) {
+void send_oscam_reader(struct templatevars *vars, FILE *f, struct uriparams *params, struct in_addr in) {
+
+	if (strcmp(getParam(params, "action"), "reread") == 0){
+		refresh_oscam(REFR_READERS, in);
+	}
+
 	int ridx;
 	char *ctyp;
 
@@ -472,6 +478,8 @@ void send_oscam_reader(struct templatevars *vars, FILE *f) {
 		tpl_addVar(vars, 0, "CTYP", ctyp);
 		tpl_addVar(vars, 0, "READERNAME", reader[ridx].label);
 		tpl_addVar(vars, 0, "READERNAMEENC", tpl_addTmp(vars, urlencode(reader[ridx].label)));
+		tpl_addVar(vars, 0, "EDIICO", ICEDI);
+		tpl_addVar(vars, 0, "ENTICO", ICENT);
 		tpl_addVar(vars, 1, "READERLIST", tpl_getTpl(vars, "READERSBIT"));
 	}
 	fputs(tpl_getTpl(vars, "READERS"), f);
@@ -898,6 +906,8 @@ void send_oscam_user_config(struct templatevars *vars, FILE *f, struct uriparams
 		tpl_addVar(vars, 0, "STATUS", status);
 		tpl_addVar(vars, 0, "EXPIRED", expired);
 		tpl_addVar(vars, 0, "LASTCHANNEL", lastchan);
+		tpl_addVar(vars, 0, "DELICO", ICDEL);
+		tpl_addVar(vars, 0, "EDIICO", ICEDI);
 
 		int secs = 0, fullmins =0, mins =0, hours =0;
 		if(isec > 0){
@@ -1200,6 +1210,8 @@ void send_oscam_services(struct templatevars *vars, FILE *f, struct uriparams *p
 		tpl_addVar(vars, 0, "LABELENC", tpl_addTmp(vars, urlencode(sidtab->label)));
 		tpl_addVar(vars, 0, "LABEL", sidtab->label);
 		tpl_addVar(vars, 0, "SIDLIST", tpl_getTpl(vars, "SERVICECONFIGSIDBIT"));
+		tpl_addVar(vars, 0, "EDIICO", ICEDI);
+		tpl_addVar(vars, 0, "DELICO", ICDEL);
 		tpl_addVar(vars, 1, "SERVICETABS", tpl_getTpl(vars, "SERVICECONFIGLISTBIT"));
 		sidtab=sidtab->next;
 	}
@@ -1246,6 +1258,9 @@ void send_oscam_script(struct templatevars *vars, FILE *f){
 }
 
 int process_request(FILE *f, struct in_addr in) {
+
+  client[cs_idx].last = time((time_t)0); //reset last busy time
+
   int ok=0;
   struct s_ip *p_ip;
   in_addr_t addr = cs_inet_order(in.s_addr);
@@ -1376,6 +1391,7 @@ int process_request(FILE *f, struct in_addr in) {
 		lt=localtime(&t);
 		tpl_addVar(vars, 0, "CS_VERSION", CS_VERSION);
 		tpl_addVar(vars, 0, "CS_SVN_VERSION", CS_SVN_VERSION);
+		tpl_addVar(vars, 0, "ICO", ICMAI);
 		if(cfg->http_refresh > 0 && (pgidx == 3 || pgidx == -1)){
 		tpl_printf(vars, 0, "REFRESHTIME", "%d", cfg->http_refresh);
 			tpl_addVar(vars, 0, "REFRESH", tpl_getTpl(vars, "REFRESH"));
@@ -1385,7 +1401,7 @@ int process_request(FILE *f, struct in_addr in) {
 		tpl_printf(vars, 0, "CURIP", "%s", inet_ntoa(*(struct in_addr *)&in));
 		switch(pgidx){
 	    case  0: send_oscam_config(vars, f, &params, in); break;
-	    case  1: send_oscam_reader(vars, f); break;
+	    case  1: send_oscam_reader(vars, f, &params, in); break;
 	    case  2: send_oscam_entitlement(vars, f, &params); break;
 	    case  3: send_oscam_status(vars, f, &params, in); break;
 	    case  4: send_oscam_user_config(vars, f, &params, in); break;

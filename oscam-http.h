@@ -31,31 +31,107 @@ DIV.sidlist {border:1px dotted #AAAAAA; background-color: #fffdf5; padding:2; fo
 TABLE.menu {border-spacing:0px; border:0px; padding:0px; margin-left:auto; margin-right:auto;}\n\
 TABLE.status {border-spacing:1px; border:0px; padding:0px; background-color:white; empty-cells:show;}\n\
 TABLE.config {width:750px;}\n\
-TABLE.invisible TD {border:0px; font-family: Arial; font-size: 12px; padding:5px; background-color:#6666FF;}\n\
+TABLE.invisible TD {border:0px; font-family:Arial; font-size: 12px; padding:5px; background-color:#EEEEEE;}\n\
 TD.menu {font-color:wblack; background-color:white; font-family: Arial; font-size:14px; font-weight:bold;}\n\
 TD.script {font-color:black; background-color:white; font-family: Arial; font-size:14px; font-weight:bold;}\n\
 TD.shutdown {font-color:black; background-color:white; font-family: Arial; font-size:14px; font-weight:bold;}\n\
 TD.shutdown A:hover {color: red;}\n\
 TD.configmenu {font-color:black; background-color:white; font-family: Arial; font-size:11px; font-weight:bold;}\n\
-A:link {color: #050840}\n\
-A:visited {color: #050840}\n\
-A:active {color: #050840}\n\
+A:link {color: #050840;}\n\
+A:visited {color: #050840;}\n\
+A:active {color: #050840;}\n\
 A:hover {color: #ff9e5f;}\n\
-DIV.message {float:right}"
+DIV.message {float:right}\
+IMG{border:0px solid;}"
 
+#define ICMAI "data:image/x-icon;base64,\
+AAABAAEAEBAAAAAAAABoBQAAFgAAACgAAAAQAAAAIAAAAAEACAAAAAAAAAEAAAAAAAAAAAAAAAEA\
+AAAAAAAAAAAAfn18AP///wA0nM8AXqrMAACy9wCMjIwAXV1dAF54hAB1d3cAACtEAAaOwwC9/P8A\
+WIedAOrp6QDPzs4A4uLiAMLf6gAA1P8A7+/vACmYqQBYw+8AncrjALi4uABJPTkAAEpyACoqKgD+\
+9vQACAgIAFZrcQD/+/kA8vLyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAfDhAPEBMbHw4REBsAAAARFgQDCx0GBgEICwMRGwAfFQUFEhIIAQkYHBISBRUbHxUFEhIZ\
+FwICAg0FBRIVHx8RFRILBw8CAgIMGQoLHx8AHxAZARsCAgICAh0cGg4fAB8OGgkeAgICAgIGHBwO\
+AAAAEw8aAgICAgICBxwHEwAAAAATGgkCAgICDxwcDwAAAAAAHw8YHxMeAhgcBhMAAAAAAAATFwYE\
+Fg8cBw4AAAAAAAAAHxAZEhIZHBATAAAAAAAAAB8PCBQEBxwOHwAAAAAAAAAfDxgcGBocDgAAAAAA\
+AAAAABAcHBwcCRMAAAAAAAAAAAAAFxoaBg4AAAAAAMADAACAAQAAAAAAAAAAAAAAAAAAgAAAAIAB\
+AADAAQAA4AMAAOADAADwBwAA8AcAAPAHAADwDwAA+A8AAPwfAAA="
+
+#define ICDEL "data:image/png;base64,\
+iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAACXBIWXMAAAsTAAALEwEAmpwYAAAA\
+BGdBTUEAALGeYUxB9wAAACBjSFJNAAB6JQAAgIMAAPn/AACA6AAAUggAARVYAAA6lwAAF2/XWh+Q\
+AAADFklEQVR42qSRS2icVRxHz//e+30z40zSNI1NJ5M0aWpj0hCToEiRqAhWS5G2ii7ERVdioSC4\
+E7pyI5SutIsufCJaFIoQRLJQKVpKwaRYA1XTF01MWpukdJLM8/vuw0VF3HvgtzmrHxw5uWPHrvGD\
+Bz7u6u3uvvDRJ58uXr3xjktTnEBOQQZIAOcDOE+kVfuD/f3vbhvY9dyN8xdOm7GXDn0zvm/vw/Ha\
+XdSzE8fOrZWL1/+8fURpxX+xzpPRes/A2OiHW4eHB27PL8xvNGqXTDYTt6ryKmZ9hd5NJiru6Xvj\
++2b5qemVxhNBSTkA1ntVatt0Zmxs7FBZqdr01NTRtNH8IADyXrFILjJvPTby0LGhgt2il25SWy7z\
+81+N1Ys1P5QTBoeiaLJUKrVfrtWn55ZuTeTiOMm3tlKrrCOndvZTW1nFJE3aI94fKegjHd5FSdMz\
+V3eVnCNXMEbPeP/ZPesOiyiiOCaXz1OrrKNEBBMZspmYlVr65tnlxs5za+7XtbqjZEMh57z+yboT\
+d7w/jNYEQAARQQCTpgn1pEnTWoxSVIW7SRoi5z0uQFYLmxXPLHuFDQBCYi3NahV8QD/eqNNMU3wI\
+aOgZ9H5ut/O9VRFmjf62JSP94wXVvZBKx5plSgSch6a1JB5UCAFECNA54Nxsv/NbrBYuRerLRSUv\
+/JjKy+tZ7V7cHh9VwiMuQOD+kwAouZ9ZDTg/0xdCm4mFP4y6eQt5NQaanskzd+xrsRZ5ssNMhuAx\
+Ev6dkgBF5z4fCr47m9WsRNr+7uV5HcAFMEDDhq++nm8e3503fdti9br84w2ggndbh9rbXikUYsgJ\
+M5YTqedKCGA9BAJZBUsN//Yv99Iro3lzXAhoQANqc6FwoO/pCdM22Iu0xCFj5FRPTtGVVXRmFaLA\
+C0QaZjfsfnHhgU6tDuZFKIigqkm6mB0doWP/Xih1+Yb19dQHEh+wIRADERADAa7/VncnuxTDPRp6\
+NOhHrb2WeLevZXtP8YezF08vlCtf1FNPNfVUUo8SRaQEEUGL0IDvanC+AmEDkBAC/4e/BwACT2zM\
+WyQBIAAAAABJRU5ErkJggg=="
+
+#define ICEDI "data:image/png;base64,\
+iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAChUlEQVQ4jY2SW0hTcRzHv+dsO5ed\
+aa65jm5uYx60UVBIRCY+9BZ0EUFDNLogLbpYD/UQRBQRQQ9BRfnQQxFBUKFCSiQ9hGSaUuCNJEPL\
+W5Fzw02P7mzn8u9lTdSFfZ9/n8//++P3N2GdnBUE3PJ6X50URb+bpj+8X1xcD1lORc1hvD1Y8eAu\
+QB7b7eSdJA11BgLOzQzzfwL9a2Pp4PdvpO3KTXIbIA8FgTS7XKRPkvZRqRn6X/Dn52dAJabavCO1\
+2HnUicqRGcAp4lcohKlotORvB1Mm+HTNTgSP7Hoa/dm7O6GEoI0/gUUbgPtyO4iiTbz51FPVo6oA\
+AGo1nC2wiA1e3Rub6m9XFoYBQ4GmzoG1+qDKXxDf8iwg7Tg+gsRi5hWGWk6widkfrYnYIMzMJqjJ\
+EPisbdDVBYgbmfNVBw6l4TWCGw1l8OYzr2Phj4yZ90FLzoITimGQJKyW+e57Ldr9/vGVD6ZXcDtz\
+MN1VXx8Z7X5kGAosQhGS8jAYoQj60jCZX4hmF9aG5NWN0w1KSyQYmnRdNxKwOsqhKZPgsrZDT4bg\
+yCbVZQ3hNfAKQaHPCY0WCtiia9BYEQyTB8OQsYFXmi80hlt+R4xM/LLA780XGHsOaNqAKbccpuJz\
+YFnIQ2NL1XdezGWEV8TndW2tqdxDYmNtJDHTRUhy9GV4ujc340fJlAKPZz9vtZECV15rZKLTfeni\
+KbCcDR6PF36/H6IowuFwwG63g2XZNEfV1dUhGAz6Ozo6jtE0bS6UpAFV1a08x9p4nuNTc3EAcYqi\
+CIB5iqLmOI6bbGpqGjUrioJwOJwVCAT6AOTouu5iLCaLrms2WZZJSmADIAPQkDq9oiiReDyOP4iW\
+/fvrVslmAAAAAElFTkSuQmCC"
+
+#define ICENT "data:image/png;base64,\
+iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJ\
+bWFnZVJlYWR5ccllPAAAAjlJREFUeNqUU99LFFEU/u7MnXHujtouJWKwbbD9MIhyoexJGXwoIhR6\
+iF76A4KgJwMfliAQRJKeeqrXHgp6MqhMpTVfKoxsi/Qh2wpZUmS00FbdOzOeO625bbLYhQ9mzpzv\
+O985Zy6rv/54UHCtMwgC7PQwxlCQ/qOYMLq4Ivd2tcLzfWg7IPsEXdOQHnzdqWpyScTdFkf3s2/g\
+pMCqkJVHSQoDp/dB8UwqSQIBYpaBw3tqoTNlr4oAKXgEla94oYMiKToJi5DA/5x1n8FTDvzS8Kam\
+PpLFfy2wMKYDmkng4XtzsgmFwAbzDPDNRDtSi6CSzH6TGbexMjkAmXsAzg18HWdIN57DtcbhLYFI\
+RNCEKwbANCoq4L7qh7E0ioPtHdDNGlqFxNWZLNwl+7a2uX5LWLCsmr8gKCZsgYW3d7C/5RR0EcN0\
+ZgTTLzJoOJLCqgyubDkQgv6FoKx3ZYBDp/aLHiNyNJzP3Pxi+L3ZqoOUHq2+5FrTOWH7iUsZYM2d\
+g8452s5fhEYkz/0Oj3bKDb36//fyZhwtjgNDGPg1n4dhkmnPx5eZWeQXCg9ZXff9MRapby9SUHWg\
+VrmuZuvZyDZdQjzVhmjiEBZnc8hmnv4RHip2POm7ce+yauAAYVdl5Uzv3oljqaOIxZNwf6zi/dgQ\
+nHT+RFmK++Fua44l+obLLoqGlUBgwr6ATz/t5yZbdlR8jTeMnOl51zN+6/gbgy6MSV2PypM4a09W\
+vTtJQrT0rEb/ebukDQEGABzNvVc4pYJ1AAAAAElFTkSuQmCC"
 
 #define TPLHEADER "\
 <HTML>\n\
   <HEAD>\n\
     <TITLE>OSCAM ##CS_VERSION## build ###CS_SVN_VERSION##</TITLE>\n\
     <link rel=\"stylesheet\" type=\"text/css\" href=\"site.css\">\n\
+    <link href=\"##ICO##\" rel=\"icon\" type=\"image/x-icon\"/>\
     ##REFRESH##\
   </HEAD>\n\
   <BODY>\n\
     <H2>OSCAM ##CS_VERSION## build ###CS_SVN_VERSION##</H2>"
 
 #define TPLFOOTER "\
-  <HR/><H4>OSCAM Webinterface - ##CURDATE## ##CURTIME## | Access from ##CURIP##</H4><H4>Style by Eneen</H4>\
+  <HR/><H4>OSCAM Webinterface developed by Streamboard Team - ##CURDATE## ##CURTIME## | Access from ##CURIP##</H4><H4>Style by Eneen</H4>\
   </BODY>\
 </HTML>"
 
@@ -197,8 +273,8 @@ DIV.message {float:right}"
     <TD>##STATUS####EXPIRED##</TD>\n\
     <TD>##LASTCHANNEL##</TD>\n\
     <TD>##IDLESECS##</TD>\n\
-    <TD><A HREF=\"user_edit.html?user=##USERENC##\">Edit Settings</A></TD>\n\
-    <TD><A HREF=\"userconfig.html?user=##USERENC##&action=delete\">Delete User</A></TD>\n\
+    <TD><A HREF=\"user_edit.html?user=##USERENC##\" TITLE=\"edit this user\"><IMG SRC=\"##EDIICO##\" BORDER=\"0\" ALT=\"Edit User\"/></A></TD>\n\
+    <TD><A HREF=\"userconfig.html?user=##USERENC##&action=delete\" TITLE=\"delete this user\"><IMG SRC=\"##DELICO##\"BORDER=\"0\" ALT=\"Delete User\"/></A></TD>\n\
   </TR>\n"
 
 #define TPLUSEREDIT "\
@@ -331,11 +407,12 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 ##TPLHEADER##\
 ##TPLMENU##\n\
 <BR><BR>\n\
+  <TABLE CLASS=\"configmenu\"><TR><TD CLASS=\"configmenu\"><A HREF=\"readers.html?action=reread\">Refresh Tiers</A></TD></TR></TABLE><BR>\
   <TABLE cellspacing=\"0\" cellpadding=\"10\">\n\
     <TR>\n\
       <TH>Reader</TH>\n\
       <TH>Protocol</TH>\n\
-      <TH>Action</TH>\n\
+      <TH COLSPAN=\"2\">Action</TH>\n\
     </TR>\n\
     ##READERLIST##\
   </TABLE>\n\
@@ -345,7 +422,8 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
     <TR>\n\
       <TD>##READERNAME##</TD>\n\
       <TD>##CTYP##</TD>\n\
-      <TD><A HREF=\"readerconfig.html?reader=##READERNAMEENC##\">Edit Settings</A> &nbsp;|&nbsp; <A HREF=\"entitlements.html?reader=##READERNAME##\">Show Entitlements</A></TD>\n\
+      <TD><A HREF=\"readerconfig.html?reader=##READERNAMEENC##\" TITLE=\"Edit this Reader\"><IMG SRC=\"##EDIICO##\" BORDER=\"0\" ALT=\"Edit Reader\"/></A></TD>\
+      <TD><A HREF=\"entitlements.html?reader=##READERNAME##\" TITLE=\"Show Entitlement\"><IMG SRC=\"##ENTICO##\" BORDER=\"0\" ALT=\"Show Entitlement\"/></A></TD>\n\
       </TR>\n"
 
 #define TPLENTITLEMENTS "\
@@ -827,8 +905,8 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
     <TR>\n\
       <FORM action=\"services_edit.html\" method=\"get\"><INPUT TYPE=\"hidden\" NAME=\"action\" VALUE=\"add\">\n\
       <TD>New Service:</TD>\n\
-      <TD colspan=\"2\"><input name=\"service\" type=\"text\"></TD>\n\
-      <TD align=\"center\"><input type=\"submit\" value=\"Add Service\"></TD>\n\
+      <TD><input name=\"service\" type=\"text\"></TD>\n\
+      <TD  colspan=\"2\" align=\"center\"><input type=\"submit\" value=\"Add\"></TD>\n\
       </FORM>\n\
     <TR>\n\
   </TABLE>\n\
@@ -838,8 +916,8 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
   <TR>\n\
     <TD>##LABEL##</TD>\n\
     <TD width =\"200\" align=\"center\">##SIDLIST##</TD>\n\
-    <TD><A HREF=\"services_edit.html?service=##LABELENC##&action=edit\">Edit Settings</A></TD>\n\
-    <TD><A HREF=\"services.html?service=##LABELENC##&action=delete\">Delete Service</A></TD>\n\
+    <TD><A HREF=\"services_edit.html?service=##LABELENC##&action=edit\" TITLE=\"Edit this Service\"><IMG SRC=\"##EDIICO##\" BORDER=\"0\" ALT=\"Edit Service\"/></A></TD>\n\
+    <TD><A HREF=\"services.html?service=##LABELENC##&action=delete\" TITLE=\"Delete this Service\"><IMG SRC=\"##DELICO##\" BORDER=\"0\" ALT=\"Delete Service\"/></A></TD>\n\
   </TR>\n"
 
 #define TPLSERVICECONFIGSIDBIT "\
