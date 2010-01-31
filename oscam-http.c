@@ -1280,7 +1280,6 @@ void send_oscam_scanusb(struct templatevars *vars, FILE *f){
 	int err=0;
 	char path[1035];
 
-	/* Open the command for reading. */
 	fp = popen("lsusb", "r");
 	if (fp == NULL) {
 		tpl_addVar(vars, 0, "USBENTRY", "Failed to run lusb");
@@ -1289,15 +1288,12 @@ void send_oscam_scanusb(struct templatevars *vars, FILE *f){
 		err = 1;
 	}
 
-	/* Read the output a line at a time - output it. */
 	if(!err){
 		while (fgets(path, sizeof(path)-1, fp) != NULL) {
 			tpl_printf(vars, 0, "USBENTRY", "%s", path);
 			tpl_addVar(vars, 1, "USBBIT", tpl_getTpl(vars, "SCANUSBBIT"));
-			printf("Entry: %s\n",path);
 		}
 	}
-	/* close */
 	pclose(fp);
 	fputs(tpl_getTpl(vars, "SCANUSB"), f);
 }
