@@ -915,7 +915,7 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 #define TPLSERVICECONFIGLISTBIT "\
   <TR>\n\
     <TD>##LABEL##</TD>\n\
-    <TD width =\"200\" align=\"center\">##SIDLIST##</TD>\n\
+    <TD width =\"250\" align=\"center\">##SIDLIST##</TD>\n\
     <TD><A HREF=\"services_edit.html?service=##LABELENC##&action=edit\" TITLE=\"Edit this Service\"><IMG SRC=\"##EDIICO##\" BORDER=\"0\" ALT=\"Edit Service\"/></A></TD>\n\
     <TD><A HREF=\"services.html?service=##LABELENC##&action=delete\" TITLE=\"Delete this Service\"><IMG SRC=\"##DELICO##\" BORDER=\"0\" ALT=\"Delete Service\"/></A></TD>\n\
   </TR>\n"
