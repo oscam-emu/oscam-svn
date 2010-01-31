@@ -424,6 +424,7 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 ##TPLHEADER##\
 ##TPLMENU##\n\
 <BR><BR>\n\
+  <TABLE CLASS=\"configmenu\"><TR><TD CLASS=\"configmenu\"><A HREF=\"scanusb.html\">Scan USB</A></TD></TR></TABLE><BR>\
   <TABLE cellspacing=\"0\" cellpadding=\"10\">\n\
     <TR>\n\
       <TH>Reader</TH>\n\
@@ -444,6 +445,18 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
       </TR>\n"
 
 #define TPLREADERREFRESHBIT "<A HREF=\"readers.html?action=reread&ridx=##RIDX##\" TITLE=\"Refresh Entitlement\"><IMG SRC=\"##REFRICO##\" BORDER=\"0\" ALT=\"Refresh Entitlement\"/></A>"
+
+#define TPLSCANUSB "\
+##TPLHEADER##\
+##TPLMENU##\n\
+<BR><BR>\n\
+<TABLE cellspacing=\"0\" cellpadding=\"10\">\n\
+    <TR><TH>USB Devices</TH></TR>\n\
+    ##USBBIT##\n\
+</TABLE>\n\
+##TPLFOOTER##"
+
+#define TPLSCANUSBBIT "<TR><TD>##USBENTRY##</TD></TR>\n"
 
 #define TPLENTITLEMENTS "\
 ##TPLHEADER##\
@@ -999,6 +1012,8 @@ char *tpl[]={
 	"READERS",
 	"READERSBIT",
 	"READERREFRESHBIT",
+	"SCANUSB",
+	"SCANUSBBIT",
 	"ENTITLEMENTS",
 	"READERCONFIG",
 	"READERCONFIGSIDOKBIT",
@@ -1067,6 +1082,8 @@ char *tplmap[]={
 	TPLREADERS,
 	TPLREADERSBIT,
 	TPLREADERREFRESHBIT,
+	TPLSCANUSB,
+	TPLSCANUSBBIT,
 	TPLENTITLEMENTS,
 	TPLREADERCONFIG,
 	TPLREADERCONFIGSIDOKBIT,

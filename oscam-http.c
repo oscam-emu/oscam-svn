@@ -1275,6 +1275,33 @@ void send_oscam_script(struct templatevars *vars, FILE *f){
 	fputs(tpl_getTpl(vars, "SCRIPT"), f);
 }
 
+void send_oscam_scanusb(struct templatevars *vars, FILE *f){
+	FILE *fp;
+	int err=0;
+	char path[1035];
+
+	/* Open the command for reading. */
+	fp = popen("lsusb", "r");
+	if (fp == NULL) {
+		tpl_addVar(vars, 0, "USBENTRY", "Failed to run lusb");
+		tpl_printf(vars, 0, "USBENTRY", "%s", path);
+		tpl_addVar(vars, 1, "USBBIT", tpl_getTpl(vars, "SCANUSBBIT"));
+		err = 1;
+	}
+
+	/* Read the output a line at a time - output it. */
+	if(!err){
+		while (fgets(path, sizeof(path)-1, fp) != NULL) {
+			tpl_printf(vars, 0, "USBENTRY", "%s", path);
+			tpl_addVar(vars, 1, "USBBIT", tpl_getTpl(vars, "SCANUSBBIT"));
+			printf("Entry: %s\n",path);
+		}
+	}
+	/* close */
+	pclose(fp);
+	fputs(tpl_getTpl(vars, "SCANUSB"), f);
+}
+
 int process_request(FILE *f, struct in_addr in) {
 
   client[cs_idx].last = time((time_t)0); //reset last busy time
@@ -1316,7 +1343,9 @@ int process_request(FILE *f, struct in_addr in) {
 			"/services_edit.html",
 			"/savetemplates.html",
 			"/shutdown.html",
-			"/script.html"};
+			"/script.html",
+			"/scanusb.html"};
+
   int pagescnt = sizeof(pages)/sizeof(char *);  // Calculate the amount of items in array
 
   int pgidx = -1;
@@ -1426,10 +1455,12 @@ int process_request(FILE *f, struct in_addr in) {
 	    case  5: send_oscam_reader_config(vars, f, &params, in); break;
 	    case  6: send_oscam_services(vars, f, &params, in); break;
 	    case  7: send_oscam_user_config_edit(vars, f, &params, in); break;
+	  //case  8: css file
 	    case  9: send_oscam_services_edit(vars, f, &params, in); break;
 	    case  10: send_oscam_savetpls(vars, f); break;
 	    case  11: send_oscam_shutdown(vars, f, &params); break;
 	    case  12: send_oscam_script(vars, f); break;
+	    case  13: send_oscam_scanusb(vars, f); break;
 	    default: send_oscam_status(vars, f, &params, in); break;
 	  }
 		tpl_clear(vars);
