@@ -368,6 +368,7 @@ struct s_client
 
 struct s_reader
 {
+  int		pid;
   int       cs_idx;
   int       fd;
   ulong     grp;

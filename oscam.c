@@ -531,6 +531,7 @@ int cs_fork(in_addr_t ip, in_port_t port)
                      client[i].sidtabno=reader[ridx].sidtabno;
                      reader[ridx].fd=client[i].fd_m2c;
                      reader[ridx].cs_idx=i;
+                     reader[ridx].pid=pid;
                      if (reader[ridx].r_port)
                        cs_log("proxy started (pid=%d, server=%s)",
                               pid, reader[ridx].device);

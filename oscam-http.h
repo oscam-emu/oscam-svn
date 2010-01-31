@@ -119,6 +119,23 @@ VrmuZuvZyDZdQjzVhmjiEBZnc8hmnv4RHip2POm7ce+yauAAYVdl5Uzv3oljqaOIxZNwf6zi/dgQ\
 nHT+RFmK++Fua44l+obLLoqGlUBgwr6ATz/t5yZbdlR8jTeMnOl51zN+6/gbgy6MSV2PypM4a09W\
 vTtJQrT0rEb/ebukDQEGABzNvVc4pYJ1AAAAAElFTkSuQmCC"
 
+#define ICREF "data:image/png;base64,\
+iVBORw0KGgoAAAANSUhEUgAAAA4AAAAQCAYAAAAmlE46AAAABHNCSVQICAgIfAhkiAAAABl0RVh0\
+U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAALFSURBVCiRZZFLaFx1FMZ/59x7M5OZSWJq\
+88DYpAabBkGNLVLrKIIbxQe0+MBaZQoFERG3VtRlF0UqghHBjXONZCGCUgQRIUWdSZVWSzfWpq+Y\
+ttZMm0yaTud15/6Piwwo9Vsevt/3wXfEzAAohnKHet5+4BEXx/2quiLKybjlJoGvsjmL2j4BDoqZ\
+UQxlh6pOD24cCnoHBv1EaoSWy1CvXKN04ffKtdJcZM72ZHN2aHZKPjTjRSnkGVPP+3Xz1nsyyXRA\
+HCUJ0qOIP4z4tyPaQ7N2lZM/vlNt1sonEumBrY3qYk1mP9MP+jYMvR4Enl6evyAudiB+nFm3sXrb\
+2OOZnsHHRLxekDR/zx2wW4d3y/FvnlqR2Slv0Q/8/qgZmTlXB94CpoAJ9eT9noFtm+584GDKC7pA\
+u3DxKke/vLesZnZLqxk5c+5bYBn4Ppuz5WzOZra/5CbKf/389rGvH7W4VaNV/QnWxjQ1M3XOzQGn\
+AAd4tFUMJa0qr449uM/5iQ34yfsAATAp5EkD1Wyu/Zd/IQUOAU8GnX1NETVEDSCqXl6RQsgSxjr+\
+r++A3UB8010AzxcItr3wB6JpwHH17Hvu7NHJc87xXDZn129OK4ayGZjx1xKUVu0IzqU4/cukAvv/\
+CxVDuQv4YtMEz3QkeTdqSJ+ulXv4qYfoyGxh4olpUt2DHx35XH8ohnJ3m90VJGgsLjDZinSXerok\
+xZDK/c8eSy8v5G396Bsi2oWLFlg6/7FdOjVTq19f6BBVHzA/8EVEXKPW2CfFkBvd/Vt0tfTbuc7u\
+oZHxhw+kg84RLJrHtc4T18/QuDFPVLuEiM+ZE6fLzrlxKeSpqDK9/WV7pRjK86J80r1+1OsfHs8k\
+Mz14skq98iflxVJUunilac6ezubssBTyfArszebMtYdIADs9X18zs3EXW696egU47GL3ZjZnFwH+\
+AYRRPIe3vIMRAAAAAElFTkSuQmCC"
+
 #define TPLHEADER "\
 <HTML>\n\
   <HEAD>\n\
@@ -407,12 +424,11 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 ##TPLHEADER##\
 ##TPLMENU##\n\
 <BR><BR>\n\
-  <TABLE CLASS=\"configmenu\"><TR><TD CLASS=\"configmenu\"><A HREF=\"readers.html?action=reread\">Refresh Tiers</A></TD></TR></TABLE><BR>\
   <TABLE cellspacing=\"0\" cellpadding=\"10\">\n\
     <TR>\n\
       <TH>Reader</TH>\n\
       <TH>Protocol</TH>\n\
-      <TH COLSPAN=\"2\">Action</TH>\n\
+      <TH COLSPAN=\"3\">Action</TH>\n\
     </TR>\n\
     ##READERLIST##\
   </TABLE>\n\
@@ -424,7 +440,10 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
       <TD>##CTYP##</TD>\n\
       <TD><A HREF=\"readerconfig.html?reader=##READERNAMEENC##\" TITLE=\"Edit this Reader\"><IMG SRC=\"##EDIICO##\" BORDER=\"0\" ALT=\"Edit Reader\"/></A></TD>\
       <TD><A HREF=\"entitlements.html?reader=##READERNAME##\" TITLE=\"Show Entitlement\"><IMG SRC=\"##ENTICO##\" BORDER=\"0\" ALT=\"Show Entitlement\"/></A></TD>\n\
+      <TD>##REFRESH##</TD>\n\
       </TR>\n"
+
+#define TPLREADERREFRESHBIT "<A HREF=\"readers.html?action=reread&ridx=##RIDX##\" TITLE=\"Refresh Entitlement\"><IMG SRC=\"##REFRICO##\" BORDER=\"0\" ALT=\"Refresh Entitlement\"/></A>"
 
 #define TPLENTITLEMENTS "\
 ##TPLHEADER##\
@@ -979,6 +998,7 @@ char *tpl[]={
 	"SIDTABBIT",
 	"READERS",
 	"READERSBIT",
+	"READERREFRESHBIT",
 	"ENTITLEMENTS",
 	"READERCONFIG",
 	"READERCONFIGSIDOKBIT",
@@ -1046,6 +1066,7 @@ char *tplmap[]={
 	TPLSIDTABBIT,
 	TPLREADERS,
 	TPLREADERSBIT,
+	TPLREADERREFRESHBIT,
 	TPLENTITLEMENTS,
 	TPLREADERCONFIG,
 	TPLREADERCONFIGSIDOKBIT,

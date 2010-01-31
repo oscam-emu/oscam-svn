@@ -446,25 +446,43 @@ void send_oscam_config(struct templatevars *vars, FILE *f, struct uriparams *par
 }
 
 void send_oscam_reader(struct templatevars *vars, FILE *f, struct uriparams *params, struct in_addr in) {
+	int ridx;
+	char *ctyp;
+	//uchar dummy[1]={0x00};
 
 	if (strcmp(getParam(params, "action"), "reread") == 0){
+		//ridx = atoi(getParam(params, "ridx"));
+		//write_to_pipe(client[ridx].fd_m2c, PIP_ID_CIN, dummy, 1);
 		refresh_oscam(REFR_READERS, in);
 	}
 
-	int ridx;
-	char *ctyp;
+	for(ridx = 0; ridx < CS_MAXREADER; ridx++){
 
-	for(ridx=0;ridx<CS_MAXREADER;ridx++){
+		tpl_addVar(vars, 0, "REFRESH","");
+		tpl_printf(vars, 0, "RIDX", "");
+
 		if(!reader[ridx].device[0]) break;
 		switch(reader[ridx].typ){
-				case R_MOUSE   : ctyp="mouse";    break;
+				case R_MOUSE   : ctyp="mouse";
+					tpl_printf(vars, 0, "RIDX", "%d", 0); //todo find a solution to adress the client
+					tpl_addVar(vars, 0, "REFRICO", ICREF);
+					tpl_addVar(vars, 0, "REFRESH", tpl_getTpl(vars, "READERREFRESHBIT"));
+					break;
 				case R_INTERNAL: ctyp="intern";   break;
-				case R_SMART   : ctyp="smartreader";    break;
+				case R_SMART   : ctyp="smartreader";
+					tpl_printf(vars, 0, "RIDX", "%d", 0); //todo find a solution to adress the client
+					tpl_addVar(vars, 0, "REFRICO", ICREF);
+					tpl_addVar(vars, 0, "REFRESH", tpl_getTpl(vars, "READERREFRESHBIT"));
+					break;
 				case R_CAMD35  : ctyp="camd 3.5x";break;
 				case R_CAMD33  : ctyp="camd 3.3x";break;
 				case R_NEWCAMD : ctyp="newcamd";  break;
 				case R_RADEGAST: ctyp="radegast"; break;
-				case R_SERIAL  : ctyp="serial";   break;
+				case R_SERIAL  : ctyp="serial";
+					tpl_printf(vars, 0, "RIDX", "%d", 0); //todo find a solution to adress the client
+					tpl_addVar(vars, 0, "REFRICO", ICREF);
+					tpl_addVar(vars, 0, "REFRESH", tpl_getTpl(vars, "READERREFRESHBIT"));
+					break;
 #ifdef CS_WITH_GBOX
 				case R_GBOX    : ctyp="gbox";     break;
 #endif
