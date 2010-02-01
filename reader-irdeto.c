@@ -161,7 +161,7 @@ int irdeto_card_init(ATR newatr)
 
   if (memcmp(atr+4, "IRDETO", 6))
     return ERROR;
-  cs_ri_log("[irdeto-reader] detect Irdeto card");
+  cs_ri_log("detect Irdeto card");
   
   if(reader[ridx].has_rsa) // we use rsa from config as camkey
   {
@@ -179,7 +179,7 @@ int irdeto_card_init(ATR newatr)
   reader_chk_cmd(sc_GetCountryCode, 18);
   reader[ridx].acs=(cta_res[0]<<8)|cta_res[1];
   reader[ridx].caid[0]=(cta_res[5]<<8)|cta_res[6];
-  cs_ri_log("[irdeto-reader] caid: %04X, acs: %x.%02x%s",
+  cs_ri_log("caid: %04X, acs: %x.%02x%s",
          reader[ridx].caid[0], cta_res[0], cta_res[1], buf);
 
   /*
@@ -191,7 +191,7 @@ int irdeto_card_init(ATR newatr)
   reader_chk_cmd(sc_GetHEXSerial, 18);
   memcpy(reader[ridx].hexserial, cta_res+12, 8); 
   reader[ridx].nprov=cta_res[10];
-  cs_ri_log("[irdeto-reader] ascii serial: %s, hex serial: %02X%02X%02X, hex base: %02X",
+  cs_ri_log("ascii serial: %s, hex serial: %02X%02X%02X, hex base: %02X",
           buf, cta_res[12], cta_res[13], cta_res[14], cta_res[15]);
 
   /*
@@ -325,8 +325,9 @@ int irdeto_card_info(void)
 {
   int i, p;
   uchar buf[256]={0};
+  reader[ridx].init_history_pos=0; //reset for re-read
 
-    /*
+  /*
      * Provider
      */
     memset(reader[ridx].prid, 0xff, sizeof(reader[ridx].prid));
@@ -345,7 +346,7 @@ int irdeto_card_info(void)
         reader[ridx].prid[i][0]=0xf;
     }
     if (p)
-      cs_ri_log("[irdeto-reader] providers: %d (%s)", p, buf+1);
+      cs_ri_log("providers: %d (%s)", p, buf+1);
 
     /*
      * ContryCode2
@@ -381,10 +382,10 @@ int irdeto_card_info(void)
                 chid_date(date+cta_res[k+4], t+16, 16);
                 if (first)
                 {
-                  cs_ri_log("[irdeto-reader] provider: %d, id: %06X", p, b2i(3, &reader[ridx].prid[i][1]));
+                  cs_ri_log("provider: %d, id: %06X", p, b2i(3, &reader[ridx].prid[i][1]));
                   first=0;
                 }
-                cs_ri_log("[irdeto-reader] chid: %04X, date: %s - %s", chid, t, t+16);
+                cs_ri_log("chid: %04X, date: %s - %s", chid, t, t+16);
               }
             }
           }

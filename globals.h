@@ -115,6 +115,9 @@
 #define CS_ECMCACHESIZE   CS_MAXPID
 #define CS_EMMCACHESIZE   (CS_MAXPID<<1)
 #endif
+
+#define CS_RDR_INIT_HIST
+
 ///////////////////////////design:                     actual:
 #define D_DUMP      1 // Debug Dumps								// nothing
 #define D_MASTER    2 // Debug Master Process				// nothing

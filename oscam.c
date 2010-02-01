@@ -406,6 +406,12 @@ static void cs_debug_level()
 static void cs_card_info(int i)
 {
   uchar dummy[1]={0x00};
+
+#ifdef CS_RDR_INIT_HIST
+  for(ridx = 0; ridx < CS_MAXREADER; ridx++)
+	  reader[ridx].init_history_pos = 0;
+#endif
+
   for( i=1; i<CS_MAXPID; i++ )
     if( client[i].pid && client[i].typ=='r' && client[i].fd_m2c ){
       write_to_pipe(client[i].fd_m2c, PIP_ID_CIN, dummy, 1);

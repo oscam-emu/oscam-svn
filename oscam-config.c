@@ -957,7 +957,6 @@ int write_config()
 	fprintf_conf(f, CONFVARWIDTH, "nice", "%d\n", cfg->nice);
 	fprintf_conf(f, CONFVARWIDTH, "serialreadertimeout", "%d\n", cfg->srtimeout);
 	fprintf_conf(f, CONFVARWIDTH, "maxlogsize", "%d\n", cfg->max_log_size);
-	fprintf_conf(f, CONFVARWIDTH, "showecmdw", "%d\n", cfg->show_ecm_dw);
 	fprintf_conf(f, CONFVARWIDTH, "waitforcards", "%d\n", cfg->waitforcards);
 	fprintf_conf(f, CONFVARWIDTH, "preferlocalcards", "%d\n", cfg->preferlocalcards);
 	fputc((int)'\n', f);

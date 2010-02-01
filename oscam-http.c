@@ -90,7 +90,6 @@ void send_oscam_config_global(struct templatevars *vars, FILE *f, struct uripara
 	tpl_printf(vars, 0, "NICE", "%d", cfg->nice);
 	tpl_printf(vars, 0, "SERIALTIMEOUT", "%d", cfg->srtimeout);
 	tpl_printf(vars, 0, "MAXLOGSIZE", "%d", cfg->max_log_size);
-	tpl_printf(vars, 0, "SHOWECMDW", "%d", cfg->show_ecm_dw);
 	tpl_printf(vars, 0, "WAITFORCARDS", "%d", cfg->waitforcards);
 	tpl_printf(vars, 0, "PREFERLOCALCARDS", "%d", cfg->preferlocalcards);
 
