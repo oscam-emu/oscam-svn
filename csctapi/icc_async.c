@@ -81,16 +81,14 @@ int ICC_Async_Device_Init ()
 #endif
  {
 	wr = 0;	
-#ifdef DEBUG_IO
-	printf ("IO: Opening serial port %s\n", reader[ridx].device);
-#endif
+	cs_debug ("IFD: Opening serial port %s\n", reader[ridx].device);
 	
 #if defined(SCI_DEV) || defined(COOL)
 	if (reader[ridx].typ == R_INTERNAL)
 #if defined(SH4) || defined(STB04SCI)
 		reader[ridx].handle = open (reader[ridx].device, O_RDWR|O_NONBLOCK|O_NOCTTY);
 #elif COOL
-		return !Cool_Init();  //if cool_init succeeds, it returns 0, so device_init returns 1 ? /FIXME I think the ! should disappear
+		return Cool_Init();
 #else
 		reader[ridx].handle = open (reader[ridx].device, O_RDWR);
 #endif
@@ -179,9 +177,7 @@ int ICC_Async_GetStatus (int * card)
 		reader[ridx].status = 2;
 	}
 	
-#ifdef DEBUG_IFD
-	printf ("IFD: com%d Status = %s / %s\n", reader[ridx].typ, in ? "card": "no card", in ? "change": "no change");
-#endif
+	cs_debug ("IFD: com%d Status = %s", reader[ridx].typ, in ? "card": "no card");
 	
 	return OK;
 }
@@ -496,12 +492,7 @@ static int Parse_ATR (ATR * atr)
 	double d = ATR_DEFAULT_D;
 	double n = ATR_DEFAULT_N;
 	int ret;
-	bool PPS_success; 
 
-	/* Perform PPS Exchange if requested by command */
-	PPS_success = OK;
-	if (!PPS_success) 
-	{
 		int numprot = atr->pn;
 		//if there is a trailing TD, this number is one too high
 		BYTE tx;
@@ -578,6 +569,7 @@ static int Parse_ATR (ATR * atr)
 		}
 		else { //negotiable mode
 
+			bool PPS_success = FALSE; 
 			bool NeedsPTS = ((protocol_type != ATR_PROTOCOL_TYPE_T14) && (numprottype > 1 || (atr->ib[0][ATR_INTERFACE_BYTE_TA].present == TRUE && atr->ib[0][ATR_INTERFACE_BYTE_TA].value != 0x11) || n == 255)); //needs PTS according to ISO 7816 , SCI gets stuck on our PTS
 			if (NeedsPTS && reader[ridx].deprecated == 0) {
 				//						 PTSS	PTS0	PTS1	PTS2	PTS3	PCK
@@ -620,7 +612,6 @@ static int Parse_ATR (ATR * atr)
 				cs_debug("No PTS %s, selected protocol T%i, F=%.0f, D=%.6f, N=%.0f\n", NeedsPTS?"happened":"needed", protocol_type, (double) atr_f_table[FI], d, n);
 			}
 		}//end negotiable mode
-	}//end length<0
 		
 	//make sure no zero values
 	double F =	(double) atr_f_table[FI];
@@ -636,28 +627,12 @@ static int Parse_ATR (ATR * atr)
 #ifdef DEBUG_PROTOCOL
 	printf("PPS: T=%i, F=%.0f, D=%.6f, N=%.0f\n", t, F, d, n);
 #endif
-
-#if defined(LIBUSB)
-	if (reader[ridx].typ == R_SMART) {
-		reader[ridx].sr_config.F=atr_f_table[FI];
-		reader[ridx].sr_config.D=d;
-		reader[ridx].sr_config.N=n;
-		reader[ridx].sr_config.T=protocol_type;
-		SR_SetBaudrate(&reader[ridx]);
-		SetRightParity ();
-		return OK;
-	}
+	if (reader[ridx].deprecated == 0)
+		return InitCard (atr, FI, d, n);
 	else {
-#endif
-		if (reader[ridx].deprecated == 0)
-			return InitCard (atr, FI, d, n);
-		else {
-			cs_log("Warning: entering Deprecated Mode");
-			return InitCard (atr, ATR_DEFAULT_FI, ATR_DEFAULT_D, n);
-		}
-#if defined(LIBUSB)
+		cs_log("Warning: entering Deprecated Mode");
+		return InitCard (atr, ATR_DEFAULT_FI, ATR_DEFAULT_D, n);
 	}
-#endif
 }
 
 /*
@@ -824,6 +799,18 @@ static int SetRightParity (void)
 
 static int InitCard (ATR * atr, BYTE FI, double d, double n)
 {
+#if defined(LIBUSB)
+ if (reader[ridx].typ == R_SMART) {
+		reader[ridx].sr_config.F=atr_f_table[FI];
+		reader[ridx].sr_config.D=d;
+		reader[ridx].sr_config.N=n;
+		reader[ridx].sr_config.T=protocol_type;
+		SR_SetBaudrate(&reader[ridx]);
+		SetRightParity ();
+		return OK;
+ }
+ else {
+#endif
 	//set the amps and the volts according to ATR
 	double P,I;
 	if (ATR_GetParameter(atr, ATR_PARAMETER_P, &P) != ATR_OK)
@@ -989,8 +976,10 @@ static int InitCard (ATR * atr, BYTE FI, double d, double n)
 		Protocol_T1_Command (cmd, rsp);
 		APDU_Cmd_Delete (cmd);
 	}
-
-	return OK;
+#if defined(LIBUSB)
+ }
+#endif
+ return OK;
 }
 
 static BYTE PPS_GetPCK (BYTE * block, unsigned length)
