@@ -156,7 +156,7 @@ static int irdeto_do_cmd(uchar *buf, ushort good)
 int irdeto_card_init(ATR newatr)
 {
 	get_atr;
-  int i, camkey=0, cs_ptyp_orig=cs_ptyp;
+  int i, camkey=0;
   uchar buf[256]={0};
 
   if (memcmp(atr+4, "IRDETO", 6))
@@ -234,9 +234,7 @@ int irdeto_card_init(ATR newatr)
 	  }
   }
   
-  cs_ptyp=D_DEVICE;
   cs_debug("[irdeto-reader] set camkey for type=%d", camkey);
-  cs_ptyp=cs_ptyp_orig;
 
   switch (camkey)
   {
@@ -254,7 +252,7 @@ int irdeto_card_init(ATR newatr)
       break;
   }
 	if (reader[ridx].cardmhz != 600)
-		cs_log("WARNING: For irdeto cards you will have to set 'cardmhz = 600' in oscam.server");
+		cs_log("WARNING: For Irdeto cards you will have to set 'cardmhz = 600' in oscam.server");
   return OK;
 }
 
