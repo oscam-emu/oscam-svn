@@ -975,7 +975,6 @@ void send_oscam_status(struct templatevars *vars, FILE *f, struct uriparams *par
 	time_t now = time((time_t)0);
 	struct tm *lt;
 
-
 	char *hideidle = getParam(params, "hideidle");
 	if(strlen(hideidle) > 0){
 		int oldval = cfg->http_hide_idle_clients;

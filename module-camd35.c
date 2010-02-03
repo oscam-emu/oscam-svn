@@ -274,10 +274,11 @@ static void camd35_server()
         camd35_process_ecm(mbuf);
         break;
       case 6:	// EMM
+      case 19:   // EMM
         camd35_process_emm(mbuf);
         break;
       default:
-        cs_log("unknown command !");
+        cs_log("unknown command! (%d)", mbuf[0]);
     }
   }
 

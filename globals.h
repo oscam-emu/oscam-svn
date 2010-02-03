@@ -274,6 +274,7 @@ typedef struct  {
     int T;
     int inv;
     int parity;
+    int irdeto;
 } SR_CONFIG;
 
 struct s_ecm
