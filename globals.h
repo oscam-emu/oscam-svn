@@ -362,11 +362,11 @@ struct s_client
   struct    sockaddr_in udp_sa;
   int       log;
   int       logcounter;
-  int       cwfound;
-  int       cwcache;
-  int       cwnot;
-  int       cwtun;       // count betatunneled ECMs per client
-  uchar     ucrc[4];     // needed by monitor and used by camd35
+  int       cwfound;	// count found ECMs per client
+  int       cwcache;	// count found in cache ECMs per client
+  int       cwnot;		// count not found ECMs per client
+  int       cwtun;      // count betatunneled ECMs per client
+  uchar     ucrc[4];    // needed by monitor and used by camd35
   ulong     pcrc;        // pwd crc
   AES_KEY   aeskey;      // needed by monitor and used by camd33, camd35
   ushort    ncd_msgid;

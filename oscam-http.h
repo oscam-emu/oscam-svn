@@ -41,8 +41,9 @@ A:link {color: #050840;}\n\
 A:visited {color: #050840;}\n\
 A:active {color: #050840;}\n\
 A:hover {color: #ff9e5f;}\n\
-DIV.message {float:right}\
-IMG{border:0px solid;}"
+DIV.message {float:right}\n\
+IMG{border:0px solid;}\n\
+P.blinking {text-decoration: blink; font-weight:bold; font-size:large; color:red;}\n"
 
 #define ICMAI "data:image/x-icon;base64,\
 AAABAAEAEBAAAAEACABoBQAAFgAAACgAAAAQAAAAIAAAAAEACAAAAAAAQAEAAAAAAAAAAAAAAAAA\
@@ -227,8 +228,6 @@ AYRRPIe3vIMRAAAAAElFTkSuQmCC"
       <TH>caid:srvid</TH>\n\
       <TH>Last Channel</TH>\n\
       <TH>Idle</TH>\n\
-      <TH>CWOK</TH>\n\
-      <TH>CWNOK</TH>\n\
       <TH>Status</TH>\n\
     </TR>\n\
     ##CLIENTSTATUS##\
@@ -255,8 +254,6 @@ AYRRPIe3vIMRAAAAAElFTkSuQmCC"
   <TD>##CLIENTCAID##:##CLIENTSRVID##</TD>\n\
   <TD>##CLIENTSRVPROVIDER####CLIENTSRVNAME##</TD>\n\
   <TD>##CLIENTIDLESECS##</TD>\n\
-  <TD>##CWOK##</TD>\n\
-  <TD>##CWNOK##</TD>\n\
   <TD>##CLIENTCON##</TD>\n\
  </TR>\n"
 
@@ -271,17 +268,21 @@ AYRRPIe3vIMRAAAAAElFTkSuQmCC"
       <TH>Status</TH>\n\
       <TH>Last Channel</TH>\n\
       <TH>Idle</TH>\n\
+      <TH>OK</TH>\n\
+      <TH>NOK</TH>\n\
+      <TH>CACHE</TH>\n\
+      <TH>TUN</TH>\n\
       <TH colspan=\"2\" align=\"center\">Action</TH>\n\
     </TR>\n\
     ##USERCONFIGS##\
     <TR>\n\
       <FORM action=\"user_edit.html\" method=\"get\">\n\
       <TD>New User:</TD>\n\
-      <TD colspan=\"2\"><input name=\"user\" type=\"text\"></TD>\n\
-      <TD colspan=\"3\" align=\"center\"><input type=\"submit\" value=\"Add User\"></TD>\n\
+      <TD colspan=\"2\"><input name=\"user\" type=\"text\"> <input type=\"submit\" value=\"Add User\"></TD>\n\
+      <TD colspan=\"7\" align=\"center\"></TD>\n\
       </FORM>\n\
     <TR>\n\
-  </TABLE>\n\
+  </TABLE><BR>\n\
   ##TPLFOOTER##"
 
 #define TPLUSERCONFIGLISTBIT "\
@@ -290,6 +291,10 @@ AYRRPIe3vIMRAAAAAElFTkSuQmCC"
     <TD>##STATUS####EXPIRED##</TD>\n\
     <TD>##LASTCHANNEL##</TD>\n\
     <TD>##IDLESECS##</TD>\n\
+	<TD>##CWOK##</TD>\n\
+	<TD>##CWNOK##</TD>\n\
+	<TD>##CWCACHE##</TD>\n\
+	<TD>##CWTUN##</TD>\n\
     <TD><A HREF=\"user_edit.html?user=##USERENC##\" TITLE=\"edit this user\"><IMG SRC=\"##EDIICO##\" BORDER=\"0\" ALT=\"Edit User\"/></A></TD>\n\
     <TD><A HREF=\"userconfig.html?user=##USERENC##&action=delete\" TITLE=\"delete this user\"><IMG SRC=\"##DELICO##\"BORDER=\"0\" ALT=\"Delete User\"/></A></TD>\n\
   </TR>\n"
@@ -984,9 +989,19 @@ The Webinterface will try to connect oscam 30 seconds after shutdown one time.</
 ##TPLFOOTER##"
 
 #define TPLSHUTDOWN "\
-##TPLHEADER##\
+<HTML>\n\
+  <HEAD>\n\
+    <TITLE>OSCAM ##CS_VERSION## build ###CS_SVN_VERSION##</TITLE>\n\
+    <link href=\"##ICO##\" rel=\"icon\" type=\"image/x-icon\"/>\
+    ##REFRESH##\
+    <style type=\"text/css\">\n\
+    ##STYLESHEET##\n\
+    </style>\n\
+  </HEAD>\n\
+  <BODY>\n\
+    <H2>OSCAM ##CS_VERSION## build ###CS_SVN_VERSION##</H2>\
 ##TPLMENU##\n\
-<br><b>Oscam Shutdown - Try Reconnect in ##SECONDS## Seconds</b><br>\n\
+<br><P CLASS=\"blinking\">Oscam Shutdown - Try Reconnect in ##SECONDS## Seconds</p><br><br>\n\
 ##TPLFOOTER##"
 
 #define TPLSCRIPT "\

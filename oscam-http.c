@@ -923,6 +923,10 @@ void send_oscam_user_config(struct templatevars *vars, FILE *f, struct uriparams
 		tpl_addVar(vars, 0, "STATUS", status);
 		tpl_addVar(vars, 0, "EXPIRED", expired);
 		tpl_addVar(vars, 0, "LASTCHANNEL", lastchan);
+		tpl_printf(vars, 0, "CWOK", "%d", client[i].cwfound);
+		tpl_printf(vars, 0, "CWNOK", "%d", client[i].cwnot);
+		tpl_printf(vars, 0, "CWCACHE", "%d", client[i].cwcache);
+		tpl_printf(vars, 0, "CWTUN", "%d", client[i].cwtun);
 		tpl_addVar(vars, 0, "DELICO", ICDEL);
 		tpl_addVar(vars, 0, "EDIICO", ICEDI);
 
@@ -1093,8 +1097,6 @@ void send_oscam_status(struct templatevars *vars, FILE *f, struct uriparams *par
 				if(con == 2) tpl_printf(vars, 0, "CLIENTCON", "Duplicate");
 				else if (con == 1) tpl_printf(vars, 0, "CLIENTCON", "Sleep");
 				else tpl_printf(vars, 0, "CLIENTCON", "OK");
-				tpl_printf(vars, 0, "CWOK", "%d", client[i].cwfound);
-				tpl_printf(vars, 0, "CWNOK", "%d", client[i].cwnot);
 				tpl_addVar(vars, 1, "CLIENTSTATUS", tpl_getTpl(vars, "CLIENTSTATUSBIT"));
 		}
 	}
@@ -1244,6 +1246,7 @@ void send_oscam_savetpls(struct templatevars *vars, FILE *f){
 
 void send_oscam_shutdown(struct templatevars *vars, FILE *f, struct uriparams *params){
 	if (strcmp(getParam(params, "action"), "Shutdown") == 0){
+		tpl_addVar(vars, 0, "STYLESHEET", CSS);
 		tpl_printf(vars, 0, "REFRESHTIME", "%d", SHUTDOWNREFRESH);
 		tpl_addVar(vars, 0, "REFRESH", tpl_getTpl(vars, "REFRESH"));
 		tpl_printf(vars, 0, "SECONDS", "%d", SHUTDOWNREFRESH);
