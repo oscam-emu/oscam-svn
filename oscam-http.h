@@ -153,7 +153,7 @@ AYRRPIe3vIMRAAAAAElFTkSuQmCC"
 </HTML>"
 
 #define TPLREFRESH "\
-<meta http-equiv=\"refresh\" content=\"##REFRESHTIME##; URL=/status.html\" />\n"
+<meta http-equiv=\"refresh\" content=\"##REFRESHTIME##; URL=status.html\" />\n"
 
 #define TPLMENU "\
   <TABLE border=0 class=\"menu\">\n\
