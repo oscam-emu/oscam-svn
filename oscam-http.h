@@ -304,6 +304,7 @@ mEuAyct9BgPD819QNcAE/7+AgeEsUEoKIICgwcwgDcw4iVLAIAKms0fAlAmMFIa76DkamG+igFld\
 	  <TH>Lock</TH>\n\
       <TH>Label</TH>\n\
       <TH>Status</TH>\n\
+      <TH>Protocol</TH>\n\
       <TH>Last Channel</TH>\n\
       <TH>Idle</TH>\n\
       <TH>OK</TH>\n\
@@ -316,7 +317,7 @@ mEuAyct9BgPD819QNcAE/7+AgeEsUEoKIICgwcwgDcw4iVLAIAKms0fAlAmMFIa76DkamG+igFld\
     <TR>\n\
       <FORM action=\"user_edit.html\" method=\"get\">\n\
       <TD>New User:</TD>\n\
-      <TD colspan=\"4\"><input name=\"user\" type=\"text\"> <input type=\"submit\" value=\"Add User\"></TD>\n\
+      <TD colspan=\"5\"><input name=\"user\" type=\"text\">&nbsp;&nbsp;&nbsp;<input type=\"submit\" value=\"Add User\"></TD>\n\
       <TD colspan=\"6\" align=\"center\"></TD>\n\
       </FORM>\n\
     <TR>\n\
@@ -328,6 +329,7 @@ mEuAyct9BgPD819QNcAE/7+AgeEsUEoKIICgwcwgDcw4iVLAIAKms0fAlAmMFIa76DkamG+igFld\
 	<TD align=\"center\"><A HREF=\"userconfig.html?user=##USERENC##&action=##SWITCH##\" TITLE=\"##SWITCHTITLE##\"><IMG SRC=\"##SWITCHICO##\"BORDER=\"0\" ALT=\"##SWITCHTITLE##\"/></A></TD>\n\
     <TD>##USER##</TD>\n\
     <TD>##STATUS####EXPIRED##</TD>\n\
+    <TD align=\"center\">##CLIENTPROTO##</TD>\n\
     <TD>##LASTCHANNEL##</TD>\n\
     <TD align=\"center\">##IDLESECS##</TD>\n\
 	<TD align=\"center\">##CWOK##</TD>\n\
