@@ -915,18 +915,18 @@ void send_oscam_user_config(struct templatevars *vars, FILE *f, struct uriparams
 					status = "<b>online</b>";classname="online";
 					lastchan = monitor_get_srvname(client[i].last_srvid, client[i].last_caid);
 					isec = now - client[i].last;
-		}
-	}
+				}
+			tpl_printf(vars, 0, "CWOK", "%d", client[i].cwfound);
+			tpl_printf(vars, 0, "CWNOK", "%d", client[i].cwnot);
+			tpl_printf(vars, 0, "CWCACHE", "%d", client[i].cwcache);
+			tpl_printf(vars, 0, "CWTUN", "%d", client[i].cwtun);
+			}
 		tpl_addVar(vars, 0, "CLASSNAME", classname);
 		tpl_addVar(vars, 0, "USER", account->usr);
 		tpl_addVar(vars, 0, "USERENC", tpl_addTmp(vars, urlencode(account->usr)));
 		tpl_addVar(vars, 0, "STATUS", status);
 		tpl_addVar(vars, 0, "EXPIRED", expired);
 		tpl_addVar(vars, 0, "LASTCHANNEL", lastchan);
-		tpl_printf(vars, 0, "CWOK", "%d", client[i].cwfound);
-		tpl_printf(vars, 0, "CWNOK", "%d", client[i].cwnot);
-		tpl_printf(vars, 0, "CWCACHE", "%d", client[i].cwcache);
-		tpl_printf(vars, 0, "CWTUN", "%d", client[i].cwtun);
 		tpl_addVar(vars, 0, "DELICO", ICDEL);
 		tpl_addVar(vars, 0, "EDIICO", ICEDI);
 
