@@ -887,6 +887,25 @@ void send_oscam_user_config(struct templatevars *vars, FILE *f, struct uriparams
 			else tpl_addVar(vars, 1, "MESSAGE", "<b>Writing configuration to disk failed!</b><BR>");
 		} else tpl_addVar(vars, 1, "MESSAGE", "<b>Sorry but the specified user doesn't exist. No deletion will be made!</b><BR>");
 	}
+
+	if ((strcmp(getParam(params, "action"), "disable") == 0) || (strcmp(getParam(params, "action"), "enable") == 0)){
+		for (account=cfg->account; (account) ; account=account->next){
+			if(strcmp(getParam(params, "user"), account->usr) == 0){
+				if(strcmp(getParam(params, "action"), "disable") == 0)
+					account->disabled = 1;
+				else
+					account->disabled = 0;
+				found = 1;
+			}
+		}
+
+		if (found > 0){
+			tpl_addVar(vars, 1, "MESSAGE", "<b>Account has been switched!</b><BR>");
+			if (write_userdb()==0) refresh_oscam(REFR_ACCOUNTS, in);
+			else tpl_addVar(vars, 1, "MESSAGE", "<b>Writing configuration to disk failed!</b><BR>");
+		} else tpl_addVar(vars, 1, "MESSAGE", "<b>Sorry but the specified user doesn't exist. No deletion will be made!</b><BR>");
+	}
+
 	/* List accounts*/
 	char *status = "offline";
 	char *expired = "";
@@ -897,7 +916,7 @@ void send_oscam_user_config(struct templatevars *vars, FILE *f, struct uriparams
 
 	for (account=cfg->account; (account) ; account=account->next){
 		//clear for next client
-		expired = ""; classname="offline";
+		expired = ""; classname = "offline"; status = "offline";
 		tpl_addVar(vars, 0, "CWOK", "");
 		tpl_addVar(vars, 0, "CWNOK", "");
 		tpl_addVar(vars, 0, "CWCACHE", "");
@@ -910,22 +929,28 @@ void send_oscam_user_config(struct templatevars *vars, FILE *f, struct uriparams
 		if(account->disabled != 0){
 			expired = " (disabled)";
 			classname = "disabled";
+			tpl_addVar(vars, 0, "SWITCHICO", ICENA);
+			tpl_addVar(vars, 0, "SWITCHTITLE", "enable this account");
+			tpl_addVar(vars, 0, "SWITCH", "enable");
+		}else{
+			tpl_addVar(vars, 0, "SWITCHICO", ICDIS);
+			tpl_addVar(vars, 0, "SWITCHTITLE", "disable this account");
+			tpl_addVar(vars, 0, "SWITCH", "disable");
 		}
-		status="offline";
 
 		//search account in active clients
 		for (i=0; i<CS_MAXPID; i++)
 			if (!strcmp(client[i].usr, account->usr)){
-				//30 secs without ecm is offline
+				//set client to offline depending on hideclient_to
 				if ((now - client[i].lastecm) < cfg->mon_hideclient_to){
 					status = "<b>online</b>";classname="online";
 					lastchan = monitor_get_srvname(client[i].last_srvid, client[i].last_caid);
 					isec = now - client[i].last;
 				}
-			tpl_printf(vars, 0, "CWOK", "%d", client[i].cwfound);
-			tpl_printf(vars, 0, "CWNOK", "%d", client[i].cwnot);
-			tpl_printf(vars, 0, "CWCACHE", "%d", client[i].cwcache);
-			tpl_printf(vars, 0, "CWTUN", "%d", client[i].cwtun);
+				tpl_printf(vars, 0, "CWOK", "%d", client[i].cwfound);
+				tpl_printf(vars, 0, "CWNOK", "%d", client[i].cwnot);
+				tpl_printf(vars, 0, "CWCACHE", "%d", client[i].cwcache);
+				tpl_printf(vars, 0, "CWTUN", "%d", client[i].cwtun);
 			}
 		tpl_addVar(vars, 0, "CLASSNAME", classname);
 		tpl_addVar(vars, 0, "USER", account->usr);

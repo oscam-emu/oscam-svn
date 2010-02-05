@@ -137,6 +137,43 @@ oZHxhw+kg84RLJrHtc4T18/QuDFPVLuEiM+ZE6fLzrlxKeSpqDK9/WV7pRjK86J80r1+1OsfHs8k\
 Mz14skq98iflxVJUunilac6ezubssBTyfArszebMtYdIADs9X18zs3EXW696egU47GL3ZjZnFwH+\
 AYRRPIe3vIMRAAAAAElFTkSuQmCC"
 
+#define ICDIS "data:image/png;base64,\
+iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAACXBIWXMAAAsTAAALEwEAmpwYAAAA\
+BGdBTUEAALGOfPtRkwAAACBjSFJNAAB6JQAAgIMAAPn/AACA6QAAdTAAAOpgAAA6mAAAF2+SX8VG\
+AAADAUlEQVR42mJkAILW1taU////FzIxMUkD6Rt///7trqurW8uABJqampwYGRkrWVhYTP/9+/cO\
+qGbm1q1bewACiBkoEcvMzDyfm5tbVExMjIOfn1/mz58/YTY2Nt/3799/FKS5vr4+mouLa4WOjo66\
+np4eh4CAgOD3799dZGVlvwEEEAvQVpDNDBwcHAxARQxAAxh4eHgY7t+/3wk0/AfQphdsbGwLjYyM\
+mB0dHRlAaj98+MAAdAXDhQsXkgACiAVomzRI8MePHwxfv35lALqGgZeXl0FRUZHhwYMHE4Hif/X1\
+9ZmBLgJrBgGgC8AWAfnCAAHE8u3bt9NATd5AGu5fYDiAFSkoKIDYzLq6unDNIPDz50+GV69eMfz+\
+/fsGQACxAImOT58+OfHx8XEC/QVWCAwsMA1yCcgmoBqws4WFhcGGHz16lOH69ev/gQZNAAgg5hMn\
+TjwyMDB48OvXL39gODCB/AbCMIOAoQ62FebN48ePMxw+fJjhy5cvFR0dHbMBAogZJHn69OnL2tra\
+14AKvIEByQYyAKQZGQMDk+HWrVsg2/+8e/euaOLEiX0gvQABxALzFygMQDEBsgmkGOgtsDjMAJDT\
+QeKsrKwMQNfCwwMggMAu8Pf3jwb6dSkwXtlhgQXTAOODYkdQUJABGFZMQBd4AGPp+6VLl44CBBCz\
+l5eXjZCQ0GoVFRU2kGKQRhiAhQfMJSB5UOyA8MePH12kpaWvAgQQs6qq6jR1dXUtkPORNcOcDooB\
+ZDFQoIJiB+gixsePH0sDBBALOzu7KScnJ1bN9+7dA4X2Xy0tLWaYV0DioBQLshCoVwMggFiAAfIU\
+mBrFgBywITDNd+/eZQDakA/0wovLly8vA+YBZpgFsFT7+fPntwABxAwMjG9ARYEgf4FsAfn54cOH\
+DI8ePSrfuXNnH9AVV4F+vQvU4AnMcKwgw0EJDphXGJ48edINEECMIBPd3d0Tgc5KAHpFAhidd4EK\
+5gA1r0POzs7Ozk5AZ2cBY0EX6Or3QK+tBqbOCQABBgCzBWGTrJ55PAAAAABJRU5ErkJggg=="
+
+#define ICENA "data:image/png;base64,\
+iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAACXBIWXMAAAsTAAALEwEAmpwYAAAA\
+BGdBTUEAALGOfPtRkwAAACBjSFJNAAB6JQAAgIMAAPn/AACA6QAAdTAAAOpgAAA6mAAAF2+SX8VG\
+AAADKUlEQVR42mJgAAJpBgbNmQwMUy8yMOzoZ2CYKM7AoMOABtQYGMw2MjDMusTAsLOdgaGHh4FB\
+HiQOEIBmObQBEIYCKPhSwwDNlyTdoB2DDoBgcRwKhy3BPjCcP+LLN5ympBGasw9cFZY/r7AJw9a0\
+dy3FA/YJ5lcAhuTYBkAQAIDgD0HHChROQGVPIokjOIZzYOlIzEFha2Nerj1uuGZqjJqzlqIp+cGz\
+wLrBPv+1Vu1dx9DWNAQPOH8BxGLCwKAKtuY/UNkXoFvY2IBu0mRgYmAQOH/lyiagDDuDszMTQ2oq\
+A4OwMAODoCADg7Y2A4OQEIP6mzcKAAHEshXoFC0GBkeGjx8hmv/9Y2BgYgIbwvDjBycDBwcDg5cX\
+A8Pv30CPPoZYdPUqA8OzZwzA8HgAEECMfEDzgIyDwBARZuDjA5sMtkVMjIGBhwdiq5wcA4OICNDH\
+sgwMT54wMHR3M1y7c+epHgODA0AAMf9kYHgNdMUldwYGH+GfPzkY/gJ9z8gIsQnkIhYWiKtANMjm\
+adMYLj98+NKBgSHiKwPDeYAAYgZ5/x0Dwx2gZ8+4MDAEiv/6xQ42BOQNkCEgzcxAZa9eMTCsWcNw\
+8tWrN44MDAEfGBiOgvQCBBALLKqADhXiBtoJ5nz9CrEdpBHkGpDtXFwMDNzcDPzv3rEBPcb9CaoP\
+IIDALgCGacRyBoaFwMTCAY+RX78gmmF8Tk5g0pFnEPn+nd3twwe/zQwMF4CG3AUIIGagaaaLGBjW\
+mwGVoCQ9kKafPyFeABkEokGGAANU/OtXDu2PHz2WMjBsAgggZmBCaSkFJlMGbABkyI8fiHAAhQ0o\
+WoFeUXn2jGvP378fAAKIBZgPFBlwgAnA1Ai0kz39wwcucKCCMMigP3/AbGCEywAEEIMzA0PfD4hd\
+KHgaA8NLoFJrAQYGV6AX34PFBQT+/5eV/f9fTOw/SA8wqVUBBBDIIvk6YGr8BtUIkuhlYHgIjAN7\
+mEuAyct9BgPD819QNcAE/7+AgeEsUEoKIICgwcwgDcw4iVLAIAKms0fAlAmMFIa76DkamG+igFld\
++j5Q7hoDwwKg2AuAAAMAa/8Fcw6Og8MAAAAASUVORK5CYII="
+
 #define TPLHEADER "\
 <HTML>\n\
   <HEAD>\n\
@@ -264,6 +301,7 @@ AYRRPIe3vIMRAAAAAElFTkSuQmCC"
   <BR><BR>\
   <TABLE cellspacing=\"0\" cellpadding=\"10\">\n\
     <TR>\n\
+	  <TH>Lock</TH>\n\
       <TH>Label</TH>\n\
       <TH>Status</TH>\n\
       <TH>Last Channel</TH>\n\
@@ -278,8 +316,8 @@ AYRRPIe3vIMRAAAAAElFTkSuQmCC"
     <TR>\n\
       <FORM action=\"user_edit.html\" method=\"get\">\n\
       <TD>New User:</TD>\n\
-      <TD colspan=\"2\"><input name=\"user\" type=\"text\"> <input type=\"submit\" value=\"Add User\"></TD>\n\
-      <TD colspan=\"7\" align=\"center\"></TD>\n\
+      <TD colspan=\"4\"><input name=\"user\" type=\"text\"> <input type=\"submit\" value=\"Add User\"></TD>\n\
+      <TD colspan=\"6\" align=\"center\"></TD>\n\
       </FORM>\n\
     <TR>\n\
   </TABLE><BR>\n\
@@ -287,16 +325,17 @@ AYRRPIe3vIMRAAAAAElFTkSuQmCC"
 
 #define TPLUSERCONFIGLISTBIT "\
   <TR class=\"##CLASSNAME##\">\n\
+	<TD align=\"center\"><A HREF=\"userconfig.html?user=##USERENC##&action=##SWITCH##\" TITLE=\"##SWITCHTITLE##\"><IMG SRC=\"##SWITCHICO##\"BORDER=\"0\" ALT=\"##SWITCHTITLE##\"/></A></TD>\n\
     <TD>##USER##</TD>\n\
     <TD>##STATUS####EXPIRED##</TD>\n\
     <TD>##LASTCHANNEL##</TD>\n\
-    <TD>##IDLESECS##</TD>\n\
-	<TD>##CWOK##</TD>\n\
-	<TD>##CWNOK##</TD>\n\
-	<TD>##CWCACHE##</TD>\n\
-	<TD>##CWTUN##</TD>\n\
-    <TD><A HREF=\"user_edit.html?user=##USERENC##\" TITLE=\"edit this user\"><IMG SRC=\"##EDIICO##\" BORDER=\"0\" ALT=\"Edit User\"/></A></TD>\n\
-    <TD><A HREF=\"userconfig.html?user=##USERENC##&action=delete\" TITLE=\"delete this user\"><IMG SRC=\"##DELICO##\"BORDER=\"0\" ALT=\"Delete User\"/></A></TD>\n\
+    <TD align=\"center\">##IDLESECS##</TD>\n\
+	<TD align=\"center\">##CWOK##</TD>\n\
+	<TD align=\"center\">##CWNOK##</TD>\n\
+	<TD align=\"center\">##CWCACHE##</TD>\n\
+	<TD align=\"center\">##CWTUN##</TD>\n\
+    <TD align=\"center\"><A HREF=\"user_edit.html?user=##USERENC##\" TITLE=\"edit this user\"><IMG SRC=\"##EDIICO##\" BORDER=\"0\" ALT=\"Edit User\"/></A></TD>\n\
+    <TD align=\"center\"><A HREF=\"userconfig.html?user=##USERENC##&action=delete\" TITLE=\"delete this user\"><IMG SRC=\"##DELICO##\"BORDER=\"0\" ALT=\"Delete User\"/></A></TD>\n\
   </TR>\n"
 
 #define TPLUSEREDIT "\
