@@ -53,7 +53,8 @@
 #endif
 
 #if defined(LIBUSB)
-#include "csctapi/ftdi.h"
+#include <libusb-1.0/libusb.h>
+#include "csctapi/smartreader_types.h"
 #endif
 
 #ifndef CS_CONFDIR
@@ -266,6 +267,7 @@ typedef struct s_ptab
   PORT   ports[CS_MAXPORTS];
 } GCC_PACK PTAB;
 
+#if defined(LIBUSB)
 typedef struct  {
     int F;
     float D;
@@ -275,7 +277,26 @@ typedef struct  {
     int inv;
     int parity;
     int irdeto;
+    int running;
+	libusb_device *usb_dev;
+	libusb_device_handle *usb_dev_handle;
+    enum smartreader_chip_type type;
+    int in_ep;  // 0x01
+    int out_ep; // 0x82
+    int index;
+    /** usb read timeout */
+    int usb_read_timeout;
+    /** usb write timeout */
+    int usb_write_timeout;
+    unsigned int writebuffer_chunksize;
+    unsigned char bitbang_enabled;
+    int baudrate;
+    int interface;   // 0 or 1 
+    /** maximum packet size. Needed for filtering modem status bytes every n packets. */
+    unsigned int max_packet_size;
 } SR_CONFIG;
+#endif
+
 
 struct s_ecm
 {
@@ -483,16 +504,14 @@ struct s_reader
 #endif
 #if defined(LIBUSB)
     unsigned char g_read_buffer[4096];
-    int g_read_buffer_size;
+    unsigned int g_read_buffer_size;
     pthread_mutex_t g_read_mutex;
     pthread_mutex_t g_usb_mutex;
-    struct ftdi_context ftdic;
     struct usb_device *smartreader_usb_dev;
     pthread_t rt;
     unsigned char modem_status;
     SR_CONFIG sr_config;
 #endif
-
 };
 
 #ifdef CS_ANTICASC
