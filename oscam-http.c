@@ -896,7 +896,13 @@ void send_oscam_user_config(struct templatevars *vars, FILE *f, struct uriparams
 	int isec=0;
 
 	for (account=cfg->account; (account) ; account=account->next){
+		//clear for next client
 		expired = ""; classname="offline";
+		tpl_addVar(vars, 0, "CWOK", "");
+		tpl_addVar(vars, 0, "CWNOK", "");
+		tpl_addVar(vars, 0, "CWCACHE", "");
+		tpl_addVar(vars, 0, "CWTUN", "");
+
 		if(account->expirationdate && account->expirationdate<time(NULL)){
 			expired = " (expired)";
 			classname = "expired";
@@ -911,7 +917,7 @@ void send_oscam_user_config(struct templatevars *vars, FILE *f, struct uriparams
 		for (i=0; i<CS_MAXPID; i++)
 			if (!strcmp(client[i].usr, account->usr)){
 				//30 secs without ecm is offline
-				if ((now - client[i].lastecm) < 30){
+				if ((now - client[i].lastecm) < cfg->mon_hideclient_to){
 					status = "<b>online</b>";classname="online";
 					lastchan = monitor_get_srvname(client[i].last_srvid, client[i].last_caid);
 					isec = now - client[i].last;
