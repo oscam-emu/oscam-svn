@@ -406,6 +406,7 @@ struct s_client
 
 struct s_reader
 {
+	int		smargopatch; //FIXME workaround for Smargo until native mode works
   int		pid;
   int       cs_idx;
   int       fd;

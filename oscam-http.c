@@ -213,7 +213,7 @@ void send_oscam_config_newcamd(struct templatevars *vars, FILE *f, struct uripar
 					tpl_printf(vars, 1, "PORT", ":");
 					dot2 = "";
 					for (j = 0; j < cfg->ncd_ptab.ports[i].ftab.filts[0].nprids; ++j){
-						tpl_printf(vars, 1, "PORT", "%s%lX", dot2, cfg->ncd_ptab.ports[i].ftab.filts[0].prids[j]);
+						tpl_printf(vars, 1, "PORT", "%s%06X", dot2, cfg->ncd_ptab.ports[i].ftab.filts[0].prids[j]);
 						dot2 = ",";
 					}
 				}
