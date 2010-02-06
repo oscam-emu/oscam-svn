@@ -557,6 +557,54 @@ static void rev_date_calc(const unsigned char *Date, int *year, int *mon, int *d
   *ss=(Date[3]-*mm*32)*2;
 }
 
+typedef struct{
+   unsigned short id;
+   char name[32];
+} tier_t;
+
+static tier_t skyit_tiers[] =
+{
+  { 0x0320, "Promo" },
+  { 0x000B, "Service" },
+  { 0x0219, "Mondo HD" },
+  { 0x021A, "Cinema HD" },
+  { 0x021B, "Cinema" },
+  { 0x0222, "Sport HD" },
+  { 0x0224, "Sky Play IT" },
+  { 0x0226, "Mondo" },
+  { 0x0228, "Sport" },
+  { 0x0229, "Disney Channel" },
+  { 0x022A, "Inter Channel" },
+  { 0x022B, "Milan Channel" },
+  { 0x022C, "Roma Channel" },
+  { 0x022D, "Classica" },
+  { 0x022E, "Music & News" },
+  { 0x022F, "Caccia e Pesca" },
+  { 0x023D, "Juventus Channel" },
+  { 0x023E, "Moto TV" },
+  { 0x026B, "Calcio HD" },
+  { 0x0275, "Promo" },
+  { 0x0295, "Calcio" },
+  { 0x0296, "Serie B" },
+  { 0x02FE, "PPV" }
+};
+
+static char *get_tier_name(unsigned short tier_id){
+  static char *empty = "";
+  unsigned int i;
+
+  switch (reader[ridx].caid[0])
+  {
+    case 0x919:
+    case 0x93b:
+    for (i = 0; i < sizeof(skyit_tiers) / sizeof(tier_t); ++i)
+      if (skyit_tiers[i].id == tier_id)
+         return skyit_tiers[i].name;
+    break;
+  }
+  return empty;
+}
+
 static void read_tiers(void)
 {
   static const unsigned char ins2a[5] = { 0xd0,0x2a,0x00,0x00,0x00 };
@@ -576,8 +624,9 @@ static void read_tiers(void)
     if(cta_res[2]==0 && cta_res[3]==0) break;
     int y,m,d,H,M,S;
     rev_date_calc(&cta_res[4],&y,&m,&d,&H,&M,&S);
-    //cs_log("Tier: %02x%02x, expiry date: %04d/%02d/%02d-%02d:%02d:%02d",cta_res[2],cta_res[3],y,m,d,H,M,S);
-    cs_ri_log("Tier: %02x%02x, expiry date: %04d/%02d/%02d-%02d:%02d:%02d",cta_res[2],cta_res[3],y,m,d,H,M,S);
+    unsigned short tier_id = (cta_res[2] << 8) | cta_res[3];
+    char *tier_name = get_tier_name(tier_id);
+    cs_ri_log("[videoguard2-reader] tier: %04x, expiry date: %04d/%02d/%02d-%02d:%02d:%02d %s",tier_id,y,m,d,H,M,S,tier_name);
     }
 }
 
