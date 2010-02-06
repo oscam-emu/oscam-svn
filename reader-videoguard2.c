@@ -617,6 +617,7 @@ static void read_tiers(void)
   ins76[3]=0; ins76[4]=0;
   int num=cta_res[1];
   int i;
+  reader[ridx].init_history_pos = 0; //reset for re-read
   for(i=0; i<num; i++) {
     ins76[2]=i;
     l=do_cmd(ins76,NULL,NULL);
