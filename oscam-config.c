@@ -1009,6 +1009,14 @@ int write_config()
 		fprintf_conf(f, CONFVARWIDTH, "serverip", "%s\n", inet_ntoa(*(struct in_addr *)&cfg->ncd_srvip));
 		fprintf_conf(f, CONFVARWIDTH, "key", "");
 		for (i=0;i<14;i++) fprintf(f,"%02X", cfg->ncd_key[i]);
+
+		fprintf_conf(f, CONFVARWIDTH, "allowed", "");
+		struct s_ip *cip;
+		for (cip = cfg->ncd_allowed; cip; cip = cip->next){
+			fprintf(f,"%s%s", dot, cs_inet_ntoa(cip->ip[0]));
+	  	if (cip->ip[0] != cip->ip[1])	fprintf(f,"-%s", cs_inet_ntoa(cip->ip[1]));
+	  	dot=",";
+		}
 		fprintf(f,"\n\n");
 	}
 
