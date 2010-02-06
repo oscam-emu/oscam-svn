@@ -450,9 +450,9 @@ void send_oscam_reader(struct templatevars *vars, FILE *f, struct uriparams *par
 	//uchar dummy[1]={0x00};
 
 	if (strcmp(getParam(params, "action"), "reread") == 0){
-		//ridx = atoi(getParam(params, "ridx"));
-		//write_to_pipe(client[ridx].fd_m2c, PIP_ID_CIN, dummy, 1);
-		refresh_oscam(REFR_READERS, in);
+		ridx = atoi(getParam(params, "ridx"));
+		//write_to_pipe(client[ridx].fd_m2c, PIP_ID_CIN, dummy, 1); // do not work for whatever reason
+		refresh_oscam(REFR_READERS, in); // refresh all reader because  write pipe seams not work from here
 	}
 
 	for(ridx = 0; ridx < CS_MAXREADER; ridx++){
@@ -463,13 +463,13 @@ void send_oscam_reader(struct templatevars *vars, FILE *f, struct uriparams *par
 		if(!reader[ridx].device[0]) break;
 		switch(reader[ridx].typ){
 				case R_MOUSE   : ctyp="mouse";
-					tpl_printf(vars, 0, "RIDX", "%d", 0); //todo find a solution to adress the client
+					tpl_printf(vars, 0, "RIDX", "%d", reader[ridx].cs_idx); //add cs_idx needed for entitlement refresh
 					tpl_addVar(vars, 0, "REFRICO", ICREF);
 					tpl_addVar(vars, 0, "REFRESH", tpl_getTpl(vars, "READERREFRESHBIT"));
 					break;
 				case R_INTERNAL: ctyp="intern";   break;
 				case R_SMART   : ctyp="smartreader";
-					tpl_printf(vars, 0, "RIDX", "%d", 0); //todo find a solution to adress the client
+					tpl_printf(vars, 0, "RIDX", "%d", reader[ridx].cs_idx); //add cs_idx needed for entitlement refresh
 					tpl_addVar(vars, 0, "REFRICO", ICREF);
 					tpl_addVar(vars, 0, "REFRESH", tpl_getTpl(vars, "READERREFRESHBIT"));
 					break;
@@ -478,7 +478,7 @@ void send_oscam_reader(struct templatevars *vars, FILE *f, struct uriparams *par
 				case R_NEWCAMD : ctyp="newcamd";  break;
 				case R_RADEGAST: ctyp="radegast"; break;
 				case R_SERIAL  : ctyp="serial";
-					tpl_printf(vars, 0, "RIDX", "%d", 0); //todo find a solution to adress the client
+					tpl_printf(vars, 0, "RIDX", "%d", reader[ridx].cs_idx); //add cs_idx needed for entitlement refresh
 					tpl_addVar(vars, 0, "REFRICO", ICREF);
 					tpl_addVar(vars, 0, "REFRESH", tpl_getTpl(vars, "READERREFRESHBIT"));
 					break;
