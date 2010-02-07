@@ -1976,9 +1976,12 @@ void do_emm(EMM_PACKET *ep)
 //  if ((!reader[au].fd) || (reader[au].b_nano[ep->emm[3]])) // blocknano is obsolete
   if ((!reader[au].fd) ||       // reader has no fd
       (reader[au].caid[0]!=b2i(2,ep->caid)) ||    // wrong caid
-      (memcmp(reader[au].hexserial, ep->hexserial, 8))) // wrong serial
-    return;
+      (memcmp(reader[au].hexserial, ep->hexserial, 8))) /* wrong serial*/  {
+	  client[cs_idx].emmnok++;
+	  return;
+  }
 
+  client[cs_idx].emmok++;
   ep->cidx=cs_idx;
   write_to_pipe(reader[au].fd, PIP_ID_EMM, (uchar *) ep, sizeof(EMM_PACKET));
 }

@@ -933,6 +933,8 @@ void send_oscam_user_config(struct templatevars *vars, FILE *f, struct uriparams
 		tpl_addVar(vars, 0, "CLIENTPROTO","");
 		tpl_addVar(vars, 0, "IDLESECS","");
 		tpl_addVar(vars, 0, "CWLASTRESPONSET","");
+		tpl_addVar(vars, 0, "EMMOK","");
+		tpl_addVar(vars, 0, "EMMNOK","");
 
 		if(account->expirationdate && account->expirationdate<time(NULL)){
 			expired = " (expired)";
@@ -966,6 +968,8 @@ void send_oscam_user_config(struct templatevars *vars, FILE *f, struct uriparams
 				tpl_printf(vars, 0, "CWCACHE", "%d", client[i].cwcache);
 				tpl_printf(vars, 0, "CWTUN", "%d", client[i].cwtun);
 				tpl_printf(vars, 0, "CWLASTRESPONSET", "%d", client[i].cwlastresptime);
+				tpl_printf(vars, 0, "EMMOK", "%d", client[i].emmok);
+				tpl_printf(vars, 0, "EMMNOK", "%d", client[i].emmnok);
 
 				int secs = 0, fullmins =0, mins =0, hours =0;
 				if(isec > 0){
