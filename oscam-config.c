@@ -998,7 +998,7 @@ int write_config()
 				fprintf(f,":");
 				dot2 = "";
 				for (j = 0; j < cfg->ncd_ptab.ports[i].ftab.filts[0].nprids; ++j){
-					fprintf(f,"%s%lX", dot2, cfg->ncd_ptab.ports[i].ftab.filts[0].prids[j]);
+					fprintf(f,"%s%06X", dot2, (int)cfg->ncd_ptab.ports[i].ftab.filts[0].prids[j]);
 					dot2 = ",";
 				}
 			}
