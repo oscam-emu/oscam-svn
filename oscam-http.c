@@ -927,6 +927,7 @@ void send_oscam_user_config(struct templatevars *vars, FILE *f, struct uriparams
 		expired = ""; classname = "offline"; status = "offline";
 		tpl_addVar(vars, 0, "CWOK", "");
 		tpl_addVar(vars, 0, "CWNOK", "");
+		tpl_addVar(vars, 0, "CWIGN", "");
 		tpl_addVar(vars, 0, "CWCACHE", "");
 		tpl_addVar(vars, 0, "CWTUN", "");
 		tpl_addVar(vars, 0, "CLIENTPROTO","");
@@ -959,6 +960,7 @@ void send_oscam_user_config(struct templatevars *vars, FILE *f, struct uriparams
 				tpl_addVar(vars, 0, "CLIENTPROTO", monitor_get_proto(i));
 				tpl_printf(vars, 0, "CWOK", "%d", client[i].cwfound);
 				tpl_printf(vars, 0, "CWNOK", "%d", client[i].cwnot);
+				tpl_printf(vars, 0, "CWIGN", "%d", client[i].cwignored);
 				tpl_printf(vars, 0, "CWCACHE", "%d", client[i].cwcache);
 				tpl_printf(vars, 0, "CWTUN", "%d", client[i].cwtun);
 			}

@@ -1601,10 +1601,11 @@ int send_dcw(ECM_REQUEST *er)
   er->caid=er->ocaid;
   switch(er->rc)
   {
+	case  0: client[cs_idx].cwfound++;  break;
+    case  1: client[cs_idx].cwcache++;	break;
     case  2:
-    case  1: client[cs_idx].cwcache++;
     case  3:
-    case  0: client[cs_idx].cwfound++;   break;
+    case  8: client[cs_idx].cwignored++;	break;
     default: client[cs_idx].cwnot++;
              if (er->rc>5)
                client[cs_idx].cwcache++;

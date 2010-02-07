@@ -309,6 +309,7 @@ mEuAyct9BgPD819QNcAE/7+AgeEsUEoKIICgwcwgDcw4iVLAIAKms0fAlAmMFIa76DkamG+igFld\
       <TH>Idle</TH>\n\
       <TH>OK</TH>\n\
       <TH>NOK</TH>\n\
+      <TH>IGN</TH>\n\
       <TH>CACHE</TH>\n\
       <TH>TUN</TH>\n\
       <TH colspan=\"2\" align=\"center\">Action</TH>\n\
@@ -317,7 +318,7 @@ mEuAyct9BgPD819QNcAE/7+AgeEsUEoKIICgwcwgDcw4iVLAIAKms0fAlAmMFIa76DkamG+igFld\
     <TR>\n\
       <FORM action=\"user_edit.html\" method=\"get\">\n\
       <TD>New User:</TD>\n\
-      <TD colspan=\"5\"><input name=\"user\" type=\"text\">&nbsp;&nbsp;&nbsp;<input type=\"submit\" value=\"Add User\"></TD>\n\
+      <TD colspan=\"6\"><input name=\"user\" type=\"text\">&nbsp;&nbsp;&nbsp;<input type=\"submit\" value=\"Add User\"></TD>\n\
       <TD colspan=\"6\" align=\"center\"></TD>\n\
       </FORM>\n\
     <TR>\n\
@@ -334,6 +335,7 @@ mEuAyct9BgPD819QNcAE/7+AgeEsUEoKIICgwcwgDcw4iVLAIAKms0fAlAmMFIa76DkamG+igFld\
     <TD align=\"center\">##IDLESECS##</TD>\n\
 	<TD align=\"center\">##CWOK##</TD>\n\
 	<TD align=\"center\">##CWNOK##</TD>\n\
+	<TD align=\"center\">##CWIGN##</TD>\n\
 	<TD align=\"center\">##CWCACHE##</TD>\n\
 	<TD align=\"center\">##CWTUN##</TD>\n\
     <TD align=\"center\"><A HREF=\"user_edit.html?user=##USERENC##\" TITLE=\"edit this user\"><IMG SRC=\"##EDIICO##\" BORDER=\"0\" ALT=\"Edit User\"/></A></TD>\n\
