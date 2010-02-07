@@ -388,6 +388,7 @@ struct s_client
   int       cwnot;		// count not found ECMs per client
   int       cwtun;      // count betatunneled ECMs per client
   int		cwignored;	// count ignored
+  int		cwlastresptime; //last Responsetime (ms)
   uchar     ucrc[4];    // needed by monitor and used by camd35
   ulong     pcrc;        // pwd crc
   AES_KEY   aeskey;      // needed by monitor and used by camd33, camd35

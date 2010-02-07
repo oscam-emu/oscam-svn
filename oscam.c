@@ -1567,10 +1567,13 @@ int send_dcw(ECM_REQUEST *er)
   if (er->rcEx)
     snprintf(erEx, sizeof(erEx)-1, "rejected %s%s", stxtWh[er->rcEx>>4],
              stxtEx[er->rcEx&0xf]);
+
+  client[cs_idx].cwlastresptime = 1000*(tpe.time-er->tps.time)+tpe.millitm-er->tps.millitm;
+
   cs_log("%s (%04X&%06X/%04X/%02X:%04X): %s (%d ms)%s",
          uname, er->caid, er->prid, er->srvid, er->l, lc,
-         er->rcEx?erEx:stxt[er->rc],
-         1000*(tpe.time-er->tps.time)+tpe.millitm-er->tps.millitm, sby);
+         er->rcEx?erEx:stxt[er->rc], client[cs_idx].cwlastresptime, sby);
+
 
   if(!client[cs_idx].ncd_server && client[cs_idx].autoau && er->rcEx==0)
   {
