@@ -1029,10 +1029,10 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 #define TPLPRESHUTDOWN "\
 ##TPLHEADER##\
 ##TPLMENU##\n\
-<br><br><br><DIV class = \"warning\">You are really want to shutdown Oscam?<br>\
-All user will become disconnected.<br>\
-You will not be able to restart Oscam from Webinterface.<br>\
-The Webinterface will try to connect oscam 30 seconds after shutdown one time.</b><br>\n\
+<br><br><br><DIV class = \"warning\">Do you really want to shutdown oscam?<br>\
+All users will become disconnected.<br>\
+You will not be able to restart oscam from the webinterface.<br>\
+The webinterface will try to connect to oscam once 30 seconds after shutdown.</b><br>\n\
 </DIV><br><form action=\"shutdown.html\" method=\"get\">\n\
 <input type=\"submit\" name=\"action\" value=\"Shutdown\" title=\"Save service and reload services\"></TD>\n\
 </form>\
