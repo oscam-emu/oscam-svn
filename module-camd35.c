@@ -1,5 +1,16 @@
 #include "globals.h"
 
+//CMD00 - ECM (request)
+//CMD01 - ECM (response)
+//CMD02 - EMM (in clientmode - set EMM, in server mode - EMM data) - obsolete
+//CMD03 - ECM (cascading request)
+//CMD04 - ECM (cascading response)
+//CMD05 - Send cardata/cardinfo to client
+//CMD06 - EMM (incomming EMM in server mode)
+//CMD19 - EMM (incomming EMM in server mode) only seen with caid 0x1830
+//CMD08 - Stop sending requests to the server for current srvid,prvid,caid
+//CMD44 - MPCS/OScam internal error notification
+
 #define REQ_SIZE	328		// 256 + 20 + 0x34
 static	uchar upwd[64]={0};
 static	uchar *req;
@@ -206,10 +217,6 @@ static void camd35_send_dcw(ECM_REQUEST *er)
   uchar *buf;
   buf=req+(er->cpti*REQ_SIZE);	// get orig request
 
-  if (buf[0]==3)
-    memmove(buf+20+16, buf+20+buf[1], 0x34);
-
-  // CMD08: stop requests for current system+provider+serviceid
   if ((er->rcEx > 0) || (er->rc == 8))
   {
     buf[0]=0x08;
@@ -221,6 +228,8 @@ static void camd35_send_dcw(ECM_REQUEST *er)
     // Send CW
     if ((er->rc < 4) || (er->rc == 7))
     {
+      if (buf[0]==3)
+        memmove(buf+20+16, buf+20+buf[1], 0x34);
       buf[0]++;
       buf[1]=16;
       memcpy(buf+20, er->cw, buf[1]);
