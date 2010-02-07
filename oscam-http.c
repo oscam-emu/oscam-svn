@@ -953,6 +953,9 @@ void send_oscam_user_config(struct templatevars *vars, FILE *f, struct uriparams
 		}
 
 		//search account in active clients
+		int cwok = 0, cwnok = 0, cwign = 0, cwcache = 0, cwtun = 0, emmok = 0, emmnok = 0;
+		int secs = 0, fullmins =0, mins =0, hours =0;
+
 		for (i=0; i<CS_MAXPID; i++)
 			if (!strcmp(client[i].usr, account->usr)){
 				//set client to offline depending on hideclient_to
@@ -960,28 +963,36 @@ void send_oscam_user_config(struct templatevars *vars, FILE *f, struct uriparams
 					status = "<b>online</b>";classname="online";
 					lastchan = monitor_get_srvname(client[i].last_srvid, client[i].last_caid);
 					isec = now - client[i].last;
-				}
-				tpl_addVar(vars, 0, "CLIENTPROTO", monitor_get_proto(i));
-				tpl_printf(vars, 0, "CWOK", "%d", client[i].cwfound);
-				tpl_printf(vars, 0, "CWNOK", "%d", client[i].cwnot);
-				tpl_printf(vars, 0, "CWIGN", "%d", client[i].cwignored);
-				tpl_printf(vars, 0, "CWCACHE", "%d", client[i].cwcache);
-				tpl_printf(vars, 0, "CWTUN", "%d", client[i].cwtun);
-				tpl_printf(vars, 0, "CWLASTRESPONSET", "%d", client[i].cwlastresptime);
-				tpl_printf(vars, 0, "EMMOK", "%d", client[i].emmok);
-				tpl_printf(vars, 0, "EMMNOK", "%d", client[i].emmnok);
 
-				int secs = 0, fullmins =0, mins =0, hours =0;
-				if(isec > 0){
-					secs = isec % 60;
-					if (isec > 60){
-						fullmins = isec / 60;
-						mins = fullmins % 60;
-						if(fullmins > 60)	hours = fullmins / 60;
+					if(isec > 0){
+						secs = isec % 60;
+						if (isec > 60){
+							fullmins = isec / 60;
+							mins = fullmins % 60;
+							if(fullmins > 60)	hours = fullmins / 60;
+						}
 					}
+					tpl_printf(vars, 0, "CWLASTRESPONSET", "%d", client[i].cwlastresptime);
 				}
 
+				cwok += client[i].cwfound;
+				cwnok += client[i].cwnot;
+				cwign += client[i].cwignored;
+				cwcache += client[i].cwcache;
+				cwtun += client[i].cwtun;
+				emmok += client[i].emmok;
+				emmnok += client[i].emmnok;
+
+				tpl_addVar(vars, 0, "CLIENTPROTO", monitor_get_proto(i));
+				tpl_printf(vars, 0, "CWOK", "%d", cwok);
+				tpl_printf(vars, 0, "CWNOK", "%d", cwnok);
+				tpl_printf(vars, 0, "CWIGN", "%d", cwign);
+				tpl_printf(vars, 0, "CWCACHE", "%d", cwcache);
+				tpl_printf(vars, 0, "CWTUN", "%d", cwtun);
+				tpl_printf(vars, 0, "EMMOK", "%d", emmok);
+				tpl_printf(vars, 0, "EMMNOK", "%d", emmnok);
 				tpl_printf(vars, 0, "IDLESECS", "%02d:%02d:%02d", hours, mins, secs);
+
 			}
 		tpl_addVar(vars, 0, "CLASSNAME", classname);
 		tpl_addVar(vars, 0, "USER", account->usr);
