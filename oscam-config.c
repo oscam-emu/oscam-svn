@@ -1042,7 +1042,7 @@ int write_config()
 		fprintf(f,"[cs357x]\n");
 		fprintf_conf(f, CONFVARWIDTH, "port", "%d\n", cfg->c35_port);
 		fprintf_conf(f, CONFVARWIDTH, "serverip", "%s\n", inet_ntoa(*(struct in_addr *)&cfg->c35_tcp_srvip));
-		fprintf(f,"\n\n");
+		fprintf(f,"\n");
 	}
 
 	/*camd3.5 TCP*/
@@ -1121,6 +1121,7 @@ int write_config()
 #endif
 
 #ifdef CS_ANTICASC
+	fprintf(f,"[anticasc]\n");
 	fprintf_conf(f, CONFVARWIDTH, "enabled", "%d\n", cfg->ac_enabled);
 	fprintf_conf(f, CONFVARWIDTH, "numusers", "%d\n", cfg->ac_users);
 	fprintf_conf(f, CONFVARWIDTH, "sampletime", "%d\n", cfg->ac_stime);
