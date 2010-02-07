@@ -931,6 +931,7 @@ void send_oscam_user_config(struct templatevars *vars, FILE *f, struct uriparams
 		tpl_addVar(vars, 0, "CWCACHE", "");
 		tpl_addVar(vars, 0, "CWTUN", "");
 		tpl_addVar(vars, 0, "CLIENTPROTO","");
+		tpl_addVar(vars, 0, "IDLESECS","");
 
 		if(account->expirationdate && account->expirationdate<time(NULL)){
 			expired = " (expired)";
@@ -963,6 +964,18 @@ void send_oscam_user_config(struct templatevars *vars, FILE *f, struct uriparams
 				tpl_printf(vars, 0, "CWIGN", "%d", client[i].cwignored);
 				tpl_printf(vars, 0, "CWCACHE", "%d", client[i].cwcache);
 				tpl_printf(vars, 0, "CWTUN", "%d", client[i].cwtun);
+
+				int secs = 0, fullmins =0, mins =0, hours =0;
+				if(isec > 0){
+					secs = isec % 60;
+					if (isec > 60){
+						fullmins = isec / 60;
+						mins = fullmins % 60;
+						if(fullmins > 60)	hours = fullmins / 60;
+					}
+				}
+
+				tpl_printf(vars, 0, "IDLESECS", "%02d:%02d:%02d", hours, mins, secs);
 			}
 		tpl_addVar(vars, 0, "CLASSNAME", classname);
 		tpl_addVar(vars, 0, "USER", account->usr);
@@ -973,17 +986,6 @@ void send_oscam_user_config(struct templatevars *vars, FILE *f, struct uriparams
 		tpl_addVar(vars, 0, "DELICO", ICDEL);
 		tpl_addVar(vars, 0, "EDIICO", ICEDI);
 
-		int secs = 0, fullmins =0, mins =0, hours =0;
-		if(isec > 0){
-			secs = isec % 60;
-			if (isec > 60){
-				fullmins = isec / 60;
-				mins = fullmins % 60;
-				if(fullmins > 60)	hours = fullmins / 60;
-			}
-		}
-
-		tpl_printf(vars, 0, "IDLESECS", "%02d:%02d:%02d", hours, mins, secs);
 		tpl_addVar(vars, 1, "USERCONFIGS", tpl_getTpl(vars, "USERCONFIGLISTBIT"));
 		isec = 0;
 		lastchan = "&nbsp;";
