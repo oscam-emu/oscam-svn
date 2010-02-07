@@ -1121,17 +1121,15 @@ int write_config()
 #endif
 
 #ifdef CS_ANTICASC
-	if (cfg->ac_enabled > 0){
-		fprintf_conf(f, CONFVARWIDTH, "enabled", "%d\n", cfg->ac_enabled);
-		fprintf_conf(f, CONFVARWIDTH, "numusers", "%d\n", cfg->ac_users);
-		fprintf_conf(f, CONFVARWIDTH, "sampletime", "%d\n", cfg->ac_stime);
-		fprintf_conf(f, CONFVARWIDTH, "samples", "%d\n", cfg->ac_samples);
-		fprintf_conf(f, CONFVARWIDTH, "penalty", "%d\n", cfg->ac_penalty);
-		fprintf_conf(f, CONFVARWIDTH, "aclogfile", "%s\n", cfg->ac_logfile);
-		fprintf_conf(f, CONFVARWIDTH, "denysamples", "%d\n", cfg->ac_denysamples);
-		fprintf_conf(f, CONFVARWIDTH, "fakedelay", "%d\n", cfg->ac_fakedelay);
-		fputc((int)'\n', f);
-	}
+	fprintf_conf(f, CONFVARWIDTH, "enabled", "%d\n", cfg->ac_enabled);
+	fprintf_conf(f, CONFVARWIDTH, "numusers", "%d\n", cfg->ac_users);
+	fprintf_conf(f, CONFVARWIDTH, "sampletime", "%d\n", cfg->ac_stime);
+	fprintf_conf(f, CONFVARWIDTH, "samples", "%d\n", cfg->ac_samples);
+	fprintf_conf(f, CONFVARWIDTH, "penalty", "%d\n", cfg->ac_penalty);
+	fprintf_conf(f, CONFVARWIDTH, "aclogfile", "%s\n", cfg->ac_logfile);
+	fprintf_conf(f, CONFVARWIDTH, "denysamples", "%d\n", cfg->ac_denysamples);
+	fprintf_conf(f, CONFVARWIDTH, "fakedelay", "%d\n", cfg->ac_fakedelay);
+	fputc((int)'\n', f);
 #endif
 
 	fclose(f);
