@@ -1835,7 +1835,7 @@ void request_cw(ECM_REQUEST *er, int flag, int reader_types)
 
 void get_cw(ECM_REQUEST *er)
 {
-	int i, j, m, rejected = 0;
+	int i, j, m;
 	time_t now = time((time_t)0);
 
 	client[cs_idx].lastecm = now;
@@ -1869,22 +1869,15 @@ void get_cw(ECM_REQUEST *er)
 	if (!er->caid) {
 		er->rc = 8;
 		er->rcEx = E2_CAID;
-		rejected = 1;
 	}
 
 	// user expired
-	if(client[cs_idx].expirationdate && client[cs_idx].expirationdate < client[cs_idx].lastecm) {
+	if(client[cs_idx].expirationdate && client[cs_idx].expirationdate < client[cs_idx].lastecm)
 		er->rc = 11;
-		er->rcEx = 0;
-		rejected = 1;
-	}
 
 	// user disabled
-	if(client[cs_idx].disabled != 0) {
+	if(client[cs_idx].disabled != 0)
 		er->rc = 12;
-		er->rcEx = 0;
-		rejected = 1;
-	}
 
 	// rc<100 -> ecm error
 	if (er->rc > 99) {
@@ -1904,6 +1897,7 @@ void get_cw(ECM_REQUEST *er)
 		client[cs_idx].last_caid = m;
 
 		for (j = 0; (j < 6) && (er->rc > 99); j++)
+		{
 			switch(j) {
 
 				case 0:
@@ -1951,6 +1945,7 @@ void get_cw(ECM_REQUEST *er)
 					}
 					break;
 			}
+		}
 
 		/*BetaCrypt tunneling
 		 *moved behind the check routines,
@@ -1970,13 +1965,9 @@ void get_cw(ECM_REQUEST *er)
 #ifdef CS_ANTICASC
 		ac_chk(er, 0);
 #endif
-
-		if( er->rc < 100 && er->rc != 1 )
-			rejected = 1;
-
 	}
 
-	if( !rejected && er->rc != 1 ) {
+	if(er->rc > 99 && er->rc != 1) {
 
 		for (i = m = 0; i < CS_MAXREADER; i++)
 			if (matching_reader(er, &reader[i]) && (i != ridx))
