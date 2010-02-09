@@ -36,6 +36,12 @@
 #  define GCC_PACK
 #endif
 
+#define call(arg) \
+	if (arg) { \
+		cs_log("ERROR, function call %s returns error.",#arg); \
+		return ERROR; \
+	}
+
 #include "oscam-config.h"
 #ifndef USE_CMAKE
 #  include "oscam-ostype.h"
@@ -639,6 +645,7 @@ struct s_config
   PTAB      ncd_ptab;
   in_addr_t ncd_srvip;
   uchar     ncd_key[16];
+  int       ncd_keepalive;
   struct s_ip *ncd_allowed;
   PTAB      cc_ptab;
   int       rad_port;
