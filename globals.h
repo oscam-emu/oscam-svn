@@ -1,3 +1,4 @@
+#define _GNU_SOURCE //prevents "implicit" warning for asprintf
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
@@ -196,9 +197,10 @@ extern char *RDR_CD_TXT[];
 #define CS_ANTICASC
 
 // moved from reader-common.h
-#define CARD_INSERTED  1
-#define CARD_NEED_INIT 2
-#define CARD_FAILURE   4
+#define NO_CARD        0
+#define CARD_NEED_INIT 1
+#define CARD_INSERTED  2
+#define CARD_FAILURE   3
 
 enum {E1_GLOBAL=0, E1_USER, E1_READER, E1_SERVER, E1_LSERVER};
 enum {E2_GLOBAL=0, E2_GROUP, E2_CAID, E2_IDENT, E2_CLASS, E2_CHID, E2_QUEUE,
@@ -392,11 +394,12 @@ struct s_client
   struct    sockaddr_in udp_sa;
   int       log;
   int       logcounter;
-  int       cwfound;	// count found ECMs per client
-  int       cwcache;	// count found in cache ECMs per client
-  int       cwnot;		// count not found ECMs per client
-  int       cwtun;      // count betatunneled ECMs per client
-  int		cwignored;	// count ignored
+  int       cwfound;     // count found ECMs per client
+  int       cwcache;     // count ECMs from cache1/2 per client
+  int       cwnot;       // count not found ECMs per client
+  int       cwtun;       // count betatunneled ECMs per client
+  int       cwignored;   // count ignored  ECMs per client
+  int       cwtout;      // count timeouted ECMs per client
   int		cwlastresptime; //last Responsetime (ms)
   int		emmok;		// count EMM ok
   int		emmnok;		// count EMM nok
@@ -468,15 +471,13 @@ struct s_reader
   ushort    acs;    // irdeto
   ushort    caid[16];
   uchar     b_nano[256];
-  uchar     emmfile[128];
+  char      * emmfile;
   char      pincode[5];
   int		ucpk_valid;
   int       logemm;
   int       cachemm;
   int       rewritemm;
-  int       online;
-  int       card_status; //highlevel status
-  unsigned short status; //0 = init state, 1 = card inside, 2 = no card inside //FIXME look at integration with pcsc_has_card/detect/card_status
+  int       card_status;
 	int       deprecated; //if 0 ATR obeyed, if 1 default speed (9600) is chosen; for devices that cannot switch baudrate
   struct    s_module ph;
   uchar     ncd_key[16];
@@ -611,10 +612,11 @@ struct s_config
   int       resolvedelay;
   int       tosleep;
   in_addr_t srvip;
-  char      pidfile[128];
-  char      usrfile[128];
+  char      *pidfile;
+  char      *usrfile;
+  char      *cwlogdir;
+  char      *logfile;
   int		usrfileflag;
-  char      cwlogdir[128];
   struct s_auth *account;
   struct s_srvid *srvid;
   struct s_sidtab *sidtab;
@@ -658,12 +660,12 @@ struct s_config
   int       waitforcards;
   int       preferlocalcards;
 #ifdef CS_WITH_GBOX
-  uchar      gbox_pwd[8];
-  uchar   ignorefile[512];
-  uchar     cardfile[512];
-  uchar     gbxShareOnl[512];
-  int     maxdist;
-  int       num_locals;
+  uchar         gbox_pwd[8];
+  uchar         ignorefile[128];
+  uchar         cardfile[128];
+  uchar         gbxShareOnl[128];
+  int           maxdist;
+  int           num_locals;
   unsigned long locals[CS_MAXLOCALS];
 #endif
   //struct s_irdeto_quess *itab[0xff];
@@ -793,7 +795,6 @@ extern char cs_confdir[], *loghist;
 extern EMM_PACKET epg;
 extern struct s_module ph[CS_MAX_MOD];
 extern ECM_REQUEST *ecmtask;
-extern char logfile[256];
 #ifdef CS_ANTICASC
 extern struct s_acasc_shm *acasc;
 extern FILE *fpa;

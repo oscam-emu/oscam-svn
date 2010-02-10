@@ -153,7 +153,7 @@ static int reader_activate_card(ATR * atr, unsigned short deprecated)
 void do_emm_from_file(void)
 {
   //now here check whether we have EMM's on file to load and write to card:
-  if (reader[ridx].emmfile[0]) {//readnano has something filled in
+  if (reader[ridx].emmfile != NULL) {//readnano has something filled in
 
     //handling emmfile
     char token[256];
@@ -180,7 +180,8 @@ void do_emm_from_file(void)
         cs_log ("ERROR: EMM read from file %s NOT processed correctly!", token);
 
       reader[ridx].b_nano[eptmp->emm[0]] = old_b_nano; //restore old block/save settings
-      reader[ridx].emmfile[0] = 0; //clear emmfile, so no reading anymore
+			free (reader[ridx].emmfile);
+      reader[ridx].emmfile = NULL; //clear emmfile, so no reading anymore
 
       free(eptmp);
       eptmp = NULL;
@@ -216,7 +217,6 @@ void reader_card_info()
       case SC_DRE:
 	 dre_card_info(); break;
     }
-    reader[ridx].online = 1; //do not check on rc, because error in cardinfo should not be fatal
   }
 }
 
@@ -240,7 +240,7 @@ static int reader_reset(void)
 {
 	reader_nullcard();
 	ATR atr;
-	unsigned short int ret, deprecated;
+	unsigned short int deprecated, ret = ERROR;
 	for (deprecated = reader[ridx].deprecated; deprecated < 2; deprecated++) {
 		if (!reader_activate_card(&atr, deprecated)) return(0);
 		ret =reader_get_cardsystem(atr);
@@ -279,12 +279,12 @@ int reader_checkhealth(void)
 {
   if (reader_card_inserted())
   {
-    if (!(reader[ridx].card_status & CARD_INSERTED))
+    if (reader[ridx].card_status != CARD_INSERTED)
     {
       cs_log("card detected");
       reader[ridx].card_status  = CARD_NEED_INIT;
-      reader[ridx].card_status = CARD_INSERTED | (reader_reset() ? 0 : CARD_FAILURE);
-      if (reader[ridx].card_status & CARD_FAILURE)
+      reader[ridx].card_status = (reader_reset() ? CARD_INSERTED : CARD_FAILURE);
+      if (reader[ridx].card_status == CARD_FAILURE)
       {
         cs_log("card initializing error");
       }
@@ -304,7 +304,7 @@ int reader_checkhealth(void)
   }
   else
   {
-    if (reader[ridx].card_status & CARD_INSERTED)
+    if (reader[ridx].card_status == CARD_INSERTED)
     {
       reader_nullcard();
       client[cs_idx].lastemm=0;
@@ -315,7 +315,6 @@ int reader_checkhealth(void)
       cs_log("card ejected");
     }
     reader[ridx].card_status=0;
-    reader[ridx].online=0;
   }
   return reader[ridx].card_status==CARD_INSERTED;
 }

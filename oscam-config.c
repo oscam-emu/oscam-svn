@@ -316,12 +316,12 @@ static void chk_srvip(char *value, in_addr_t *ip)
 void chk_t_global(char *token, char *value)
 {
   if (!strcmp(token, "serverip")) { cfg->srvip=inet_addr(value); return; }
-  if (!strcmp(token, "logfile")) { cs_strncpy(logfile, value, sizeof(logfile)); return; }
-  if (!strcmp(token, "pidfile")) { cs_strncpy(cfg->pidfile, value, sizeof(cfg->pidfile)); return; }
-  if (!strcmp(token, "usrfile")) { cs_strncpy(cfg->usrfile, value, sizeof(cfg->usrfile)); return; }
+  if (!strcmp(token, "logfile")) { asprintf(&(cfg->logfile), "%s", value); return; }
+  if (!strcmp(token, "pidfile")) { asprintf(&(cfg->pidfile), "%s", value); return; }
+  if (!strcmp(token, "usrfile")) { asprintf(&(cfg->usrfile), "%s", value); return; }
   if (!strcmp(token, "usrfileflag")) { cfg->usrfileflag=atoi(value); return; }
-  if (!strcmp(token, "cwlogdir")) { cs_strncpy(cfg->cwlogdir, value, sizeof(cfg->cwlogdir)); return; }
-  if (!strcmp(token, "clienttimeout"))
+  if (!strcmp(token, "cwlogdir")) { asprintf(&(cfg->cwlogdir), "%s", value); return; }
+  if (!strcmp(token, "clienttimeout")) 
   {
       cfg->ctimeout = atoi(value);
       if (cfg->ctimeout < 100)
@@ -717,6 +717,10 @@ int init_config()
   cfg->mon_hideclient_to=0;
   cfg->srtimeout=1500;
   cfg->ulparent=0;
+	cfg->logfile=NULL;
+	cfg->pidfile=NULL;
+	cfg->usrfile=NULL;
+	cfg->cwlogdir=NULL;
   strcpy(cfg->http_user, "");
   strcpy(cfg->http_pwd, "");
   strcpy(cfg->http_css, "");
@@ -755,7 +759,11 @@ int init_config()
     chk_token(trim(strtolower(token)), trim(value), tag);
   }
   fclose(fp);
-  cs_init_log(logfile);
+#ifdef CS_LOGFILE
+	if (cfg->logfile == NULL)
+		asprintf(&(cfg->logfile), "%s", CS_LOGFILE);
+#endif
+  cs_init_log(cfg->logfile);
   if (cfg->ftimeout>=cfg->ctimeout)
   {
     cfg->ftimeout = cfg->ctimeout - 100;
@@ -951,7 +959,7 @@ int write_config()
 	/*global settings*/
 	fprintf(f,"[global]\n");
 	fprintf_conf(f, CONFVARWIDTH, "serverip", "%s\n", inet_ntoa(*(struct in_addr *)&cfg->srvip));
-	fprintf_conf(f, CONFVARWIDTH, "logfile", "%s\n", logfile);
+	//fprintf_conf(f, CONFVARWIDTH, "logfile", "%s\n", logfile);
 	fprintf_conf(f, CONFVARWIDTH, "pidfile", "%s\n", cfg->pidfile);
 	fprintf_conf(f, CONFVARWIDTH, "usrfile", "%s\n", cfg->usrfile);
 	fprintf_conf(f, CONFVARWIDTH, "usrfileflag", "%d\n", cfg->usrfileflag);
@@ -1552,8 +1560,8 @@ static void chk_reader(char *token, char *value, struct s_reader *rdr)
     }
     return;
   }
-  if( !strcmp(token, "pincode")) { cs_strncpy(rdr->pincode, value, sizeof(rdr->pincode)); return; }
-  if (!strcmp(token, "readnano")) { cs_strncpy((char *)rdr->emmfile, value, sizeof(rdr->emmfile)); return; }
+  if( !strcmp(token, "pincode")) { strncpy(rdr->pincode, value, sizeof(rdr->pincode)-1); return; }
+  if (!strcmp(token, "readnano")) { asprintf(&(rdr->emmfile), "%s", value); return; }
   /*
    *  case insensitive
    */

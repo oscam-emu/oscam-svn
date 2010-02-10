@@ -1393,7 +1393,7 @@ void logCWtoFile(ECM_REQUEST *er)
     struct tm *timeinfo;
     struct s_srvid *this;
 
-    if (cfg->cwlogdir[0])     /* CWL logging only if cwlogdir is set in config */
+    if (cfg->cwlogdir != NULL)     /* CWL logging only if cwlogdir is set in config */
     {
         /* search service name for that id and change characters
            causing problems in file name */
@@ -1608,20 +1608,49 @@ int send_dcw(ECM_REQUEST *er)
   er->caid=er->ocaid;
   switch(er->rc)
   {
-	case  0: client[cs_idx].cwfound++;  break; 		//found
-    case  1: client[cs_idx].cwcache++;	break;		//cache1
-    case  2: client[cs_idx].cwcache++;	break;		//cache2
-    case  3:										//emu
-    case  4:										//not found
-    case  5:										//timeout
-    case  6:										//sleeping
-    case  7:										//fake
-    case  8: client[cs_idx].cwignored++;break;		//invalid
-    case  9:										//corrupt
-    case 10:										//no card
-    case 11:										//expired
-    case 12:										//disabled
-    default: client[cs_idx].cwnot++;				//NOK
+	case 0:
+	case 3:
+		// 0 - found
+		// 3 - emu FIXME: (obsolete ?)
+		client[cs_idx].cwfound++;
+		break;
+
+	case 1:
+	case 2:
+		// 1 - cache1
+		// 2 - cache2
+		client[cs_idx].cwcache++;
+		break;
+
+	case 4:
+	case 9:
+	case 10:
+		// 4 - not found
+		// 9 - corrupt
+		// 10 - no card
+		client[cs_idx].cwnot++;
+		break;
+
+	case 5:
+		// 5 - timeout
+		client[cs_idx].cwtout++;
+		break;
+
+	case 6:
+	case 7:
+	case 8:
+	case 11:
+	case 12:
+		// 6 - sleeping
+		// 7 - fake
+		// 8 - invalid
+		// 11 - expired
+		// 12 - disabled
+		client[cs_idx].cwignored++;
+		break;
+	
+    	default: 
+		client[cs_idx].cwnot++;
   }
 
 #ifdef CS_ANTICASC
@@ -2341,7 +2370,7 @@ int main (int argc, char *argv[])
     cs_exit(1);
   }
   master_pid=client[0].pid=getpid();
-  if (cfg->pidfile[0])
+  if (cfg->pidfile != NULL)
   {
     FILE *fp;
     if (!(fp=fopen(cfg->pidfile, "w")))
@@ -2374,35 +2403,21 @@ int main (int argc, char *argv[])
   if (cfg->waitforcards)
   {
       int card_init_done;
-
       cs_log("Waiting for local card init ....");
-
       sleep(3);  // short sleep for card detect to work proberly
-
-      for(;;)
-      {
+      do {
           card_init_done = 1;
-
-          for (i = 0; i < CS_MAXREADER; i++)
-          {
-              if (!reader[i].online && reader[i].card_status)
-              {
-                  if (!(reader[i].card_status & CARD_FAILURE))
-                  {
-                      card_init_done = 0;
-                      break;
-                  }
-              }
+          for (i = 0; i < CS_MAXREADER; i++) {
+            if (reader[i].card_status == CARD_NEED_INIT) {
+              card_init_done = 0;
+              break;
+            }
           }
-
           if (card_init_done)
               break;
-
           cs_sleepms(300);              // wait a little bit
-
           alarm(cfg->cmaxidle + cfg->ctimeout / 1000 + 1);
-      }
-
+      } while (1);
       cs_log("Init for all local cards done !");
 
   }
