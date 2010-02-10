@@ -73,7 +73,6 @@ void send_oscam_config_global(struct templatevars *vars, FILE *f, struct uripara
 		else tpl_addVar(vars, 1, "MESSAGE", "<B>Write Config failed</B><BR><BR>");
 	}
 	tpl_addVar(vars, 0, "SERVERIP", inet_ntoa(*(struct in_addr *)&cfg->srvip));
-	//tpl_addVar(vars, 0, "LOGFILE", logfile);
 	tpl_addVar(vars, 0, "PIDFILE", cfg->pidfile);
 	tpl_addVar(vars, 0, "USERFILE", cfg->usrfile);
 	tpl_printf(vars, 0, "USERFILEFLAG", "%d", cfg->usrfileflag);

@@ -959,7 +959,6 @@ int write_config()
 	/*global settings*/
 	fprintf(f,"[global]\n");
 	fprintf_conf(f, CONFVARWIDTH, "serverip", "%s\n", inet_ntoa(*(struct in_addr *)&cfg->srvip));
-	//fprintf_conf(f, CONFVARWIDTH, "logfile", "%s\n", logfile);
 	fprintf_conf(f, CONFVARWIDTH, "pidfile", "%s\n", cfg->pidfile);
 	fprintf_conf(f, CONFVARWIDTH, "usrfile", "%s\n", cfg->usrfile);
 	fprintf_conf(f, CONFVARWIDTH, "usrfileflag", "%d\n", cfg->usrfileflag);
