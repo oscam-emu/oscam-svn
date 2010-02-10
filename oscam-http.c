@@ -1017,6 +1017,18 @@ void send_oscam_user_config(struct templatevars *vars, FILE *f, struct uriparams
 		isec = 0;
 		lastchan = "&nbsp;";
 	}
+
+	if (strcmp(getParam(params, "part"), "adduser") == 0){
+		tpl_addVar(vars, 1, "NEWUSERFORM", tpl_getTpl(vars, "ADDNEWUSER"));
+	} else {
+		if(cfg->http_refresh > 0){
+			tpl_printf(vars, 0, "REFRESHTIME", "%d", cfg->http_refresh);
+			tpl_addVar(vars, 0, "REFRESHURL", "userconfig.html");
+			tpl_addVar(vars, 0, "REFRESH", tpl_getTpl(vars, "REFRESH"));
+		}
+	}
+
+
 	fputs(tpl_getTpl(vars, "USERCONFIGLIST"), f);
 }
 
@@ -1320,6 +1332,7 @@ void send_oscam_shutdown(struct templatevars *vars, FILE *f, struct uriparams *p
 	if (strcmp(getParam(params, "action"), "Shutdown") == 0){
 		tpl_addVar(vars, 0, "STYLESHEET", CSS);
 		tpl_printf(vars, 0, "REFRESHTIME", "%d", SHUTDOWNREFRESH);
+		tpl_addVar(vars, 0, "REFRESHURL", "status.html");
 		tpl_addVar(vars, 0, "REFRESH", tpl_getTpl(vars, "REFRESH"));
 		tpl_printf(vars, 0, "SECONDS", "%d", SHUTDOWNREFRESH);
 		fputs(tpl_getTpl(vars, "SHUTDOWN"), f);
@@ -1509,7 +1522,8 @@ int process_request(FILE *f, struct in_addr in) {
 		tpl_addVar(vars, 0, "CS_SVN_VERSION", CS_SVN_VERSION);
 		tpl_addVar(vars, 0, "ICO", ICMAI);
 		if(cfg->http_refresh > 0 && (pgidx == 3 || pgidx == -1)){
-		tpl_printf(vars, 0, "REFRESHTIME", "%d", cfg->http_refresh);
+			tpl_printf(vars, 0, "REFRESHTIME", "%d", cfg->http_refresh);
+			tpl_addVar(vars, 0, "REFRESHURL", "status.html");
 			tpl_addVar(vars, 0, "REFRESH", tpl_getTpl(vars, "REFRESH"));
 		}
 		tpl_printf(vars, 0, "CURDATE", "%02d.%02d.%02d", lt->tm_mday, lt->tm_mon+1, lt->tm_year%100);

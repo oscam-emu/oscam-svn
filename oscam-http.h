@@ -191,7 +191,7 @@ mEuAyct9BgPD819QNcAE/7+AgeEsUEoKIICgwcwgDcw4iVLAIAKms0fAlAmMFIa76DkamG+igFld\
 </HTML>"
 
 #define TPLREFRESH "\
-<meta http-equiv=\"refresh\" content=\"##REFRESHTIME##; URL=status.html\" />\n"
+\n<meta http-equiv=\"refresh\" content=\"##REFRESHTIME##; URL=##REFRESHURL##\" />\n"
 
 #define TPLMENU "\
   <TABLE border=0 class=\"menu\">\n\
@@ -298,7 +298,8 @@ mEuAyct9BgPD819QNcAE/7+AgeEsUEoKIICgwcwgDcw4iVLAIAKms0fAlAmMFIa76DkamG+igFld\
   ##TPLHEADER##\
   ##TPLMENU##\n\
   ##MESSAGE##\
-  <BR><BR>\
+  <BR>\
+  <TABLE CLASS=\"configmenu\"><TR><TD CLASS=\"configmenu\"><A HREF=\"userconfig.html?part=adduser\">Add User</TD></TR></TABLE><BR>\
   <TABLE cellspacing=\"0\" cellpadding=\"10\">\n\
     <TR>\n\
 	  <TH>Lock</TH>\n\
@@ -319,15 +320,18 @@ mEuAyct9BgPD819QNcAE/7+AgeEsUEoKIICgwcwgDcw4iVLAIAKms0fAlAmMFIa76DkamG+igFld\
       <TH colspan=\"2\" align=\"center\">Action</TH>\n\
     </TR>\n\
     ##USERCONFIGS##\
-    <TR>\n\
-      <FORM action=\"user_edit.html\" method=\"get\">\n\
-      <TD>New User:</TD>\n\
-      <TD colspan=\"6\"><input name=\"user\" type=\"text\">&nbsp;&nbsp;&nbsp;<input type=\"submit\" value=\"Add User\"></TD>\n\
-      <TD colspan=\"10\" align=\"center\"></TD>\n\
-      </FORM>\n\
-    <TR>\n\
+    ##NEWUSERFORM##\
   </TABLE><BR>\n\
   ##TPLFOOTER##"
+
+#define TPLADDNEWUSER "\
+	<TR>\n\
+		<FORM action=\"user_edit.html\" method=\"get\">\n\
+		<TD>&nbsp;</TD>\n\
+		<TD colspan=\"6\">New User:&nbsp;&nbsp;<input name=\"user\" type=\"text\">&nbsp;&nbsp;&nbsp;<input type=\"submit\" value=\"Add User\"></TD>\n\
+		<TD colspan=\"10\" align=\"center\"></TD>\n\
+		</FORM>\n\
+	<TR>\n"
 
 #define TPLUSERCONFIGLISTBIT "\
   <TR class=\"##CLASSNAME##\">\n\
@@ -1073,6 +1077,7 @@ char *tpl[]={
 	"STATUS",
 	"CLIENTSTATUSBIT",
 	"USERCONFIGLIST",
+	"ADDNEWUSER",
 	"USERCONFIGLISTBIT",
 	"SIDTAB",
 	"SIDTABBIT",
@@ -1143,6 +1148,7 @@ char *tplmap[]={
 	TPLSTATUS,
 	TPLCLIENTSTATUSBIT,
 	TPLUSERCONFIGLIST,
+	TPLADDNEWUSER,
 	TPLUSERCONFIGLISTBIT,
 	TPLSIDTAB,
 	TPLSIDTABBIT,
