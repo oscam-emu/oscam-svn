@@ -75,6 +75,7 @@ void send_oscam_config_global(struct templatevars *vars, FILE *f, struct uripara
 	tpl_addVar(vars, 0, "SERVERIP", inet_ntoa(*(struct in_addr *)&cfg->srvip));
 	tpl_addVar(vars, 0, "PIDFILE", cfg->pidfile);
 	tpl_addVar(vars, 0, "USERFILE", cfg->usrfile);
+	tpl_addVar(vars, 0, "LOGFILE", cfg->logfile);
 	tpl_printf(vars, 0, "USERFILEFLAG", "%d", cfg->usrfileflag);
 	tpl_addVar(vars, 0, "CWLOGDIR", cfg->cwlogdir);
 	tpl_printf(vars, 0, "CLIENTTIMEOUT", "%ld", cfg->ctimeout/1000);
@@ -195,6 +196,9 @@ void send_oscam_config_newcamd(struct templatevars *vars, FILE *f, struct uripar
 			if ((strcmp((*params).params[i], "part")) && (strcmp((*params).params[i], "action"))){
 				tpl_printf(vars, 1, "MESSAGE", "Parameter: %s set to Value: %s<BR>\n", (*params).params[i], (*params).values[i]);
 				//we use the same function as used for parsing the config tokens
+				if (strcmp((*params).params[i], "allowed") == 0){
+					clear_sip(&cfg->ncd_allowed);
+				}
 				chk_t_newcamd((*params).params[i], (*params).values[i]);
 			}
 		}
@@ -230,7 +234,7 @@ void send_oscam_config_newcamd(struct templatevars *vars, FILE *f, struct uripar
   	if (cip->ip[0] != cip->ip[1])	tpl_printf(vars, 1, "ALLOWED", "-%s", cs_inet_ntoa(cip->ip[1]));
 		dot=",";
 	}
-
+	tpl_printf(vars, 0, "KEEPALIVE", "%d", cfg->ncd_keepalive);
 	fputs(tpl_getTpl(vars, "CONFIGNEWCAMD"), f);
 }
 

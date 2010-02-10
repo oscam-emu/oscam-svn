@@ -961,6 +961,7 @@ int write_config()
 	fprintf_conf(f, CONFVARWIDTH, "serverip", "%s\n", inet_ntoa(*(struct in_addr *)&cfg->srvip));
 	fprintf_conf(f, CONFVARWIDTH, "pidfile", "%s\n", cfg->pidfile);
 	fprintf_conf(f, CONFVARWIDTH, "usrfile", "%s\n", cfg->usrfile);
+	fprintf_conf(f, CONFVARWIDTH, "logfile", "%s\n", cfg->logfile);
 	fprintf_conf(f, CONFVARWIDTH, "usrfileflag", "%d\n", cfg->usrfileflag);
 	fprintf_conf(f, CONFVARWIDTH, "cwlogdir", "%s\n", cfg->cwlogdir);
 	fprintf_conf(f, CONFVARWIDTH, "clienttimeout", "%ld\n", cfg->ctimeout/1000);
@@ -1034,7 +1035,8 @@ int write_config()
 	  	if (cip->ip[0] != cip->ip[1])	fprintf(f,"-%s", cs_inet_ntoa(cip->ip[1]));
 	  	dot=",";
 		}
-		fprintf(f,"\n\n");
+		fprintf_conf(f, CONFVARWIDTH, "keepalive", "%d\n", cfg->ncd_keepalive);
+		fprintf(f,"\n");
 	}
 
 	/*camd3.3*/
