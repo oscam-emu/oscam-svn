@@ -935,6 +935,7 @@ void send_oscam_user_config(struct templatevars *vars, FILE *f, struct uriparams
 		tpl_addVar(vars, 0, "CWOK", "");
 		tpl_addVar(vars, 0, "CWNOK", "");
 		tpl_addVar(vars, 0, "CWIGN", "");
+		tpl_addVar(vars, 0, "CWTOUT", "");
 		tpl_addVar(vars, 0, "CWCACHE", "");
 		tpl_addVar(vars, 0, "CWTUN", "");
 		tpl_addVar(vars, 0, "CLIENTPROTO","");
@@ -960,7 +961,7 @@ void send_oscam_user_config(struct templatevars *vars, FILE *f, struct uriparams
 		}
 
 		//search account in active clients
-		int cwok = 0, cwnok = 0, cwign = 0, cwcache = 0, cwtun = 0, emmok = 0, emmnok = 0;
+		int cwok = 0, cwnok = 0, cwign = 0, cwtout = 0, cwcache = 0, cwtun = 0, emmok = 0, emmnok = 0;
 		int secs = 0, fullmins =0, mins =0, hours =0;
 
 		for (i=0; i<CS_MAXPID; i++)
@@ -985,6 +986,7 @@ void send_oscam_user_config(struct templatevars *vars, FILE *f, struct uriparams
 				cwok += client[i].cwfound;
 				cwnok += client[i].cwnot;
 				cwign += client[i].cwignored;
+				cwtout += client[i].cwtout;
 				cwcache += client[i].cwcache;
 				cwtun += client[i].cwtun;
 				emmok += client[i].emmok;
@@ -994,6 +996,7 @@ void send_oscam_user_config(struct templatevars *vars, FILE *f, struct uriparams
 				tpl_printf(vars, 0, "CWOK", "%d", cwok);
 				tpl_printf(vars, 0, "CWNOK", "%d", cwnok);
 				tpl_printf(vars, 0, "CWIGN", "%d", cwign);
+				tpl_printf(vars, 0, "CWTOUT", "%d", cwtout);
 				tpl_printf(vars, 0, "CWCACHE", "%d", cwcache);
 				tpl_printf(vars, 0, "CWTUN", "%d", cwtun);
 				tpl_printf(vars, 0, "EMMOK", "%d", emmok);

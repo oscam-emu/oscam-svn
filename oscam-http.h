@@ -310,6 +310,7 @@ mEuAyct9BgPD819QNcAE/7+AgeEsUEoKIICgwcwgDcw4iVLAIAKms0fAlAmMFIa76DkamG+igFld\
       <TH>OK</TH>\n\
       <TH>NOK</TH>\n\
       <TH>IGN</TH>\n\
+      <TH>TOUT</TH>\n\
       <TH>CACHE</TH>\n\
       <TH>TUN</TH>\n\
       <TH>LTIME</TH>\n\
@@ -322,7 +323,7 @@ mEuAyct9BgPD819QNcAE/7+AgeEsUEoKIICgwcwgDcw4iVLAIAKms0fAlAmMFIa76DkamG+igFld\
       <FORM action=\"user_edit.html\" method=\"get\">\n\
       <TD>New User:</TD>\n\
       <TD colspan=\"6\"><input name=\"user\" type=\"text\">&nbsp;&nbsp;&nbsp;<input type=\"submit\" value=\"Add User\"></TD>\n\
-      <TD colspan=\"9\" align=\"center\"></TD>\n\
+      <TD colspan=\"10\" align=\"center\"></TD>\n\
       </FORM>\n\
     <TR>\n\
   </TABLE><BR>\n\
@@ -339,6 +340,7 @@ mEuAyct9BgPD819QNcAE/7+AgeEsUEoKIICgwcwgDcw4iVLAIAKms0fAlAmMFIa76DkamG+igFld\
 	<TD align=\"center\">##CWOK##</TD>\n\
 	<TD align=\"center\">##CWNOK##</TD>\n\
 	<TD align=\"center\">##CWIGN##</TD>\n\
+	<TD align=\"center\">##CWTOUT##</TD>\n\
 	<TD align=\"center\">##CWCACHE##</TD>\n\
 	<TD align=\"center\">##CWTUN##</TD>\n\
 	<TD align=\"center\">##CWLASTRESPONSET##</TD>\n\
