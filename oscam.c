@@ -2416,7 +2416,7 @@ int main (int argc, char *argv[])
           if (card_init_done)
               break;
           cs_sleepms(300);              // wait a little bit
-          alarm(cfg->cmaxidle + cfg->ctimeout / 1000 + 1);
+          alarm(cfg->cmaxidle + cfg->ctimeout / 1000 + 1); 
       } while (1);
       cs_log("Init for all local cards done !");
 
