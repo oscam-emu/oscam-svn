@@ -873,6 +873,10 @@ void send_oscam_user_config(struct templatevars *vars, FILE *f, struct uriparams
 	struct s_auth *account, *account2;
 	char *user = getParam(params, "user");
 	int i, found = 0;
+	int hideclient = 10;
+
+	if (cfg->mon_hideclient_to > 10)
+		hideclient = cfg->mon_hideclient_to;
 
 	if (strcmp(getParam(params, "action"), "delete") == 0){
 		account=cfg->account;
@@ -962,7 +966,7 @@ void send_oscam_user_config(struct templatevars *vars, FILE *f, struct uriparams
 		for (i=0; i<CS_MAXPID; i++)
 			if (!strcmp(client[i].usr, account->usr)){
 				//set client to offline depending on hideclient_to
-				if ((now - client[i].lastecm) < cfg->mon_hideclient_to){
+				if ((now - client[i].lastecm) < hideclient){
 					status = "<b>online</b>";classname="online";
 					lastchan = monitor_get_srvname(client[i].last_srvid, client[i].last_caid);
 					isec = now - client[i].last;
