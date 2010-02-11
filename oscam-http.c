@@ -529,7 +529,7 @@ void send_oscam_reader_config(struct templatevars *vars, FILE *f, struct uripara
 	tpl_printf(vars, 0, "DEVICE", "%s", reader[ridx].device);
 	tpl_addVar(vars, 0, "NCD_KEY", (char *)reader[ridx].ncd_key);
 	tpl_addVar(vars, 0, "PINCODE", reader[ridx].pincode);
-	tpl_addVar(vars, 0, "EMMFILE", (char *)reader[ridx].emmfile);
+	//tpl_addVar(vars, 0, "EMMFILE", (char *)reader[ridx].emmfile);
 	tpl_printf(vars, 0, "INACTIVITYTIMEOUT", "%d", reader[ridx].tcp_ito);
 	tpl_printf(vars, 0, "RECEIVETIMEOUT", "%d", reader[ridx].tcp_rto);
 	tpl_printf(vars, 0, "DISABLESERVERFILTER", "%d", reader[ridx].ncd_disable_server_filt);
