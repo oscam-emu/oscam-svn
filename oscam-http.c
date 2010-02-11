@@ -478,7 +478,11 @@ void send_oscam_reader(struct templatevars *vars, FILE *f, struct uriparams *par
 					tpl_addVar(vars, 0, "REFRICO", ICREF);
 					tpl_addVar(vars, 0, "REFRESH", tpl_getTpl(vars, "READERREFRESHBIT"));
 					break;
-				case R_INTERNAL: ctyp="intern";   break;
+				case R_INTERNAL: ctyp="intern";
+					tpl_printf(vars, 0, "RIDX", "%d", reader[ridx].cs_idx); //add cs_idx needed for entitlement refresh
+					tpl_addVar(vars, 0, "REFRICO", ICREF);
+					tpl_addVar(vars, 0, "REFRESH", tpl_getTpl(vars, "READERREFRESHBIT"));
+					break;
 				case R_SMART   : ctyp="smartreader";
 					tpl_printf(vars, 0, "RIDX", "%d", reader[ridx].cs_idx); //add cs_idx needed for entitlement refresh
 					tpl_addVar(vars, 0, "REFRICO", ICREF);
