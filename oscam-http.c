@@ -981,6 +981,8 @@ void send_oscam_user_config(struct templatevars *vars, FILE *f, struct uriparams
 						}
 					}
 					tpl_printf(vars, 0, "CWLASTRESPONSET", "%d", client[i].cwlastresptime);
+					tpl_addVar(vars, 0, "CLIENTPROTO", monitor_get_proto(i));
+					tpl_printf(vars, 0, "IDLESECS", "%02d:%02d:%02d", hours, mins, secs);
 				}
 
 				cwok += client[i].cwfound;
@@ -992,7 +994,6 @@ void send_oscam_user_config(struct templatevars *vars, FILE *f, struct uriparams
 				emmok += client[i].emmok;
 				emmnok += client[i].emmnok;
 
-				tpl_addVar(vars, 0, "CLIENTPROTO", monitor_get_proto(i));
 				tpl_printf(vars, 0, "CWOK", "%d", cwok);
 				tpl_printf(vars, 0, "CWNOK", "%d", cwnok);
 				tpl_printf(vars, 0, "CWIGN", "%d", cwign);
@@ -1001,9 +1002,7 @@ void send_oscam_user_config(struct templatevars *vars, FILE *f, struct uriparams
 				tpl_printf(vars, 0, "CWTUN", "%d", cwtun);
 				tpl_printf(vars, 0, "EMMOK", "%d", emmok);
 				tpl_printf(vars, 0, "EMMNOK", "%d", emmnok);
-				tpl_printf(vars, 0, "IDLESECS", "%02d:%02d:%02d", hours, mins, secs);
-
-			}
+		}
 		tpl_addVar(vars, 0, "CLASSNAME", classname);
 		tpl_addVar(vars, 0, "USER", account->usr);
 		tpl_addVar(vars, 0, "USERENC", tpl_addTmp(vars, urlencode(account->usr)));
