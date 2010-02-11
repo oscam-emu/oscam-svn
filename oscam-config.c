@@ -316,11 +316,45 @@ static void chk_srvip(char *value, in_addr_t *ip)
 void chk_t_global(char *token, char *value)
 {
   if (!strcmp(token, "serverip")) { cfg->srvip=inet_addr(value); return; }
-  if (!strcmp(token, "logfile")) { asprintf(&(cfg->logfile), "%s", value); return; }
-  if (!strcmp(token, "pidfile")) { asprintf(&(cfg->pidfile), "%s", value); return; }
-  if (!strcmp(token, "usrfile")) { asprintf(&(cfg->usrfile), "%s", value); return; }
+  if (!strcmp(token, "logfile")) {
+	  if (cfg->logfile != NULL) {
+		  free(cfg->logfile);
+		  cfg->logfile = NULL;
+	  }
+	  if (value[0])
+		  asprintf(&(cfg->logfile), "%s", value);
+	  return;
+  }
+  if (!strcmp(token, "pidfile")) {
+	  if (cfg->pidfile != NULL) {
+		  free(cfg->pidfile);
+		  cfg->pidfile = NULL;
+	  }
+	  if (value[0])
+		  asprintf(&(cfg->pidfile), "%s", value);
+	  return;
+  }
+  if (!strcmp(token, "usrfile")) {
+	  if (cfg->usrfile != NULL) {
+		  free(cfg->usrfile);
+		  cfg->usrfile = NULL;
+	  }
+	  if (value[0])
+		  asprintf(&(cfg->usrfile), "%s", value);
+	  return;
+  }
+  if (!strcmp(token, "cwlogdir")) {
+	  if (cfg->cwlogdir != NULL) {
+		  free(cfg->cwlogdir);
+		  cfg->cwlogdir = NULL;
+	  }
+	  if (value[0])
+		  asprintf(&(cfg->cwlogdir), "%s", value);
+	  return;
+  }
+
   if (!strcmp(token, "usrfileflag")) { cfg->usrfileflag=atoi(value); return; }
-  if (!strcmp(token, "cwlogdir")) { asprintf(&(cfg->cwlogdir), "%s", value); return; }
+
   if (!strcmp(token, "clienttimeout")) 
   {
       cfg->ctimeout = atoi(value);
@@ -959,11 +993,11 @@ int write_config()
 	/*global settings*/
 	fprintf(f,"[global]\n");
 	fprintf_conf(f, CONFVARWIDTH, "serverip", "%s\n", inet_ntoa(*(struct in_addr *)&cfg->srvip));
-	fprintf_conf(f, CONFVARWIDTH, "pidfile", "%s\n", cfg->pidfile);
-	fprintf_conf(f, CONFVARWIDTH, "usrfile", "%s\n", cfg->usrfile);
-	fprintf_conf(f, CONFVARWIDTH, "logfile", "%s\n", cfg->logfile);
+	if (cfg->pidfile != NULL) fprintf_conf(f, CONFVARWIDTH, "pidfile", "%s\n", cfg->pidfile);
+	if (cfg->usrfile != NULL) fprintf_conf(f, CONFVARWIDTH, "usrfile", "%s\n", cfg->usrfile);
+	if (cfg->logfile != NULL) fprintf_conf(f, CONFVARWIDTH, "logfile", "%s\n", cfg->logfile);
+	if (cfg->cwlogdir != NULL) fprintf_conf(f, CONFVARWIDTH, "cwlogdir", "%s\n", cfg->cwlogdir);
 	fprintf_conf(f, CONFVARWIDTH, "usrfileflag", "%d\n", cfg->usrfileflag);
-	fprintf_conf(f, CONFVARWIDTH, "cwlogdir", "%s\n", cfg->cwlogdir);
 	fprintf_conf(f, CONFVARWIDTH, "clienttimeout", "%ld\n", cfg->ctimeout/1000);
 	fprintf_conf(f, CONFVARWIDTH, "fallbacktimeout", "%ld\n", cfg->ftimeout/1000);
 	fprintf_conf(f, CONFVARWIDTH, "clientmaxidle", "%d\n", cfg->cmaxidle);

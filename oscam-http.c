@@ -73,11 +73,11 @@ void send_oscam_config_global(struct templatevars *vars, FILE *f, struct uripara
 		else tpl_addVar(vars, 1, "MESSAGE", "<B>Write Config failed</B><BR><BR>");
 	}
 	tpl_addVar(vars, 0, "SERVERIP", inet_ntoa(*(struct in_addr *)&cfg->srvip));
-	tpl_addVar(vars, 0, "PIDFILE", cfg->pidfile);
-	tpl_addVar(vars, 0, "USERFILE", cfg->usrfile);
-	tpl_addVar(vars, 0, "LOGFILE", cfg->logfile);
+	if (cfg->pidfile != NULL) tpl_addVar(vars, 0, "PIDFILE", cfg->pidfile);
+	if (cfg->usrfile != NULL) tpl_addVar(vars, 0, "USERFILE", cfg->usrfile);
+	if (cfg->logfile != NULL) tpl_addVar(vars, 0, "LOGFILE", cfg->logfile);
+	if (cfg->cwlogdir != NULL) tpl_addVar(vars, 0, "CWLOGDIR", cfg->cwlogdir);
 	tpl_printf(vars, 0, "USERFILEFLAG", "%d", cfg->usrfileflag);
-	tpl_addVar(vars, 0, "CWLOGDIR", cfg->cwlogdir);
 	tpl_printf(vars, 0, "CLIENTTIMEOUT", "%ld", cfg->ctimeout/1000);
 	tpl_printf(vars, 0, "FALLBACKTIMEOUT", "%ld", cfg->ftimeout/1000);
 	tpl_printf(vars, 0, "CLIENTMAXIDLE", "%d", cfg->cmaxidle);
