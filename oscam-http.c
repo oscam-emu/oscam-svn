@@ -1062,12 +1062,21 @@ void send_oscam_status(struct templatevars *vars, FILE *f, struct uriparams *par
 	time_t now = time((time_t)0);
 	struct tm *lt;
 
+	char *hideidx = getParam(params, "hide");
+		if(strlen(hideidx) > 0)
+			client[atoi(hideidx)].wihidden = 1;
+
 	char *hideidle = getParam(params, "hideidle");
 	if(strlen(hideidle) > 0){
-		int oldval = cfg->http_hide_idle_clients;
-		chk_t_monitor("httphideidleclients", hideidle);
-		if(oldval != cfg->http_hide_idle_clients){
-			refresh_oscam(REFR_SERVER, in);
+		if (atoi(hideidle) == 2){
+			for (i=0; i<CS_MAXPID; i++)
+				client[i].wihidden = 0;
+		}else{
+			int oldval = cfg->http_hide_idle_clients;
+			chk_t_monitor("httphideidleclients", hideidle);
+			if(oldval != cfg->http_hide_idle_clients){
+				refresh_oscam(REFR_SERVER, in);
+			}
 		}
 	}
 
@@ -1075,7 +1084,7 @@ void send_oscam_status(struct templatevars *vars, FILE *f, struct uriparams *par
 	else tpl_addVar(vars, 0, "HIDEIDLECLIENTSSELECTED0", "selected");
 
 	for (i=0; i<CS_MAXPID; i++)	{
-		if (client[i].pid) {
+		if (client[i].pid && client[i].wihidden != 1) {
 
 			if((cfg->http_hide_idle_clients == 1) && (client[i].typ == 'c') && ((now - client[i].lastecm) > cfg->mon_hideclient_to)) continue;
 
@@ -1096,6 +1105,8 @@ void send_oscam_status(struct templatevars *vars, FILE *f, struct uriparams *par
 
 				lt=localtime(&client[i].login);
 
+				tpl_printf(vars, 0, "HIDEIDX", "%d", i);
+				tpl_addVar(vars, 0, "HIDEICON", ICHID);
 				tpl_printf(vars, 0, "CLIENTPID", "%d", client[i].pid);
 				tpl_printf(vars, 0, "CLIENTTYPE", "%c", client[i].typ);
 				tpl_printf(vars, 0, "CLIENTCNR", "%d", cnr);

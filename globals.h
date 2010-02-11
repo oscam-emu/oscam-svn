@@ -404,6 +404,7 @@ struct s_client
   int		cwlastresptime; //last Responsetime (ms)
   int		emmok;		// count EMM ok
   int		emmnok;		// count EMM nok
+  int		wihidden;	// hidden in webinterface status
   uchar     ucrc[4];    // needed by monitor and used by camd35
   ulong     pcrc;        // pwd crc
   AES_KEY   aeskey;      // needed by monitor and used by camd33, camd35

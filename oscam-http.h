@@ -174,6 +174,21 @@ KHgaA8NLoFJrAQYGV6AX34PFBQT+/5eV/f9fTOw/SA8wqVUBBBDIIvk6YGr8BtUIkuhlYHgIjAN7\
 mEuAyct9BgPD819QNcAE/7+AgeEsUEoKIICgwcwgDcw4iVLAIAKms0fAlAmMFIa76DkamG+igFld\
 +j5Q7hoDwwKg2AuAAAMAa/8Fcw6Og8MAAAAASUVORK5CYII="
 
+#define ICHID "data:image/png;base64,\
+iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABGdBTUEAAK/INwWK6QAAABl0RVh0\
+U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAJdSURBVDjLpZP7S1NhGMf9W7YfogSJboSE\
+UVCY8zJ31trcps6zTI9bLGJpjp1hmkGNxVz4Q6ildtXKXzJNbJRaRmrXoeWx8tJOTWptnrNryre5\
+YCYuI3rh+8vL+/m8PA/PkwIg5X+y5mJWrxfOUBXm91QZM6UluUmthntHqplxUml2lciF6wrmdHri\
+I0Wx3xw2hAediLwZRWRkCPzdDswaSvGqkGCfq8VEUsEyPF1O8Qu3O7A09RbRvjuIttsRbT6HHzeb\
+sDjcB4/JgFFlNv9MnkmsEszodIIY7Oaut2OJcSF68Qx8dgv8tmqEL1gQaaARtp5A+N4NzB0lMXxo\
+n/uxbI8gIYjB9HytGYuusfiPIQcN71kjgnW6VeFOkgh3XcHLvAwMSDPohOADdYQJdF1FtLMZPmsl\
+vhZJk2ahkgRvq4HHUoWHRDqTEDDl2mDkfheiDgt8pw340/EocuClCuFvboQzb0cwIZgki4KhzlaE\
+6w0InipbVzBfqoK/qRH94i0rgokSFeO11iBkp8EdV8cfJo0yD75aE2ZNRvSJ0lZKcBXLaUYmQrCz\
+DT6tDN5SyRqYlWeDLZAg0H4JQ+Jt6M3atNLE10VSwQsN4Z6r0CBwqzXesHmV+BeoyAUri8EyMfi2\
+FowXS5dhd7doo2DVII0V5BAjigP89GEVAtda8b2ehodU4rNaAW+dGfzlFkyo89GTlcrHYCLpKD+V\
+7yeeHNzLjkp24Uu1Ed6G8/F8qjqGRzlbl2H2dzjpMg1KdwsHxOlmJ7GTeZC/nesXbeZ6c9OYnuxU\
+c3fmBuFft/Ff8xMd0s65SXIb/gAAAABJRU5ErkJggg=="
+
 #define TPLHEADER "\
 <HTML>\n\
   <HEAD>\n\
@@ -245,11 +260,13 @@ mEuAyct9BgPD819QNcAE/7+AgeEsUEoKIICgwcwgDcw4iVLAIAKms0fAlAmMFIa76DkamG+igFld\
 	<select name=\"hideidle\">\n\
       <option value=\"0\" ##HIDEIDLECLIENTSSELECTED0##>Show idle clients</option>\n\
       <option value=\"1\" ##HIDEIDLECLIENTSSELECTED1##>Hide idle clients</option>\n\
+      <option value=\"2\">Show hidden clients</option>\n\
   	</select>\n\
   	<input type=\"submit\" value=\"Update\">\n\
   </form>\n\
   <TABLE WIDTH=\"100%\" cellspacing=\"0\" class=\"status\">\n\
     <TR>\n\
+	  <TH>hide</TH>\n\
       <TH>PID</TH>\n\
       <TH>Typ</TH>\n\
       <TH>ID</TH>\n\
@@ -276,22 +293,23 @@ mEuAyct9BgPD819QNcAE/7+AgeEsUEoKIICgwcwgDcw4iVLAIAKms0fAlAmMFIa76DkamG+igFld\
 
 #define TPLCLIENTSTATUSBIT "\
  <TR class=\"##CLIENTTYPE##\">\n\
-  <TD>##CLIENTPID##</TD>\n\
-  <TD>##CLIENTTYPE##</TD>\n\
-  <TD>##CLIENTCNR##</TD>\n\
+  <TD align=\"center\" WIDTH=\"10\"><A HREF =\"status.html?hide=##HIDEIDX##\" TITLE=\"Hide this client\"><IMG SRC=\"##HIDEICON##\" ALT=\"Hide\"></A></TD>\n\
+  <TD align=\"center\">##CLIENTPID##</TD>\n\
+  <TD align=\"center\">##CLIENTTYPE##</TD>\n\
+  <TD align=\"center\">##CLIENTCNR##</TD>\n\
   <TD>##CLIENTUSER##</TD>\n\
-  <TD>##CLIENTCAU##</TD>\n\
-  <TD>##CLIENTCRYPTED##</TD>\n\
-  <TD>##CLIENTIP##</TD>\n\
-  <TD>##CLIENTPORT##</TD>\n\
+  <TD align=\"center\">##CLIENTCAU##</TD>\n\
+  <TD align=\"center\">##CLIENTCRYPTED##</TD>\n\
+  <TD align=\"center\">##CLIENTIP##</TD>\n\
+  <TD align=\"center\">##CLIENTPORT##</TD>\n\
   <TD>##CLIENTPROTO##</TD>\n\
-  <TD>##CLIENTLOGINDATE##</TD>\n\
-  <TD>##CLIENTLOGINTIME##</TD>\n\
-  <TD>##CLIENTLOGINSECS##</TD>\n\
-  <TD>##CLIENTCAID##:##CLIENTSRVID##</TD>\n\
+  <TD align=\"center\">##CLIENTLOGINDATE##</TD>\n\
+  <TD align=\"center\">##CLIENTLOGINTIME##</TD>\n\
+  <TD align=\"center\">##CLIENTLOGINSECS##</TD>\n\
+  <TD align=\"center\">##CLIENTCAID##:##CLIENTSRVID##</TD>\n\
   <TD>##CLIENTSRVPROVIDER####CLIENTSRVNAME##</TD>\n\
-  <TD>##CLIENTIDLESECS##</TD>\n\
-  <TD>##CLIENTCON##</TD>\n\
+  <TD align=\"center\">##CLIENTIDLESECS##</TD>\n\
+  <TD align=\"center\">##CLIENTCON##</TD>\n\
  </TR>\n"
 
 #define TPLUSERCONFIGLIST "\
