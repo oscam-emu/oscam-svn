@@ -317,40 +317,40 @@ void chk_t_global(char *token, char *value)
 {
   if (!strcmp(token, "serverip")) { cfg->srvip=inet_addr(value); return; }
   if (!strcmp(token, "logfile")) {
-	  if (cfg->logfile != NULL) {
-		  free(cfg->logfile);
-		  cfg->logfile = NULL;
-	  }
-	  if (value[0])
-		  asprintf(&(cfg->logfile), "%s", value);
-	  return;
+          if (cfg->logfile != NULL) {
+                  free(cfg->logfile);
+                  cfg->logfile = NULL;
+          }
+          if (value[0])
+                  asprintf(&(cfg->logfile), "%s", value);
+          return;
   }
   if (!strcmp(token, "pidfile")) {
-	  if (cfg->pidfile != NULL) {
-		  free(cfg->pidfile);
-		  cfg->pidfile = NULL;
-	  }
-	  if (value[0])
-		  asprintf(&(cfg->pidfile), "%s", value);
-	  return;
+          if (cfg->pidfile != NULL) {
+                  free(cfg->pidfile);
+                  cfg->pidfile = NULL;
+          }
+          if (value[0])
+                  asprintf(&(cfg->pidfile), "%s", value);
+          return;
   }
   if (!strcmp(token, "usrfile")) {
-	  if (cfg->usrfile != NULL) {
-		  free(cfg->usrfile);
-		  cfg->usrfile = NULL;
-	  }
-	  if (value[0])
-		  asprintf(&(cfg->usrfile), "%s", value);
-	  return;
+          if (cfg->usrfile != NULL) {
+                  free(cfg->usrfile);
+                  cfg->usrfile = NULL;
+          }
+          if (value[0])
+                  asprintf(&(cfg->usrfile), "%s", value);
+          return;
   }
   if (!strcmp(token, "cwlogdir")) {
-	  if (cfg->cwlogdir != NULL) {
-		  free(cfg->cwlogdir);
-		  cfg->cwlogdir = NULL;
-	  }
-	  if (value[0])
-		  asprintf(&(cfg->cwlogdir), "%s", value);
-	  return;
+          if (cfg->cwlogdir != NULL) {
+                  free(cfg->cwlogdir);
+                  cfg->cwlogdir = NULL;
+          }
+          if (value[0])
+                  asprintf(&(cfg->cwlogdir), "%s", value);
+          return;
   }
 
   if (!strcmp(token, "usrfileflag")) { cfg->usrfileflag=atoi(value); return; }
@@ -518,6 +518,7 @@ void chk_t_camd35(char *token, char *value)
 {
   if (!strcmp(token, "port")) { cfg->c35_port=atoi(value); return; }
   if (!strcmp(token, "serverip")) { cfg->c35_tcp_srvip=inet_addr(value); return; }
+  if (!strcmp(token, "suppresscmd08")) { cfg->c35_suppresscmd08=atoi(value); return; }
   if (token[0] != '#')
     fprintf(stderr, "Warning: keyword '%s' in camd35 section not recognized\n",token);
 }
@@ -526,6 +527,7 @@ void chk_t_camd35_tcp(char *token, char *value)
 {
   if (!strcmp(token, "port")) { chk_port_tab(value, &cfg->c35_tcp_ptab); return; }
   if (!strcmp(token, "serverip")) { cfg->c35_tcp_srvip=inet_addr(value); return; }
+  if (!strcmp(token, "suppresscmd08")) { cfg->c35_suppresscmd08=atoi(value); return; }
   if (token[0] != '#')
     fprintf(stderr, "Warning: keyword '%s' in camd35 tcp section not recognized\n",token);
 }
@@ -837,6 +839,7 @@ void chk_account(char *token, char *value, struct s_auth *account)
   if (!strcmp(token, "monlevel")) { account->monlvl=atoi(value); return; }
   if (!strcmp(token, "caid")) { chk_caidtab(value, &account->ctab); return; }
   if (!strcmp(token, "disabled")) { account->disabled=atoi(value); return; }
+  if (!strcmp(token, "suppresscmd08")) { account->c35_suppresscmd08=atoi(value); return; }
   /*
    *  case insensitive
    */
@@ -1326,6 +1329,7 @@ int init_userdb()
       account->au=(-1);
       account->monlvl=cfg->mon_level;
       account->tosleep=cfg->tosleep;
+      account->c35_suppresscmd08=cfg->c35_suppresscmd08;
       for (i=1; i<CS_MAXCAIDTAB; account->ctab.mask[i++]=0xffff);
       for (i=1; i<CS_MAXTUNTAB; account->ttab.bt_srvid[i++]=0x0000);
       nr++;
@@ -1598,7 +1602,7 @@ static void chk_reader(char *token, char *value, struct s_reader *rdr)
     return;
   }
   if( !strcmp(token, "pincode")) { strncpy(rdr->pincode, value, sizeof(rdr->pincode)-1); return; }
-  if (!strcmp(token, "readnano")) { asprintf(&(rdr->emmfile), "%s", value); return; }
+  if (!strcmp(token, "readnano") && value[0]) { asprintf(&(rdr->emmfile), "%s", value); return; }
   /*
    *  case insensitive
    */

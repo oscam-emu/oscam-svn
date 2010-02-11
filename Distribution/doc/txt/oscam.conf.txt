@@ -210,6 +210,9 @@ DESCRIPTIONS
        serverip = IP address
 	  bind service to specified IP address, default:all
 
+       suppresscmd08 = 0|1
+	  0 = CMD08 enabled, 1 = CMD08 disabled, default:0
+
    The [cs378x] section
        port = 0|port@CAID[:ident][,ident]...[;port@CAID[:ident][,ident]...]...
 	  TCP port/CAID/ident definitions for camd 3.78x clients,0 = disabled,
@@ -221,6 +224,9 @@ DESCRIPTIONS
 
        serverip = IP address
 	  bind service to specified IP address, default:all
+
+       suppresscmd08 = 0|1
+	  0 = CMD08 enabled, 1 = CMD08 disabled, default:0
 
    The [gbox] section
        password = password
@@ -356,9 +362,9 @@ EXAMPLES
 	port	     = 50000@0300:600000
 
 SEE ALSO
-       oscam(1),      oscam.user(5),	  oscam.server(5),     oscam.srvid(5),
-       oscam.guess(5),	 oscam.cert(5),    oscam.services(5),	 oscam.ird(5),
-       oscam.ac(5)
+       list_smargo(1),	    oscam(1),	   oscam.user(5),     oscam.server(5),
+       oscam.srvid(5),	 oscam.guess(5),   oscam.cert(5),   oscam.services(5),
+       oscam.ird(5), oscam.ac(5)
 
 
 

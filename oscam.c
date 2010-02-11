@@ -340,6 +340,7 @@ void cs_reinit_clients()
         client[i].au      = account->au;
         client[i].autoau  = account->autoau;
         client[i].expirationdate = account->expirationdate;
+        client[i].c35_suppresscmd08 = account->c35_suppresscmd08;
         client[i].disabled = account->disabled;
         client[i].tosleep = (60*account->tosleep);
         client[i].monlvl  = account->monlvl;
@@ -1131,7 +1132,8 @@ int cs_auth_client(struct s_auth *account, char *e_txt)
         {
           client[cs_idx].expirationdate=account->expirationdate;
           client[cs_idx].disabled=account->disabled;
-          client[cs_idx].grp=account->grp;
+          client[cs_idx].c35_suppresscmd08 = account->c35_suppresscmd08;
+	  client[cs_idx].grp=account->grp;
           client[cs_idx].au=account->au;
           client[cs_idx].autoau=account->autoau;
           client[cs_idx].tosleep=(60*account->tosleep);
@@ -1650,7 +1652,10 @@ int send_dcw(ECM_REQUEST *er)
 		break;
 	
     	default: 
-		client[cs_idx].cwnot++;
+		if (er->rcEx)
+			client[cs_idx].cwignored++;
+		else
+			client[cs_idx].cwnot++;
   }
 
 #ifdef CS_ANTICASC
@@ -2403,7 +2408,7 @@ int main (int argc, char *argv[])
   if (cfg->waitforcards)
   {
       int card_init_done;
-      cs_log("Waiting for local card init ....");
+      cs_log("waiting for local card init");
       sleep(3);  // short sleep for card detect to work proberly
       do {
           card_init_done = 1;
@@ -2413,12 +2418,10 @@ int main (int argc, char *argv[])
               break;
             }
           }
-          if (card_init_done)
-              break;
           cs_sleepms(300);              // wait a little bit
           alarm(cfg->cmaxidle + cfg->ctimeout / 1000 + 1); 
-      } while (1);
-      cs_log("Init for all local cards done !");
+      } while (!card_init_done);
+      cs_log("init for all local cards done");
 
   }
 

@@ -120,6 +120,11 @@ expiration date for account, default:none
 .RS 3n
 anti-cascading: user per account, 0 = anti-cascading not permitted, default:0
 .RE
+.PP
+\fBsuppresscmd08\fP = \fB0\fP|\fB1\fP
+.RS 3n
+0 = CMD08 for camd3 3.57x/3.78x clients enabled, 1 = CMD08 for camd3 3.57x/3.78x clients disabled, default:0
+.RE
 .SH EXAMPLES
  [account]
  user       = username
@@ -132,4 +137,4 @@ anti-cascading: user per account, 0 = anti-cascading not permitted, default:0
  ident      = 0100:000000
  uniq       = 1
 .SH "SEE ALSO"
-\fBoscam\fR(1), \fBoscam.conf\fR(5), \fBoscam.server\fR(5), \fBoscam.srvid\fR(5), \fBoscam.guess\fR(5), \fBoscam.cert\fR(5), \fBoscam.services\fR(5), \fBoscam.ird\fR(5), \fBoscam.ac\fR(5)
+\fBlist_smargo\fR(1), \fBoscam\fR(1), \fBoscam.conf\fR(5), \fBoscam.server\fR(5), \fBoscam.srvid\fR(5), \fBoscam.guess\fR(5), \fBoscam.cert\fR(5), \fBoscam.services\fR(5), \fBoscam.ird\fR(5), \fBoscam.ac\fR(5)
