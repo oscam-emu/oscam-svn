@@ -146,6 +146,7 @@ void send_oscam_config_camd35(struct templatevars *vars, FILE *f, struct uripara
 	}
 	tpl_printf(vars, 0, "PORT", "%d", cfg->c35_port);
 	tpl_addVar(vars, 1, "SERVERIP", inet_ntoa(*(struct in_addr *)&cfg->c35_tcp_srvip));
+	tpl_printf(vars, 0, "SUPPRESSCMD08", "%d", cfg->c35_suppresscmd08);
 
 	fputs(tpl_getTpl(vars, "CONFIGCAMD35"), f);
 }
@@ -865,6 +866,9 @@ void send_oscam_user_config_edit(struct templatevars *vars, FILE *f, struct urip
 	value = mk_t_tuntab(&account->ttab);
 	tpl_addVar(vars, 0, "BETATUNNELS", value);
 	free(value);
+
+	//SUPPRESSCMD08
+	tpl_printf(vars, 0, "SUPPRESSCMD08", "%d", account->c35_suppresscmd08);
 
 #ifdef CS_ANTICASC
 	tpl_printf(vars, 0, "AC_USERS", "%d", account->ac_users);

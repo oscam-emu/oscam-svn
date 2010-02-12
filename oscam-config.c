@@ -1100,6 +1100,7 @@ int write_config()
 		fprintf(f,"[cs357x]\n");
 		fprintf_conf(f, CONFVARWIDTH, "port", "%d\n", cfg->c35_port);
 		fprintf_conf(f, CONFVARWIDTH, "serverip", "%s\n", inet_ntoa(*(struct in_addr *)&cfg->c35_tcp_srvip));
+		fprintf_conf(f, CONFVARWIDTH, "suppresscmd08", "%s\n", cfg->c35_suppresscmd08);
 		fprintf(f,"\n");
 	}
 
@@ -1271,6 +1272,8 @@ int write_userdb()
 		value = mk_t_ftab(&account->ftab);
 		fprintf_conf(f, CONFVARWIDTH, "ident", "%s\n", value);
 		free(value);
+
+		fprintf_conf(f, CONFVARWIDTH, "suppresscmd08", "%s\n", account->c35_suppresscmd08);
 
 #ifdef CS_ANTICASC
 		fprintf_conf(f, CONFVARWIDTH, "numusers", "%d\n", account->ac_users);

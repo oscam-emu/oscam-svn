@@ -454,6 +454,10 @@ c3fmBuFft/Ff8xMd0s65SXIb/gAAAABJRU5ErkJggg=="
       <TD>Betatunnel:</TD>\n\
       <TD><input name=\"betatunnel\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"##BETATUNNELS##\"></TD>\n\
     </TR>\n\
+     <TR>\n\
+      <TD>Suppresscmd08:</TD>\n\
+      <TD><input name=\"suppresscmd08\" type=\"text\" size=\"3\" maxlength=\"1\" value=\"##SUPPRESSCMD08##\"></TD>\n\
+    </TR>\n\
     ##TPLUSEREDITANTICASC##\
     <TR>\n\
       <TD align=\"center\"><input type=\"submit\" name=\"action\" value=\"Save\" title=\"Save settings and reload users\"></TD>\n\
@@ -938,7 +942,8 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 		<TR><TH>&nbsp;</TH><TH>Edit Camd35 Config</TH></TR>\n\
 		<TR><TD>Port:</TD><TD><input name=\"port\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##PORT##\"></TD></TR>\n\
 		<TR><TD>Serverip:</TD><TD><input name=\"serverip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##SERVERIP##\"></TD></TR>\n\
-    <TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\">\n</TD></TR>\n\
+		<TR><TD>Suppresscmd08:</TD><TD><input name=\"suppresscmd08\" type=\"text\" size=\"3\" maxlength=\"1\" value=\"##SUPPRESSCMD08##\"></TD></TR>\n\
+		<TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\">\n</TD></TR>\n\
 	</TABLE>\n\
 </form>\n\
 ##TPLFOOTER##"
