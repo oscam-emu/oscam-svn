@@ -410,6 +410,7 @@ c3fmBuFft/Ff8xMd0s65SXIb/gAAAABJRU5ErkJggg=="
         <option value=\"1\" ##UNIQSELECTED1##>1 - strict first</option>\n\
         <option value=\"2\" ##UNIQSELECTED2##>2 - per IP</option>\n\
         <option value=\"3\" ##UNIQSELECTED3##>3 - strict last</option>\n\
+        <option value=\"4\" ##UNIQSELECTED4##>4 - per IP last</option>\n\
       </SELECT></TD>\n\
     </TR>\n\
     <TR>\n\
