@@ -276,9 +276,9 @@ c3fmBuFft/Ff8xMd0s65SXIb/gAAAABJRU5ErkJggg=="
       <TH>Address</TH>\n\
       <TH>Port</TH>\n\
       <TH>Protocol</TH>\n\
-      <TH>Login</TH>\n\
-      <TH>Login</TH>\n\
-      <TH>Time</TH>\n\
+      <TH>Login Date</TH>\n\
+      <TH>Login Time</TH>\n\
+      <TH>Online</TH>\n\
       <TH>caid:srvid</TH>\n\
       <TH>Last Channel</TH>\n\
       <TH>Idle</TH>\n\
