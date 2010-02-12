@@ -931,11 +931,12 @@ void send_oscam_user_config(struct templatevars *vars, FILE *f, struct uriparams
 	char *classname="offline";
 	char *lastchan="&nbsp;";
 	time_t now = time((time_t)0);
-	int isec=0;
+	int isec = 0, isonline = 0;
 
 	for (account=cfg->account; (account) ; account=account->next){
 		//clear for next client
 		expired = ""; classname = "offline"; status = "offline";
+		isonline = 0;
 		tpl_addVar(vars, 0, "CWOK", "");
 		tpl_addVar(vars, 0, "CWNOK", "");
 		tpl_addVar(vars, 0, "CWIGN", "");
@@ -947,6 +948,7 @@ void send_oscam_user_config(struct templatevars *vars, FILE *f, struct uriparams
 		tpl_addVar(vars, 0, "CWLASTRESPONSET","");
 		tpl_addVar(vars, 0, "EMMOK","");
 		tpl_addVar(vars, 0, "EMMNOK","");
+		tpl_addVar(vars, 0, "CLIENTPROTO","");
 
 		if(account->expirationdate && account->expirationdate<time(NULL)){
 			expired = " (expired)";
@@ -966,16 +968,18 @@ void send_oscam_user_config(struct templatevars *vars, FILE *f, struct uriparams
 
 		//search account in active clients
 		int cwok = 0, cwnok = 0, cwign = 0, cwtout = 0, cwcache = 0, cwtun = 0, emmok = 0, emmnok = 0;
-		int secs = 0, fullmins =0, mins =0, hours =0;
+		int secs = 0, fullmins =0, mins =0, hours =0, lastresponsetm = 0;
+		char *proto = "";
 
 		for (i=0; i<CS_MAXPID; i++)
 			if (!strcmp(client[i].usr, account->usr)){
 				//set client to offline depending on hideclient_to
 				if ((now - client[i].lastecm) < hideclient){
-					status = "<b>online</b>";classname="online";
+					status = "<b>online</b>"; classname="online";
+					isonline = 1;
+					proto = monitor_get_proto(i);
 					lastchan = monitor_get_srvname(client[i].last_srvid, client[i].last_caid);
 					isec = now - client[i].last;
-
 					if(isec > 0){
 						secs = isec % 60;
 						if (isec > 60){
@@ -984,9 +988,6 @@ void send_oscam_user_config(struct templatevars *vars, FILE *f, struct uriparams
 							if(fullmins > 60)	hours = fullmins / 60;
 						}
 					}
-					tpl_printf(vars, 0, "CWLASTRESPONSET", "%d", client[i].cwlastresptime);
-					tpl_addVar(vars, 0, "CLIENTPROTO", monitor_get_proto(i));
-					tpl_printf(vars, 0, "IDLESECS", "%02d:%02d:%02d", hours, mins, secs);
 				}
 
 				cwok += client[i].cwfound;
@@ -997,22 +998,30 @@ void send_oscam_user_config(struct templatevars *vars, FILE *f, struct uriparams
 				cwtun += client[i].cwtun;
 				emmok += client[i].emmok;
 				emmnok += client[i].emmnok;
-
-				tpl_printf(vars, 0, "CWOK", "%d", cwok);
-				tpl_printf(vars, 0, "CWNOK", "%d", cwnok);
-				tpl_printf(vars, 0, "CWIGN", "%d", cwign);
-				tpl_printf(vars, 0, "CWTOUT", "%d", cwtout);
-				tpl_printf(vars, 0, "CWCACHE", "%d", cwcache);
-				tpl_printf(vars, 0, "CWTUN", "%d", cwtun);
-				tpl_printf(vars, 0, "EMMOK", "%d", emmok);
-				tpl_printf(vars, 0, "EMMNOK", "%d", emmnok);
+				lastresponsetm = client[i].cwlastresptime;
 		}
+
+		if ( isonline > 0 ) {
+			tpl_printf(vars, 0, "CWOK", "%d", cwok);
+			tpl_printf(vars, 0, "CWNOK", "%d", cwnok);
+			tpl_printf(vars, 0, "CWIGN", "%d", cwign);
+			tpl_printf(vars, 0, "CWTOUT", "%d", cwtout);
+			tpl_printf(vars, 0, "CWCACHE", "%d", cwcache);
+			tpl_printf(vars, 0, "CWTUN", "%d", cwtun);
+			tpl_printf(vars, 0, "EMMOK", "%d", emmok);
+			tpl_printf(vars, 0, "EMMNOK", "%d", emmnok);
+			tpl_addVar(vars, 0, "LASTCHANNEL", lastchan);
+			tpl_printf(vars, 0, "CWLASTRESPONSET", "%d", lastresponsetm);
+			tpl_addVar(vars, 0, "CLIENTPROTO", proto);
+			tpl_printf(vars, 0, "IDLESECS", "%02d:%02d:%02d", hours, mins, secs);
+
+		}
+
 		tpl_addVar(vars, 0, "CLASSNAME", classname);
 		tpl_addVar(vars, 0, "USER", account->usr);
 		tpl_addVar(vars, 0, "USERENC", tpl_addTmp(vars, urlencode(account->usr)));
 		tpl_addVar(vars, 0, "STATUS", status);
 		tpl_addVar(vars, 0, "EXPIRED", expired);
-		tpl_addVar(vars, 0, "LASTCHANNEL", lastchan);
 		tpl_addVar(vars, 0, "DELICO", ICDEL);
 		tpl_addVar(vars, 0, "EDIICO", ICEDI);
 
