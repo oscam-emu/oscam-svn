@@ -129,16 +129,24 @@ static void usage()
   fprintf(stderr, "\tsee http://streamboard.gmc.to:8001/wiki/ for more details\n");
   fprintf(stderr, "\tbased on OSCam 0.99.x, (w) 2010 oscam.ump2002.net SVN\n");
   fprintf(stderr, "\tbased on streamboard mp-cardserver v0.9d - (w) 2004-2007 by dukat\n\n");
-  fprintf(stderr, "oscam [-b] [-c config-dir]");
+  fprintf(stderr, "oscam [-b] [-c config-dir] [-d]");
 #ifdef CS_NOSHM
   fprintf(stderr, " [-m memory-file]");
 #endif
-  fprintf(stderr, "\n\n\t-b       : start in background\n");
-  fprintf(stderr, "\t-c <dir> : read configuration from <dir>\n");
-  fprintf(stderr, "\t           default=%s\n", CS_CONFDIR);
+  fprintf(stderr, "\n\n\t-b         : start in background\n");
+  fprintf(stderr, "\t-c <dir>   : read configuration from <dir>\n");
+  fprintf(stderr, "\t             default = %s\n", CS_CONFDIR);
+  fprintf(stderr, "\t-d <level> : debug level mask\n");
+  fprintf(stderr, "\t             0 = no debugging (default)\n");
+  fprintf(stderr, "\t             2 = ATR parsing info, ECM dumps, CW dumps\n");
+  fprintf(stderr, "\t             4 = traffic from/to the reader\n");
+  fprintf(stderr, "\t             8 = traffic from/to the clients\n");
+  fprintf(stderr, "\t             16 = traffic to the reader-device on IFD layer\n");
+  fprintf(stderr, "\t             32 = traffic to the reader-device on I/O layer\n");
+  fprintf(stderr, "\t             63 = debug all\n");
 #ifdef CS_NOSHM
-  fprintf(stderr, "\t-m <file>: use <file> as mmaped memory file\n");
-  fprintf(stderr, "\t           default=%s\n", CS_MMAPFILE);
+  fprintf(stderr, "\t-m <file>  : use <file> as mmaped memory file\n");
+  fprintf(stderr, "\t             default = %s\n", CS_MMAPFILE);
 #endif
   fprintf(stderr, "\n");
   exit(1);
@@ -1068,32 +1076,34 @@ static void cs_fake_client(char *usr, int uniq, in_addr_t ip)
      *
      * Uniq = 3: only one connection per user, but only the last
      *           login will survive (old mpcs behavior)
+     *
+     * Uniq = 4: set user only to fake if source ip is
+     *           different, but only the last login will survive
      */
 
-    int i;
+	int i;
+	for (i=cdiff+1; i<CS_MAXPID; i++)
+	{
+		if (client[i].pid && (client[i].typ == 'c') && !client[i].dup && !strcmp(client[i].usr, usr)
+		   && (uniq < 5) && ((uniq % 2) || (client[i].ip != ip)))
+		{
+			if (uniq  == 3 || uniq == 4)
+			{
+				client[i].dup = 1;
+				client[i].au = -1;
+				cs_log("client(%d) duplicate user '%s' from %s set to fake (uniq=%d)", i-cdiff, usr, cs_inet_ntoa(ip), uniq);
+			}
+			else
+			{
+				client[cs_idx].dup = 1;
+				client[cs_idx].au = -1;
+				cs_log("client(%d) duplicate user '%s' from %s set to fake (uniq=%d)", cs_idx-cdiff, usr, cs_inet_ntoa(ip), uniq);
+				break;
+			}
 
-    for (i=cdiff+1; i<CS_MAXPID; i++) {
-        if (client[i].pid
-         && (client[i].typ == 'c')
-         && !client[i].dup
-         && !strcmp(client[i].usr, usr)
-         && ((uniq != 2) || (client[i].ip != ip)))
-          {
-	   if (uniq == 3)
-	    {
-	     client[i].dup = 1;
-	     client[i].au = -1;
-	     cs_log("client(%d) duplicate user '%s' from %s set to fake (uniq=%d)", i-cdiff, usr, cs_inet_ntoa(ip), uniq);
-	    }
-	   else
-	    {
-	     client[cs_idx].dup = 1;
-	     client[cs_idx].au = -1;
-	     cs_log("client(%d) duplicate user '%s' from %s set to fake (uniq=%d)", cs_idx-cdiff, usr, cs_inet_ntoa(ip), uniq);
-	     break;
-	    }
-          }
-    }
+		}
+	}
+
 }
 
 int cs_auth_client(struct s_auth *account, char *e_txt)
@@ -1613,7 +1623,7 @@ int send_dcw(ECM_REQUEST *er)
 	case 0:
 	case 3:
 		// 0 - found
-		// 3 - emu FIXME: (obsolete ?)
+		// 3 - emu FIXME: obsolete ?
 		client[cs_idx].cwfound++;
 		break;
 
@@ -1638,24 +1648,8 @@ int send_dcw(ECM_REQUEST *er)
 		client[cs_idx].cwtout++;
 		break;
 
-	case 6:
-	case 7:
-	case 8:
-	case 11:
-	case 12:
-		// 6 - sleeping
-		// 7 - fake
-		// 8 - invalid
-		// 11 - expired
-		// 12 - disabled
-		client[cs_idx].cwignored++;
-		break;
-	
     	default: 
-		if (er->rcEx)
-			client[cs_idx].cwignored++;
-		else
-			client[cs_idx].cwnot++;
+		client[cs_idx].cwignored++;
   }
 
 #ifdef CS_ANTICASC
