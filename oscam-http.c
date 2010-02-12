@@ -949,6 +949,7 @@ void send_oscam_user_config(struct templatevars *vars, FILE *f, struct uriparams
 		tpl_addVar(vars, 0, "EMMOK","");
 		tpl_addVar(vars, 0, "EMMNOK","");
 		tpl_addVar(vars, 0, "CLIENTPROTO","");
+		tpl_addVar(vars, 0, "LASTCHANNEL", "");
 
 		if(account->expirationdate && account->expirationdate<time(NULL)){
 			expired = " (expired)";
