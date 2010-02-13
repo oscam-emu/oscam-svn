@@ -459,21 +459,25 @@ void send_oscam_config(struct templatevars *vars, FILE *f, struct uriparams *par
 }
 
 void send_oscam_reader(struct templatevars *vars, FILE *f, struct uriparams *params, struct in_addr in) {
-	int ridx, isphysical = 0;
+	int readeridx, isphysical = 0;
 	char *ctyp;
 	//uchar dummy[1]={0x00};
 
 	if (strcmp(getParam(params, "action"), "reread") == 0){
-		ridx = atoi(getParam(params, "ridx"));
+		readeridx = atoi(getParam(params, "ridx"));
 		//write_to_pipe(client[ridx].fd_m2c, PIP_ID_CIN, dummy, 1); // do not work for whatever reason
 		refresh_oscam(REFR_READERS, in); // refresh all reader because  write pipe seams not work from here
 	}
 
-	for(ridx = 0; ridx < CS_MAXREADER; ridx++){
+	for(readeridx = 0; readeridx < CS_MAXREADER; readeridx++){
 		isphysical = 0;
 
-		if(!reader[ridx].device[0]) break;
-		switch(reader[ridx].typ){
+		if(!reader[readeridx].device[0]) break;
+
+		tpl_addVar(vars, 0, "READERNAME", reader[readeridx].label);
+		tpl_addVar(vars, 0, "READERNAMEENC", tpl_addTmp(vars, urlencode(reader[readeridx].label)));
+
+		switch(reader[readeridx].typ){
 				case R_MOUSE   :
 					ctyp = "mouse";
 					isphysical = 1;
@@ -506,11 +510,11 @@ void send_oscam_reader(struct templatevars *vars, FILE *f, struct uriparams *par
 			}
 
 		if (isphysical == 1) {
-			tpl_printf(vars, 0, "RIDX", "%d", reader[ridx].cs_idx); //add cs_idx needed for entitlement refresh
-			tpl_printf(vars, 0, "EMMERROR", "%d", reader[ridx].emmerror);
-			tpl_printf(vars, 0, "EMMWRITTEN", "%d", reader[ridx].emmwritten);
-			tpl_printf(vars, 0, "EMMSKIPPED", "%d", reader[ridx].emmskipped);
-			tpl_printf(vars, 0, "EMMBLOCKED", "%d", reader[ridx].emmblocked);
+			tpl_printf(vars, 0, "RIDX", "%d", reader[readeridx].cs_idx); //add cs_idx needed for entitlement refresh
+			tpl_printf(vars, 0, "EMMERROR", "%d", reader[readeridx].emmerror);
+			tpl_printf(vars, 0, "EMMWRITTEN", "%d", reader[readeridx].emmwritten);
+			tpl_printf(vars, 0, "EMMSKIPPED", "%d", reader[readeridx].emmskipped);
+			tpl_printf(vars, 0, "EMMBLOCKED", "%d", reader[readeridx].emmblocked);
 			tpl_addVar(vars, 0, "REFRICO", ICREF);
 			tpl_addVar(vars, 0, "READERREFRESH", tpl_getTpl(vars, "READERREFRESHBIT"));
 			tpl_addVar(vars, 0, "ENTICO", ICENT);
@@ -526,8 +530,6 @@ void send_oscam_reader(struct templatevars *vars, FILE *f, struct uriparams *par
 		}
 
 		tpl_addVar(vars, 0, "CTYP", ctyp);
-		tpl_addVar(vars, 0, "READERNAME", reader[ridx].label);
-		tpl_addVar(vars, 0, "READERNAMEENC", tpl_addTmp(vars, urlencode(reader[ridx].label)));
 		tpl_addVar(vars, 0, "EDIICO", ICEDI);
 		tpl_addVar(vars, 1, "READERLIST", tpl_getTpl(vars, "READERSBIT"));
 
