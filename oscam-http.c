@@ -987,6 +987,7 @@ void send_oscam_user_config(struct templatevars *vars, FILE *f, struct uriparams
 					isonline = 1;
 					proto = monitor_get_proto(i);
 					lastchan = monitor_get_srvname(client[i].last_srvid, client[i].last_caid);
+					lastresponsetm = client[i].cwlastresptime;
 					isec = now - client[i].last;
 					if(isec > 0){
 						secs = isec % 60;
@@ -1006,7 +1007,6 @@ void send_oscam_user_config(struct templatevars *vars, FILE *f, struct uriparams
 				cwtun += client[i].cwtun;
 				emmok += client[i].emmok;
 				emmnok += client[i].emmnok;
-				lastresponsetm = client[i].cwlastresptime;
 		}
 
 		if ( isonline > 0 ) {
