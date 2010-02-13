@@ -459,10 +459,18 @@ static int reader_do_emm(EMM_PACKET *ep)
 
   //counting results
   switch(rc){
-	  case 0:	reader[ridx].emmerror++;
-	  case 1:	reader[ridx].emmwritten++;
-	  case 2:	reader[ridx].emmskipped++;
-	  case 3:	reader[ridx].emmblocked++;
+	  case 0:
+		  reader[ridx].emmerror++;
+		  break;
+	  case 1:
+		  reader[ridx].emmwritten++;
+		  break;
+	  case 2:
+		  reader[ridx].emmskipped++;
+		  break;
+	  case 3:
+		  reader[ridx].emmblocked++;
+		  break;
   }
 
   return(rc);
