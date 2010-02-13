@@ -512,6 +512,10 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
     <TR>\n\
       <TH>Reader</TH>\n\
       <TH>Protocol</TH>\n\
+      <TH>EERR</TH>\n\
+      <TH>EWRI</TH>\n\
+      <TH>ESKI</TH>\n\
+      <TH>EBLO</TH>\n\
       <TH COLSPAN=\"3\">Action</TH>\n\
     </TR>\n\
     ##READERLIST##\
@@ -522,10 +526,16 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
     <TR>\n\
       <TD>##READERNAME##</TD>\n\
       <TD>##CTYP##</TD>\n\
-      <TD><A HREF=\"readerconfig.html?reader=##READERNAMEENC##\" TITLE=\"Edit this Reader\"><IMG SRC=\"##EDIICO##\" BORDER=\"0\" ALT=\"Edit Reader\"/></A></TD>\
-      <TD><A HREF=\"entitlements.html?reader=##READERNAME##\" TITLE=\"Show Entitlement\"><IMG SRC=\"##ENTICO##\" BORDER=\"0\" ALT=\"Show Entitlement\"/></A></TD>\n\
-      <TD>##REFRESH##</TD>\n\
+      <TD align=\"center\">##EMMERROR##</TD>\n\
+      <TD align=\"center\">##EMMWRITTEN##</TD>\n\
+      <TD align=\"center\">##EMMSKIPPED##</TD>\n\
+      <TD align=\"center\">##EMMBLOCKED##</TD>\n\
+      <TD align=\"center\"><A HREF=\"readerconfig.html?reader=##READERNAMEENC##\" TITLE=\"Edit this Reader\"><IMG SRC=\"##EDIICO##\" BORDER=\"0\" ALT=\"Edit Reader\"/></A></TD>\
+      <TD align=\"center\">##ENTITLEMENT##</TD>\n\
+	  <TD align=\"center\">##REFRESH##</TD>\n\
       </TR>\n"
+
+#define TPLREADERENTITLEBIT "<A HREF=\"entitlements.html?reader=##READERNAME##\" TITLE=\"Show Entitlement\"><IMG SRC=\"##ENTICO##\" BORDER=\"0\" ALT=\"Show Entitlement\"/></A>\n"
 
 #define TPLREADERREFRESHBIT "<A HREF=\"readers.html?action=reread&ridx=##RIDX##\" TITLE=\"Refresh Entitlement\"><IMG SRC=\"##REFRICO##\" BORDER=\"0\" ALT=\"Refresh Entitlement\"/></A>"
 
@@ -1107,6 +1117,7 @@ char *tpl[]={
 	"SIDTABBIT",
 	"READERS",
 	"READERSBIT",
+	"READERENTITLEBIT",
 	"READERREFRESHBIT",
 	"SCANUSB",
 	"SCANUSBBIT",
@@ -1178,6 +1189,7 @@ char *tplmap[]={
 	TPLSIDTABBIT,
 	TPLREADERS,
 	TPLREADERSBIT,
+	TPLREADERENTITLEBIT,
 	TPLREADERREFRESHBIT,
 	TPLSCANUSB,
 	TPLSCANUSBBIT,

@@ -147,7 +147,7 @@ void send_oscam_config_camd35(struct templatevars *vars, FILE *f, struct uripara
 	tpl_printf(vars, 0, "PORT", "%d", cfg->c35_port);
 	tpl_addVar(vars, 1, "SERVERIP", inet_ntoa(*(struct in_addr *)&cfg->c35_tcp_srvip));
 
-	if (cfg->c35_suppresscmd08 != NULL)
+	if (cfg->c35_suppresscmd08)
 		tpl_printf(vars, 0, "SUPPRESSCMD08", "%d", cfg->c35_suppresscmd08);
 
 	fputs(tpl_getTpl(vars, "CONFIGCAMD35"), f);
@@ -459,7 +459,7 @@ void send_oscam_config(struct templatevars *vars, FILE *f, struct uriparams *par
 }
 
 void send_oscam_reader(struct templatevars *vars, FILE *f, struct uriparams *params, struct in_addr in) {
-	int ridx;
+	int ridx, isphysical = 0;
 	char *ctyp;
 	//uchar dummy[1]={0x00};
 
@@ -470,36 +470,30 @@ void send_oscam_reader(struct templatevars *vars, FILE *f, struct uriparams *par
 	}
 
 	for(ridx = 0; ridx < CS_MAXREADER; ridx++){
-
-		tpl_addVar(vars, 0, "REFRESH","");
-		tpl_printf(vars, 0, "RIDX", "");
+		isphysical = 0;
 
 		if(!reader[ridx].device[0]) break;
 		switch(reader[ridx].typ){
-				case R_MOUSE   : ctyp="mouse";
-					tpl_printf(vars, 0, "RIDX", "%d", reader[ridx].cs_idx); //add cs_idx needed for entitlement refresh
-					tpl_addVar(vars, 0, "REFRICO", ICREF);
-					tpl_addVar(vars, 0, "REFRESH", tpl_getTpl(vars, "READERREFRESHBIT"));
+				case R_MOUSE   :
+					ctyp = "mouse";
+					isphysical = 1;
 					break;
-				case R_INTERNAL: ctyp="intern";
-					tpl_printf(vars, 0, "RIDX", "%d", reader[ridx].cs_idx); //add cs_idx needed for entitlement refresh
-					tpl_addVar(vars, 0, "REFRICO", ICREF);
-					tpl_addVar(vars, 0, "REFRESH", tpl_getTpl(vars, "READERREFRESHBIT"));
+				case R_INTERNAL:
+					ctyp = "intern";
+					isphysical = 1;
 					break;
-				case R_SMART   : ctyp="smartreader";
-					tpl_printf(vars, 0, "RIDX", "%d", reader[ridx].cs_idx); //add cs_idx needed for entitlement refresh
-					tpl_addVar(vars, 0, "REFRICO", ICREF);
-					tpl_addVar(vars, 0, "REFRESH", tpl_getTpl(vars, "READERREFRESHBIT"));
+				case R_SMART   :
+					ctyp = "smartreader";
+					isphysical = 1;
+					break;
+				case R_SERIAL  :
+					ctyp = "serial";
+					isphysical = 1;
 					break;
 				case R_CAMD35  : ctyp="camd 3.5x";break;
 				case R_CAMD33  : ctyp="camd 3.3x";break;
 				case R_NEWCAMD : ctyp="newcamd";  break;
 				case R_RADEGAST: ctyp="radegast"; break;
-				case R_SERIAL  : ctyp="serial";
-					tpl_printf(vars, 0, "RIDX", "%d", reader[ridx].cs_idx); //add cs_idx needed for entitlement refresh
-					tpl_addVar(vars, 0, "REFRICO", ICREF);
-					tpl_addVar(vars, 0, "REFRESH", tpl_getTpl(vars, "READERREFRESHBIT"));
-					break;
 #ifdef CS_WITH_GBOX
 				case R_GBOX    : ctyp="gbox";     break;
 #endif
@@ -510,12 +504,33 @@ void send_oscam_reader(struct templatevars *vars, FILE *f, struct uriparams *par
 				case R_CS378X  : ctyp="cs378x";   break;
 				default        : ctyp="unknown";  break;
 			}
+
+		if (isphysical == 1) {
+			tpl_printf(vars, 0, "RIDX", "%d", reader[ridx].cs_idx); //add cs_idx needed for entitlement refresh
+			tpl_printf(vars, 0, "EMMERROR", "%d", reader[ridx].emmerror);
+			tpl_printf(vars, 0, "EMMWRITTEN", "%d", reader[ridx].emmwritten);
+			tpl_printf(vars, 0, "EMMSKIPPED", "%d", reader[ridx].emmskipped);
+			tpl_printf(vars, 0, "EMMBLOCKED", "%d", reader[ridx].emmblocked);
+			tpl_addVar(vars, 0, "REFRICO", ICREF);
+			tpl_addVar(vars, 0, "REFRESH", tpl_getTpl(vars, "READERREFRESHBIT"));
+			tpl_addVar(vars, 0, "ENTICO", ICENT);
+			tpl_addVar(vars, 0, "ENTITLEMENT", tpl_getTpl(vars, "READERENTITLEBIT"));
+		} else {
+			tpl_addVar(vars, 0, "REFRESH","");
+			tpl_addVar(vars, 0, "ENTITLEMENT","");
+			tpl_printf(vars, 0, "RIDX", "");
+			tpl_addVar(vars, 0, "EMMERROR", "");
+			tpl_addVar(vars, 0, "EMMWRITTEN", "");
+			tpl_addVar(vars, 0, "EMMSKIPPED", "");
+			tpl_addVar(vars, 0, "EMMBLOCKED", "");
+		}
+
 		tpl_addVar(vars, 0, "CTYP", ctyp);
 		tpl_addVar(vars, 0, "READERNAME", reader[ridx].label);
 		tpl_addVar(vars, 0, "READERNAMEENC", tpl_addTmp(vars, urlencode(reader[ridx].label)));
 		tpl_addVar(vars, 0, "EDIICO", ICEDI);
-		tpl_addVar(vars, 0, "ENTICO", ICENT);
 		tpl_addVar(vars, 1, "READERLIST", tpl_getTpl(vars, "READERSBIT"));
+
 	}
 	fputs(tpl_getTpl(vars, "READERS"), f);
 }
@@ -870,7 +885,7 @@ void send_oscam_user_config_edit(struct templatevars *vars, FILE *f, struct urip
 	free(value);
 
 	//SUPPRESSCMD08
-	if (account->c35_suppresscmd08 != NULL)
+	if (account->c35_suppresscmd08)
 		tpl_printf(vars, 0, "SUPPRESSCMD08", "%d", account->c35_suppresscmd08);
 
 #ifdef CS_ANTICASC

@@ -456,6 +456,15 @@ static int reader_do_emm(EMM_PACKET *ep)
            username(ep->cidx), emmcache[i].type, ep->emm[2],
            i, no, rtxt[rc], 1000*(tpe.time-tps.time)+tpe.millitm-tps.millitm);
   }
+
+  //counting results
+  switch(rc){
+	  case 0:	reader[ridx].emmerror++;
+	  case 1:	reader[ridx].emmwritten++;
+	  case 2:	reader[ridx].emmskipped++;
+	  case 3:	reader[ridx].emmblocked++;
+  }
+
   return(rc);
 }
 
