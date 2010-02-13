@@ -512,11 +512,11 @@ void send_oscam_reader(struct templatevars *vars, FILE *f, struct uriparams *par
 			tpl_printf(vars, 0, "EMMSKIPPED", "%d", reader[ridx].emmskipped);
 			tpl_printf(vars, 0, "EMMBLOCKED", "%d", reader[ridx].emmblocked);
 			tpl_addVar(vars, 0, "REFRICO", ICREF);
-			tpl_addVar(vars, 0, "REFRESH", tpl_getTpl(vars, "READERREFRESHBIT"));
+			tpl_addVar(vars, 0, "READERREFRESH", tpl_getTpl(vars, "READERREFRESHBIT"));
 			tpl_addVar(vars, 0, "ENTICO", ICENT);
 			tpl_addVar(vars, 0, "ENTITLEMENT", tpl_getTpl(vars, "READERENTITLEBIT"));
 		} else {
-			tpl_addVar(vars, 0, "REFRESH","");
+			tpl_addVar(vars, 0, "READERREFRESH","");
 			tpl_addVar(vars, 0, "ENTITLEMENT","");
 			tpl_printf(vars, 0, "RIDX", "");
 			tpl_addVar(vars, 0, "EMMERROR", "");

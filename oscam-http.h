@@ -532,7 +532,7 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
       <TD align=\"center\">##EMMBLOCKED##</TD>\n\
       <TD align=\"center\"><A HREF=\"readerconfig.html?reader=##READERNAMEENC##\" TITLE=\"Edit this Reader\"><IMG SRC=\"##EDIICO##\" BORDER=\"0\" ALT=\"Edit Reader\"/></A></TD>\
       <TD align=\"center\">##ENTITLEMENT##</TD>\n\
-	  <TD align=\"center\">##REFRESH##</TD>\n\
+	  <TD align=\"center\">##READERREFRESH##</TD>\n\
       </TR>\n"
 
 #define TPLREADERENTITLEBIT "<A HREF=\"entitlements.html?reader=##READERNAME##\" TITLE=\"Show Entitlement\"><IMG SRC=\"##ENTICO##\" BORDER=\"0\" ALT=\"Show Entitlement\"/></A>\n"
