@@ -1845,8 +1845,9 @@ void request_cw(ECM_REQUEST *er, int flag, int reader_types)
           // network and local cards
           default:
           case 0:
-              if (er->reader[i]&flag)
+              if (er->reader[i]&flag){
                   write_ecm_request(reader[i].fd, er);
+              }
               break;
               // only local cards
           case 1:

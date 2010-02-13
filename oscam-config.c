@@ -1008,7 +1008,7 @@ int write_config()
 	fprintf_conf(f, CONFVARWIDTH, "bindwait", "%d\n", cfg->bindwait);
 	fprintf_conf(f, CONFVARWIDTH, "netprio", "%ld\n", cfg->netprio);
 	fprintf_conf(f, CONFVARWIDTH, "resolvedelay", "%d\n", cfg->resolvedelay);
-	fprintf_conf(f, CONFVARWIDTH, "sleep", "%d\n", cfg->tosleep);
+	if (cfg->tosleep) fprintf_conf(f, CONFVARWIDTH, "sleep", "%d\n", cfg->tosleep);
 	fprintf_conf(f, CONFVARWIDTH, "unlockparental", "%d\n", cfg->ulparent);
 	fprintf_conf(f, CONFVARWIDTH, "nice", "%d\n", cfg->nice);
 	fprintf_conf(f, CONFVARWIDTH, "serialreadertimeout", "%d\n", cfg->srtimeout);
@@ -1099,8 +1099,10 @@ int write_config()
 	if ( cfg->c35_port > 0) {
 		fprintf(f,"[cs357x]\n");
 		fprintf_conf(f, CONFVARWIDTH, "port", "%d\n", cfg->c35_port);
-		fprintf_conf(f, CONFVARWIDTH, "serverip", "%s\n", inet_ntoa(*(struct in_addr *)&cfg->c35_tcp_srvip));
-		fprintf_conf(f, CONFVARWIDTH, "suppresscmd08", "%s\n", cfg->c35_suppresscmd08);
+		if (cfg->c35_tcp_srvip)
+			fprintf_conf(f, CONFVARWIDTH, "serverip", "%s\n", inet_ntoa(*(struct in_addr *)&cfg->c35_tcp_srvip));
+		if (cfg->c35_suppresscmd08)
+			fprintf_conf(f, CONFVARWIDTH, "suppresscmd08", "%d\n", cfg->c35_suppresscmd08);
 		fprintf(f,"\n");
 	}
 
@@ -1123,7 +1125,8 @@ int write_config()
 		}
 
 		fputc((int)'\n', f);
-		fprintf_conf(f, CONFVARWIDTH, "serverip", "%s\n", inet_ntoa(*(struct in_addr *)&cfg->c35_tcp_srvip));
+		if (cfg->c35_tcp_srvip)
+			fprintf_conf(f, CONFVARWIDTH, "serverip", "%s\n", inet_ntoa(*(struct in_addr *)&cfg->c35_tcp_srvip));
 		fputc((int)'\n', f);
 	}
 
@@ -1273,7 +1276,8 @@ int write_userdb()
 		fprintf_conf(f, CONFVARWIDTH, "ident", "%s\n", value);
 		free(value);
 
-		fprintf_conf(f, CONFVARWIDTH, "suppresscmd08", "%s\n", account->c35_suppresscmd08);
+		if (account->c35_suppresscmd08)
+			fprintf_conf(f, CONFVARWIDTH, "suppresscmd08", "%d\n", account->c35_suppresscmd08);
 
 #ifdef CS_ANTICASC
 		fprintf_conf(f, CONFVARWIDTH, "numusers", "%d\n", account->ac_users);

@@ -401,6 +401,7 @@ static void reader_get_ecm(ECM_REQUEST *er)
   write_ecm_answer(fd_c2m, er);
   reader_post_process();
   //if(reader[ridx].typ=='r') reader[ridx].qlen--;
+  //printf("queue: %d\n",reader[ridx].qlen);
 }
 
 static void reader_send_DCW(ECM_REQUEST *er)
