@@ -498,6 +498,14 @@ void send_oscam_reader(struct templatevars *vars, FILE *f, struct uriparams *par
 					ctyp = "serial";
 					isphysical = 1;
 					break;
+				case R_DB2COM1  :
+					ctyp = "dbox COM1";
+					isphysical = 1;
+					break;
+				case R_DB2COM2  :
+					ctyp = "dbox COM2";
+					isphysical = 1;
+					break;
 				case R_CAMD35  : ctyp="camd 3.5x";break;
 				case R_CAMD33  : ctyp="camd 3.3x";break;
 				case R_NEWCAMD : ctyp="newcamd";  break;
