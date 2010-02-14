@@ -29,7 +29,6 @@ int i;
 		case REFR_READERS:
 			kill(client[0].pid, SIGUSR2);
 			cs_log("Refresh Reader/Tiers requested by WebIF from %s", inet_ntoa(*(struct in_addr *)&in));
-			//todo how I can refresh the readers
 			break;
 
 		case REFR_SERVER:
@@ -465,7 +464,12 @@ void send_oscam_reader(struct templatevars *vars, FILE *f, struct uriparams *par
 
 	if (strcmp(getParam(params, "action"), "reread") == 0){
 		readeridx = atoi(getParam(params, "ridx"));
-		//write_to_pipe(client[ridx].fd_m2c, PIP_ID_CIN, dummy, 1); // do not work for whatever reason
+		//reset the counters
+		reader[readeridx].emmerror = 0;
+		reader[readeridx].emmwritten = 0;
+		reader[readeridx].emmskipped = 0;
+		reader[readeridx].emmblocked = 0;
+		//write_to_pipe(client[reader[readeridx].cs_idx)].fd_m2c, PIP_ID_CIN, dummy, 1); // do not work for whatever reason
 		refresh_oscam(REFR_READERS, in); // refresh all reader because  write pipe seams not work from here
 	}
 
@@ -502,7 +506,10 @@ void send_oscam_reader(struct templatevars *vars, FILE *f, struct uriparams *par
 				case R_GBOX    : ctyp="gbox";     break;
 #endif
 #ifdef HAVE_PCSC
-				case R_PCSC    : ctyp="pcsc";     break;
+				case R_PCSC    :
+					ctyp="pcsc";
+					isphysical = 1;
+					break;
 #endif
 				case R_CCCAM   : ctyp="cccam";    break;
 				case R_CS378X  : ctyp="cs378x";   break;
@@ -510,7 +517,7 @@ void send_oscam_reader(struct templatevars *vars, FILE *f, struct uriparams *par
 			}
 
 		if (isphysical == 1) {
-			tpl_printf(vars, 0, "RIDX", "%d", reader[readeridx].cs_idx); //add cs_idx needed for entitlement refresh
+			tpl_printf(vars, 0, "RIDX", "%d", readeridx);
 			tpl_printf(vars, 0, "EMMERROR", "%d", reader[readeridx].emmerror);
 			tpl_printf(vars, 0, "EMMWRITTEN", "%d", reader[readeridx].emmwritten);
 			tpl_printf(vars, 0, "EMMSKIPPED", "%d", reader[readeridx].emmskipped);
@@ -520,13 +527,13 @@ void send_oscam_reader(struct templatevars *vars, FILE *f, struct uriparams *par
 			tpl_addVar(vars, 0, "ENTICO", ICENT);
 			tpl_addVar(vars, 0, "ENTITLEMENT", tpl_getTpl(vars, "READERENTITLEBIT"));
 		} else {
-			tpl_addVar(vars, 0, "READERREFRESH","");
-			tpl_addVar(vars, 0, "ENTITLEMENT","");
 			tpl_printf(vars, 0, "RIDX", "");
 			tpl_addVar(vars, 0, "EMMERROR", "");
 			tpl_addVar(vars, 0, "EMMWRITTEN", "");
 			tpl_addVar(vars, 0, "EMMSKIPPED", "");
 			tpl_addVar(vars, 0, "EMMBLOCKED", "");
+			tpl_addVar(vars, 0, "READERREFRESH","");
+			tpl_addVar(vars, 0, "ENTITLEMENT","");
 		}
 
 		tpl_addVar(vars, 0, "CTYP", ctyp);
