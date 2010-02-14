@@ -147,7 +147,7 @@ void send_oscam_config_camd35(struct templatevars *vars, FILE *f, struct uripara
 	tpl_addVar(vars, 1, "SERVERIP", inet_ntoa(*(struct in_addr *)&cfg->c35_tcp_srvip));
 
 	if (cfg->c35_suppresscmd08)
-		tpl_printf(vars, 0, "SUPPRESSCMD08", "%d", cfg->c35_suppresscmd08);
+		tpl_addVar(vars, 0, "SUPPRESSCMD08", "checked");
 
 	fputs(tpl_getTpl(vars, "CONFIGCAMD35"), f);
 }
@@ -236,7 +236,10 @@ void send_oscam_config_newcamd(struct templatevars *vars, FILE *f, struct uripar
   	if (cip->ip[0] != cip->ip[1])	tpl_printf(vars, 1, "ALLOWED", "-%s", cs_inet_ntoa(cip->ip[1]));
 		dot=",";
 	}
-	tpl_printf(vars, 0, "KEEPALIVE", "%d", cfg->ncd_keepalive);
+
+	if (cfg->ncd_keepalive)
+		tpl_addVar(vars, 0, "KEEPALIVE", "checked");
+
 	fputs(tpl_getTpl(vars, "CONFIGNEWCAMD"), f);
 }
 
@@ -903,7 +906,11 @@ void send_oscam_user_config_edit(struct templatevars *vars, FILE *f, struct urip
 
 	//SUPPRESSCMD08
 	if (account->c35_suppresscmd08)
-		tpl_printf(vars, 0, "SUPPRESSCMD08", "%d", account->c35_suppresscmd08);
+		tpl_addVar(vars, 0, "SUPPRESSCMD08", "checked");
+
+	//Keepalive
+	if (account->ncd_keepalive)
+		tpl_addVar(vars, 0, "KEEPALIVE", "checked");
 
 #ifdef CS_ANTICASC
 	tpl_printf(vars, 0, "AC_USERS", "%d", account->ac_users);

@@ -380,6 +380,8 @@ c3fmBuFft/Ff8xMd0s65SXIb/gAAAABJRU5ErkJggg=="
   <form action=\"user_edit.html\" method=\"get\">\n\
   <input name=\"user\" type=\"hidden\" value=\"##USERNAME##\">\n\
   <input name=\"disabled\" type=\"hidden\" value=\"0\">\n\
+  <input name=\"suppresscmd08\" type=\"hidden\" value=\"0\">\n\
+  <input name=\"keepalive\" type=\"hidden\" value=\"0\">\n\
   <TABLE cellspacing=\"0\">\n\
     <TR>\n\
       <TH>&nbsp;</TH>\n\
@@ -456,10 +458,11 @@ c3fmBuFft/Ff8xMd0s65SXIb/gAAAABJRU5ErkJggg=="
     </TR>\n\
      <TR>\n\
       <TD>Suppresscmd08:</TD>\n\
-      <TD><input name=\"suppresscmd08\" type=\"text\" size=\"3\" maxlength=\"1\" value=\"##SUPPRESSCMD08##\"></TD>\n\
+      <TD><input name=\"suppresscmd08\" type=\"checkbox\" value=\"1\" ##SUPPRESSCMD08##></TD>\n\
     </TR>\n\
     ##TPLUSEREDITANTICASC##\
     <TR>\n\
+    <TR><TD>Keepalive:</TD><TD><input name=\"keepalive\" type=\"checkbox\" value=\"1\" ##KEEPALIVE##></TD></TD></TR>\n\
       <TD align=\"center\"><input type=\"submit\" name=\"action\" value=\"Save\" title=\"Save settings and reload users\"></TD>\n\
       <TD align=\"center\"><input name=\"newuser\" type=\"text\" size=\"20\" maxlength=\"20\" title=\"Enter new username if you want to clone this user\">&nbsp;&nbsp;&nbsp;<input type=\"submit\" name=\"action\" value=\"Save As\" title=\"Save as new user and reload users\"></TD>\n\
     </TR>\n\
@@ -870,13 +873,14 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 <form action=\"config.html\" method=\"get\">\n\
 	<input name=\"part\" type=\"hidden\" value=\"newcamd\">\n\
 	<input name=\"action\" type=\"hidden\" value=\"execute\">\n\
+	<input name=\"keepalive\" type=\"hidden\" value=\"0\">\n\
 	<TABLE class=\"config\" cellspacing=\"0\">\n\
 		<TR><TH>&nbsp;</TH><TH>Edit Newcamd Config</TH></TR>\n\
 		<TR><TD>Port:</TD><TD><input name=\"port\" type=\"text\" size=\"100\" maxlength=\"200\" value=\"##PORT##\"></TD></TR>\n\
 		<TR><TD>Serverip:</TD><TD><input name=\"serverip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##SERVERIP##\"></TD></TR>\n\
 		<TR><TD>Key:</TD><TD><input name=\"key\" type=\"text\" size=\"35\" maxlength=\"28\" value=\"##KEY##\"></TD></TR>\n\
 		<TR><TD>Allowed:</TD><TD><input name=\"allowed\" type=\"text\" size=\"100\" maxlength=\"200\" value=\"##ALLOWED##\"></TD></TR>\n\
-		<TR><TD>Keepalive:</TD><TD><input name=\"keepalive\" type=\"text\" size=\"3\" maxlength=\"3\" value=\"##KEEPALIVE##\"></TD></TR>\n\
+		<TR><TD>Keepalive:</TD><TD><input name=\"keepalive\" type=\"checkbox\" value=\"1\" ##KEEPALIVE##></TD></TR>\n\
 		<TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\">\n</TD></TR>\n\
 	</TABLE>\n\
 </form>\n\
@@ -913,7 +917,7 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 		<TR><TD>Maxlogsize:</TD><TD><input name=\"maxlogsize\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##MAXLOGSIZE##\"></TD></TR>\n\
 		<TR><TD>Waitforcards:</TD><TD><input name=\"waitforcards\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##WAITFORCARDS##\"></TD></TR>\n\
 		<TR><TD>Preferlocalcards:</TD><TD><input name=\"preferlocalcards\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##PREFERLOCALCARDS##\"></TD></TR>\n\
-    <TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\">\n</TD></TR>\n\
+		<TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\">\n</TD></TR>\n\
 	</TABLE>\n\
 </form>\n\
 ##TPLFOOTER##"
@@ -948,11 +952,12 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 <form action=\"config.html\" method=\"get\">\n\
 	<input name=\"part\" type=\"hidden\" value=\"camd35\">\n\
 	<input name=\"action\" type=\"hidden\" value=\"execute\">\n\
+	<input name=\"suppresscmd08\" type=\"hidden\" value=\"0\">\n\
 	<TABLE class=\"config\" cellspacing=\"0\">\n\
 		<TR><TH>&nbsp;</TH><TH>Edit Camd35 Config</TH></TR>\n\
 		<TR><TD>Port:</TD><TD><input name=\"port\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##PORT##\"></TD></TR>\n\
 		<TR><TD>Serverip:</TD><TD><input name=\"serverip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##SERVERIP##\"></TD></TR>\n\
-		<TR><TD>Suppresscmd08:</TD><TD><input name=\"suppresscmd08\" type=\"text\" size=\"3\" maxlength=\"1\" value=\"##SUPPRESSCMD08##\"></TD></TR>\n\
+		<TR><TD>Suppresscmd08:</TD><TD><input name=\"suppresscmd08\" type=\"checkbox\" value=\"1\" ##SUPPRESSCMD08##></TD></TR>\n\
 		<TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\">\n</TD></TR>\n\
 	</TABLE>\n\
 </form>\n\

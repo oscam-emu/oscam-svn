@@ -1280,6 +1280,9 @@ int write_userdb()
 		if (account->c35_suppresscmd08)
 			fprintf_conf(f, CONFVARWIDTH, "suppresscmd08", "%d\n", account->c35_suppresscmd08);
 
+		if (account->ncd_keepalive)
+					fprintf_conf(f, CONFVARWIDTH, "suppresscmd08", "%d\n", account->ncd_keepalive);
+
 #ifdef CS_ANTICASC
 		fprintf_conf(f, CONFVARWIDTH, "numusers", "%d\n", account->ac_users);
 		fprintf_conf(f, CONFVARWIDTH, "penalty", "%d\n", account->ac_penalty);
