@@ -1893,6 +1893,12 @@ void get_cw(ECM_REQUEST *er)
 	// quickfix for 0100:000065
 	if (er->caid == 0x100 && er->prid == 0x65 && er->srvid == 0)
 		er->srvid = 0x0642;
+
+	// add quick fix for Opticum/globo HD9500
+	// quickfix for 0500:030300
+	if (er->caid == 0x500 && er->prid == 0x030300)
+		er->prid = 0x030600;
+
 	/* END quickfixes */
 
 	if (!er->prid)
