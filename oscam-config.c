@@ -840,6 +840,7 @@ void chk_account(char *token, char *value, struct s_auth *account)
   if (!strcmp(token, "caid")) { chk_caidtab(value, &account->ctab); return; }
   if (!strcmp(token, "disabled")) { account->disabled=atoi(value); return; }
   if (!strcmp(token, "suppresscmd08")) { account->c35_suppresscmd08=atoi(value); return; }
+  if (!strcmp(token, "keepalive")) { account->ncd_keepalive=atoi(value); return; }
   /*
    *  case insensitive
    */

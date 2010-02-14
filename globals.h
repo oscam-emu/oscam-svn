@@ -370,6 +370,7 @@ struct s_client
   time_t    lastecm;
   time_t    expirationdate;
   int       c35_suppresscmd08;
+  int       ncd_keepalive;
   int       disabled;
   ulong     grp;
   int       crypted;
@@ -573,6 +574,7 @@ struct s_auth
   uchar     dyndns[64];
   time_t    expirationdate;
   int       c35_suppresscmd08;
+  int       ncd_keepalive;
   int       disabled;
   struct   s_auth *next;
 };

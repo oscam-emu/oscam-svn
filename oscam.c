@@ -347,6 +347,10 @@ void cs_reinit_clients()
 				client[i].expirationdate = account->expirationdate;
 
 				//set first to global value and then to specific (higher prio)
+				client[i].ncd_keepalive = cfg->ncd_keepalive;
+				client[i].ncd_keepalive = account->ncd_keepalive;
+
+				//set first to global value and then to specific (higher prio)
 				client[i].c35_suppresscmd08 = cfg->c35_suppresscmd08;
 				client[i].c35_suppresscmd08 = account->c35_suppresscmd08;
 
@@ -1151,6 +1155,7 @@ int cs_auth_client(struct s_auth *account, char *e_txt)
           client[cs_idx].expirationdate=account->expirationdate;
           client[cs_idx].disabled=account->disabled;
           client[cs_idx].c35_suppresscmd08 = account->c35_suppresscmd08;
+          client[cs_idx].ncd_keepalive = account->ncd_keepalive;
 	  client[cs_idx].grp=account->grp;
           client[cs_idx].au=account->au;
           client[cs_idx].autoau=account->autoau;
@@ -1251,7 +1256,6 @@ int check_ecmcache(ECM_REQUEST *er, ulong grp)
   for(i=0; i<CS_ECMCACHESIZE; i++)
     if ((grp & ecmcache[i].grp) &&
         ecmcache[i].caid==er->caid &&
-        ecmcache[i].prid==er->prid &&
         (!memcmp(ecmcache[i].ecmd5, er->ecmd5, CS_ECMSTORESIZE)))
     {
 //cs_log("cache found: grp=%lX cgrp=%lX", grp, ecmcache[i].grp);
