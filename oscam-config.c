@@ -1190,7 +1190,15 @@ int write_config()
 	/*serial*/
 
 
-	/*cccam placeholder*/
+	/*cccam*/
+	if ( cfg->cc_port > 0) {
+		fprintf(f,"[cccam]\n");
+		fprintf_conf(f, CONFVARWIDTH, "port", "%d\n", cfg->cc_port);
+		fprintf_conf(f, CONFVARWIDTH, "reshare", "%d\n", cfg->cc_reshare);
+		fprintf_conf(f, CONFVARWIDTH, "version", "%s\n", cfg->cc_version);
+		fprintf_conf(f, CONFVARWIDTH, "build", "%s\n", cfg->cc_build);
+		fprintf(f,"\n");
+	}
 
 #ifdef HAVE_DVBAPI
 	/*dvb-api*/

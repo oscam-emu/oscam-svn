@@ -797,9 +797,14 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 <form action=\"config.html\" method=\"get\">\n\
 	<input name=\"part\" type=\"hidden\" value=\"cccam\">\n\
 	<input name=\"action\" type=\"hidden\" value=\"execute\">\n\
+	<input name=\"reshare\" type=\"hidden\" value=\"0\">\n\
 	<TABLE class=\"config\" cellspacing=\"0\">\n\
 		<TR><TH>&nbsp;</TH><TH>Edit Cccam Config</TH></TR>\n\
-    <TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\">\n</TD></TR>\n\
+		<TR><TD>Port:</TD><TD><input name=\"port\" type=\"text\" size=\"6\" maxlength=\"6\" value=\"##PORT##\"></TD></TR>\n\
+		<TR><TD>Reshare:</TD><TD><input name=\"reshare\" type=\"checkbox\" value=\"1\" ##RESHARECHECKED##></TD></TR>\n\
+		<TR><TD>Version:</TD><TD><input name=\"version\" type=\"text\" size=\"6\" maxlength=\"6\" value=\"##VERSION##\"></TD></TR>\n\
+		<TR><TD>Build:</TD><TD><input name=\"build\" type=\"text\" size=\"4\" maxlength=\"4\" value=\"##BUILD##\"></TD></TR>\n\
+		<TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\">\n</TD></TR>\n\
 	</TABLE>\n\
 </form>\n\
 ##TPLFOOTER##"

@@ -285,10 +285,16 @@ void send_oscam_config_cccam(struct templatevars *vars, FILE *f, struct uriparam
 				chk_t_cccam((*params).params[i], (*params).values[i]);
 			}
 		}
-		tpl_addVar(vars, 1, "MESSAGE", "<BR><BR>Configuration Cccam Do not yet implemented<BR><BR>");
-		//if(write_config()==0) refresh_oscam(REFR_SERVER, in);
-		//else tpl_addVar(vars, 1, "MESSAGE", "<B>Write Config failed</B><BR><BR>");
+		if(write_config()==0) refresh_oscam(REFR_SERVER, in);
+		else tpl_addVar(vars, 1, "MESSAGE", "<B>Write Config failed</B><BR><BR>");
 	}
+
+	tpl_printf(vars, 1, "PORT", "%d", cfg->cc_port);
+	if (cfg->cc_reshare)
+		tpl_addVar(vars, 0, "RESHARECHECKED", "checked");
+	tpl_printf(vars, 0, "VERSION", "%s", cfg->cc_version);
+	tpl_printf(vars, 0, "BUILD", "%s", cfg->cc_build);
+
 	fputs(tpl_getTpl(vars, "CONFIGCCCAM"), f);
 }
 
