@@ -290,8 +290,7 @@ void send_oscam_config_cccam(struct templatevars *vars, FILE *f, struct uriparam
 	}
 
 	tpl_printf(vars, 1, "PORT", "%d", cfg->cc_port);
-	if (cfg->cc_reshare)
-		tpl_addVar(vars, 0, "RESHARECHECKED", "checked");
+	tpl_printf(vars, 0, "RESHARE", "%d", cfg->cc_reshare);
 	tpl_printf(vars, 0, "VERSION", "%s", cfg->cc_version);
 	tpl_printf(vars, 0, "BUILD", "%s", cfg->cc_build);
 
