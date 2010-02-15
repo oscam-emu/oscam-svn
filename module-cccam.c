@@ -1,5 +1,7 @@
 #include "globals.h"
 
+
+int g_flag = 0;
 /******************************** */
 /* LINKED LIST CODE - IF IT'S USEFUL ELSEWHERE, IT SHOULD BE SPLIT OFF INTO linkedlist.h/.c */
 /******************************** */
@@ -179,11 +181,10 @@ typedef enum {
 typedef enum
 {
   MSG_CLI_DATA,
-  MSG_CW,
-  MSG_ECM = 1,
+  MSG_CW_ECM,
   MSG_CARD_REMOVED = 4,
   MSG_DCW_SOMETHING,            // this still needs to be worked out
-  MSG_PING,
+  MSG_KEEPALIVE,
   MSG_NEW_CARD,
   MSG_SRV_DATA,
   MSG_CW_NOK1 = 0xfe,
@@ -212,7 +213,7 @@ struct cc_data {
   struct cc_crypt_block block[2];    // crypto state blocks
 
   uint8 node_id[8],           // client node id
-        server_node_id[8],    // server node id
+        peer_node_id[8],      // server node id
         dcw[16];              // control words
 
   struct cc_card *cur_card;   // ptr to selected card
@@ -240,7 +241,6 @@ static uchar fast_rnd()
   seed = seed * multiplier + offset;
   return (uchar)(seed % 0xFF);
 }
-
 
 static void cc_init_crypt(struct cc_crypt_block *block, uint8 *key, int len)
 {
@@ -292,11 +292,19 @@ static void cc_xor(uint8 *buf)
 
 static void cc_cw_decrypt(uint8 *cws)
 {
-  struct cc_data *cc = reader[ridx].cc;
-
-  uint64 node_id = b2ll(8, cc->node_id);
+  struct cc_data *cc;
+  uint64 node_id;
   uint8 tmp;
   int i;
+
+  if (reader[ridx].cc) {
+    cc = reader[ridx].cc;
+    node_id = b2ll(8, cc->node_id);
+  }
+  else {
+    cc = client[cs_idx].cc;
+    node_id = b2ll(8, cc->peer_node_id);
+  }
 
   for (i = 0; i < 16; i++) {
     tmp = cws[i] ^ (node_id >> (4 * i));
@@ -305,13 +313,18 @@ static void cc_cw_decrypt(uint8 *cws)
   }
 }
 
+/*
+static void cc_cw_encrypt(uint8 *cws)
+{
+  // cc_cw_decrypt() inverse
+}
+*/
+
 static void cc_cycle_connection()
 {
   reader[ridx].tcp_connected = 0;
   usleep(200000);
-  close(client[cs_idx].udp_fd);
   close(pfd);
-  pfd = 0;
   client[cs_idx].udp_fd = 0;
   usleep(100000);
   ph->c_init();
@@ -319,10 +332,15 @@ static void cc_cycle_connection()
 
 static int cc_msg_recv(uint8 *buf)
 {
-  int len, flags;
+  int len;
   uint8 netbuf[CC_MAXMSGSIZE];
+  struct cc_data *cc;
 
-  struct cc_data *cc = reader[ridx].cc;
+  if (reader[ridx].cc)
+    cc = reader[ridx].cc;
+  else
+    cc = client[cs_idx].cc;
+
   int handle = client[cs_idx].udp_fd;
 
   if (handle < 0) return -1;
@@ -339,7 +357,7 @@ static int cc_msg_recv(uint8 *buf)
   cc_crypt(&cc->block[DECRYPT], netbuf, 4, DECRYPT);
   //cs_ddump(netbuf, 4, "cccam: decrypted header:");
 
-  flags = netbuf[0];
+  g_flag = netbuf[0];
 
   if (((netbuf[2] << 8) | netbuf[3]) != 0) {  // check if any data is expected in msg
     if (((netbuf[2] << 8) | netbuf[3]) > CC_MAXMSGSIZE - 2) {
@@ -358,7 +376,7 @@ static int cc_msg_recv(uint8 *buf)
     len += 4;
   }
 
-  //cs_ddump(netbuf, len, "cccam: full decrypted msg, len=%d:", len);
+  cs_ddump(netbuf, len, "cccam: full decrypted msg, len=%d:", len);
 
   memcpy(buf, netbuf, len);
   return len;
@@ -368,7 +386,12 @@ static int cc_cmd_send(uint8 *buf, int len, cc_msg_type_t cmd)
 {
   int n;
   uint8 *netbuf = malloc(len+4);
-  struct cc_data *cc = reader[ridx].cc;
+  struct cc_data *cc;
+
+  if (reader[ridx].cc)
+    cc = reader[ridx].cc;
+  else
+    cc = client[cs_idx].cc;
 
   bzero(netbuf, len+4);
 
@@ -376,7 +399,7 @@ static int cc_cmd_send(uint8 *buf, int len, cc_msg_type_t cmd)
     memcpy(netbuf, buf, len);
   } else {
     // build command message
-    netbuf[0] = 0;   // flags??
+    netbuf[0] = g_flag;   // flags??
     netbuf[1] = cmd & 0xff;
     netbuf[2] = len >> 8;
     netbuf[3] = len & 0xff;
@@ -401,8 +424,6 @@ static int cc_send_cli_data()
 
   cs_debug("cccam: send client data");
 
-  //memcpy(cc->node_id, "\x7A\xDD\xAB\x28\xC9\x39\x4A\x2F", 8);
-
   seed = (unsigned int) time((time_t*)0);
   for( i=0; i<8; i++ ) cc->node_id[i]=fast_rnd();
 
@@ -416,8 +437,31 @@ static int cc_send_cli_data()
 
   cs_log ("cccam: user: %s, version: %s, build: %s", reader[ridx].r_usr, reader[ridx].cc_version, reader[ridx].cc_build);
 
+  i = cc_cmd_send(buf, 20 + 8 + 6 + 26 + 4 + 28 + 1, MSG_CLI_DATA);
 
-  return cc_cmd_send(buf, 20 + 8 + 6 + 26 + 4 + 28 + 1, MSG_CLI_DATA);
+  return i;
+}
+
+static int cc_send_srv_data()
+{
+  int i;
+  struct cc_data *cc = client[cs_idx].cc;
+
+  cs_debug("cccam: send server data");
+
+  seed = (unsigned int) time((time_t*)0);
+  for( i=0; i<8; i++ ) cc->node_id[i]=fast_rnd();
+
+  uint8 buf[CC_MAXMSGSIZE];
+  bzero(buf, CC_MAXMSGSIZE);
+
+  memcpy(buf, cc->node_id, 8 );
+  memcpy(buf + 8, cfg->cc_version, sizeof(reader[ridx].cc_version));   // cccam version (ascii)
+  memcpy(buf + 40, cfg->cc_build, sizeof(reader[ridx].cc_build));       // build number (ascii)
+
+  cs_log ("cccam: version: %s, build: %s", cfg->cc_version, cfg->cc_build);
+
+  return cc_cmd_send(buf, 0x48, MSG_SRV_DATA);
 }
 
 static int cc_get_nxt_ecm()
@@ -554,7 +598,7 @@ static int cc_send_ecm(ECM_REQUEST *er, uchar *buf)
     cc->count = cur_er->idx;
 
     cs_log("cccam: sending ecm for sid %04x to card %08x, hop %d", cur_er->srvid, cc->cur_card->id, cc->cur_card->hop + 1);
-    n = cc_cmd_send(ecmbuf, cur_er->l+13, MSG_ECM);      // send ecm
+    n = cc_cmd_send(ecmbuf, cur_er->l+13, MSG_CW_ECM);      // send ecm
 
     NULLFREE(ecmbuf);
   } else {
@@ -615,18 +659,24 @@ static int cc_abort_user_ecms(){
 
 }
 */
+
 static cc_msg_type_t cc_parse_msg(uint8 *buf, int l)
 {
   int ret = buf[1];
-  struct cc_data *cc = reader[ridx].cc;
+  struct cc_data *cc;
+
+  if (reader[ridx].cc)
+    cc = reader[ridx].cc;
+  else
+    cc = client[cs_idx].cc;
 
   switch (buf[1]) {
   case MSG_CLI_DATA:
     cs_debug("cccam: client data ack");
     break;
   case MSG_SRV_DATA:
-    memcpy(cc->server_node_id, buf+4, 8);
-    cs_log("cccam: srv %s running v%s (%s)", cs_hexdump(0, cc->server_node_id, 8), buf+12, buf+44);
+    memcpy(cc->peer_node_id, buf+4, 8);
+    cs_log("cccam: srv %s running v%s (%s)", cs_hexdump(0, cc->peer_node_id, 8), buf+12, buf+44);
     break;
   case MSG_NEW_CARD:
     {
@@ -642,17 +692,19 @@ static cc_msg_type_t cc_parse_msg(uint8 *buf, int l)
       card->hop = buf[14];
       memcpy(card->key, buf+16, 8);
 
-      cs_debug("cccam: card %08x added, caid %04x, hop %d, key %s",
+      cs_log("cccam: card %08x added, caid %04x, hop %d, key %s",
           card->id, card->caid, card->hop, cs_hexdump(0, card->key, 8));
+
 
       for (i = 0; i < buf[24]; i++) {  // providers
         uint8 *prov = malloc(3);
 
         memcpy(prov, buf+25+(7*i), 3);
-        cs_debug("      prov %d, %06x", i+1, b2i(3, prov));
+        cs_log("      prov %d, %06x", i+1, b2i(3, prov));
 
         llist_append(card->provs, prov);
       }
+
 
       llist_append(cc->cards, card);
       if (!cc->cur_card) cc->cur_card = card;
@@ -709,21 +761,39 @@ static cc_msg_type_t cc_parse_msg(uint8 *buf, int l)
     cc_send_ecm(NULL, NULL);
     ret = 0;
     break;
-  case MSG_CW:
-    cc_cw_decrypt(buf+4);
-    memcpy(cc->dcw, buf+4, 16);
-    cs_debug("cccam: cws: %s", cs_hexdump(0, cc->dcw, 16));
-    cc_crypt(&cc->block[DECRYPT], buf+4, l-4, ENCRYPT); // additional crypto step
-    pthread_mutex_unlock(&cc->ecm_busy);
-    //cc_abort_user_ecms();
-    cc_send_ecm(NULL, NULL);
-    ret = 0;
+  case MSG_CW_ECM:
+    if (is_server) {
+      ECM_REQUEST *er;
+
+      cc->cur_card = malloc(sizeof(struct cc_card));
+      bzero(cc->cur_card, sizeof(struct cc_card));
+
+      cc->cur_card->id = buf[10] << 24 | buf[11] << 16 | buf[12] << 8 | buf[13];
+
+      if ((er=get_ecmtask())) {
+        er->caid = b2i(2, buf+4);
+        er->l = buf[16];
+        memcpy(er->ecm, buf+17, er->l);
+        er->prid = b2i(4, buf+6);
+        get_cw(er);
+      }
+    } else {
+      cc_cw_decrypt(buf+4);
+      memcpy(cc->dcw, buf+4, 16);
+      cs_debug("cccam: cws: %s", cs_hexdump(0, cc->dcw, 16));
+      cc_crypt(&cc->block[DECRYPT], buf+4, l-4, ENCRYPT); // additional crypto step
+      pthread_mutex_unlock(&cc->ecm_busy);
+      //cc_abort_user_ecms();
+      cc_send_ecm(NULL, NULL);
+      ret = 0;
+    }
     break;
-  case MSG_PING:
-    cc_cmd_send(NULL, 0, MSG_PING);
+  case MSG_KEEPALIVE:
+    cc_cmd_send(NULL, 0, MSG_KEEPALIVE);
     break;
   case MSG_DCW_SOMETHING:
     cc->ecm_count = 1;
+    break;
   default:
     break;
   }
@@ -737,7 +807,7 @@ static int cc_recv_chk(uchar *dcw, int *rc, uchar *buf)
 {
   struct cc_data *cc = reader[ridx].cc;
 
-  if (buf[1] == MSG_CW) {
+  if (buf[1] == MSG_CW_ECM) {
     memcpy(dcw, cc->dcw, 16);
     cs_debug("cccam: recv chk - MSG_CW %d - %s", cc->count, cs_hexdump(0, dcw, 16));
     *rc = 1;
@@ -751,11 +821,37 @@ static int cc_recv_chk(uchar *dcw, int *rc, uchar *buf)
   return (-1);
 }
 
+static void cc_send_dcw(ECM_REQUEST *er)
+{
+  uchar buf[16];//, cw[8];
+  struct cc_data *cc;
+
+  bzero(buf, sizeof(buf));
+
+  if(er->rc<=3) {
+    cc = client[cs_idx].cc;
+    memcpy(buf, er->cw, sizeof(buf));
+    cc_cw_decrypt(buf);
+    NULLFREE(cc->cur_card);
+    cs_debug("cccam: send cw: er->cpti=%d", er->cpti);
+    cc_cmd_send(buf, 16, MSG_CW_ECM);
+    cc_crypt(&cc->block[ENCRYPT], buf, 16, ENCRYPT); // additional crypto step
+  } else {
+    cs_debug("cccam: send cw NOK: er->cpti=%d!", er->cpti);
+    cc_cmd_send(NULL, 0, MSG_CW_NOK1);
+  }
+}
+
 int cc_recv(uchar *buf, int l)
 {
   int n;
   uchar *cbuf;
-  struct cc_data *cc = reader[ridx].cc;
+  struct cc_data *cc;
+
+  if (reader[ridx].cc)
+    cc = reader[ridx].cc;
+  else
+    cc = client[cs_idx].cc;
 
   if (buf==NULL) return -1;
   cbuf = malloc(l);
@@ -765,12 +861,7 @@ int cc_recv(uchar *buf, int l)
 
   pthread_mutex_lock(&cc->lock);
 
-  if (!is_server) {
-    if (!client[cs_idx].udp_fd) return(-1);
-    n = cc_msg_recv(cbuf);  // recv and decrypt msg
-  } else {
-    return -2;
-  }
+  n = cc_msg_recv(cbuf);  // recv and decrypt msg
 
   cs_ddump(cbuf, n, "cccam: received %d bytes from %s", n, remote_txt());
   client[cs_idx].last = time((time_t *) 0);
@@ -790,6 +881,8 @@ int cc_recv(uchar *buf, int l)
   NULLFREE(cbuf);
 
   pthread_mutex_unlock(&cc->lock);
+
+  if (!is_server && (n==-1)) cs_exit(0);
 
   return(n);
 }
@@ -894,10 +987,204 @@ static int cc_cli_connect(void)
   pthread_mutex_init(&cc->lock, NULL);
   pthread_mutex_init(&cc->ecm_busy, NULL);
 
+  reader[ridx].caid[0] = reader[ridx].ftab.filts[0].caid;
+  reader[ridx].nprov = reader[ridx].ftab.filts[0].nprids;
+  for (n=0; n<reader[ridx].nprov; n++) {
+    reader[ridx].prid[n][0] = reader[ridx].ftab.filts[0].prids[n] << 24;
+    reader[ridx].prid[n][1] = reader[ridx].ftab.filts[0].prids[n] << 16;
+    reader[ridx].prid[n][2] = reader[ridx].ftab.filts[0].prids[n] << 8;
+    reader[ridx].prid[n][3] = reader[ridx].ftab.filts[0].prids[n] & 0xff;
+  }
+
   return 0;
 }
 
-int cc_cli_init(void)
+static void cc_srv_report_cards()
+{
+  uint id = 1, r, k;
+  int j;
+  uint8 hop = 0, reshare;
+  uint8 buf[CC_MAXMSGSIZE];
+  struct cc_data *cc = client[cs_idx].cc;
+
+  reshare = cfg->cc_reshare;
+
+  for (r=0; r<CS_MAXREADER; r++) {
+    if (reader[r].caid[0]) {
+      bzero(buf, sizeof(buf));
+
+      buf[0] = id >> 24;
+      buf[1] = id >> 16;
+      buf[2] = id >> 8;
+      buf[3] = id & 0xff;
+      buf[8] = reader[r].caid[0] >> 8;
+      buf[9] = reader[r].caid[0] & 0xff;
+      buf[10] = hop;
+      buf[11] = reshare;
+      buf[20] = reader[r].nprov;
+
+      for (j=0; j<reader[r].nprov; j++) {
+        memcpy(buf + 21 + (j*7), reader[r].prid[j]+1, 3);
+      }
+
+      buf[21 + (j*7)] = 1;
+      memcpy(buf + 22 + (j*7), cc->node_id, 8);
+
+      cc_cmd_send(buf, 30 + (j*7), MSG_NEW_CARD);
+
+      id++;
+    }
+
+    if (reader[r].ftab.filts) {
+      for (j=0; j<CS_MAXFILTERS; j++) {
+        if (reader[r].ftab.filts[j].caid) {
+          bzero(buf, sizeof(buf));
+
+          buf[0] = id >> 24;
+          buf[1] = id >> 16;
+          buf[2] = id >> 8;
+          buf[3] = id & 0xff;
+          buf[8] = reader[r].ftab.filts[j].caid >> 8;
+          buf[9] = reader[r].ftab.filts[j].caid & 0xff;
+          buf[10] = hop;
+          buf[11] = reshare;
+          buf[20] = reader[r].ftab.filts[j].nprids;
+
+          for (k=0; k<reader[r].ftab.filts[j].nprids; k++) {
+            buf[21 + (k*7)] = reader[r].ftab.filts[j].prids[k] << 24;
+            buf[22 + (k*7)] = reader[r].ftab.filts[j].prids[k] << 16;
+            buf[23 + (k*7)] = reader[r].ftab.filts[j].prids[k] << 8;
+            buf[24 + (k*7)] = reader[r].ftab.filts[j].prids[k] & 0xff;
+          }
+
+          buf[21 + (k*7)] = 1;
+          memcpy(buf + 22 + (k*7), cc->node_id, 8);
+
+          cc_cmd_send(buf, 30 + (k*7), MSG_NEW_CARD);
+
+          id++;
+        }
+      }
+    }
+  }
+}
+
+static int cc_srv_connect()
+{
+  int i;
+  uint seed;
+  uint8 buf[CC_MAXMSGSIZE];
+  uint8 data[16];
+  char usr[20], pwd[20];
+  struct s_auth *account;
+  struct cc_data *cc;
+
+  bzero(usr, sizeof(usr));
+  bzero(pwd, sizeof(pwd));
+
+  if (client[cs_idx].cc) NULLFREE(client[cs_idx].cc);
+
+  // init internals data struct
+  cc = malloc(sizeof(struct cc_data));
+  if (cc==NULL) {
+    cs_log("cccam: cannot allocate memory");
+    return -1;
+  }
+
+  client[cs_idx].cc = cc;
+  bzero(client[cs_idx].cc, sizeof(struct cc_data));
+
+  // calc + send random seed
+  seed = (unsigned int) time((time_t*)0);
+  for(i=0; i<16; i++ ) data[i]=fast_rnd();
+  send(client[cs_idx].udp_fd, data, 16, 0);
+
+  cc_xor(data);  // XOR init bytes with 'CCcam'
+
+  SHA_CTX ctx;
+  SHA1_Init(&ctx);
+  SHA1_Update(&ctx, data, 16);
+  SHA1_Final(buf, &ctx);
+
+  //initialisate crypto states
+  /*
+  init_crypt(&cc->block[ENCRYPT], buf, 20);
+  crypto_state__decrypt(&cc->block[ENCRYPT], data, data2, 16);
+  init_crypt(&cc->block[DECRYPT], data2, 16);
+  crypto_state__encrypt(&cc->block[DECRYPT], buf, buf2, 20);*/
+
+  cc_init_crypt(&cc->block[ENCRYPT], buf, 20);
+  cc_crypt(&cc->block[ENCRYPT], data, 16, DECRYPT);
+  cc_init_crypt(&cc->block[DECRYPT], data, 16);
+  cc_crypt(&cc->block[DECRYPT], buf, 20, DECRYPT);
+
+  if ((i=recv(pfd, buf, 20, MSG_WAITALL)) == 20) {
+    cs_ddump(buf, 20, "cccam: recv:");
+    cc_crypt(&cc->block[DECRYPT], buf, 20, DECRYPT);
+    cs_ddump(buf, 20, "cccam: hash:");
+  } else return -1;
+
+  // receive username
+  if ((i=recv(pfd, buf, 20, MSG_WAITALL)) == 20) {
+    cc_crypt(&cc->block[DECRYPT], buf, 20, DECRYPT);
+    cs_ddump(buf, 20, "cccam: username '%s':", buf);
+    strncpy(usr, buf, sizeof(usr));
+  } else return -1;
+
+  for (i=0, account=cfg->account; account; account=account->next)
+    if (!strcmp(usr, account->usr)) break;
+
+  strncpy(pwd, cfg->account->pwd, sizeof(pwd));
+
+  // receive passwd / 'CCcam'
+  cc_crypt(&cc->block[DECRYPT], (uint8 *)pwd, strlen(pwd), DECRYPT);
+  if ((i=recv(pfd, buf, 6, MSG_WAITALL)) == 6) {
+    cc_crypt(&cc->block[DECRYPT], buf, 6, DECRYPT);
+    cs_ddump(buf, 6, "cccam: pwd check '%s':", buf);
+  } else return -1;
+
+  cs_auth_client(account, NULL);
+  //cs_auth_client((struct s_auth *)(-1), NULL);
+
+  // send passwd ack
+  bzero(data, 20);
+  memcpy(data, "CCcam\0", 6);
+  cs_ddump(data, 20, "cccam: send ack:");
+  cc_crypt(&cc->block[ENCRYPT], data, 20, ENCRYPT);
+  send(pfd, data, 20, 0);
+
+  // recv cli data
+  bzero(buf,sizeof(buf));
+  i = cc_msg_recv(buf);
+  cs_ddump(buf, i, "cccam: cli data:");
+  memcpy(cc->peer_node_id, buf+24, 8);
+  cs_log("cccam: client '%s' (%s) running v%s (%s)", buf+4, cs_hexdump(0, cc->peer_node_id, 8), buf+33, buf+65);
+
+  // send cli data ack
+  cc_cmd_send(NULL, 0, MSG_CLI_DATA);
+
+  if (cc_send_srv_data()<0) return -1;
+
+  is_server = 1;
+
+  // report cards
+  cc_srv_report_cards();
+
+  while ((i=process_input(mbuf, sizeof(mbuf), cfg->cmaxidle))>0);
+
+  cs_disconnect_client();
+
+  return 0;
+}
+
+int cc_srv_init()
+{
+  pfd=client[cs_idx].udp_fd;
+  //cc_auth_client(client[cs_idx].ip);
+  return cc_srv_connect();
+}
+
+int cc_cli_init()
 {
   if (!reader[ridx].tcp_connected) {
     static struct sockaddr_in loc_sa;
@@ -983,4 +1270,12 @@ void module_cccam(struct s_module *ph)
   ph->c_init=cc_cli_init;
   ph->c_recv_chk=cc_recv_chk;
   ph->c_send_ecm=cc_send_ecm;
+  ph->s_ip=cfg->cc_srvip;
+  ph->s_handler=cc_srv_init;
+  ph->send_dcw=cc_send_dcw;
+
+  static PTAB ptab;
+  ptab.ports[0].s_port = cfg->cc_port;
+  ph->ptab = &ptab;
+  ph->ptab->nports = 1;
 }

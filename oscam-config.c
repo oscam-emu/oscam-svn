@@ -560,6 +560,33 @@ void chk_t_newcamd(char *token, char *value)
     fprintf(stderr, "Warning: keyword '%s' in newcamd section not recognized\n",token);
 }
 
+void chk_t_cccam(char *token, char *value)
+{
+  if (!strcmp(token, "port")) { cfg->cc_port=atoi(value); return; }
+  //if (!strcmp(token, "serverip")) { cfg->cc_srvip=inet_addr(value); return; }
+  if (!strcmp(token, "reshare")) { cfg->cc_reshare=atoi(value); return; }
+  if (!strcmp(token, "version")) {  // cccam version
+  if (strlen(value)>sizeof(cfg->cc_version)-1) {
+      fprintf(stderr, "cccam config: version too long\n");
+      exit(1);
+    }
+    bzero(cfg->cc_version, sizeof(cfg->cc_version));
+    strncpy(cfg->cc_version, value, sizeof(cfg->cc_version)-1);
+    return;
+  }
+  if (!strcmp(token, "build")) {  // cccam build number
+    if (strlen(value)>sizeof(cfg->cc_build)-1) {
+      fprintf(stderr, "cccam config build number too long\n");
+      exit(1);
+    }
+    bzero(cfg->cc_build, sizeof(cfg->cc_build));
+    strncpy(cfg->cc_build, value, sizeof(cfg->cc_build)-1);
+    return;
+  }
+  if (token[0] != '#')
+    fprintf(stderr, "Warning: keyword '%s' in cccam section not recognized\n",token);
+}
+
 void chk_t_radegast(char *token, char *value)
 {
   if (!strcmp(token, "port")) { cfg->rad_port=atoi(value); return; }
@@ -609,12 +636,6 @@ static void chk_t_gbox(char *token, char *value)
     fprintf(stderr, "Warning: keyword '%s' in gbox section not recognized\n",token);
 }
 #endif
-
-void chk_t_cccam(char *token, char *value)
-{
-  // placeholder for ccam server support
-  fprintf(stderr, "Warning: OSCam have no cccam server support yet. Parametr %s = %s\n", token, value);
-}
 
 #ifdef HAVE_DVBAPI
 void chk_t_dvbapi(char *token, char *value)
