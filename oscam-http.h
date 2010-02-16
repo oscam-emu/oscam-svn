@@ -37,6 +37,8 @@ TD.script {font-color:black; background-color:white; font-family: Arial; font-si
 TD.shutdown {font-color:black; background-color:white; font-family: Arial; font-size:14px; font-weight:bold;}\n\
 TD.shutdown A:hover {color: red;}\n\
 TD.configmenu {font-color:black; background-color:white; font-family: Arial; font-size:11px; font-weight:bold;}\n\
+textarea.bt{font-family: Arial; font-size: 12px;}\n\
+input{font-family: Arial; font-size: 12px;}\n\
 A:link {color: #050840;}\n\
 A:visited {color: #050840;}\n\
 A:active {color: #050840;}\n\
@@ -454,7 +456,7 @@ c3fmBuFft/Ff8xMd0s65SXIb/gAAAABJRU5ErkJggg=="
     </TR>\n\
     <TR>\n\
       <TD>Betatunnel:</TD>\n\
-      <TD><input name=\"betatunnel\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"##BETATUNNELS##\"></TD>\n\
+      <TD><textarea name=\"betatunnel\" cols=\"47\" rows=\"4\" class=\"bt\">##BETATUNNELS##</textarea></TD>\
     </TR>\n\
      <TR>\n\
       <TD>Suppresscmd08:</TD>\n\
