@@ -138,7 +138,7 @@ static void usage()
   fprintf(stderr, "\t             default = %s\n", CS_CONFDIR);
   fprintf(stderr, "\t-d <level> : debug level mask\n");
   fprintf(stderr, "\t             0 = no debugging (default)\n");
-  fprintf(stderr, "\t             2 = ATR parsing info, ECM dumps, CW dumps\n");
+  fprintf(stderr, "\t             2 = ATR parsing info, ECM, EMM and CW dumps\n");
   fprintf(stderr, "\t             4 = traffic from/to the reader\n");
   fprintf(stderr, "\t             8 = traffic from/to the clients\n");
   fprintf(stderr, "\t             16 = traffic to the reader-device on IFD layer\n");
@@ -828,7 +828,7 @@ static int start_listener(struct s_module *ph, int port_idx)
       {
         cs_log("%s: Bind request failed, waiting another %d seconds",
                ph->desc, timeout);
-        sleep(1);
+        cs_sleepms(1000);
       }
       else
       {
@@ -973,7 +973,7 @@ static void start_resolver()
     pthread_detach(tid);
   }
 #endif
-  sleep(1); // wait for reader
+  cs_sleepms(1000); // wait for reader
   while(1)
   {
     if (master_pid!=getppid())
@@ -983,7 +983,7 @@ static void start_resolver()
       if (master_pid!=getppid())
         cs_exit(0);
       else
-        sleep(1);
+        cs_sleepms(1000);
 //        sleep(cfg->resolvedelay);
   }
 }
@@ -1003,7 +1003,7 @@ static void start_anticascader()
       if( master_pid!=getppid() )
         cs_exit(0);
       else
-        sleep(1);
+        cs_sleepms(1000);
 
     if (master_pid!=getppid())
       cs_exit(0);
@@ -1068,7 +1068,7 @@ void wait4master()
 {
   int i;
   for (i=0; (i<1000) && (client[cs_idx].pid!=getpid()); i++)
-    usleep(1000L);
+    cs_sleepms(1);
   if (client[cs_idx].pid!=getpid())
   {
     cs_log("PANIC: client not found in shared memory");
@@ -2071,6 +2071,7 @@ void do_emm(EMM_PACKET *ep)
   client[cs_idx].lastemm=time((time_t)0);
   cs_debug("reader %s has serial %s.", reader[au].label, cs_hexdump(0, reader[au].hexserial, 8));
   cs_ddump(ep->hexserial, 8, "emm UA:");
+	cs_ddump_mask(D_ATR, ep->emm, ep->l, "emm:");
 //  if ((!reader[au].fd) || (reader[au].b_nano[ep->emm[3]])) // blocknano is obsolete
   if ((!reader[au].fd) ||       // reader has no fd
       (reader[au].caid[0]!=b2i(2,ep->caid)) ||    // wrong caid
@@ -2427,7 +2428,7 @@ int main (int argc, char *argv[])
   {
       int card_init_done;
       cs_log("waiting for local card init");
-      sleep(3);  // short sleep for card detect to work proberly
+      cs_sleepms(3000);  // short sleep for card detect to work proberly
       do {
           card_init_done = 1;
           for (i = 0; i < CS_MAXREADER; i++) {

@@ -116,10 +116,7 @@ int Sci_Reset (ATR * atr)
 	}
 	call(!ATR_InitFromArray (atr, buf, n) == ATR_OK);
 	{
-		struct timespec req_ts;
-		req_ts.tv_sec = 0;
-		req_ts.tv_nsec = 50000000;
-		nanosleep (&req_ts, NULL);
+		cs_sleepms(50);
 		call (ioctl(reader[ridx].handle, IOCTL_SET_ATR_READY)<0);
 		return OK;
 	}
@@ -133,11 +130,8 @@ int Sci_WriteSettings (BYTE T, unsigned long fs, unsigned long ETU, unsigned lon
 	call (ioctl(reader[ridx].handle, IOCTL_GET_PARAMETERS, &params) < 0 );
 
 	params.T = T;
-#if defined(TUXBOX) && defined(PPC)
-	reader[ridx].mhz = 357; //signals that we are using default clockrate of reader
-#else
-	params.fs = fs; //Dreambox 500 seems to have trouble with setting this, it really likes fs = 10..
-#endif
+	params.fs = fs;
+
 	//for Irdeto T14 cards, do not set ETU
 	if (ETU)
 		params.ETU = ETU;
@@ -168,13 +162,7 @@ int Sci_Activate ()
 #endif
 			
 		if(in)
-		{
-			struct timespec req_ts;
-			req_ts.tv_sec = 0;
-			req_ts.tv_nsec = 50000000;
-			nanosleep (&req_ts, NULL);
-			return OK;
-		}
+			cs_sleepms(50);
 		else
 			return ERROR;
 		return OK;

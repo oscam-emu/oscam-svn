@@ -39,7 +39,7 @@
 
 #define call(arg) \
 	if (arg) { \
-		cs_log("ERROR, function call %s returns error.",#arg); \
+		cs_debug_mask(D_TRACE, "ERROR, function call %s returns error.",#arg); \
 		return ERROR; \
 	}
 
@@ -122,10 +122,8 @@
 #endif
 
 #define CS_RDR_INIT_HIST
-
-
-#define D_DUMP      1 // RFU
-#define D_ATR       2 // Debug ATR parsing, ecm, cw
+#define D_TRACE     1 // Generate very detailed error/trace messages per routine
+#define D_ATR       2 // Debug ATR parsing, dump of ecm, emm, cw
 #define D_READER    4 // Debug Reader/Proxy Process
 #define D_CLIENT    8 // Debug Client Process
 #define D_IFD       16  // Debug IFD+protocol
@@ -496,6 +494,7 @@ struct s_reader
   uchar     gbox_vers;
   uchar     gbox_prem;
   int       gbox_fd;
+  int       loadbalanced;
   struct timeb  gbox_lasthello;   // incoming time stamp
 #ifdef CS_RDR_INIT_HIST
   uchar     init_history[4096];
@@ -759,7 +758,7 @@ extern uchar *i2b(int, ulong);
 extern ulong a2i(char *, int);
 extern int boundary(int, int);
 extern void cs_ftime(struct timeb *);
-extern void cs_sleepms(int);
+extern void cs_sleepms(unsigned int);
 extern int bytes_available(int);
 extern void cs_setpriority(int);
 extern struct s_auth *find_user(char *);
