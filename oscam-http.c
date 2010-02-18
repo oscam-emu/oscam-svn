@@ -1338,8 +1338,8 @@ void send_oscam_services_edit(struct templatevars *vars, FILE *f, struct uripara
 		else tpl_printf(vars, 1, "CAIDS", ",%04X", sidtab->caid[i]);
 	}
 	for (i=0; i<sidtab->num_provid; i++){
-		if (i==0) tpl_printf(vars, 0, "PROVIDS", "%08lX", sidtab->provid[i]);
-		else tpl_printf(vars, 1, "PROVIDS", ",%08lX", sidtab->provid[i]);
+		if (i==0) tpl_printf(vars, 0, "PROVIDS", "%06lX", sidtab->provid[i]);
+		else tpl_printf(vars, 1, "PROVIDS", ",%06lX", sidtab->provid[i]);
 	}
 	for (i=0; i<sidtab->num_srvid; i++){
 		if (i==0) tpl_printf(vars, 0, "SRVIDS", "%04X", sidtab->srvid[i]);
