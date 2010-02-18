@@ -1020,7 +1020,8 @@ int write_config()
 
 	/*global settings*/
 	fprintf(f,"[global]\n");
-	fprintf_conf(f, CONFVARWIDTH, "serverip", "%s\n", inet_ntoa(*(struct in_addr *)&cfg->srvip));
+	if (cfg->srvip != 0)
+		fprintf_conf(f, CONFVARWIDTH, "serverip", "%s\n", inet_ntoa(*(struct in_addr *)&cfg->srvip));
 	if (cfg->pidfile != NULL) fprintf_conf(f, CONFVARWIDTH, "pidfile", "%s\n", cfg->pidfile);
 	if (cfg->usrfile != NULL) fprintf_conf(f, CONFVARWIDTH, "usrfile", "%s\n", cfg->usrfile);
 	if (cfg->logfile != NULL) fprintf_conf(f, CONFVARWIDTH, "logfile", "%s\n", cfg->logfile);
@@ -1045,7 +1046,8 @@ int write_config()
 	/*monitor settings*/
 	fprintf(f,"[monitor]\n");
 	fprintf_conf(f, CONFVARWIDTH, "port", "%d\n", cfg->mon_port);
-	fprintf_conf(f, CONFVARWIDTH, "serverip", "%s\n", inet_ntoa(*(struct in_addr *)&cfg->mon_srvip));
+	if (cfg->mon_srvip != 0)
+		fprintf_conf(f, CONFVARWIDTH, "serverip", "%s\n", inet_ntoa(*(struct in_addr *)&cfg->mon_srvip));
 
 	fprintf_conf(f, CONFVARWIDTH, "nocrypt", "");
 	struct s_ip *cip;
@@ -1086,7 +1088,8 @@ int write_config()
 		}
 
 		fputc((int)'\n', f);
-		fprintf_conf(f, CONFVARWIDTH, "serverip", "%s\n", inet_ntoa(*(struct in_addr *)&cfg->ncd_srvip));
+		if (cfg->ncd_srvip != 0)
+			fprintf_conf(f, CONFVARWIDTH, "serverip", "%s\n", inet_ntoa(*(struct in_addr *)&cfg->ncd_srvip));
 		fprintf_conf(f, CONFVARWIDTH, "key", "");
 		for (i=0;i<14;i++) fprintf(f,"%02X", cfg->ncd_key[i]);
 		fprintf(f,"\n");
@@ -1107,7 +1110,8 @@ int write_config()
 	if ( cfg->c33_port > 0) {
 		fprintf(f,"[camd33]\n");
 		fprintf_conf(f, CONFVARWIDTH, "port", "%d\n", cfg->c33_port);
-		fprintf_conf(f, CONFVARWIDTH, "serverip", "%s\n", inet_ntoa(*(struct in_addr *)&cfg->c33_srvip));
+		if (cfg->c33_srvip != 0)
+			fprintf_conf(f, CONFVARWIDTH, "serverip", "%s\n", inet_ntoa(*(struct in_addr *)&cfg->c33_srvip));
 		fprintf_conf(f, CONFVARWIDTH, "passive", "%d\n", cfg->c33_passive);
 		fprintf_conf(f, CONFVARWIDTH, "key", ""); for (i = 0; i < (int) sizeof(cfg->c33_key); ++i) fprintf(f,"%02X", cfg->c33_key[i]); fputc((int)'\n', f);
 		fprintf_conf(f, CONFVARWIDTH, "nocrypt", "");
@@ -1124,7 +1128,7 @@ int write_config()
 	if ( cfg->c35_port > 0) {
 		fprintf(f,"[cs357x]\n");
 		fprintf_conf(f, CONFVARWIDTH, "port", "%d\n", cfg->c35_port);
-		if (cfg->c35_tcp_srvip)
+		if (cfg->c35_tcp_srvip != 0)
 			fprintf_conf(f, CONFVARWIDTH, "serverip", "%s\n", inet_ntoa(*(struct in_addr *)&cfg->c35_tcp_srvip));
 		if (cfg->c35_suppresscmd08)
 			fprintf_conf(f, CONFVARWIDTH, "suppresscmd08", "%d\n", cfg->c35_suppresscmd08);
@@ -1150,7 +1154,7 @@ int write_config()
 		}
 
 		fputc((int)'\n', f);
-		if (cfg->c35_tcp_srvip)
+		if (cfg->c35_tcp_srvip != 0)
 			fprintf_conf(f, CONFVARWIDTH, "serverip", "%s\n", inet_ntoa(*(struct in_addr *)&cfg->c35_tcp_srvip));
 		fputc((int)'\n', f);
 	}
@@ -1159,7 +1163,8 @@ int write_config()
 	if ( cfg->rad_port > 0) {
 		fprintf(f,"[radegast]\n");
 		fprintf_conf(f, CONFVARWIDTH, "port", "%d\n", cfg->rad_port);
-		fprintf_conf(f, CONFVARWIDTH, "serverip", "%s\n", inet_ntoa(*(struct in_addr *)&cfg->rad_srvip));
+		if (cfg->rad_srvip != 0)
+			fprintf_conf(f, CONFVARWIDTH, "serverip", "%s\n", inet_ntoa(*(struct in_addr *)&cfg->rad_srvip));
 		fprintf_conf(f, CONFVARWIDTH, "user", "%s\n", cfg->rad_usr);
 		fprintf_conf(f, CONFVARWIDTH, "allowed", "");
 		struct s_ip *cip;

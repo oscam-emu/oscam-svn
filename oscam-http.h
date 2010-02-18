@@ -825,7 +825,7 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 	<TABLE class=\"config\" cellspacing=\"0\">\n\
 		<TR><TH>&nbsp;</TH><TH>Edit Monitor Config</TH></TR>\n\
 		<TR><TD>Port:</TD><TD><input name=\"port\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##MONPORT##\"></TD></TR>\n\
-		<TR><TD>Serverip:</TD><TD><input name=\"serverip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##SERVERIP##\"></TD></TR>\n\
+		<TR><TD>Serverip:</TD><TD><input name=\"serverip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##SERVERIP##\"> Use 0 (zero) to delete.</TD></TR>\n\
 		<TR><TD>Nocrypt:</TD><TD><input name=\"nocrypt\" type=\"text\" size=\"100\" maxlength=\"200\" value=\"##NOCRYPT##\"></TD></TR>\n\
 		<TR><TD>Aulow:</TD><TD><input name=\"aulow\" type=\"text\" size=\"5\" maxlength=\"1\" value=\"##AULOW##\"> min</TD></TR>\n\
 		<TR>\n\
@@ -864,7 +864,7 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 	<TABLE class=\"config\" cellspacing=\"0\">\n\
 		<TR><TH>&nbsp;</TH><TH>Edit Radegast Config</TH></TR>\n\
 		<TR><TD>Port:</TD><TD><input name=\"port\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##PORT##\"></TD></TR>\n\
-		<TR><TD>Serverip:</TD><TD><input name=\"serverip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##SERVERIP##\"></TD></TR>\n\
+		<TR><TD>Serverip:</TD><TD><input name=\"serverip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##SERVERIP##\"> Use 0 (zero) to delete.</TD></TR>\n\
 		<TR><TD>Allowed:</TD><TD><input name=\"allowed\" type=\"text\" size=\"100\" maxlength=\"200\" value=\"##ALLOWED##\"></TD></TR>\n\
 		<TR><TD>User:</TD><TD><input name=\"user\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##USER##\"></TD></TR>\n\
     <TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\">\n</TD></TR>\n\
@@ -885,7 +885,7 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 	<TABLE class=\"config\" cellspacing=\"0\">\n\
 		<TR><TH>&nbsp;</TH><TH>Edit Newcamd Config</TH></TR>\n\
 		<TR><TD>Port:</TD><TD><input name=\"port\" type=\"text\" size=\"100\" maxlength=\"200\" value=\"##PORT##\"></TD></TR>\n\
-		<TR><TD>Serverip:</TD><TD><input name=\"serverip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##SERVERIP##\"></TD></TR>\n\
+		<TR><TD>Serverip:</TD><TD><input name=\"serverip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##SERVERIP##\"> Use 0 (zero) to delete.</TD></TR>\n\
 		<TR><TD>Key:</TD><TD><input name=\"key\" type=\"text\" size=\"35\" maxlength=\"28\" value=\"##KEY##\"></TD></TR>\n\
 		<TR><TD>Allowed:</TD><TD><input name=\"allowed\" type=\"text\" size=\"100\" maxlength=\"200\" value=\"##ALLOWED##\"></TD></TR>\n\
 		<TR><TD>Keepalive:</TD><TD><input name=\"keepalive\" type=\"checkbox\" value=\"1\" ##KEEPALIVE##></TD></TR>\n\
@@ -905,7 +905,7 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 	<input name=\"action\" type=\"hidden\" value=\"execute\">\n\
 	<TABLE class=\"config\" cellspacing=\"0\">\n\
 		<TR><TH>&nbsp;</TH><TH>Edit Global Config</TH></TR>\n\
-		<TR><TD>Serverip:</TD><TD><input name=\"serverip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##SERVERIP##\"></TD></TR>\n\
+		<TR><TD>Serverip:</TD><TD><input name=\"serverip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##SERVERIP##\"> Use 0 (zero) to delete.</TD></TR>\n\
 		<TR><TD>PID File:</TD><TD><input name=\"pidfile\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##PIDFILE##\"></TD></TR>\n\
 		<TR><TD>Usrfile:</TD><TD><input name=\"usrfile\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##USERFILE##\"></TD></TR>\n\
 		<TR><TD>Logfile:</TD><TD><input name=\"logfile\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##LOGFILE##\"></TD></TR>\n\
@@ -942,7 +942,7 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 	<TABLE class=\"config\" cellspacing=\"0\">\n\
 		<TR><TH>&nbsp;</TH><TH>Edit Camd33 Config</TH></TR>\n\
 		<TR><TD>Port:</TD><TD><input name=\"port\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##PORT##\"></TD></TR>\n\
-		<TR><TD>Serverip:</TD><TD><input name=\"serverip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##SERVERIP##\"></TD></TR>\n\
+		<TR><TD>Serverip:</TD><TD><input name=\"serverip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##SERVERIP##\"> Use 0 (zero) to delete.</TD></TR>\n\
 		<TR><TD>Key:</TD><TD><input name=\"key\" type=\"text\" size=\"35\" maxlength=\"28\" value=\"##KEY##\"></TD></TR>\n\
 		<TR><TD>Passive:</TD><TD><input name=\"passive\" type=\"text\" size=\"3\" maxlength=\"1\" value=\"##PASSIVE##\"></TD></TR>\n\
 		<TR><TD>Nocrypt:</TD><TD><input name=\"nocrypt\" type=\"text\" size=\"100\" maxlength=\"200\" value=\"##NOCRYPT##\"></TD></TR>\n\
@@ -964,7 +964,7 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 	<TABLE class=\"config\" cellspacing=\"0\">\n\
 		<TR><TH>&nbsp;</TH><TH>Edit Camd35 Config</TH></TR>\n\
 		<TR><TD>Port:</TD><TD><input name=\"port\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##PORT##\"></TD></TR>\n\
-		<TR><TD>Serverip:</TD><TD><input name=\"serverip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##SERVERIP##\"></TD></TR>\n\
+		<TR><TD>Serverip:</TD><TD><input name=\"serverip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##SERVERIP##\"> Use 0 (zero) to delete.</TD></TR>\n\
 		<TR><TD>Suppresscmd08:</TD><TD><input name=\"suppresscmd08\" type=\"checkbox\" value=\"1\" ##SUPPRESSCMD08##></TD></TR>\n\
 		<TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\">\n</TD></TR>\n\
 	</TABLE>\n\
@@ -983,7 +983,7 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 	<TABLE class=\"config\" cellspacing=\"0\">\n\
 		<TR><TH>&nbsp;</TH><TH>Edit Camd35 TCP Config</TH></TR>\n\
 		<TR><TD>Port:</TD><TD><input name=\"port\" type=\"text\" size=\"100\" maxlength=\"200\" value=\"##PORT##\"></TD></TR>\n\
-		<TR><TD>Serverip:</TD><TD><input name=\"serverip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##SERVERIP##\"></TD></TR>\n\
+		<TR><TD>Serverip:</TD><TD><input name=\"serverip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##SERVERIP##\"> Use 0 (zero) to delete.</TD></TR>\n\
     <TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\">\n</TD></TR>\n\
 	</TABLE>\n\
 </form>\n\
