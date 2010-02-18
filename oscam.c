@@ -1032,18 +1032,18 @@ static void cs_http()
 
 static void init_cardreader()
 {
-  for (ridx=0; ridx<CS_MAXREADER; ridx++)
-    if (reader[ridx].device[0])
-      switch(cs_fork(0, 99))
-      {
-        case -1:
-          cs_exit(1);
-        case  0:
-          break;
-        default:
-          wait4master();
-          start_cardreader();
-      }
+	for (ridx=0; ridx<CS_MAXREADER; ridx++)
+		if ((reader[ridx].device[0]) && (reader[ridx].enable == 1))
+			switch(cs_fork(0, 99)) {
+				case -1:
+					cs_exit(1);
+				case  0:
+					break;
+				default:
+
+		wait4master();
+		start_cardreader();
+	}
 }
 
 static void init_service(int srv)

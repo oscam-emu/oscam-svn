@@ -1662,6 +1662,7 @@ static void chk_reader(char *token, char *value, struct s_reader *rdr)
    */
   strtolower(value);
 
+  if (!strcmp(token, "enable")) { rdr->enable=atoi(value) ? 1 : 0; return; }
   if (!strcmp(token, "services")) { chk_services(value, &rdr->sidtabok, &rdr->sidtabno); return; }
   if (!strcmp(token, "inactivitytimeout")) {   rdr->tcp_ito = atoi(value);  return; }
   if (!strcmp(token, "reconnecttimeout")) {    rdr->tcp_rto = atoi(value);  return; }
@@ -1863,6 +1864,7 @@ int init_readerdb()
       tag=(!strcmp("reader", strtolower(token+1)));
       if (reader[nr].label[0] && reader[nr].typ) nr++;
       memset(&reader[nr], 0, sizeof(struct s_reader));
+      reader[nr].enable = 1;
       reader[nr].tcp_rto = 30;
       reader[nr].show_cls = 10;
       reader[nr].maxqlen = CS_MAXQLEN;
