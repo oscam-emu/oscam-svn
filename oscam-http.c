@@ -27,8 +27,10 @@ int i;
 			break;
 
 		case REFR_READERS:
+#ifdef CS_RDR_INIT_HIST
 			kill(client[0].pid, SIGUSR2);
 			cs_log("Refresh Reader/Tiers requested by WebIF from %s", inet_ntoa(*(struct in_addr *)&in));
+#endif
 			break;
 
 		case REFR_SERVER:
@@ -80,7 +82,7 @@ void send_oscam_config_global(struct templatevars *vars, FILE *f, struct uripara
 	tpl_printf(vars, 0, "CLIENTTIMEOUT", "%ld", cfg->ctimeout/1000);
 	tpl_printf(vars, 0, "FALLBACKTIMEOUT", "%ld", cfg->ftimeout/1000);
 	tpl_printf(vars, 0, "CLIENTMAXIDLE", "%d", cfg->cmaxidle);
-	tpl_printf(vars, 0, "CACHEDELAY", "%ld", cfg->delay/1000);
+	tpl_printf(vars, 0, "CACHEDELAY", "%ld", cfg->delay);
 	tpl_printf(vars, 0, "BINDWAIT", "%d", cfg->bindwait);
 	tpl_printf(vars, 0, "NETPRIO", "%ld", cfg->netprio);
 	tpl_printf(vars, 0, "RESOLVEDELAY", "%d", cfg->resolvedelay);
@@ -540,8 +542,10 @@ void send_oscam_reader(struct templatevars *vars, FILE *f, struct uriparams *par
 			tpl_printf(vars, 0, "EMMBLOCKED", "%d", reader[readeridx].emmblocked);
 			tpl_addVar(vars, 0, "REFRICO", ICREF);
 			tpl_addVar(vars, 0, "READERREFRESH", tpl_getTpl(vars, "READERREFRESHBIT"));
+#ifdef CS_RDR_INIT_HIST
 			tpl_addVar(vars, 0, "ENTICO", ICENT);
 			tpl_addVar(vars, 0, "ENTITLEMENT", tpl_getTpl(vars, "READERENTITLEBIT"));
+#endif
 		} else {
 			tpl_printf(vars, 0, "RIDX", "");
 			tpl_addVar(vars, 0, "EMMERROR", "");
@@ -549,7 +553,9 @@ void send_oscam_reader(struct templatevars *vars, FILE *f, struct uriparams *par
 			tpl_addVar(vars, 0, "EMMSKIPPED", "");
 			tpl_addVar(vars, 0, "EMMBLOCKED", "");
 			tpl_addVar(vars, 0, "READERREFRESH","");
+#ifdef CS_RDR_INIT_HIST
 			tpl_addVar(vars, 0, "ENTITLEMENT","");
+#endif
 		}
 
 		tpl_addVar(vars, 0, "CTYP", ctyp);

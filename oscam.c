@@ -2363,8 +2363,7 @@ int main (int argc, char *argv[])
   }
 
   cs_log("auth size=%d", sizeof(struct s_auth));
-  //cs_log_config();
-  cfg->delay*=1000;
+
   init_sidtab();
   init_readerdb();
   init_userdb();
