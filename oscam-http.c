@@ -1641,15 +1641,15 @@ int process_request(FILE *f, struct in_addr in) {
 }
 
 void http_srv() {
-	int i,sock, reuse =1;
+	int i,sock, reuse = 1;
 	struct sockaddr_in sin;
 	struct sockaddr_in remote;
 	socklen_t len = sizeof(remote);
 	char *tmp;
 
 	/* Prepare lookup array for conversion between ascii and hex */
-	tmp = malloc(3*sizeof(char));
-	for(i=0; i<256; i++) {
+	tmp = malloc(3 * sizeof(char));
+	for(i = 0; i < 256; i++) {
 		snprintf(tmp, 3,"%02x", i);
 		memcpy(hex2ascii[i], tmp, 2);
 	}
@@ -1659,11 +1659,11 @@ void http_srv() {
 	create_rand_str(noncekey,32);
 
 	/* Startup server */
-	if((sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0){
+	if((sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
 		cs_log("HTTP Server: Creating socket failed! (errno=%d)", errno);
 		return;
 	}
-	if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0){
+	if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0) {
 		cs_log("HTTP Server: Setting SO_REUSEADDR via setsockopt failed! (errno=%d)", errno);
 	}
 
@@ -1676,28 +1676,40 @@ void http_srv() {
 		close(sock);
 		return;
 	}
-	if (listen(sock, SOMAXCONN) < 0){
+	if (listen(sock, SOMAXCONN) < 0) {
 		cs_log("HTTP Server: Call to listen() failed! (errno=%d)", errno);
 		close(sock);
 		return;
 	}
 	cs_log("HTTP Server listening on port %d", cfg->http_port);
-	while (running)
-	{
+	struct pollfd pfd[1];
+	int rc;
+	pfd[0].fd = sock;
+	pfd[0].events = (POLLIN | POLLPRI);
+
+	while (running)	{
 		int s;
 		FILE *f;
-		if((s = accept(sock, (struct sockaddr *) &remote, &len)) < 0){
-			cs_log("HTTP Server: Error calling accept() (errno=%d).", errno);
-			break;
-		}
 
-		f = fdopen(s, "r+");
-		process_request(f, remote.sin_addr);
-		fflush(f);
-		fclose(f);
-		shutdown(s, SHUT_WR);
-		close(s);
-  }
-  close(sock);
-  kill(client[0].pid, SIGQUIT);
+		rc = poll(pfd, 1, 1000);
+		if (master_pid != getppid())
+			cs_exit(0);
+
+		if (rc > 0) {
+			if((s = accept(sock, (struct sockaddr *) &remote, &len)) < 0){
+				cs_log("HTTP Server: Error calling accept() (errno=%d).", errno);
+				break;
+			}
+
+			f = fdopen(s, "r+");
+			process_request(f, remote.sin_addr);
+			fflush(f);
+			fclose(f);
+			shutdown(s, SHUT_WR);
+			close(s);
+		}
+	}
+
+	close(sock);
+	kill(client[0].pid, SIGQUIT);
 }
