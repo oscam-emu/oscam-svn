@@ -138,6 +138,7 @@ static void usage()
   fprintf(stderr, "\t             default = %s\n", CS_CONFDIR);
   fprintf(stderr, "\t-d <level> : debug level mask\n");
   fprintf(stderr, "\t             0 = no debugging (default)\n");
+  fprintf(stderr, "\t             1 = detailed error messages\n");
   fprintf(stderr, "\t             2 = ATR parsing info, ECM, EMM and CW dumps\n");
   fprintf(stderr, "\t             4 = traffic from/to the reader\n");
   fprintf(stderr, "\t             8 = traffic from/to the clients\n");
@@ -345,23 +346,10 @@ void cs_reinit_clients()
 				client[i].au		= account->au;
 				client[i].autoau	= account->autoau;
 				client[i].expirationdate = account->expirationdate;
-
-				//set first to global value and then to specific (higher prio)
-				client[i].ncd_keepalive = cfg->ncd_keepalive;
 				client[i].ncd_keepalive = account->ncd_keepalive;
-
-				//set first to global value and then to specific (higher prio)
-				client[i].c35_suppresscmd08 = cfg->c35_suppresscmd08;
 				client[i].c35_suppresscmd08 = account->c35_suppresscmd08;
-
-				//set first to global value and then to specific (higher prio)
-				client[i].tosleep	= (60*cfg->tosleep);
 				client[i].tosleep	= (60*account->tosleep);
-
-				//set first to global value and then to specific (higher prio)
-				client[i].monlvl	= cfg->mon_level;
 				client[i].monlvl	= account->monlvl;
-
 				client[i].disabled	= account->disabled;
 				client[i].fchid		= account->fchid;  // CHID filters
 				client[i].cltab		= account->cltab;  // Class

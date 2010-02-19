@@ -551,10 +551,6 @@ void chk_t_newcamd(char *token, char *value)
     cfg->ncd_keepalive = atoi(value);
     return;
   }
-  else
-  {
-    cfg->ncd_keepalive = 1;
-  }
   if (token[0] != '#')
     fprintf(stderr, "Warning: keyword '%s' in newcamd section not recognized\n",token);
 }
@@ -792,6 +788,7 @@ int init_config()
   cfg->ac_fakedelay=1000;
   strcpy(cfg->ac_logfile, "./oscam_ac.log");
 #endif
+  cfg->ncd_keepalive=1;
   sprintf(token, "%s%s", cs_confdir, cs_conf);
   if (!(fp=fopen(token, "r")))
   {
@@ -1377,7 +1374,10 @@ int init_userdb()
 			account = ptr;
 			memset(account, 0, sizeof(struct s_auth));
 			account->au = (-1);
-			account->ncd_keepalive = 1;
+			account->monlvl = cfg->mon_level;
+			account->tosleep = cfg->tosleep;
+			account->c35_suppresscmd08 = cfg->c35_suppresscmd08;
+			account->ncd_keepalive = cfg->ncd_keepalive;
 			for (i = 1; i < CS_MAXCAIDTAB; account->ctab.mask[i++] = 0xffff);
 			for (i = 1; i < CS_MAXTUNTAB; account->ttab.bt_srvid[i++] = 0x0000);
 			nr++;
