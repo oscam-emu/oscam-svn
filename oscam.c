@@ -1400,81 +1400,78 @@ int write_ecm_DCW(int fd, ECM_REQUEST *er)
   return(write_to_pipe(fd, PIP_ID_DCW, (uchar *) er, sizeof(ECM_REQUEST)));
 }
 
+/*
+ * This function writes the current CW from ECM struct to a cwl file.
+ * The filename is re-calculated and file re-opened every time.
+ * This will consume a bit cpu time, but nothing has to be stored between
+ * each call. If not file exists, a header is prepended
+ */
 void logCWtoFile(ECM_REQUEST *er)
 {
-    /* This function writes the current CW from ECM struct to a cwl file.
-       The filename is re-calculated and file re-opened every time.
-       This will consume a bit cpu time, but nothing has to be stored between
-       each call. If not file exists, a header is prepended */
+	FILE *pfCWL;
+	char srvname[128];
+	/* %s / %s   _I  %04X  _  %s  .cwl  */
+	char buf[256 + sizeof(srvname)];
+	char date[7];
+	unsigned char  i, parity, writeheader = 0;
+	time_t t;
+	struct tm *timeinfo;
+	struct s_srvid *this;
 
-    FILE *pfCWL;
-    char srvname[23];
-    /* %s / %s   _I  %04X  _  %s  .cwl  */
-    char buf[sizeof(cfg->cwlogdir)+1+6+2+4+1+sizeof(srvname)+5];
-    char date[7];
-    unsigned char  i, parity, writeheader = 0;
-    time_t t;
-    struct tm *timeinfo;
-    struct s_srvid *this;
+	/* CWL logging only if cwlogdir is set in config */
+    if (cfg->cwlogdir != NULL) {
+	/* search service name for that id and change characters
+		causing problems in file name */
+		srvname[0] = 0;
+		for (this=cfg->srvid; this; this = this->next) {
+			if (this->srvid == er->srvid) {
+				cs_strncpy(srvname, this->name, sizeof(srvname));
+				srvname[sizeof(srvname)-1] = 0;
+				for (i = 0; srvname[i]; i++)
+					if (srvname[i] == ' ') srvname[i] = '_';
+				break;
+			}
+		}
 
-    if (cfg->cwlogdir != NULL)     /* CWL logging only if cwlogdir is set in config */
-    {
-        /* search service name for that id and change characters
-           causing problems in file name */
-        srvname[0] = 0;
-        for (this=cfg->srvid; this; this=this->next) {
-            if (this->srvid==er->srvid) {
-                cs_strncpy(srvname, this->name, sizeof(srvname));
-                srvname[sizeof(srvname)-1] = 0;
-                for (i=0;srvname[i];i++)
-                    if (srvname[i]==' ') srvname[i]='_';
-                break;
-            }
-        }
+		/* calc log file name */
+		time(&t);
+		timeinfo = localtime(&t);
+		strftime(date, sizeof(date), "%y%m%d", timeinfo);
+		sprintf(buf, "%s/%s_I%04X_%s.cwl", cfg->cwlogdir, date, er->srvid, srvname);
 
-        /* calc log file name */
-        time(&t);
-        timeinfo = localtime(&t);
-        strftime(date,sizeof(date),"%y%m%d",timeinfo);
-        sprintf(buf, "%s/%s_I%04X_%s.cwl", cfg->cwlogdir, date, er->srvid, srvname);
+		/* open failed, assuming file does not exist, yet */
+		if((pfCWL = fopen(buf, "r")) == NULL) {
+			writeheader = 1;
+		} else {
+		/* we need to close the file if it was opened correctly */
+			fclose(pfCWL);
+		}
 
-        if((pfCWL=fopen(buf,"r")) == NULL)
-        {
-            /* open failed, assuming file does not exist, yet */
-            writeheader = 1;
-        } else
-        {
-            /* we need to close the file if it was opened correctly */
-            fclose(pfCWL);
-        }
+		if ((pfCWL = fopen(buf, "a+")) == NULL) {
+			/* maybe this fails because the subdir does not exist. Is there a common function to create it?
+				for the moment do not print to log on every ecm
+				cs_log(""error opening cw logfile for writing: %s (errno %d)", buf, errno); */
+			return;
+		}
+		if (writeheader) {
+			/* no global macro for cardserver name :( */
+			fprintf(pfCWL, "# OSCam cardserver v%s - http://streamboard.gmc.to:8001/oscam/wiki\n", CS_VERSION_X);
+			fprintf(pfCWL, "# control word log file for use with tsdec offline decrypter\n");
+			strftime(buf, sizeof(buf),"DATE %Y-%m-%d, TIME %H:%M:%S, TZ %Z\n", timeinfo);
+			fprintf(pfCWL, "# %s", buf);
+			fprintf(pfCWL, "# CAID 0x%04X, SID 0x%04X, SERVICE \"%s\"\n", er->caid, er->srvid, srvname);
+		}
 
-        if ((pfCWL=fopen(buf, "a+")) == NULL)
-        {
-            /* maybe this fails because the subdir does not exist. Is there a common function to create it? */
-            /* for the moment do not print to log on every ecm
-               cs_log(""error opening cw logfile for writing: %s (errno %d)", buf, errno); */
-            return;
-        }
-        if (writeheader)
-        {
-            /* no global macro for cardserver name :( */
-        	fprintf(pfCWL, "# OSCam cardserver v%s - http://streamboard.gmc.to:8001/oscam/wiki\n", CS_VERSION_X);
-            fprintf(pfCWL, "# control word log file for use with tsdec offline decrypter\n");
-            strftime(buf,sizeof(buf),"DATE %Y-%m-%d, TIME %H:%M:%S, TZ %Z\n",timeinfo);
-            fprintf(pfCWL, "# %s",buf);
-            fprintf(pfCWL, "# CAID 0x%04X, SID 0x%04X, SERVICE \"%s\"\n", er->caid, er->srvid, srvname);
-        }
-
-        parity = er->ecm[0]&1;
-        fprintf(pfCWL, "%d ",parity);
-        for (i=parity*8; i<8+parity*8; i++)
-            fprintf(pfCWL, "%02X ",er->cw[i]);
-        /* better use incoming time er->tps rather than current time? */
-        strftime(buf,sizeof(buf),"%H:%M:%S\n",timeinfo);
-        fprintf(pfCWL, "# %s",buf);
-        fflush(pfCWL);
-        fclose(pfCWL);
-    } /* if (cfg->pidfile[0]) */
+		parity = er->ecm[0]&1;
+		fprintf(pfCWL, "%d ", parity);
+		for (i = parity * 8; i < 8 + parity * 8; i++)
+			fprintf(pfCWL, "%02X ", er->cw[i]);
+		/* better use incoming time er->tps rather than current time? */
+		strftime(buf,sizeof(buf),"%H:%M:%S\n", timeinfo);
+		fprintf(pfCWL, "# %s", buf);
+		fflush(pfCWL);
+		fclose(pfCWL);
+    }
 }
 
 int write_ecm_answer(int fd, ECM_REQUEST *er)
@@ -1496,6 +1493,9 @@ int write_ecm_answer(int fd, ECM_REQUEST *er)
   er->caid=er->ocaid;
   if (er->rc==1||(er->gbxRidx&&er->rc==0)){
     store_ecm(er);
+
+  /* CWL logging only if cwlogdir is set in config */
+  if (cfg->cwlogdir != NULL)
     logCWtoFile(er);
   }
 
@@ -2571,4 +2571,3 @@ int main (int argc, char *argv[])
   }
   cs_exit(1);
 }
-
