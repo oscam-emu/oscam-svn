@@ -1418,60 +1418,59 @@ void logCWtoFile(ECM_REQUEST *er)
 	struct tm *timeinfo;
 	struct s_srvid *this;
 
-	/* CWL logging only if cwlogdir is set in config */
-    if (cfg->cwlogdir != NULL) {
-	/* search service name for that id and change characters
-		causing problems in file name */
-		srvname[0] = 0;
-		for (this=cfg->srvid; this; this = this->next) {
-			if (this->srvid == er->srvid) {
-				cs_strncpy(srvname, this->name, sizeof(srvname));
-				srvname[sizeof(srvname)-1] = 0;
-				for (i = 0; srvname[i]; i++)
-					if (srvname[i] == ' ') srvname[i] = '_';
-				break;
-			}
+	/* 
+	* search service name for that id and change characters
+	* causing problems in file name 
+	*/
+	srvname[0] = 0;
+	for (this=cfg->srvid; this; this = this->next) {
+		if (this->srvid == er->srvid) {
+			cs_strncpy(srvname, this->name, sizeof(srvname));
+			srvname[sizeof(srvname)-1] = 0;
+			for (i = 0; srvname[i]; i++)
+				if (srvname[i] == ' ') srvname[i] = '_';
+			break;
 		}
+	}
 
-		/* calc log file name */
-		time(&t);
-		timeinfo = localtime(&t);
-		strftime(date, sizeof(date), "%y%m%d", timeinfo);
-		sprintf(buf, "%s/%s_I%04X_%s.cwl", cfg->cwlogdir, date, er->srvid, srvname);
+	/* calc log file name */
+	time(&t);
+	timeinfo = localtime(&t);
+	strftime(date, sizeof(date), "%y%m%d", timeinfo);
+	sprintf(buf, "%s/%s_I%04X_%s.cwl", cfg->cwlogdir, date, er->srvid, srvname);
 
-		/* open failed, assuming file does not exist, yet */
-		if((pfCWL = fopen(buf, "r")) == NULL) {
-			writeheader = 1;
-		} else {
-		/* we need to close the file if it was opened correctly */
-			fclose(pfCWL);
-		}
-
-		if ((pfCWL = fopen(buf, "a+")) == NULL) {
-			/* maybe this fails because the subdir does not exist. Is there a common function to create it?
-				for the moment do not print to log on every ecm
-				cs_log(""error opening cw logfile for writing: %s (errno %d)", buf, errno); */
-			return;
-		}
-		if (writeheader) {
-			/* no global macro for cardserver name :( */
-			fprintf(pfCWL, "# OSCam cardserver v%s - http://streamboard.gmc.to:8001/oscam/wiki\n", CS_VERSION_X);
-			fprintf(pfCWL, "# control word log file for use with tsdec offline decrypter\n");
-			strftime(buf, sizeof(buf),"DATE %Y-%m-%d, TIME %H:%M:%S, TZ %Z\n", timeinfo);
-			fprintf(pfCWL, "# %s", buf);
-			fprintf(pfCWL, "# CAID 0x%04X, SID 0x%04X, SERVICE \"%s\"\n", er->caid, er->srvid, srvname);
-		}
-
-		parity = er->ecm[0]&1;
-		fprintf(pfCWL, "%d ", parity);
-		for (i = parity * 8; i < 8 + parity * 8; i++)
-			fprintf(pfCWL, "%02X ", er->cw[i]);
-		/* better use incoming time er->tps rather than current time? */
-		strftime(buf,sizeof(buf),"%H:%M:%S\n", timeinfo);
-		fprintf(pfCWL, "# %s", buf);
-		fflush(pfCWL);
+	/* open failed, assuming file does not exist, yet */
+	if((pfCWL = fopen(buf, "r")) == NULL) {
+		writeheader = 1;
+	} else {
+	/* we need to close the file if it was opened correctly */
 		fclose(pfCWL);
-    }
+	}
+
+	if ((pfCWL = fopen(buf, "a+")) == NULL) {
+		/* maybe this fails because the subdir does not exist. Is there a common function to create it?
+			for the moment do not print to log on every ecm
+			cs_log(""error opening cw logfile for writing: %s (errno %d)", buf, errno); */
+		return;
+	}
+	if (writeheader) {
+		/* no global macro for cardserver name :( */
+		fprintf(pfCWL, "# OSCam cardserver v%s - http://streamboard.gmc.to:8001/oscam/wiki\n", CS_VERSION_X);
+		fprintf(pfCWL, "# control word log file for use with tsdec offline decrypter\n");
+		strftime(buf, sizeof(buf),"DATE %Y-%m-%d, TIME %H:%M:%S, TZ %Z\n", timeinfo);
+		fprintf(pfCWL, "# %s", buf);
+		fprintf(pfCWL, "# CAID 0x%04X, SID 0x%04X, SERVICE \"%s\"\n", er->caid, er->srvid, srvname);
+	}
+
+	parity = er->ecm[0]&1;
+	fprintf(pfCWL, "%d ", parity);
+	for (i = parity * 8; i < 8 + parity * 8; i++)
+		fprintf(pfCWL, "%02X ", er->cw[i]);
+	/* better use incoming time er->tps rather than current time? */
+	strftime(buf,sizeof(buf),"%H:%M:%S\n", timeinfo);
+	fprintf(pfCWL, "# %s", buf);
+	fflush(pfCWL);
+	fclose(pfCWL);
 }
 
 int write_ecm_answer(int fd, ECM_REQUEST *er)
