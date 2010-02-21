@@ -68,78 +68,68 @@ void cs_write_log(char *txt)
 
 int cs_init_log(char *file)
 {
-  static char *head = ">> OSCam <<  cardserver started version " CS_VERSION ", build #" CS_SVN_VERSION " (" CS_OSTYPE ")";
+	static char *head = ">> OSCam <<  cardserver started version " CS_VERSION ", build #" CS_SVN_VERSION " (" CS_OSTYPE ")";
 
-  if (!strcmp(file, "stdout"))
-  {
-    use_stdout=1;
-    fp=stdout;
-    cs_log(head);
-    cs_log_config();
-    return(0);
-  }
-  if (strcmp(file, "syslog"))
-  {
-    if (!fp)
-    {
-      if ((fp=fopen(file, "a+"))<=(FILE *)0)
-      {
-        fp=(FILE *)0;
-        fprintf(stderr, "couldn't open logfile: %s (errno %d)\n", file, errno);
-      }
-      else
-      {
-        time_t t;
-        char line[80];
-        memset(line, '-', sizeof(line));
-        line[(sizeof(line)/sizeof(char))-1]='\0';
-        time(&t);
-        fprintf(fp, "\n%s\n>> OSCam <<  cardserver started at %s%s\n", line, ctime(&t), line);
-        cs_log_config();
-      }
-    }
-    return(fp<=(FILE *)0);
-  }
-  else
-  {
-    openlog("oscam", LOG_NDELAY, LOG_DAEMON);
-    use_syslog=1;
-    cs_log(head);
-    cs_log_config();
-    return(0);
-  }
+	if (!strcmp(file, "stdout")) {
+		use_stdout = 1;
+		fp = stdout;
+		cs_log(head);
+		cs_log_config();
+		return(0);
+	}
+	if (strcmp(file, "syslog")) {
+		if (!fp) {
+			if ((fp = fopen(file, "a+")) <= (FILE *)0) {
+				fp = (FILE *)0;
+				fprintf(stderr, "couldn't open logfile: %s (errno %d)\n", file, errno);
+			} else {
+				time_t t;
+				char line[80];
+				memset(line, '-', sizeof(line));
+				line[(sizeof(line)/sizeof(char)) - 1] = '\0';
+				time(&t);
+				if (!cfg->disablelog)
+					fprintf(fp, "\n%s\n>> OSCam <<  cardserver started at %s%s\n", line, ctime(&t), line);
+				cs_log_config();
+			}
+		}
+		return(fp <= (FILE *)0);
+	} else {
+		openlog("oscam", LOG_NDELAY, LOG_DAEMON);
+		use_syslog = 1;
+		cs_log(head);
+		cs_log_config();
+		return(0);
+	}
 }
 
 static char *get_log_header(int m, char *txt)
 {
-  if (m)
-  {
-    sprintf(txt, "%6d ", getpid());
-    if (cs_idx)
-      switch (client[cs_idx].typ)
-      {
-        case 'r':
-        case 'p': sprintf(txt+7, "%c%02d ", client[cs_idx].typ, cs_idx-1);
-                  break;
-        case 'm':
-        case 'c': sprintf(txt+7, "%c%02d ", client[cs_idx].typ, cs_idx-cdiff);
-                  break;
+	if(m) {
+		sprintf(txt, "%6d ", getpid());
+		if (cs_idx) {
+			switch (client[cs_idx].typ) {
+				case 'r':
+				case 'p':	sprintf(txt+7, "%c%02d ", client[cs_idx].typ, cs_idx - 1);
+							break;
+				case 'm':
+				case 'c':	sprintf(txt+7, "%c%02d ", client[cs_idx].typ, cs_idx - cdiff);
+							break;
 #ifdef CS_ANTICASC
-        case 'a':
+				case 'a':
 #endif
-        case 'l':
-        case 'h':
-        case 'n': sprintf(txt+7, "%c   "  , client[cs_idx].typ);
-                  break;
-      }
-    else
-      strcpy(txt+7, "s   ");
-  }
-  else
-  {
-    sprintf(txt, "%-11.11s", "");
-  }
-  return(txt);
+				case 'l':
+				case 'h':
+				case 'n':	sprintf(txt+7, "%c   "  , client[cs_idx].typ);
+							break;
+			}
+		} else {
+			strcpy(txt+7, "s   ");
+		}
+	} else {
+		sprintf(txt, "%-11.11s", "");
+	}
+	return(txt);
 }
 
 static void write_to_log(int flag, char *txt)
