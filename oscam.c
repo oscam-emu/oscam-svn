@@ -401,27 +401,35 @@ static void cs_accounts_chk()
 
 static void cs_debug_level()
 {
-  int i;
+	int i;
 
-	switch (cs_dblevel) {
-		case 0:
-			cs_dblevel = 1;
-			break;
-		case 32:
-			cs_dblevel = 63;
-			break;
-		case 63:
-			cs_dblevel = 0;
-			break;
-		default:
-			cs_dblevel <<= 1;
+	//switch debuglevel forward one step if not set from outside
+	if(cfg->debuglvl == cs_dblevel) {
+		switch (cs_dblevel) {
+			case 0:
+				cs_dblevel = 1;
+				break;
+			case 32:
+				cs_dblevel = 63;
+				break;
+			case 63:
+				cs_dblevel = 0;
+				break;
+			default:
+				cs_dblevel <<= 1;
+		}
+	} else {
+		cs_dblevel = cfg->debuglvl;
 	}
-  if (master_pid==getpid())
-    for (i=0; i<CS_MAXPID && client[i].pid; i++)
-      client[i].dbglvl=cs_dblevel;
-  else
-    client[cs_idx].dbglvl=cs_dblevel;
-  cs_log("%sdebug_level=%d", (master_pid==getpid())?"all ":"",cs_dblevel);
+
+	cfg->debuglvl = cs_dblevel;
+
+	if (master_pid == getpid())
+		for (i=0; i<CS_MAXPID && client[i].pid; i++)
+			client[i].dbglvl = cs_dblevel;
+		else
+			client[cs_idx].dbglvl = cs_dblevel;
+		cs_log("%sdebug_level=%d", (master_pid == getpid())?"all ":"", cs_dblevel);
 }
 
 static void cs_card_info(int i)
@@ -2355,6 +2363,7 @@ int main (int argc, char *argv[])
   if (cs_confdir[strlen(cs_confdir)]!='/') strcat(cs_confdir, "/");
   init_shm();
   init_config();
+  cfg->debuglvl = cs_dblevel; // give static debuglevel to outer world
   for (i=0; mod_def[i]; i++)  // must be later BEFORE init_config()
   {
     memset(&ph[i], 0, sizeof(struct s_module));
