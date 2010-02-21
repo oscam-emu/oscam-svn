@@ -612,6 +612,7 @@ struct s_config
   char      *usrfile;
   char      *cwlogdir;
   char      *logfile;
+  int		disablelog;
   int		usrfileflag;
   struct s_auth *account;
   struct s_srvid *srvid;

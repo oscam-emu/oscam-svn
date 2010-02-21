@@ -49,20 +49,21 @@ static void switch_log(char* file, FILE **f, int (*pfinit)(char*))
 void cs_write_log(char *txt)
 {
 #ifdef CS_ANTICASC
-  if( use_ac_log && fpa )
-  {
-    switch_log(cfg->ac_logfile, &fpa, ac_init_log);
-    fprintf(fpa, "%s", txt);
-    fflush(fpa);
-  }
-  else
+	if( use_ac_log && fpa ) {
+		switch_log(cfg->ac_logfile, &fpa, ac_init_log);
+		fprintf(fpa, "%s", txt);
+		fflush(fpa);
+	}
+	else
 #endif
-  if (fp || use_stdout)
-  {
-    if( !use_stdout && !use_syslog) switch_log(cfg->logfile, &fp, cs_init_log);
-    fprintf(fp, "%s", txt);
-    fflush(fp);
-  }
+		if (fp || use_stdout) {
+			if( !use_stdout && !use_syslog)
+				switch_log(cfg->logfile, &fp, cs_init_log);
+			if (!cfg->disablelog){
+				fprintf(fp, "%s", txt);
+				fflush(fp);
+			}
+		}
 }
 
 int cs_init_log(char *file)
