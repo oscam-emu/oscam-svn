@@ -489,6 +489,16 @@ void clear_ptab(struct s_ptab *ptab){
 	ptab->nports = 0;
 }
 
+/* Clears given caidtab */
+void clear_caidtab(struct s_caidtab *ctab){
+	int i;
+	for (i = 0; i < CS_MAXCAIDTAB; i++) {
+		ctab->caid[i] = 0;
+		ctab->mask[i] = 0;
+		ctab->cmap[i] = 0;
+	}
+}
+
 /* Overwrites destfile with tmpfile. If forceBakOverWrite = 0, the bakfile will not be overwritten if it exists, else it will be.*/
 int safe_overwrite_with_bak(char *destfile, char *tmpfile, char *bakfile, int forceBakOverWrite){
 	if(forceBakOverWrite != 0 && file_exists(bakfile)){
