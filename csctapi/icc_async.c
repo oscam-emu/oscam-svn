@@ -74,19 +74,23 @@ int ICC_Async_Device_Init ()
 	cs_debug_mask (D_IFD, "IFD: Opening device %s\n", reader[ridx].device);
 
 	wr = 0;
-	if (reader[ridx].typ <= R_MOUSE)	
-		reader[ridx].handle = open (reader[ridx].device,  O_RDWR | O_NOCTTY| O_NONBLOCK);
-		if (reader[ridx].handle < 0) {
-			cs_log("ERROR opening device %s",reader[ridx].device);
-			return ERROR;
-		}
 
 	switch(reader[ridx].typ) {
 		case R_MOUSE:
+			reader[ridx].handle = open (reader[ridx].device,  O_RDWR | O_NOCTTY| O_NONBLOCK);
+			if (reader[ridx].handle < 0) {
+				cs_log("ERROR opening device %s",reader[ridx].device);
+				return ERROR;
+			}
 			break;
 #if defined(TUXBOX) && defined(PPC)
 		case R_DB2COM1:
 		case R_DB2COM2:
+			reader[ridx].handle = open (reader[ridx].device,  O_RDWR | O_NOCTTY| O_SYNC);
+			if (reader[ridx].handle < 0) {
+				cs_log("ERROR opening device %s",reader[ridx].device);
+				return ERROR;
+			}
 			if ((fdmc = open(DEV_MULTICAM, O_RDWR)) < 0) {
 				close(reader[ridx].handle);
 				cs_log("ERROR opening device %s",DEV_MULTICAM);
@@ -291,8 +295,20 @@ int Protocol_Command (unsigned char * command, unsigned long command_len, APDU_R
 			call (Protocol_T0_Command (command, command_len, rsp));
 			break;
 		case ATR_PROTOCOL_TYPE_T1:
-			call (Protocol_T1_Command (command, command_len, rsp));
+		 {
+			int try = 1;
+			do {
+				if (Protocol_T1_Command (command, command_len, rsp) == OK)
+					break;
+				try++;
+				//try to resync
+				APDU_Rsp ** rsp;
+				unsigned char resync[] = { 0x21, 0xC0, 0x00, 0xE1 };
+				Protocol_T1_Command (resync, sizeof(resync), rsp);
+				ifsc = DEFAULT_IFSC;
+			} while (try <= 3);
 			break;
+		 }
 		case ATR_PROTOCOL_TYPE_T14:
 			call (Protocol_T14_ExchangeTPDU (command, command_len, rsp));
 			break;
@@ -760,13 +776,7 @@ static int InitCard (ATR * atr, BYTE FI, double d, double n, unsigned short depr
 					ifsc = DEFAULT_IFSC;
 			
 				// Towitoko does not allow IFSC > 251 //FIXME not sure whether this limitation still exists
-				//ifsc = MIN (ifsc, MAX_IFSC);
-
-				//FIXME workaround for Smargo until native mode works
-				if(reader[ridx].smargopatch == 1)
-					ifsc = MIN (ifsc, 28);
-				else
-					ifsc = MIN (ifsc, MAX_IFSC);
+				ifsc = MIN (ifsc, MAX_IFSC);
 			
 			#ifndef PROTOCOL_T1_USE_DEFAULT_TIMINGS
 				// Calculate CWI and BWI
