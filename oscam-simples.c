@@ -499,6 +499,15 @@ void clear_caidtab(struct s_caidtab *ctab){
 	}
 }
 
+/* Clears given tuntab */
+void clear_tuntab(struct s_tuntab *ttab){
+	int i;
+	for (i = 0; i < CS_MAXTUNTAB; i++) {
+		ttab->bt_caidfrom[i] = 0;
+		ttab->bt_caidto[i] = 0;
+		ttab->bt_srvid[i] = 0;
+	}
+}
 /* Overwrites destfile with tmpfile. If forceBakOverWrite = 0, the bakfile will not be overwritten if it exists, else it will be.*/
 int safe_overwrite_with_bak(char *destfile, char *tmpfile, char *bakfile, int forceBakOverWrite){
 	if(forceBakOverWrite != 0 && file_exists(bakfile)){

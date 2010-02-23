@@ -501,7 +501,7 @@ static void monitor_logsend(char *flag){
 }
 
 static void monitor_set_debuglevel(char *flag){
-	cs_dblevel^=atoi(flag);
+	cfg->debuglvl = atoi(flag);
 	kill(client[0].pid, SIGUSR1);
 }
 
@@ -554,7 +554,17 @@ static void monitor_set_account(char *args){
 	found = 0;
 	for (i = 0; i < tokencnt; i++){
 		if (!strcmp(argarray[1], token[i])){
-			chk_account(token[i],argarray[2],account);
+			// preparing the parameters before re-load
+			switch(i) {
+
+				case	6: clear_tuntab(&account->ttab); break;		//betatunnel
+
+				case	8: clear_caidtab(&account->ctab); break;	//Caid
+
+
+
+
+			}
 			found = 1;
 		}
 	}
@@ -563,6 +573,8 @@ static void monitor_set_account(char *args){
 		sprintf(buf, "[S-0000]setuser failed - parameter %s not exist", argarray[1]);
 		monitor_send_info(buf, 1);
 		return;
+	} else {
+		chk_account(token[i],argarray[2],account);
 	}
 
 	cs_reinit_clients();
