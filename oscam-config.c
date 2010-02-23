@@ -119,84 +119,73 @@ void chk_iprange(char *value, struct s_ip **base)
 
 void chk_caidtab(char *caidasc, CAIDTAB *ctab)
 {
-  int i;
-  char *ptr1, *ptr2, *ptr3;
+	int i;
+	char *ptr1, *ptr2, *ptr3;
 
-  //reset caid tab needed for usage while runtime from webif
-  for (i=0;i<CS_MAXCAIDTAB;i++){
-  	ctab->caid[i]=0;
-		ctab->mask[i]=0;
-		ctab->cmap[i++]=0;
-  }
+	for (i = 0, ptr1 = strtok(caidasc, ","); (i < CS_MAXCAIDTAB) && (ptr1); ptr1 = strtok(NULL, ",")) {
+		ulong caid, mask, cmap;
+		if( (ptr3 = strchr(trim(ptr1), ':')) )
+			*ptr3++ = '\0';
+		else
+			ptr3 = "";
 
-  for (i=0, ptr1=strtok(caidasc, ","); (i<CS_MAXCAIDTAB) && (ptr1); ptr1=strtok(NULL, ","))
-  {
-    ulong caid, mask, cmap;
-    if( (ptr3=strchr(trim(ptr1), ':')) )
-      *ptr3++='\0';
-    else
-      ptr3="";
-    if( (ptr2=strchr(trim(ptr1), '&')) )
-      *ptr2++='\0';
-    else
-      ptr2="";
-    if (((caid=a2i(ptr1, 2))|(mask=a2i(ptr2,-2))|(cmap=a2i(ptr3, 2))) < 0x10000)
-    {
-      ctab->caid[i]=caid;
-      ctab->mask[i]=mask;
-      ctab->cmap[i++]=cmap;
-    }
-//    else
-//      cs_log("WARNING: wrong CAID in %s -> ignored", cs_user);
-  }
+		if( (ptr2 = strchr(trim(ptr1), '&')) )
+			*ptr2++ = '\0';
+		else
+			ptr2 = "";
+
+		if (((caid = a2i(ptr1, 2)) | (mask = a2i(ptr2,-2)) | (cmap = a2i(ptr3, 2))) < 0x10000) {
+			ctab->caid[i] = caid;
+			ctab->mask[i] = mask;
+			ctab->cmap[i++] = cmap;
+		}
+	}
 }
 
 void chk_tuntab(char *tunasc, TUNTAB *ttab)
 {
-  int i;
-  char *ptr1, *ptr2, *ptr3;
+	int i;
+	char *ptr1, *ptr2, *ptr3;
 
-  //reset tuntab for usage during runtime from WebIf
-  for (i=0;i<CS_MAXTUNTAB;i++) {
-		ttab->bt_caidfrom[i]=0;
-		ttab->bt_caidto[i]=0;
-		ttab->bt_srvid[i++]=0;
-  }
+	// ToDo: remove after using clear_tuntab() in Webif
+	for (i = 0; i < CS_MAXTUNTAB; i++) {
+		ttab->bt_caidfrom[i] = 0;
+		ttab->bt_caidto[i] = 0;
+		ttab->bt_srvid[i] = 0;
+	}
 
-	for (i=0, ptr1=strtok(tunasc, ","); (i<CS_MAXTUNTAB) && (ptr1); ptr1=strtok(NULL, ","))
-  {
-    ulong bt_caidfrom, bt_caidto, bt_srvid;
-    if( (ptr3=strchr(trim(ptr1), ':')) )
-      *ptr3++='\0';
-    else
-      ptr3="";
-    if( (ptr2=strchr(trim(ptr1), '.')) )
-      *ptr2++='\0';
-    else
-      ptr2="";
-    if ((bt_caidfrom=a2i(ptr1, 2))|(bt_srvid=a2i(ptr2,-2))|(bt_caidto=a2i(ptr3, 2)))
-    {
-      ttab->bt_caidfrom[i]=bt_caidfrom;
-      ttab->bt_caidto[i]=bt_caidto;
-      ttab->bt_srvid[i++]=bt_srvid;
-    }
-//    else
-//      cs_log("WARNING: wrong Betatunnel in %s -> ignored", cs_user);
-  }
+	for (i = 0, ptr1 = strtok(tunasc, ","); (i < CS_MAXTUNTAB) && (ptr1); ptr1 = strtok(NULL, ",")) {
+		ulong bt_caidfrom, bt_caidto, bt_srvid;
+		if( (ptr3 = strchr(trim(ptr1), ':')) )
+			*ptr3++ = '\0';
+		else
+			ptr3 = "";
+
+		if( (ptr2 = strchr(trim(ptr1), '.')) )
+			*ptr2++ = '\0';
+		else
+			ptr2 = "";
+
+		if ((bt_caidfrom = a2i(ptr1, 2)) | (bt_srvid = a2i(ptr2,-2)) | (bt_caidto = a2i(ptr3, 2))) {
+			ttab->bt_caidfrom[i] = bt_caidfrom;
+			ttab->bt_caidto[i] = bt_caidto;
+			ttab->bt_srvid[i++] = bt_srvid;
+		}
+	}
 }
 
 void chk_services(char *labels, ulong *sidok, ulong *sidno)
 {
-  int i;
-  char *ptr;
-  SIDTAB *sidtab;
-  *sidok=*sidno=0;
-  for (ptr=strtok(labels, ","); ptr; ptr=strtok(NULL, ","))
-    for (trim(ptr), i=0, sidtab=cfg->sidtab; sidtab; sidtab=sidtab->next, i++)
-    {
-      if (!strcmp(sidtab->label, ptr)) *sidok|=(1<<i);
-      if ((ptr[0]=='!') && (!strcmp(sidtab->label, ptr+1))) *sidno|=(1<<i);
-    }
+	int i;
+	char *ptr;
+	SIDTAB *sidtab;
+	*sidok = *sidno = 0;
+	for (ptr=strtok(labels, ","); ptr; ptr=strtok(NULL, ",")) {
+		for (trim(ptr), i = 0, sidtab = cfg->sidtab; sidtab; sidtab = sidtab->next, i++) {
+			if (!strcmp(sidtab->label, ptr)) *sidok|=(1<<i);
+			if ((ptr[0]=='!') && (!strcmp(sidtab->label, ptr+1))) *sidno|=(1<<i);
+		}
+	}
 }
 
 void chk_ftab(char *zFilterAsc, FTAB *ftab, const char *zType, const char *zName, const char *zFiltName)
