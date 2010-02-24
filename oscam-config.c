@@ -147,13 +147,6 @@ void chk_tuntab(char *tunasc, TUNTAB *ttab)
 	int i;
 	char *ptr1, *ptr2, *ptr3;
 
-	// ToDo: remove after using clear_tuntab() in Webif
-	for (i = 0; i < CS_MAXTUNTAB; i++) {
-		ttab->bt_caidfrom[i] = 0;
-		ttab->bt_caidto[i] = 0;
-		ttab->bt_srvid[i] = 0;
-	}
-
 	for (i = 0, ptr1 = strtok(tunasc, ","); (i < CS_MAXTUNTAB) && (ptr1); ptr1 = strtok(NULL, ",")) {
 		ulong bt_caidfrom, bt_caidto, bt_srvid;
 		if( (ptr3 = strchr(trim(ptr1), ':')) )
@@ -514,186 +507,453 @@ void chk_t_global(char *token, char *value)
 #ifdef CS_ANTICASC
 void chk_t_ac(char *token, char *value)
 {
-  if (!strcmp(token, "enabled"))
-  {
-    cfg->ac_enabled=atoi(value);
-    if( cfg->ac_enabled<=0 ) cfg->ac_enabled=0;
-    else cfg->ac_enabled=1;
-    return;
-  }
+	if (!strcmp(token, "enabled")) {
+		cfg->ac_enabled = atoi(value);
+		if( cfg->ac_enabled <= 0 )
+			cfg->ac_enabled = 0;
+		else
+			cfg->ac_enabled = 1;
+	return;
+	}
 
-  if (!strcmp(token, "numusers"))
-  {
-    cfg->ac_users=atoi(value);
-    if( cfg->ac_users<0 ) cfg->ac_users=0;
-    return;
-  }
-  if (!strcmp(token, "sampletime"))
-  {
-    cfg->ac_stime=atoi(value);
-    if( cfg->ac_stime<0 ) cfg->ac_stime=2;
-    return;
-  }
-  if (!strcmp(token, "samples"))
-  {
-    cfg->ac_samples=atoi(value);
-    if( cfg->ac_samples<2 || cfg->ac_samples>10) cfg->ac_samples=10;
-    return;
-  }
-  if (!strcmp(token, "penalty"))
-  {
-    cfg->ac_penalty=atoi(value);
-    if( cfg->ac_penalty<0 ) cfg->ac_penalty=0;
-    return;
-  }
-  if (!strcmp(token, "aclogfile"))
-  {
-    cs_strncpy(cfg->ac_logfile, value, sizeof(cfg->ac_logfile));
-    return;
-  }
-  if( !strcmp(token, "fakedelay") )
-  {
-    cfg->ac_fakedelay=atoi(value);
-    if( cfg->ac_fakedelay<100 || cfg->ac_fakedelay>1000 )
-      cfg->ac_fakedelay=1000;
-    return;
-  }
-  if( !strcmp(token, "denysamples") )
-  {
-    cfg->ac_denysamples=atoi(value);
-    if( cfg->ac_denysamples<2 || cfg->ac_denysamples>cfg->ac_samples-1 )
-      cfg->ac_denysamples=cfg->ac_samples-1;
-    return;
-  }
-  if (token[0] != '#')
-    fprintf(stderr, "Warning: keyword '%s' in anticascading section not recognized\n",token);
-//#endif moved this endif up two lines, I think this was erroneous - dingo35
+	if (!strcmp(token, "numusers")) {
+		cfg->ac_users = atoi(value);
+		if( cfg->ac_users < 0 )
+			cfg->ac_users = 0;
+		return;
+	}
+
+	if (!strcmp(token, "sampletime")) {
+		cfg->ac_stime = atoi(value);
+		if( cfg->ac_stime < 0 )
+			cfg->ac_stime = 2;
+		return;
+	}
+
+	if (!strcmp(token, "samples")) {
+		cfg->ac_samples = atoi(value);
+		if( cfg->ac_samples < 2 || cfg->ac_samples > 10)
+			cfg->ac_samples = 10;
+		return;
+	}
+
+	if (!strcmp(token, "penalty")) {
+		cfg->ac_penalty = atoi(value);
+		if( cfg->ac_penalty < 0 )
+			cfg->ac_penalty = 0;
+		return;
+	}
+
+	if (!strcmp(token, "aclogfile")) {
+		cs_strncpy(cfg->ac_logfile, value, sizeof(cfg->ac_logfile));
+		return;
+	}
+
+	if( !strcmp(token, "fakedelay") ) {
+		cfg->ac_fakedelay = atoi(value);
+		if( cfg->ac_fakedelay < 100 || cfg->ac_fakedelay > 1000 )
+			cfg->ac_fakedelay = 1000;
+		return;
+	}
+
+	if( !strcmp(token, "denysamples") ) {
+		cfg->ac_denysamples = atoi(value);
+		if( cfg->ac_denysamples < 2 || cfg->ac_denysamples > cfg->ac_samples - 1 )
+			cfg->ac_denysamples=cfg->ac_samples-1;
+		return;
+	}
+
+	if (token[0] != '#')
+		cs_log( "Warning: keyword '%s' in anticascading section not recognized",token);
 }
 #endif
 
 void chk_t_monitor(char *token, char *value)
 {
-  if (!strcmp(token, "port")) { cfg->mon_port=atoi(value); return; }
-  if (!strcmp(token, "serverip")) { cfg->mon_srvip=inet_addr(value); return; }
-  if (!strcmp(token, "nocrypt")) { chk_iprange(value, &cfg->mon_allowed); return; }
-  if (!strcmp(token, "aulow")) { cfg->mon_aulow=atoi(value); return; }
-  if (!strcmp(token, "monlevel")) { cfg->mon_level=atoi(value); return; }
-  if (!strcmp(token, "httpport")) { cfg->http_port=atoi(value); return; }
-  if (!strcmp(token, "httpuser")) { cs_strncpy(cfg->http_user, value, sizeof(cfg->http_user)); return; }
-  if (!strcmp(token, "httppwd")) { cs_strncpy(cfg->http_pwd, value, sizeof(cfg->http_pwd)); return; }
-  if (!strcmp(token, "httpcss")) { cs_strncpy(cfg->http_css, value, sizeof(cfg->http_css)); return; }
-  if (!strcmp(token, "httpscript")) { cs_strncpy(cfg->http_script, value, sizeof(cfg->http_script)); return; }
-  if (!strcmp(token, "httptpl")) {  	
-  	cs_strncpy(cfg->http_tpl, value, sizeof(cfg->http_tpl));
-  	if(strlen(cfg->http_tpl) < (sizeof(cfg->http_tpl)-2) && cfg->http_tpl[strlen(cfg->http_tpl)-1] != '/'){
-  		cfg->http_tpl[strlen(cfg->http_tpl)] = '/';
-  		cfg->http_tpl[strlen(cfg->http_tpl)] = '\0';
-  	}
-  	return;
-  }
-  if (!strcmp(token, "httprefresh")) { cfg->http_refresh=atoi(value); return; }
-  if (!strcmp(token, "httphideidleclients")) { cfg->http_hide_idle_clients=atoi(value); return; }
-  if (!strcmp(token, "hideclient_to")) { cfg->mon_hideclient_to=atoi(value); return; }
-  if (token[0] != '#')
-    cs_log("Warning: keyword '%s' in monitor section not recognized",token);
+	if (!strcmp(token, "port")) {
+		if(strlen(value) == 0) {
+			cfg->mon_port = 0;
+			return;
+		} else {
+			cfg->mon_port=atoi(value);
+			return;
+		}
+	}
+
+	if (!strcmp(token, "serverip")) {
+		if(strlen(value) == 0) {
+			cfg->mon_srvip = 0;
+			return;
+		} else {
+			cfg->mon_srvip=inet_addr(value);
+			return;
+		}
+	}
+
+	if (!strcmp(token, "nocrypt")) {
+		if(strlen(value) == 0) {
+			clear_sip(&cfg->mon_allowed);
+			return;
+		} else {
+			chk_iprange(value, &cfg->mon_allowed);
+			return;
+		}
+	}
+
+	if (!strcmp(token, "aulow")) {
+		if(strlen(value) == 0) {
+			cfg->mon_aulow = 0;
+			return;
+		} else {
+			cfg->mon_aulow = atoi(value);
+			return;
+		}
+	}
+
+	if (!strcmp(token, "monlevel")) {
+		if(strlen(value) == 0) {
+			cfg->mon_level = 0;
+			return;
+		} else {
+			cfg->mon_level = atoi(value);
+			return;
+		}
+	}
+
+	if (!strcmp(token, "httpport")) {
+		if(strlen(value) == 0) {
+			cfg->http_port = 0;
+			return;
+		} else {
+			cfg->http_port = atoi(value);
+			return;
+		}
+	}
+
+	if (!strcmp(token, "httpuser")) {
+		cs_strncpy(cfg->http_user, value, sizeof(cfg->http_user));
+		return;
+	}
+
+	if (!strcmp(token, "httppwd")) {
+		cs_strncpy(cfg->http_pwd, value, sizeof(cfg->http_pwd));
+		return;
+	}
+
+	if (!strcmp(token, "httpcss")) {
+		cs_strncpy(cfg->http_css, value, sizeof(cfg->http_css));
+		return;
+	}
+
+	if (!strcmp(token, "httpscript")) {
+		cs_strncpy(cfg->http_script, value, sizeof(cfg->http_script));
+		return;
+	}
+
+	if (!strcmp(token, "httptpl")) {
+		cs_strncpy(cfg->http_tpl, value, sizeof(cfg->http_tpl));
+		if(strlen(cfg->http_tpl) < (sizeof(cfg->http_tpl)-2) && cfg->http_tpl[strlen(cfg->http_tpl)-1] != '/') {
+			cfg->http_tpl[strlen(cfg->http_tpl)] = '/';
+			cfg->http_tpl[strlen(cfg->http_tpl)] = '\0';
+		}
+		return;
+	}
+
+	if (!strcmp(token, "httprefresh")) {
+		if(strlen(value) == 0) {
+			cfg->http_refresh = 0;
+			return;
+		} else {
+			cfg->http_refresh = atoi(value);
+			return;
+		}
+	}
+
+	if (!strcmp(token, "httphideidleclients")) {
+		if(strlen(value) == 0) {
+			cfg->http_hide_idle_clients = 0;
+			return;
+		} else {
+			cfg->http_hide_idle_clients=atoi(value);
+			return;
+		}
+	}
+
+	if (!strcmp(token, "hideclient_to")) {
+		if(strlen(value) == 0) {
+			cfg->mon_hideclient_to = 0;
+			return;
+		} else {
+			cfg->mon_hideclient_to = atoi(value);
+			return;
+		}
+	}
+
+	if (token[0] != '#')
+		cs_log("Warning: keyword '%s' in monitor section not recognized",token);
 }
 
 void chk_t_camd33(char *token, char *value)
 {
-  if (!strcmp(token, "port")) { cfg->c33_port=atoi(value); return; }
-  if (!strcmp(token, "serverip")) { cfg->c33_srvip=inet_addr(value); return; }
-  if (!strcmp(token, "nocrypt")) { chk_iprange(value, &cfg->c33_plain); return; }
-  if (!strcmp(token, "passive")) { cfg->c33_passive=(value[0]!='0'); return; }
-  if (!strcmp(token, "key"))
-  {
-    if (key_atob(value, cfg->c33_key))
-    {
-      fprintf(stderr, "Configuration camd3.3x: Error in Key\n");
-      exit(1);
-    }
-    cfg->c33_crypted=1;
-    return;
-  }
-  if (token[0] != '#')
-    fprintf(stderr, "Warning: keyword '%s' in camd33 section not recognized\n",token);
+	if (!strcmp(token, "port")) {
+		if(strlen(value) == 0) {
+			cfg->c33_port = 0;
+			return;
+		} else {
+			cfg->c33_port = atoi(value);
+			return;
+		}
+	}
+
+	if (!strcmp(token, "serverip")) {
+		if(strlen(value) == 0) {
+			cfg->c33_srvip = 0;
+			return;
+		} else {
+			cfg->c33_srvip = inet_addr(value);
+			return;
+		}
+	}
+
+	if (!strcmp(token, "nocrypt")) {
+		if(strlen(value) == 0) {
+			return;
+		} else {
+			chk_iprange(value, &cfg->c33_plain);
+			return;
+		}
+	}
+
+	if (!strcmp(token, "passive")) {
+		cfg->c33_passive = (value[0]!='0');
+		return;
+	}
+
+	if (!strcmp(token, "key")) {
+		if (key_atob(value, cfg->c33_key)) {
+			fprintf(stderr, "Configuration camd3.3x: Error in Key\n");
+			exit(1);
+		}
+		cfg->c33_crypted=1;
+		return;
+	}
+
+	if (token[0] != '#')
+		cs_log( "Warning: keyword '%s' in camd33 section not recognized",token);
 }
 
 void chk_t_camd35(char *token, char *value)
 {
-  if (!strcmp(token, "port")) { cfg->c35_port=atoi(value); return; }
-  if (!strcmp(token, "serverip")) { cfg->c35_tcp_srvip=inet_addr(value); return; }
-  if (!strcmp(token, "suppresscmd08")) { cfg->c35_suppresscmd08=atoi(value); return; }
-  if (token[0] != '#')
-    fprintf(stderr, "Warning: keyword '%s' in camd35 section not recognized\n",token);
+	if (!strcmp(token, "port")) {
+		if(strlen(value) == 0) {
+			cfg->c35_port = 0;
+			return;
+		} else {
+			cfg->c35_port = atoi(value);
+			return;
+		}
+	}
+
+	if (!strcmp(token, "serverip")) {
+		if(strlen(value) == 0) {
+			cfg->c35_tcp_srvip = 0;
+			return;
+		} else {
+			cfg->c35_tcp_srvip = inet_addr(value);
+			return;
+		}
+	}
+
+	if (!strcmp(token, "suppresscmd08")) {
+		if(strlen(value) == 0) {
+			cfg->c35_suppresscmd08 = 0;
+			return;
+		} else {
+			cfg->c35_suppresscmd08=atoi(value);
+			return;
+		}
+	}
+
+	if (token[0] != '#')
+		cs_log( "Warning: keyword '%s' in camd35 section not recognized", token);
 }
 
 void chk_t_camd35_tcp(char *token, char *value)
 {
-  if (!strcmp(token, "port")) { chk_port_tab(value, &cfg->c35_tcp_ptab); return; }
-  if (!strcmp(token, "serverip")) { cfg->c35_tcp_srvip=inet_addr(value); return; }
-  if (!strcmp(token, "suppresscmd08")) { cfg->c35_suppresscmd08=atoi(value); return; }
-  if (token[0] != '#')
-    fprintf(stderr, "Warning: keyword '%s' in camd35 tcp section not recognized\n",token);
+	if (!strcmp(token, "port")) {
+		if(strlen(value) == 0) {
+			clear_ptab(&cfg->c35_tcp_ptab);
+			return;
+		} else {
+			chk_port_tab(value, &cfg->c35_tcp_ptab);
+			return;
+		}
+	}
+
+	if (!strcmp(token, "serverip")) {
+		if(strlen(value) == 0) {
+			cfg->c35_tcp_srvip = 0;
+			return;
+		} else {
+			cfg->c35_tcp_srvip = inet_addr(value);
+			return;
+		}
+	}
+
+	if (!strcmp(token, "suppresscmd08")) {
+		if(strlen(value) == 0) {
+			cfg->c35_suppresscmd08 = 0;
+			return;
+		} else {
+			cfg->c35_suppresscmd08 = atoi(value);
+			return;
+		}
+	}
+
+	if (token[0] != '#')
+		cs_log( "Warning: keyword '%s' in camd35 tcp section not recognized", token);
 }
 
 void chk_t_newcamd(char *token, char *value)
 {
-  if (!strcmp(token, "port")) { chk_port_tab(value, &cfg->ncd_ptab); return; }
-  if (!strcmp(token, "serverip")) { cfg->ncd_srvip=inet_addr(value); return; }
-  if (!strcmp(token, "allowed")) { chk_iprange(value, &cfg->ncd_allowed); return; }
-  if (!strcmp(token, "key"))
-  {
-    if (key_atob14(value, cfg->ncd_key))
-    {
-      fprintf(stderr, "Configuration newcamd: Error in Key\n");
-      exit(1);
-    }
-    return;
-  }
-  if (!strcmp(token, "keepalive"))
-  {
-    cfg->ncd_keepalive = atoi(value);
-    return;
-  }
-  if (token[0] != '#')
-    fprintf(stderr, "Warning: keyword '%s' in newcamd section not recognized\n",token);
+	if (!strcmp(token, "port")) {
+		if(strlen(value) == 0) {
+			clear_ptab(&cfg->ncd_ptab);
+			return;
+		} else {
+			chk_port_tab(value, &cfg->ncd_ptab);
+			return;
+		}
+	}
+
+	if (!strcmp(token, "serverip")) {
+		if(strlen(value) == 0) {
+			cfg->ncd_srvip = 0;
+			return;
+		} else {
+			cfg->ncd_srvip = inet_addr(value);
+			return;
+		}
+	}
+
+	if (!strcmp(token, "allowed")) {
+		if(strlen(value) == 0) {
+			clear_sip(&cfg->ncd_allowed);
+			return;
+		} else {
+			chk_iprange(value, &cfg->ncd_allowed);
+			return;
+		}
+	}
+
+	if (!strcmp(token, "key")) {
+		if (key_atob14(value, cfg->ncd_key)) {
+			fprintf(stderr, "Configuration newcamd: Error in Key\n");
+			exit(1);
+		}
+		return;
+	}
+
+	if (!strcmp(token, "keepalive")) {
+		if(strlen(value) == 0) {
+			cfg->ncd_keepalive = 1;
+			return;
+		} else {
+			cfg->ncd_keepalive = atoi(value);
+			return;
+		}
+	}
+
+	if (token[0] != '#')
+		cs_log( "Warning: keyword '%s' in newcamd section not recognized", token);
 }
 
 void chk_t_cccam(char *token, char *value)
 {
-  if (!strcmp(token, "port")) { cfg->cc_port=atoi(value); return; }
-  //if (!strcmp(token, "serverip")) { cfg->cc_srvip=inet_addr(value); return; }
-  if (!strcmp(token, "reshare")) { cfg->cc_reshare=atoi(value); return; }
-  if (!strcmp(token, "version")) {  // cccam version
-  if (strlen(value)>sizeof(cfg->cc_version)-1) {
-      fprintf(stderr, "cccam config: version too long\n");
-      exit(1);
-    }
-    memset(cfg->cc_version, 0, sizeof(cfg->cc_version));
-    strncpy((char*)cfg->cc_version, value, sizeof(cfg->cc_version)-1);
-    return;
-  }
-  if (!strcmp(token, "build")) {  // cccam build number
-    if (strlen(value)>sizeof(cfg->cc_build)-1) {
-      fprintf(stderr, "cccam config build number too long\n");
-      exit(1);
-    }
-    memset(cfg->cc_build, 0, sizeof(cfg->cc_build));
-    strncpy((char*)cfg->cc_build, value, sizeof(cfg->cc_build)-1);
-    return;
-  }
-  if (token[0] != '#')
-    fprintf(stderr, "Warning: keyword '%s' in cccam section not recognized\n",token);
+	if (!strcmp(token, "port")) {
+		if(strlen(value) == 0) {
+			cfg->cc_port = 0;
+			return;
+		} else {
+			cfg->cc_port = atoi(value);
+			return;
+		}
+	}
+	//if (!strcmp(token, "serverip")) { cfg->cc_srvip=inet_addr(value); return; }
+
+	if (!strcmp(token, "reshare")) {
+		if(strlen(value) == 0) {
+			cfg->cc_reshare = 0;
+			return;
+		} else {
+			cfg->cc_reshare=atoi(value);
+			return;
+		}
+	}
+	// cccam version
+	if (!strcmp(token, "version")) {
+		if (strlen(value) > sizeof(cfg->cc_version) - 1) {
+			fprintf(stderr, "cccam config: version too long\n");
+			exit(1);
+		}
+		memset(cfg->cc_version, 0, sizeof(cfg->cc_version));
+		strncpy((char*)cfg->cc_version, value, sizeof(cfg->cc_version) - 1);
+		return;
+	}
+	// cccam build number
+	if (!strcmp(token, "build")) {
+		if (strlen(value) > sizeof(cfg->cc_build) - 1) {
+			fprintf(stderr, "cccam config build number too long\n");
+			exit(1);
+		}
+		memset(cfg->cc_build, 0, sizeof(cfg->cc_build));
+		strncpy((char*)cfg->cc_build, value, sizeof(cfg->cc_build)-1);
+		return;
+	}
+
+	if (token[0] != '#')
+		cs_log( "Warning: keyword '%s' in cccam section not recognized",token);
 }
 
 void chk_t_radegast(char *token, char *value)
 {
-  if (!strcmp(token, "port")) { cfg->rad_port=atoi(value); return; }
-  if (!strcmp(token, "serverip")) { cfg->rad_srvip=inet_addr(value); return; }
-  if (!strcmp(token, "allowed")) { chk_iprange(value, &cfg->rad_allowed); return; }
-  if (!strcmp(token, "user")) { cs_strncpy(cfg->rad_usr, value, sizeof(cfg->rad_usr)); return; }
-  if (token[0] != '#')
-    fprintf(stderr, "Warning: keyword '%s' in radegast section not recognized\n",token);
+	if (!strcmp(token, "port")) {
+		if(strlen(value) == 0) {
+			cfg->rad_port = 0;
+			return;
+		} else {
+			cfg->rad_port = atoi(value);
+			return;
+		}
+	}
+
+	if (!strcmp(token, "serverip")) {
+		if(strlen(value) == 0) {
+			cfg->rad_srvip = 0;
+			return;
+		} else {
+			cfg->rad_srvip = inet_addr(value);
+			return;
+		}
+	}
+
+	if (!strcmp(token, "allowed")) {
+		if(strlen(value) == 0) {
+			clear_sip(&cfg->rad_allowed);
+			return;
+		} else {
+			chk_iprange(value, &cfg->rad_allowed);
+			return;
+		}
+	}
+
+	if (!strcmp(token, "user")) {
+		cs_strncpy(cfg->rad_usr, value, sizeof(cfg->rad_usr));
+		return;
+	}
+
+	if (token[0] != '#')
+		cs_log( "Warning: keyword '%s' in radegast section not recognized", token);
 }
 
 void chk_t_serial(char *token, char *value)
@@ -953,11 +1213,31 @@ void chk_account(char *token, char *value, struct s_auth *account)
   if (!strcmp(token, "user")) { cs_strncpy(account->usr, value, sizeof(account->usr)); return; }
   if (!strcmp(token, "pwd")) { cs_strncpy(account->pwd, value, sizeof(account->pwd)); return; }
   if (!strcmp(token, "hostname")) { cs_strncpy((char *)account->dyndns, value, sizeof(account->dyndns));return; }
-  if (!strcmp(token, "betatunnel")) { chk_tuntab(value, &account->ttab); return; }
+
+  if (!strcmp(token, "betatunnel")) {
+		if(strlen(value) == 0) {
+			clear_tuntab(&account->ttab);
+			return;
+		} else {
+			chk_tuntab(value, &account->ttab);
+			return;
+		}
+	}
+
   if (!strcmp(token, "uniq")) { account->uniq=atoi(value); return; }
   if (!strcmp(token, "sleep")) { account->tosleep=atoi(value); return; }
   if (!strcmp(token, "monlevel")) { account->monlvl=atoi(value); return; }
-  if (!strcmp(token, "caid")) { chk_caidtab(value, &account->ctab); return; }
+
+  if (!strcmp(token, "caid")) {
+		if(strlen(value) == 0) {
+			clear_caidtab(&account->ctab);
+			return;
+		} else {
+			chk_caidtab(value, &account->ctab);
+			return;
+		}
+	}
+
   if (!strcmp(token, "disabled")) { account->disabled=atoi(value); return; }
   if (!strcmp(token, "suppresscmd08")) { account->c35_suppresscmd08=atoi(value); return; }
   if (!strcmp(token, "keepalive")) 
@@ -997,26 +1277,23 @@ void chk_account(char *token, char *value, struct s_auth *account)
   if(!strcmp(token, "class")) { chk_cltab(value, &account->cltab); return; }
   if(!strcmp(token, "chid")) {  chk_ftab(value, &account->fchid, "user", account->usr, "chid"); return; }
 
-  if (!strcmp(token, "expdate"))
-  {
-  	if (!value[0]) {
-  		account->expirationdate=(time_t)NULL;
-  		return;
-  	}
-    struct tm cstime;
-    memset(&cstime,0,sizeof(cstime));
-    for (i=0, ptr1=strtok(value, "-/"); (i<3)&&(ptr1); ptr1=strtok(NULL, "-/"), i++)
-    {
-      switch(i)
-      {
-        case 0: cstime.tm_year=atoi(ptr1)-1900; break;
-        case 1: cstime.tm_mon =atoi(ptr1)-1;    break;
-        case 2: cstime.tm_mday=atoi(ptr1);      break;
-      }
-    }
-    account->expirationdate=mktime(&cstime);
-    return;
-  }
+	if (!strcmp(token, "expdate")) {
+		if (!value[0]) {
+			account->expirationdate=(time_t)NULL;
+			return;
+		}
+		struct tm cstime;
+		memset(&cstime,0,sizeof(cstime));
+		for (i=0, ptr1=strtok(value, "-/"); (i<3)&&(ptr1); ptr1=strtok(NULL, "-/"), i++) {
+			switch(i) {
+				case 0: cstime.tm_year=atoi(ptr1)-1900; break;
+				case 1: cstime.tm_mon =atoi(ptr1)-1;    break;
+				case 2: cstime.tm_mday=atoi(ptr1);      break;
+			}
+		}
+		account->expirationdate=mktime(&cstime);
+		return;
+	}
 
 #ifdef CS_ANTICASC
   if( !strcmp(token, "numusers") )
