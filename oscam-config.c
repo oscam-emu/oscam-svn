@@ -304,6 +304,10 @@ static void chk_srvip(char *value, in_addr_t *ip)
 
 void chk_t_global(char *token, char *value)
 {
+	// no value -> no parsing
+	if (strlen(value) == 0)
+		return;
+
 	if (!strcmp(token, "disablelog")) { cfg->disablelog = atoi(value); return; }
   if (!strcmp(token, "serverip")) { cfg->srvip=inet_addr(value); return; }
   if (!strcmp(token, "logfile")) {
