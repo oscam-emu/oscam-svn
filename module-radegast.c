@@ -173,7 +173,7 @@ static int radegast_send_ecm(ECM_REQUEST *er)
   uchar provid_buf[8];
   uchar header[22] = "\x02\x01\x00\x06\x08\x30\x30\x30\x30\x30\x30\x30\x30\x07\x04\x30\x30\x30\x38\x08\x01\x02";
   uchar *ecmbuf = malloc(er->l + 30);
-  bzero(ecmbuf, er->l + 30);
+  memset(ecmbuf, 0, er->l + 30);
 
   ecmbuf[0] = 1;
   ecmbuf[1] = er->l + 30 - 2;
@@ -239,7 +239,7 @@ int radegast_cli_init(void)
 
   if ((client[cs_idx].udp_fd=socket(PF_INET, SOCK_STREAM, p_proto))<0)
   {
-    cs_log("cccam: Socket creation failed (errno=%d)", errno);
+    cs_log("radegast: Socket creation failed (errno=%d)", errno);
     cs_exit(1);
   }
 

@@ -564,7 +564,7 @@ void chk_t_cccam(char *token, char *value)
       fprintf(stderr, "cccam config: version too long\n");
       exit(1);
     }
-    bzero(cfg->cc_version, sizeof(cfg->cc_version));
+    memset(cfg->cc_version, 0, sizeof(cfg->cc_version));
     strncpy((char*)cfg->cc_version, value, sizeof(cfg->cc_version)-1);
     return;
   }
@@ -573,7 +573,7 @@ void chk_t_cccam(char *token, char *value)
       fprintf(stderr, "cccam config build number too long\n");
       exit(1);
     }
-    bzero(cfg->cc_build, sizeof(cfg->cc_build));
+    memset(cfg->cc_build, 0, sizeof(cfg->cc_build));
     strncpy((char*)cfg->cc_build, value, sizeof(cfg->cc_build)-1);
     return;
   }
@@ -1823,7 +1823,7 @@ static void chk_reader(char *token, char *value, struct s_reader *rdr)
       fprintf(stderr, "cccam config: version too long\n");
       exit(1);
     }
-    bzero(rdr->cc_version, sizeof(rdr->cc_version));
+    memset(rdr->cc_version, 0, sizeof(rdr->cc_version));
     cs_strncpy(rdr->cc_version, value, sizeof(rdr->cc_version));
     return;
   }
@@ -1832,7 +1832,7 @@ static void chk_reader(char *token, char *value, struct s_reader *rdr)
       fprintf(stderr, "cccam config build number too long\n");
       exit(1);
     }
-    bzero(rdr->cc_build, sizeof(rdr->cc_build));
+    memset(rdr->cc_build, 0, sizeof(rdr->cc_build));
     cs_strncpy(rdr->cc_build, value, sizeof(rdr->cc_build));
     return;
   }
