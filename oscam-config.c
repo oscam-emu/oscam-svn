@@ -21,35 +21,35 @@ static char token[4096];
 
 typedef enum cs_proto_type
 {
-  TAG_GLOBAL,   // must be first !
-  TAG_MONITOR,  // monitor
-  TAG_CAMD33,   // camd 3.3x
-  TAG_CAMD35,   // camd 3.5x UDP
-  TAG_NEWCAMD,  // newcamd
-  TAG_RADEGAST, // radegast
-  TAG_SERIAL,   // serial (static)
-  TAG_CS357X,   // camd 3.5x UDP
-  TAG_CS378X,    // camd 3.5x TCP
+	TAG_GLOBAL,		// must be first !
+	TAG_MONITOR,	// monitor
+	TAG_CAMD33,		// camd 3.3x
+	TAG_CAMD35,		// camd 3.5x UDP
+	TAG_NEWCAMD,	// newcamd
+	TAG_RADEGAST,	// radegast
+	TAG_SERIAL,		// serial (static)
+	TAG_CS357X,		// camd 3.5x UDP
+	TAG_CS378X,		// camd 3.5x TCP
 #ifdef CS_WITH_GBOX
-  TAG_GBOX, // gbox
+	TAG_GBOX,		// gbox
 #endif
-  TAG_CCCAM,  // cccam
-  TAG_DVBAPI
+	TAG_CCCAM,		// cccam
+	TAG_DVBAPI
 #ifdef CS_ANTICASC
-  ,TAG_ANTICASC // anti-cascading
+	,TAG_ANTICASC	// anti-cascading
 #endif
 } cs_proto_type_t;
 
 static char *cctag[]={"global", "monitor", "camd33", "camd35",
-                      "newcamd", "radegast", "serial", "cs357x", "cs378x",
+						"newcamd", "radegast", "serial", "cs357x", "cs378x",
 #ifdef CS_WITH_GBOX
 		      "gbox",
 #endif
-		      "cccam", "dvbapi",
+						"cccam", "dvbapi",
 #ifdef CS_ANTICASC
                       "anticasc",
 #endif
-                       NULL};
+                      NULL};
 
 #ifdef DEBUG_SIDTAB
 static void show_sidtab(struct s_sidtab *sidtab)
@@ -77,44 +77,43 @@ static void show_sidtab(struct s_sidtab *sidtab)
 
 void chk_iprange(char *value, struct s_ip **base)
 {
-  int i = 0;
-  char *ptr1, *ptr2;
-  struct s_ip *lip, *cip;
+	int i = 0;
+	char *ptr1, *ptr2;
+	struct s_ip *lip, *cip;
 
-  for (cip=lip=*base; cip; cip=cip->next)
-    lip=cip;
-  if (!(cip=malloc(sizeof(struct s_ip))))
-  {
-    fprintf(stderr, "Error allocating memory (errno=%d)\n", errno);
-    exit(1);
-  }
-  if (*base)
-    lip->next=cip;
-  else
-    *base=cip;
+	for (cip=lip=*base; cip; cip=cip->next)
+		lip = cip;
+	if (!(cip=malloc(sizeof(struct s_ip)))) {
+		fprintf(stderr, "Error allocating memory (errno=%d)\n", errno);
+		exit(1);
+	}
+	if (*base)
+		lip->next = cip;
+	else
+		*base = cip;
 
-  memset(cip, 0, sizeof(struct s_ip));
-  for (ptr1=strtok(value, ","); ptr1; ptr1=strtok(NULL, ","))
-  {
-  	if (i == 0) ++i;
-  	else {
-  		if (!(cip=malloc(sizeof(struct s_ip)))){
-    		fprintf(stderr, "Error allocating memory (errno=%d)\n", errno);
-    		exit(1);
-  		}
-  		lip->next = cip;
-  		memset(cip, 0, sizeof(struct s_ip));
-  	}
-    if( (ptr2=strchr(trim(ptr1), '-')) )
-    {
-      *ptr2++='\0';
-      cip->ip[0]=cs_inet_addr(trim(ptr1));
-      cip->ip[1]=cs_inet_addr(trim(ptr2));
-    }
-    else
-      cip->ip[0]=cip->ip[1]=cs_inet_addr(ptr1);
-    lip = cip;
-  }
+	memset(cip, 0, sizeof(struct s_ip));
+	for (ptr1=strtok(value, ","); ptr1; ptr1=strtok(NULL, ",")) {
+			if (i == 0)
+				++i;
+		else {
+			if (!(cip=malloc(sizeof(struct s_ip)))) {
+				fprintf(stderr, "Error allocating memory (errno=%d)\n", errno);
+				exit(1);
+			}
+			lip->next = cip;
+			memset(cip, 0, sizeof(struct s_ip));
+		}
+
+		if( (ptr2=strchr(trim(ptr1), '-')) ) {
+			*ptr2++ ='\0';
+			cip->ip[0]=cs_inet_addr(trim(ptr1));
+			cip->ip[1]=cs_inet_addr(trim(ptr2));
+		} else {
+			cip->ip[0]=cip->ip[1]=cs_inet_addr(ptr1);
+		}
+		lip = cip;
+	}
 }
 
 void chk_caidtab(char *caidasc, CAIDTAB *ctab)
@@ -958,16 +957,16 @@ void chk_t_radegast(char *token, char *value)
 
 void chk_t_serial(char *token, char *value)
 {
-  if (!strcmp(token, "device"))
-  {
-    int l;
-    l=strlen(cfg->ser_device);
-    if (l) cfg->ser_device[l++]=1;  // use ctrl-a as delimiter
-    cs_strncpy(cfg->ser_device+l, value, sizeof(cfg->ser_device)-l);
-    return;
-  }
-  if (token[0] != '#')
-    fprintf(stderr, "Warning: keyword '%s' in serial section not recognized\n",token);
+	if (!strcmp(token, "device")) {
+		int l;
+		l = strlen(cfg->ser_device);
+		if (l)
+			cfg->ser_device[l++]=1;  // use ctrl-a as delimiter
+		cs_strncpy(cfg->ser_device+l, value, sizeof(cfg->ser_device)-l);
+		return;
+	}
+	if (token[0] != '#')
+		cs_log( "Warning: keyword '%s' in serial section not recognized", token);
 }
 
 #ifdef CS_WITH_GBOX
@@ -1207,14 +1206,25 @@ int init_config()
 
 void chk_account(char *token, char *value, struct s_auth *account)
 {
-  int i;
-  char *ptr1;//, *ptr2;
+	int i;
+	char *ptr1;
 
-  if (!strcmp(token, "user")) { cs_strncpy(account->usr, value, sizeof(account->usr)); return; }
-  if (!strcmp(token, "pwd")) { cs_strncpy(account->pwd, value, sizeof(account->pwd)); return; }
-  if (!strcmp(token, "hostname")) { cs_strncpy((char *)account->dyndns, value, sizeof(account->dyndns));return; }
+	if (!strcmp(token, "user")) {
+		cs_strncpy(account->usr, value, sizeof(account->usr));
+		return;
+	}
 
-  if (!strcmp(token, "betatunnel")) {
+	if (!strcmp(token, "pwd")) {
+		cs_strncpy(account->pwd, value, sizeof(account->pwd));
+		return;
+	}
+
+	if (!strcmp(token, "hostname")) {
+		cs_strncpy((char *)account->dyndns, value, sizeof(account->dyndns));
+		return;
+	}
+
+	if (!strcmp(token, "betatunnel")) {
 		if(strlen(value) == 0) {
 			clear_tuntab(&account->ttab);
 			return;
@@ -1224,11 +1234,37 @@ void chk_account(char *token, char *value, struct s_auth *account)
 		}
 	}
 
-  if (!strcmp(token, "uniq")) { account->uniq=atoi(value); return; }
-  if (!strcmp(token, "sleep")) { account->tosleep=atoi(value); return; }
-  if (!strcmp(token, "monlevel")) { account->monlvl=atoi(value); return; }
+	if (!strcmp(token, "uniq")) {
+		if(strlen(value) == 0) {
+			account->uniq = 0;
+			return;
+		} else {
+			account->uniq = atoi(value);
+			return;
+		}
+	}
 
-  if (!strcmp(token, "caid")) {
+	if (!strcmp(token, "sleep")) {
+		if(strlen(value) == 0) {
+			account->tosleep = 0;
+			return;
+		} else {
+			account->tosleep=atoi(value);
+			return;
+		}
+	}
+
+	if (!strcmp(token, "monlevel")) {
+		if(strlen(value) == 0) {
+			account->monlvl = 0;
+			return;
+		} else {
+			account->monlvl = atoi(value);
+			return;
+		}
+	}
+
+	if (!strcmp(token, "caid")) {
 		if(strlen(value) == 0) {
 			clear_caidtab(&account->ctab);
 			return;
@@ -1238,44 +1274,81 @@ void chk_account(char *token, char *value, struct s_auth *account)
 		}
 	}
 
-  if (!strcmp(token, "disabled")) { account->disabled=atoi(value); return; }
-  if (!strcmp(token, "suppresscmd08")) { account->c35_suppresscmd08=atoi(value); return; }
-  if (!strcmp(token, "keepalive")) 
-  { 
-    account->ncd_keepalive = atoi(value); 
-    return; 
-  }
-  /*
-   *  case insensitive
-   */
-  strtolower(value);
-  if (!strcmp(token, "au"))
-  {
-  	//set default values for usage during runtime from Webif
-  	account->au=-1;
-  	account->autoau=0;
+	if (!strcmp(token, "disabled")) {
+		if(strlen(value) == 0) {
+			account->disabled = 0;
+			return;
+		} else {
+			account->disabled = atoi(value);
+			return;
+		}
+	}
 
-    if(value && value[0]=='1') account->autoau=1;
-    for (i=0; i<CS_MAXREADER; i++)
-      if ((reader[i].label[0]) &&
-          (!strncmp(reader[i].label, value, strlen(reader[i].label))))
-        account->au=i;
-    return;
-  }
-  if (!strcmp(token, "group")) {
-  	account->grp = 0;
-    for (ptr1=strtok(value, ","); ptr1; ptr1=strtok(NULL, ","))
-    {
-      int g;
-      g=atoi(ptr1);
-      if ((g>0) && (g<33)) account->grp|=(1<<(g-1));
-    }
-    return;
-  }
-  if(!strcmp(token, "services")) { chk_services(value, &account->sidtabok, &account->sidtabno); return; }
-  if(!strcmp(token, "ident")) { chk_ftab(value, &account->ftab, "user", account->usr, "provid"); return; }
-  if(!strcmp(token, "class")) { chk_cltab(value, &account->cltab); return; }
-  if(!strcmp(token, "chid")) {  chk_ftab(value, &account->fchid, "user", account->usr, "chid"); return; }
+	if (!strcmp(token, "suppresscmd08")) {
+		if(strlen(value) == 0) {
+			account->c35_suppresscmd08 = 0;
+			return;
+		} else {
+			account->c35_suppresscmd08=atoi(value);
+			return;
+		}
+	}
+
+	if (!strcmp(token, "keepalive")) {
+		if(strlen(value) == 0) {
+			account->ncd_keepalive = 1;
+			return;
+		} else {
+			account->ncd_keepalive = atoi(value);
+			return;
+		}
+	}
+	/*
+	*  case insensitive
+	*/
+	strtolower(value);
+
+	if (!strcmp(token, "au")) {
+		//set default values for usage during runtime from Webif
+		account->au=-1;
+		account->autoau=0;
+
+		if(value && value[0]=='1') account->autoau=1;
+			for (i=0; i<CS_MAXREADER; i++)
+				if ((reader[i].label[0]) && (!strncmp(reader[i].label, value, strlen(reader[i].label))))
+					account->au=i;
+		return;
+	}
+
+	if (!strcmp(token, "group")) {
+		account->grp = 0;
+		for (ptr1=strtok(value, ","); ptr1; ptr1=strtok(NULL, ",")) {
+			int g;
+			g = atoi(ptr1);
+			if ((g>0) && (g < 33)) account->grp|=(1<<(g-1));
+		}
+		return;
+	}
+
+	if(!strcmp(token, "services")) {
+		chk_services(value, &account->sidtabok, &account->sidtabno);
+		return;
+	}
+
+	if(!strcmp(token, "ident")) { /*ToDo ftab clear*/
+		chk_ftab(value, &account->ftab, "user", account->usr, "provid");
+		return;
+	}
+
+	if(!strcmp(token, "class")) {
+		chk_cltab(value, &account->cltab);
+		return;
+	}
+
+	if(!strcmp(token, "chid")) {
+		chk_ftab(value, &account->fchid, "user", account->usr, "chid");
+		return;
+	}
 
 	if (!strcmp(token, "expdate")) {
 		if (!value[0]) {
@@ -1296,38 +1369,19 @@ void chk_account(char *token, char *value, struct s_auth *account)
 	}
 
 #ifdef CS_ANTICASC
-  if( !strcmp(token, "numusers") )
-  {
-    account->ac_users = atoi(value);
-    return;
-  }
-  if( !strcmp(token, "penalty") )
-  {
-    account->ac_penalty = atoi(value);
-    return;
-  }
-#endif
-  if (token[0] != '#')
-    fprintf(stderr, "Warning: keyword '%s' in account section not recognized\n",token);
+	if( !strcmp(token, "numusers") ) {
+		account->ac_users = atoi(value);
+		return;
+	}
 
-//  if (!strcmp(token, "caid"))
-//  {
-//    for (i=0, ptr1=strtok(value, ","); (i<CS_MAXCAIDTAB) && (ptr1); ptr1=strtok(NULL, ","))
-//    {
-//      ulong caid, mask;
-//      if (ptr2=strchr(trim(ptr1), '&'))
-//        *ptr2++='\0';
-//      else
-//        ptr2="";
-//      if (((caid=a2i(ptr1, 2))|(mask=a2i(ptr2,-2))) < 0x10000)
-//      {
-//        account->caidtab[i][0]=caid;
-//        account->caidtab[i++][1]=mask;
-//      }
-//      else
-//        cs_log("WARNING: wrong CAID in %s -> ignored", cs_user);
-//    }
-//  }
+	if( !strcmp(token, "penalty") ) {
+		account->ac_penalty = atoi(value);
+		return;
+	}
+#endif
+
+	if (token[0] != '#')
+		cs_log( "Warning: keyword '%s' in account section not recognized",token);
 }
 
 int write_services()
@@ -2228,45 +2282,46 @@ static void chk_reader(char *token, char *value, struct s_reader *rdr)
 
 int init_readerdb()
 {
-  int tag=0, nr;
-  FILE *fp;
-  char *value;
+	int tag = 0, nr;
+	FILE *fp;
+	char *value;
 
-  sprintf(token, "%s%s", cs_confdir, cs_srvr);
-  if (!(fp=fopen(token, "r")))
-  {
-    cs_log("can't open file \"%s\" (errno=%d)\n", token, errno);
-    return(1);
-  }
-  nr=0;
-  while (fgets(token, sizeof(token), fp))
-  {
-    int i, l;
-    if ((l=strlen(trim(token)))<3) continue;
-    if ((token[0]=='[') && (token[l-1]==']'))
-    {
-      token[l-1]=0;
-      tag=(!strcmp("reader", strtolower(token+1)));
-      if (reader[nr].label[0] && reader[nr].typ) nr++;
-      memset(&reader[nr], 0, sizeof(struct s_reader));
-      reader[nr].enable = 1;
-      reader[nr].tcp_rto = 30;
-      reader[nr].show_cls = 10;
-      reader[nr].maxqlen = CS_MAXQLEN;
-      reader[nr].mhz = 357;
-      reader[nr].cardmhz = 357;
+	sprintf(token, "%s%s", cs_confdir, cs_srvr);
+	if (!(fp=fopen(token, "r"))) {
+		cs_log("can't open file \"%s\" (errno=%d)\n", token, errno);
+		return(1);
+	}
+	nr = 0;
+	while (fgets(token, sizeof(token), fp)) {
+		int i, l;
+		if ((l = strlen(trim(token))) < 3)
+			continue;
+		if ((token[0] == '[') && (token[l-1] == ']')) {
+			token[l-1] = 0;
+			tag = (!strcmp("reader", strtolower(token+1)));
+			if (reader[nr].label[0] && reader[nr].typ) nr++;
+			memset(&reader[nr], 0, sizeof(struct s_reader));
+			reader[nr].enable = 1;
+			reader[nr].tcp_rto = 30;
+			reader[nr].show_cls = 10;
+			reader[nr].maxqlen = CS_MAXQLEN;
+			reader[nr].mhz = 357;
+			reader[nr].cardmhz = 357;
 			reader[nr].deprecated = 0;
-      strcpy(reader[nr].pincode, "none");
-      for (i=1; i<CS_MAXCAIDTAB; reader[nr].ctab.mask[i++]=0xffff);
-      continue;
-    }
-    if (!tag) continue;
-    if (!(value=strchr(token, '='))) continue;
-    *value++='\0';
-    chk_reader(trim(strtolower(token)), trim(value), &reader[nr]);
-  }
-  fclose(fp);
-  return(0);
+			strcpy(reader[nr].pincode, "none");
+			for (i=1; i<CS_MAXCAIDTAB; reader[nr].ctab.mask[i++]=0xffff);
+			continue;
+		}
+
+		if (!tag)
+			continue;
+		if (!(value=strchr(token, '=')))
+			continue;
+		*value++ ='\0';
+		chk_reader(trim(strtolower(token)), trim(value), &reader[nr]);
+	}
+	fclose(fp);
+	return(0);
 }
 
 /*
