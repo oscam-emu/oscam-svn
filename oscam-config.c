@@ -2161,23 +2161,43 @@ static void chk_reader(char *token, char *value, struct s_reader *rdr)
 	}
 
 	if (!strcmp(token, "fallback")) {
-		rdr->fallback = atoi(value) ? 1 : 0;
-		return;
+		if(strlen(value) == 0) {
+			rdr->fallback = 0;
+			return;
+		} else {
+			rdr->fallback = atoi(value) ? 1 : 0;
+			return;
+		}
 	}
 
 	if (!strcmp(token, "logport")) {
-		rdr->log_port = atoi(value);
-		return;
+		if(strlen(value) == 0) {
+			rdr->log_port = 0;
+			return;
+		} else {
+			rdr->log_port = atoi(value);
+			return;
+		}
 	}
 
 	if (!strcmp(token, "caid")) {
-		chk_caidtab(value, &rdr->ctab);
-		return;
+		if(strlen(value) == 0) {
+			clear_caidtab(&rdr->ctab);
+			return;
+		} else {
+			chk_caidtab(value, &rdr->ctab);
+			return;
+		}
 	}
 
 	if (!strcmp(token, "boxid")) {
-		rdr->boxid = a2i(value, 4);
-		return;
+		if(strlen(value) == 0) {
+			rdr->boxid = 0;
+			return;
+		} else {
+			rdr->boxid = a2i(value, 4);
+			return;
+		}
 	}
 
 	if (!strcmp(token, "aeskey")) {
@@ -2227,13 +2247,23 @@ static void chk_reader(char *token, char *value, struct s_reader *rdr)
 	}
 
 	if (!strcmp(token, "mhz")) {
-		rdr->mhz = atoi(value);
-		return;
+		if(strlen(value) == 0) {
+			rdr->mhz = 0;
+			return;
+		} else {
+			rdr->mhz = atoi(value);
+			return;
+		}
 	}
 
 	if (!strcmp(token, "cardmhz")) {
-		rdr->cardmhz = atoi(value);
-		return;
+		if(strlen(value) == 0) {
+			rdr->cardmhz = 0;
+			return;
+		} else {
+			rdr->cardmhz = atoi(value);
+			return;
+		}
 	}
 
 	if (!strcmp(token, "protocol")) {
@@ -2312,19 +2342,29 @@ static void chk_reader(char *token, char *value, struct s_reader *rdr)
 			return;
 		}
 
-		fprintf(stderr, "WARNING: value '%s' in protocol-line not recognized, assuming MOUSE\n",value);
+		cs_log( "WARNING: value '%s' in protocol-line not recognized, assuming MOUSE",value);
 		rdr->typ = R_MOUSE;
 		return;
 	}
 
 	if (!strcmp(token, "loadbalanced")) {
-		rdr->loadbalanced = atoi(value);
-		return;
+		if(strlen(value) == 0) {
+			rdr->loadbalanced = 0;
+			return;
+		} else {
+			rdr->loadbalanced = atoi(value);
+			return;
+		}
 	}
 
 	if (!strcmp(token, "ident")) {
-		chk_ftab(value, &rdr->ftab,"reader",rdr->label,"provid");
-		return;
+		if(strlen(value) == 0) {
+			clear_ftab(&rdr->ftab);
+			return;
+		} else {
+			chk_ftab(value, &rdr->ftab,"reader",rdr->label,"provid");
+			return;
+		}
 	}
 
 	if (!strcmp(token, "class")) {
@@ -2350,45 +2390,56 @@ static void chk_reader(char *token, char *value, struct s_reader *rdr)
 		return;
 	}
 
-	if (!strcmp(token, "group"))
-	{
-		for (ptr = strtok(value, ","); ptr; ptr = strtok(NULL, ",")) {
-			int g;
-			g = atoi(ptr);
-			if ((g>0) && (g<33)) {
-				rdr->grp |= (1<<(g-1));
+	if (!strcmp(token, "group")) {
+		if(strlen(value) == 0) {
+			rdr->grp = 0;
+			return;
+		} else {
+			for (ptr = strtok(value, ","); ptr; ptr = strtok(NULL, ",")) {
+				int g;
+				g = atoi(ptr);
+				if ((g>0) && (g<33)) {
+					rdr->grp |= (1<<(g-1));
+				}
 			}
+			return;
 		}
-		return;
 	}
 
 	if (!strcmp(token, "emmcache")) {
-		for (i = 0, ptr = strtok(value, ","); (i < 3) && (ptr); ptr = strtok(NULL, ","), i++) {
-			switch(i)
-			{
-				case 0:
-					rdr->cachemm = atoi(ptr);
-					break;
+		if(strlen(value) == 0) {
+			rdr->cachemm = 0;
+			rdr->rewritemm = 0;
+			rdr->logemm = 0;
+			return;
+		} else {
+			for (i = 0, ptr = strtok(value, ","); (i < 3) && (ptr); ptr = strtok(NULL, ","), i++) {
+				switch(i)
+				{
+					case 0:
+						rdr->cachemm = atoi(ptr);
+						break;
 
-				case 1:
-					rdr->rewritemm = atoi(ptr);
-					break;
+					case 1:
+						rdr->rewritemm = atoi(ptr);
+						break;
 
-				case 2: rdr->logemm = atoi(ptr);
-					break;
+					case 2: rdr->logemm = atoi(ptr);
+						break;
+				}
 			}
-		}
 
-		if (rdr->rewritemm <= 0) {
-			fprintf(stderr, "Notice: Setting EMMCACHE to %i,1,%i instead of %i,%i,%i. ", 
-				rdr->cachemm, rdr->logemm,
-				rdr->cachemm, rdr->rewritemm,
-				rdr->logemm);
+			if (rdr->rewritemm <= 0) {
+				fprintf(stderr, "Notice: Setting EMMCACHE to %i,1,%i instead of %i,%i,%i. ",
+					rdr->cachemm, rdr->logemm,
+					rdr->cachemm, rdr->rewritemm,
+					rdr->logemm);
 
-			fprintf(stderr, "Zero or negative number of rewrites is silly\n");
-			rdr->rewritemm = 1;
+				fprintf(stderr, "Zero or negative number of rewrites is silly\n");
+				rdr->rewritemm = 1;
+			}
+			return;
 		}
-		return;
 	}
 
 	if (!strcmp(token, "blocknano")) {

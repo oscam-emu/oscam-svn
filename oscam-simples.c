@@ -479,6 +479,18 @@ void clear_sip(struct s_ip **sip){
 	}
 }
 
+/* Clears the s_ftab struct provided by setting nfilts and nprids to zero. */
+void clear_ftab(struct s_ftab *ftab){
+	int i, j;
+	for (i = 0; i < CS_MAXFILTERS; i++) {
+		ftab->filts[i].caid = 0;
+		for (j = 0; j < CS_MAXPROV; j++)
+			ftab->filts[i].prids[j] = 0;
+		ftab->filts[i].nprids = 0;
+	}
+	ftab->nfilts = 0;
+}
+
 /* Clears the s_ptab struct provided by setting nfilts and nprids to zero. */
 void clear_ptab(struct s_ptab *ptab){
 	int i;
