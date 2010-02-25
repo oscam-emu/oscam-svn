@@ -275,7 +275,7 @@ static void chk_srvip(char *value, in_addr_t *ip)
 	int i;
 	char *ptr;
 	for (i=0, ptr=strtok(value, ","); ptr; ptr=strtok(NULL, ","))
-		if (i<8) ip[i++ = inet_addr(ptr);
+		if (i<8) ip[i++] = inet_addr(ptr);
 }
 #endif
 
