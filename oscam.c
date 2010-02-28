@@ -18,6 +18,7 @@ int cs_dblevel=0;   // Debug Level (TODO !!)
 int cs_idx=0;   // client index (0=master, ...)
 int cs_ptyp=0; // process-type
 struct s_module ph[CS_MAX_MOD]; // Protocols
+struct s_cardsystem cardsystem[CS_MAX_MOD]; // Protocols
 int maxph=0;    // Protocols used
 int cs_hw=0;    // hardware autodetect
 int is_server=0;    // used in modules to specify function
@@ -43,9 +44,11 @@ struct  s_ecm     *ecmcache;  // Shared Memory
 struct  s_client  *client;    // Shared Memory
 struct  s_reader  *reader;    // Shared Memory
 
+#ifdef CS_WITH_GBOX
 struct  card_struct *Cards;   // Shared Memory
 struct  idstore_struct  *idstore;   // Shared Memory
 unsigned long *IgnoreList;    // Shared Memory
+#endif
 
 struct  s_config  *cfg;       // Shared Memory
 #ifdef CS_ANTICASC
@@ -2356,21 +2359,66 @@ int main (int argc, char *argv[])
   uchar    buf[2048];
   void (*mod_def[])(struct s_module *)=
   {
+#ifdef MODULE_MONITOR
            module_monitor,
+#endif
+#ifdef MODULE_CAMD33
            module_camd33,
+#endif
+#ifdef MODULE_CAMD35
            module_camd35,
+#endif
+#ifdef MODULE_CAMD35_TCP
            module_camd35_tcp,
+#endif
+#ifdef MODULE_NEWCAMD
            module_newcamd,
+#endif
+#ifdef MODULE_CCCAM
            module_cccam,
+#endif
 #ifdef CS_WITH_GBOX
            module_gbox,
 #endif
+#ifdef MODULE_RADEGAST
            module_radegast,
+#endif
+#ifdef MODULE_SERIAL
            module_oscam_ser,
+#endif
 #ifdef HAVE_DVBAPI
 	   module_dvbapi,
 #endif
            0
+  };
+
+  void (*cardsystem_def[])(struct s_cardsystem *)=
+  {
+#ifdef READER_NAGRA
+	reader_nagra,
+#endif
+#ifdef READER_IRDETO
+	reader_irdeto,
+#endif
+#ifdef READER_CONAX
+	reader_conax,
+#endif
+#ifdef READER_CRYPTOWORKS
+	reader_cryptoworks,
+#endif
+#ifdef READER_SECA
+	reader_seca,
+#endif
+#ifdef READER_VIACCESS
+	reader_viaccess,
+#endif
+#ifdef READER_VIDEOGUARD
+	reader_videoguard,
+#endif
+#ifdef READER_DRE
+	reader_dre,
+#endif
+	0
   };
 
   while ((i=getopt(argc, argv, "bc:d:hm:"))!=EOF)
@@ -2401,6 +2449,12 @@ int main (int argc, char *argv[])
     memset(&ph[i], 0, sizeof(struct s_module));
     mod_def[i](&ph[i]);
   }
+  for (i=0; cardsystem_def[i]; i++)  // must be later BEFORE init_config()
+  {
+    memset(&cardsystem[i], 0, sizeof(struct s_cardsystem));
+    cardsystem_def[i](&cardsystem[i]);
+  }
+
 
   cs_log("auth size=%d", sizeof(struct s_auth));
 

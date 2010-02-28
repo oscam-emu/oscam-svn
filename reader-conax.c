@@ -282,3 +282,11 @@ int conax_card_info(void)
   }
   return OK;
 }
+
+void reader_conax(struct s_cardsystem *ph) 
+{
+	ph->do_emm=conax_do_emm;
+	ph->do_ecm=conax_do_ecm;
+	ph->card_info=conax_card_info;
+	ph->card_init=conax_card_init;
+}

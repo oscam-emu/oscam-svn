@@ -984,3 +984,11 @@ int videoguard_card_info(void)
   read_tiers ();
   return OK;
 }
+
+void reader_videoguard(struct s_cardsystem *ph) 
+{
+	ph->do_emm=videoguard_do_emm;
+	ph->do_ecm=videoguard_do_ecm;
+	ph->card_info=videoguard_card_info;
+	ph->card_init=videoguard_card_init;
+}

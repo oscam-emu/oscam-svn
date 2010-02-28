@@ -29,7 +29,7 @@
 
 #ifndef CS_GLOBALS
 #define CS_GLOBALS
-#define CS_VERSION    "0.99.4svn"
+#define CS_VERSION    "0.99.4-modular-svn"
 
 #if defined(__GNUC__)
 #  define GCC_PACK __attribute__((packed))
@@ -355,6 +355,16 @@ struct s_module
   PTAB *ptab;
 };
 
+struct s_cardsystem
+{
+	char desc[16];
+	int  (*card_init)();
+	int  (*card_info)();
+	int  (*do_ecm)();
+	int  (*do_emm)();
+	void (*post_process)();
+};
+
 #ifdef IRDETO_GUESSING
 struct s_irdeto_quess
 {
@@ -464,6 +474,7 @@ struct s_reader
   int       has_rsa;
   uchar     aes_key[16];
   uchar     rsa_mod[120]; //rsa modulus for nagra cards.
+  uchar     atr[64];
   ulong     sidtabok;	// positiv services
   ulong     sidtabno;	// negative services
   uchar     hexserial[8];
@@ -829,6 +840,7 @@ extern struct s_config *cfg;
 extern char cs_confdir[], *loghist;
 extern EMM_PACKET epg;
 extern struct s_module ph[CS_MAX_MOD];
+extern struct s_cardsystem cardsystem[CS_MAX_MOD];
 extern ECM_REQUEST *ecmtask;
 #ifdef CS_ANTICASC
 extern struct s_acasc_shm *acasc;
@@ -836,6 +848,15 @@ extern FILE *fpa;
 extern int use_ac_log;
 #endif
 
+//reader
+void reader_nagra();
+void reader_irdeto();
+void reader_cryptoworks();
+void reader_viaccess();
+void reader_conax();
+void reader_seca();
+void reader_videoguard();
+void reader_dre();
 
 // oscam
 extern char *cs_platform(char *);

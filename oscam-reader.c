@@ -610,16 +610,31 @@ void start_cardreader()
     strcpy(client[cs_idx].usr, reader[ridx].r_usr);
     switch(reader[ridx].typ)
     {
+#ifdef MODULE_CAMD33
       case R_CAMD33  : module_camd33(&reader[ridx].ph); break;
+#endif
+#ifdef MODULE_CAMD35
       case R_CAMD35  : module_camd35(&reader[ridx].ph); break;
+#endif
+#ifdef MODULE_NEWCAMD
       case R_NEWCAMD : module_newcamd(&reader[ridx].ph); break;
+#endif
+#ifdef MODULE_RADEGAST
       case R_RADEGAST: module_radegast(&reader[ridx].ph); break;
+#endif
+#ifdef MODULE_SERIAL
       case R_SERIAL  : module_oscam_ser(&reader[ridx].ph); break;
+#endif
+#ifdef MODULE_CAMD35_TCP
       case R_CS378X  : module_camd35_tcp(&reader[ridx].ph); break;
+#endif
+#ifdef MODULE_CCCAM
       case R_CCCAM  : module_cccam(&reader[ridx].ph); break;
+#endif
 #ifdef CS_WITH_GBOX
       case R_GBOX    : module_gbox(&reader[ridx].ph);strcpy(client[cs_idx].usr, reader[ridx].label); break;
 #endif
+	default: cs_log("Protocol Support missing.");
     }
     if (!(reader[ridx].ph.c_init))
     {

@@ -418,3 +418,11 @@ int irdeto_card_info(void)
 	return OK;
 }
 
+
+void reader_irdeto(struct s_cardsystem *ph) 
+{
+	ph->do_emm=irdeto_do_emm;
+	ph->do_ecm=irdeto_do_ecm;
+	ph->card_info=irdeto_card_info;
+	ph->card_init=irdeto_card_init;
+}

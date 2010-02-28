@@ -755,3 +755,12 @@ int nagra2_do_emm(EMM_PACKET *ep)
 	}
 	return OK;
 }
+
+void reader_nagra(struct s_cardsystem *ph) 
+{
+	ph->do_emm=nagra2_do_emm;
+	ph->do_ecm=nagra2_do_ecm;
+	ph->post_process=nagra2_post_process;
+	ph->card_info=nagra2_card_info;
+	ph->card_init=nagra2_card_init;
+}

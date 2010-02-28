@@ -651,3 +651,11 @@ int viaccess_card_info(void)
   //return ERROR;
   return OK;
 }
+
+void reader_viaccess(struct s_cardsystem *ph) 
+{
+	ph->do_emm=viaccess_do_emm;
+	ph->do_ecm=viaccess_do_ecm;
+	ph->card_info=viaccess_card_info;
+	ph->card_init=viaccess_card_init;
+}

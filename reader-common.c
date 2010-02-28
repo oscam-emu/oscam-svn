@@ -10,14 +10,6 @@ extern int ICC_Async_Device_Init ();
 extern int ICC_Async_CardWrite (unsigned char *cmd, unsigned short lc, unsigned char *rsp, unsigned short *lr);
 extern int ICC_Async_Activate	 (ATR * atr, unsigned short deprecated);
 extern int ICC_Async_GetStatus (int * card);
-#define SC_IRDETO 1
-#define SC_CRYPTOWORKS 2
-#define SC_VIACCESS 3
-#define SC_CONAX 4
-#define SC_SECA 5
-#define SC_VIDEOGUARD2 6
-#define SC_DRE 7
-#define SC_NAGRA 8
 
 #ifdef TUXBOX
 static int reader_device_type(char *device)
@@ -198,42 +190,29 @@ void reader_card_info()
     client[cs_idx].last=time((time_t)0);
     cs_ri_brk(0);
     do_emm_from_file();
-    switch(reader[ridx].card_system)
-    {
-      case SC_NAGRA:
-        nagra2_card_info(); break;
-      case SC_IRDETO:
-        irdeto_card_info(); break;
-      case SC_CRYPTOWORKS:
-        cryptoworks_card_info(); break;
-      case SC_VIACCESS:
-        viaccess_card_info(); break;
-      case SC_CONAX:
-        conax_card_info(); break;
-      case SC_VIDEOGUARD2:
-        videoguard_card_info(); break;
-      case SC_SECA:
-         seca_card_info(); break;
-      case SC_DRE:
-	 dre_card_info(); break;
-    }
+
+
+	if (cardsystem[reader[ridx].card_system-1].card_info) {
+		cardsystem[reader[ridx].card_system-1].card_info();
+	}
   }
 }
 
 static int reader_get_cardsystem(ATR atr)
 {
-  if (nagra2_card_init(atr))		reader[ridx].card_system=SC_NAGRA; else
-  if (irdeto_card_init(atr))		reader[ridx].card_system=SC_IRDETO; else
-  if (conax_card_init(atr))		reader[ridx].card_system=SC_CONAX; else
-  if (cryptoworks_card_init(atr))	reader[ridx].card_system=SC_CRYPTOWORKS; else
-  if (seca_card_init(atr))	reader[ridx].card_system=SC_SECA; else
-  if (viaccess_card_init(atr))	reader[ridx].card_system=SC_VIACCESS; else
-  if (videoguard_card_init(atr))  reader[ridx].card_system=SC_VIDEOGUARD2; else
-  if (dre_card_init(atr))  reader[ridx].card_system=SC_DRE; else
-    cs_ri_log("card system not supported");
-  cs_ri_brk(1);
+	int i;
+	for (i=0; i<CS_MAX_MOD; i++) {
+		if (cardsystem[i].card_init) {
+			if (cardsystem[i].card_init(atr)) {
+				reader[ridx].card_system=i+1;
+				cs_log("found cardsystem");
+				break;
+			}
+		}
+	}
+	cs_ri_brk(1);
 
-  return(reader[ridx].card_system);
+	return(reader[ridx].card_system);
 }
 
 static int reader_reset(void)
@@ -323,12 +302,10 @@ void reader_post_process(void)
 {
   // some systems eg. nagra2/3 needs post process after receiving cw from card
   // To save ECM/CW time we added this function after writing ecm answer
-  switch(reader[ridx].card_system)
-    {
-      case SC_NAGRA:
-        nagra2_post_process(); break;
-      default: break;
-    }
+
+	if (cardsystem[reader[ridx].card_system-1].post_process) {
+		cardsystem[reader[ridx].card_system-1].post_process();
+	}
 }
 
 int reader_ecm(ECM_REQUEST *er)
@@ -344,26 +321,11 @@ int reader_ecm(ECM_REQUEST *er)
       client[cs_idx].last_srvid=er->srvid;
       client[cs_idx].last_caid=er->caid;
       client[cs_idx].last=time((time_t)0);
-      switch(reader[ridx].card_system)
-      {
-        case SC_NAGRA:
-          rc=(nagra2_do_ecm(er)) ? 1 : 0; break;
-        case SC_IRDETO:
-          rc=(irdeto_do_ecm(er)) ? 1 : 0; break;
-        case SC_CRYPTOWORKS:
-          rc=(cryptoworks_do_ecm(er)) ? 1 : 0; break;
-        case SC_VIACCESS:
-          rc=(viaccess_do_ecm(er)) ? 1 : 0; break;
-        case SC_CONAX:
-          rc=(conax_do_ecm(er)) ? 1 : 0; break;
-        case SC_SECA:
-          rc=(seca_do_ecm(er)) ? 1 : 0; break;
-        case SC_VIDEOGUARD2:
-          rc=(videoguard_do_ecm(er)) ? 1 : 0; break;
-  case SC_DRE:
-    rc=(dre_do_ecm(er)) ? 1: 0; break;
-        default: rc=0;
-      }
+
+	if (cardsystem[reader[ridx].card_system-1].do_ecm) 
+		rc=cardsystem[reader[ridx].card_system-1].do_ecm(er);
+	else
+		rc=0;
     }
     else
       rc=0;
@@ -430,26 +392,10 @@ int reader_emm(EMM_PACKET *ep)
     if (reader[ridx].b_nano[ep->emm[0]] & 0x01) //should this nano be blcoked?
       return 3;
 
-    switch(reader[ridx].card_system)
-    {
-      case SC_NAGRA:
-        rc=nagra2_do_emm(ep); break;
-      case SC_IRDETO:
-        rc=irdeto_do_emm(ep); break;
-      case SC_CRYPTOWORKS:
-        rc=cryptoworks_do_emm(ep); break;
-      case SC_VIACCESS:
-        rc=viaccess_do_emm(ep); break;
-      case SC_CONAX:
-        rc=conax_do_emm(ep); break;
-      case SC_SECA:
-        rc=seca_do_emm(ep); break;
-      case SC_VIDEOGUARD2:
-        rc=videoguard_do_emm(ep); break;
-      case SC_DRE:
-	rc=dre_do_emm(ep); break;
-      default: rc=0;
-    }
+	if (cardsystem[reader[ridx].card_system-1].do_emm) 
+		rc=cardsystem[reader[ridx].card_system-1].do_emm(ep);
+	else
+		rc=0;
   }
   return(rc);
 }
