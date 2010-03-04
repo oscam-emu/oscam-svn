@@ -263,13 +263,13 @@ static void camd35_process_ecm(uchar *buf)
 static void camd35_process_emm(uchar *buf)
 {
   int au;
+  EMM_PACKET epg;
   memset(&epg, 0, sizeof(epg));
   au=client[cs_idx].au;
   if ((au<0) || (au>CS_MAXREADER)) return;  // TODO
   epg.l=buf[1];
   memcpy(epg.caid     , buf+10              , 2);
   memcpy(epg.provid   , buf+12              , 4);
-  memcpy(epg.hexserial, reader[au].hexserial, 8);	// dummy
   memcpy(epg.emm      , buf+20              , epg.l);
   do_emm(&epg);
 }

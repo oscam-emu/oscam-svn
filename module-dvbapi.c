@@ -443,6 +443,7 @@ void dvbapi_start_descrambling(int demux_index, unsigned short caid, unsigned sh
 void dvbapi_process_emm (int demux_index, unsigned char *buffer, unsigned int len) 
 {
 	int i;
+	EMM_PACKET epg;
 	cs_debug("dvbapi: EMM Type: 0x%02x caid: %04x", buffer[0],demux[demux_index].ca_system_id);
 	cs_ddump(buffer, len, "emm:");
 
@@ -453,9 +454,16 @@ void dvbapi_process_emm (int demux_index, unsigned char *buffer, unsigned int le
 	epg.caid[0] = (uchar)(demux[demux_index].ca_system_id>>8);
 	epg.caid[1] = (uchar)(demux[demux_index].ca_system_id);
 
-	epg.provid[1] = (uchar)(demux[demux_index].provider_id>>16);
-	epg.provid[2] = (uchar)(demux[demux_index].provider_id>>8);
-	epg.provid[3] = (uchar)(demux[demux_index].provider_id);
+	unsigned long provid = (buffer[10] << 8) | buffer[11];
+	int pid=dvbapi_check_array(prioritytab.caid, CS_MAXCAIDTAB, demux[demux_index].ca_system_id);
+	if (pid>=0) {
+		if (prioritytab.mask[pid]>0)
+			provid=prioritytab.mask[pid];
+	}
+
+	epg.provid[1] = (uchar)(provid>>16);
+	epg.provid[2] = (uchar)(provid>>8);
+	epg.provid[3] = (uchar)(provid);
 
 	epg.l=len;
 	memcpy(epg.emm, buffer, epg.l);

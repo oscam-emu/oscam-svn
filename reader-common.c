@@ -342,7 +342,7 @@ int reader_get_emm_type(EMM_PACKET *ep, struct s_reader * rdr)
 	int rc;
 
 	if (cardsystem[reader[ridx].card_system-1].get_emm_type) 
-		rc=cardsystem[reader[ridx].card_system-1].get_emm_type(ep);
+		rc=cardsystem[reader[ridx].card_system-1].get_emm_type(ep, rdr);
 	else
 		rc=0;
 
