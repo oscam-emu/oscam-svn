@@ -126,12 +126,14 @@
 
 #define CS_RDR_INIT_HIST
 #define D_TRACE     1 // Generate very detailed error/trace messages per routine
-#define D_ATR       2 // Debug ATR parsing, dump of ecm, emm, cw
+#define D_ATR       2 // Debug ATR parsing, dump of ecm, cw
 #define D_READER    4 // Debug Reader/Proxy Process
 #define D_CLIENT    8 // Debug Client Process
 #define D_IFD       16  // Debug IFD+protocol
 #define D_DEVICE    32  // Debug Reader I/O
-#define D_ALL_DUMP  63															// dumps all
+#define D_EMM				64  // Dumps EMM
+#define D_FUT				128 // Reserved for future use
+#define D_ALL_DUMP  255 // dumps all
 
 #define R_DB2COM1		0x1 // Reader Dbox2 @ com1
 #define R_DB2COM2		0x2 // Reader Dbox2 @ com1
@@ -363,6 +365,7 @@ struct s_cardsystem
 	int  (*do_ecm)();
 	int  (*do_emm)();
 	void (*post_process)();
+	int  (*get_emm_type)();
 };
 
 #ifdef IRDETO_GUESSING
@@ -485,6 +488,10 @@ struct s_reader
   ushort    acs;    // irdeto
   ushort    caid[16];
   uchar     b_nano[256];
+  int       blockemm_unknown; //block EMMs that have unknown type
+  int       blockemm_u;				//blcok Unique EMMs
+  int       blockemm_s;				//block Shared EMMS
+  int       blockemm_g;				//block Global EMMs
   char      * emmfile;
   char      pincode[5];
   int		ucpk_valid;
@@ -647,6 +654,7 @@ struct s_config
 	int		mon_aulow;
 	int		mon_hideclient_to;
 	int		mon_level;
+	int		mon_appendchaninfo;
 #ifdef WEBIF
 	int			http_port;
 	char		http_user[65];
@@ -658,6 +666,8 @@ struct s_config
 	int			http_hide_idle_clients;
 	struct 	s_ip *http_allowed;
 	int			http_readonly;
+	in_addr_t	http_dynip;
+	uchar		http_dyndns[64];
 #endif
 	int		c33_port;
 	in_addr_t	c33_srvip;
@@ -770,10 +780,16 @@ typedef struct emm_packet_t
   uchar l;
   uchar caid[2];
   uchar provid[4];
-  uchar hexserial[8];
+  uchar hexserial[8];					 //contains hexserial or SA of EMM
   uchar type;
   int   cidx;
 } GCC_PACK EMM_PACKET;
+
+//EMM types:
+#define UNKNOWN 0
+#define UNIQUE	1
+#define SHARED	2
+#define GLOBAL	3
 
 // oscam-simples
 extern char *remote_txt(void);
@@ -1002,6 +1018,7 @@ extern int reader_checkhealth(void);
 extern void reader_post_process(void);
 extern int reader_ecm(ECM_REQUEST *);
 extern int reader_emm(EMM_PACKET *);
+int reader_get_emm_type(EMM_PACKET *ep, struct s_reader * reader);
 
 #ifdef HAVE_PCSC
 // reader-pcsc

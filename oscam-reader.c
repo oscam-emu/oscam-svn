@@ -398,10 +398,12 @@ static void reader_get_ecm(ECM_REQUEST *er)
     casc_process_ecm(er);
     return;
   }
+#ifdef WITH_CARDREADER
   cs_ddump_mask(D_ATR, er->ecm, er->l, "ecm:");
   er->rc=reader_ecm(er);
   write_ecm_answer(fd_c2m, er);
   reader_post_process();
+#endif
   //if(reader[ridx].typ=='r') reader[ridx].qlen--;
   //printf("queue: %d\n",reader[ridx].qlen);
 }
@@ -422,9 +424,6 @@ static int reader_do_emm(EMM_PACKET *ep)
 
   cs_ftime(&tps);
 
-  if (memcmp(ep->hexserial, reader[ridx].hexserial, 8))
-    return(3);
-
   no=0;
   for (i=ecs=0; (i<CS_EMMCACHESIZE) && (!ecs); i++)
     if (!memcmp(emmcache[i].emm, ep->emm, ep->emm[2]))
@@ -439,7 +438,11 @@ static int reader_do_emm(EMM_PACKET *ep)
 
   if ((rc=ecs)<2)
   {
+#ifdef WITH_CARDREADER
     rc=(proxy) ? 0 : reader_emm(ep);
+#else
+    rc=0;
+#endif
     if (!ecs)
     {
       i=reader_store_emm(ep->emm, ep->type);
@@ -561,8 +564,9 @@ static int reader_listen(int fd1, int fd2)
     network_tcp_connection_close(fd2);
     return(0);
   }
-
+#ifdef WITH_CARDREADER
   if (!proxy) reader_checkhealth();
+#endif
   return(0);
 }
 
@@ -581,7 +585,9 @@ static void reader_do_pipe()
       reader_do_emm((EMM_PACKET *)ptr);
       break;
     case PIP_ID_CIN: 
+#ifdef WITH_CARDREADER
       reader_card_info(); 
+#endif
       break;
   }
 }
@@ -647,13 +653,14 @@ void start_cardreader()
     if ((reader[ridx].log_port) && (reader[ridx].ph.c_init_log))
       reader[ridx].ph.c_init_log();
   }
+#ifdef WITH_CARDREADER
   else
   {
     client[cs_idx].ip=cs_inet_addr("127.0.0.1");
     while (reader_device_init(reader[ridx].device)==2)
       cs_sleepms(60000); // wait 60 secs and try again
   }
-
+#endif
   emmcache=(struct s_emm *)malloc(CS_EMMCACHESIZE*(sizeof(struct s_emm)));
   if (!emmcache)
   {

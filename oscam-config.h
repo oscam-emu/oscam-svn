@@ -1,9 +1,9 @@
 #ifndef WEBIF
-#define WEBIF
+//#define WEBIF
 #endif
 
 #ifndef HAVE_DVBAPI
-//#define HAVE_DVBAPI
+#define HAVE_DVBAPI
 #endif
 
 #ifndef MODULE_MONITOR
@@ -38,6 +38,12 @@
 #define MODULE_CAMD35_TCP
 #endif
 
+#ifndef WITH_CARDREADER
+#define WITH_CARDREADER
+#endif
+
+
+#ifdef WITH_CARDREADER
 #ifndef READER_NAGRA
 #define READER_NAGRA
 #endif
@@ -69,6 +75,7 @@
 #ifndef READER_DRE
 #define READER_DRE
 #endif
+#endif
 
 
 
@@ -90,9 +97,7 @@
 #  define NO_FTIME
 #  define CS_HW_DBOX2	1
 #  define CS_HW_DREAM	2
-#  ifdef TRIPLEDRAGON
 #  define CS_HW_DRAGON 3
-#  endif
 #  ifndef COOL
 #    define SCI_DEV 1
 #  endif

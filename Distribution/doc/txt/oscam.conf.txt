@@ -127,6 +127,8 @@ DESCRIPTIONS
 	  time to hide clients in the monitor if not  sending  requests,  0  =
 	  disabled, default:0
 
+       appendchaninfo = 0|1
+	  1 = append channel name on log messages, default:0
 
    The [webif] section (only if web interface module enabled)
        httpport = port
@@ -418,15 +420,14 @@ MONITOR
 	  set debug level (monlevel > 3 required)
 
 	  debug level mask:
-	    0 = no debugging (default)
-	    2 = ATR parsing info, ECM dumps, CW dumps
-	    4 = traffic from/to the reader
-	    8 = traffic from/to the clients
-	   16 = traffic to the reader-device on IFD
-		layer
-	   32 = traffic to the reader-device on I/O
-		layer
-	   63 = debug all
+	     0 = no debugging (default)
+	     2 = ATR parsing info, ECM dumps, CW dumps
+	     4 = traffic from/to the reader
+	     8 = traffic from/to the clients
+	    16 = traffic to the reader-device on IFD layer
+	    32 = traffic to the reader-device on I/O layer
+	    64 = EMM logging
+	   255 = debug all
 
 	 version
 

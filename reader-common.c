@@ -336,6 +336,19 @@ int reader_ecm(ECM_REQUEST *er)
   return(rc);
 }
 
+int reader_get_emm_type(EMM_PACKET *ep, struct s_reader * rdr)
+{
+	cs_debug_mask(D_EMM,"Entered reader_get_emm_type cardsystem %i",rdr->card_system);
+	int rc;
+
+	if (cardsystem[reader[ridx].card_system-1].get_emm_type) 
+		rc=cardsystem[reader[ridx].card_system-1].get_emm_type(ep);
+	else
+		rc=0;
+
+	return rc;
+}
+
 int reader_emm(EMM_PACKET *ep)
 {
   int rc=-1;
