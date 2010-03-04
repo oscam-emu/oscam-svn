@@ -341,8 +341,8 @@ int reader_get_emm_type(EMM_PACKET *ep, struct s_reader * rdr)
 	cs_debug_mask(D_EMM,"Entered reader_get_emm_type cardsystem %i",rdr->card_system);
 	int rc;
 
-	if (cardsystem[reader[ridx].card_system-1].get_emm_type) 
-		rc=cardsystem[reader[ridx].card_system-1].get_emm_type(ep, rdr);
+	if (cardsystem[rdr->card_system-1].get_emm_type) 
+		rc=cardsystem[rdr->card_system-1].get_emm_type(ep, rdr);
 	else
 		rc=0;
 
