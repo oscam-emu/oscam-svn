@@ -547,9 +547,9 @@ struct s_reader
   SCARDHANDLE hCard;
   DWORD dwActiveProtocol;
 #endif
-#ifdef LIBUSB 
-  SR_CONFIG *sr_config; 
-#endif 
+#ifdef LIBUSB
+  SR_CONFIG *sr_config;
+#endif
 };
 
 #ifdef CS_ANTICASC

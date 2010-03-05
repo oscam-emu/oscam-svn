@@ -31,6 +31,8 @@
 #define TYPE_EMM 1
 
 static int listenfd = -1;
+int global_support_pip = 0;
+int global_merged_capmt = 0;
 
 typedef struct ECMPIDS
 {
@@ -244,6 +246,8 @@ int dvbapi_detect_api() {
 	}
 	close(dmx_fd);
 
+	if (ret < 0) return 0;
+
 	selected_box=devnum;
 	selected_api=apinum;
 	cs_debug("dvbapi: Detected %s Api: %d", device_path, apinum);
@@ -422,19 +426,16 @@ void dvbapi_start_descrambling(int demux_index, unsigned short caid, unsigned sh
 	demux[demux_index].ca_system_id=caid;
 	demux[demux_index].provider_id=provider_id;
 
-	int camfd=dvbapi_open_device(demux_index,1);
-	if (camfd<=0) {
+	demux[demux_index].ca_fd = dvbapi_open_device(demux_index,1);
+	if (demux[demux_index].ca_fd<=0)
 		return;
-	}
-
-	demux[demux_index].ca_fd=camfd;
 
 	for (i=0;i<demux[demux_index].STREAMpidcount;i++) {
 		ca_pid_t ca_pid2;
 		memset(&ca_pid2,0,sizeof(ca_pid2));
 		ca_pid2.pid = demux[demux_index].STREAMpids[i];
 		ca_pid2.index = demux_index;
-		if (ioctl(camfd, CA_SET_PID, &ca_pid2)==-1)
+		if (ioctl(demux[demux_index].ca_fd, CA_SET_PID, &ca_pid2)==-1)
 			cs_debug("dvbapi: Error Stream SET_PID");
 	}
 
@@ -566,7 +567,7 @@ int dvbapi_parse_capmt(unsigned char *buffer, unsigned int length) {
 	int ca_pmt_list_management = buffer[0];
 	unsigned int program_number = (buffer[1] << 8) | buffer[2];
 	int program_info_length = ((buffer[4] & 0x0F) << 8) | buffer[5];
-
+/*
 	switch (ca_pmt_list_management)
 	{
 		case 0x01:
@@ -582,7 +583,7 @@ int dvbapi_parse_capmt(unsigned char *buffer, unsigned int length) {
 			//FIXME?? (unknown)
 			break;
 	}
-
+*/
 	if (buffer[17]==0x82 && buffer[18]==0x02) {
 		//enigma2
 		ca_mask = buffer[19];
@@ -594,6 +595,7 @@ int dvbapi_parse_capmt(unsigned char *buffer, unsigned int length) {
 
 	for (i=0;i<MAX_DEMUX;i++) {
 		if (demux[i].demux_index==demux_index2 && demux[i].program_number==((buffer[1] << 8) | buffer[2])) { // already descrambling prog on this device
+			global_support_pip=1;
 			if (demux[i].active==1) {
 				//remove any inactive program
 				for (u=0;u<MAX_DEMUX;u++) {
@@ -692,6 +694,9 @@ void dvbapi_handlesockmsg (unsigned char *buffer, unsigned int len) {
 			cs_log("dvbapi: unknown socket command: %02x", buffer[0+k]);
 			return;
 		}
+
+		global_merged_capmt=0;
+		if (k>0) global_merged_capmt=1;
 
 		if (buffer[3+k] & 0x80) {
 			val = 0;
@@ -936,8 +941,10 @@ int dvbapi_main_local() {
 							dvbapi_parse_cat(demux_index, buffer, len);
 							dvbapi_stop_filter(demux_index, TYPE_EMM);
 							if (cfg->dvbapi_au==1) {
-								if (demux[demux_index].ECMpids[n].EMM_PID>0)
-									dvbapi_start_filter(demux_index, demux[demux_index].ECMpids[n].CA_System_ID, demux[demux_index].ECMpids[n].EMM_PID, 0x80, 0xf0, TYPE_EMM);
+								for (g=0;g<demux[demux_index].ECMpidcount;g++) {
+									if (demux[demux_index].demux_fd[n].caid == demux[demux_index].ECMpids[g].CA_System_ID && demux[demux_index].ECMpids[g].EMM_PID>0)
+										dvbapi_start_filter(demux_index, demux[demux_index].ECMpids[g].CA_System_ID, demux[demux_index].ECMpids[g].EMM_PID, 0x80, 0xF0, TYPE_EMM);
+								}
 							}
 							continue;
 						}
@@ -955,6 +962,7 @@ void dvbapi_send_dcw(ECM_REQUEST *er) {
 	unsigned char cw_0[8], cw_1[8];
 	int i;
 	unsigned char nullcw[8] = {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
+	ca_descr_t ca_descr;
 
 	cs_debug("dvbapi: ECM rc: %d", er->rc);
 
@@ -994,12 +1002,13 @@ void dvbapi_send_dcw(ECM_REQUEST *er) {
 				return;
 			}
 
-			ca_descr_t ca_descr;
 			memset(&ca_descr,0,sizeof(ca_descr));
 
 			if (demux[i].ca_fd<=0) {
 				cs_log("dvbapi: could not write cw.");
-				return;
+				demux[i].ca_fd = dvbapi_open_device(i,1);
+				if (demux[i].ca_fd<=0)
+					return;
 			}
 
 			if (memcmp(cw_0,demux[i].lastcw0,8)!=0 && memcmp(cw_0,nullcw,8)!=0) {
