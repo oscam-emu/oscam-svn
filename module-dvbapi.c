@@ -379,9 +379,10 @@ void dvbapi_stop_descrambling(int demux_id) {
 	dvbapi_stop_filter(demux_id, 0);
 	dvbapi_stop_filter(demux_id, 1);
 
+	memset(demux[demux_id].buffer_cache_dmx, 0, CS_ECMSTORESIZE);
+
 	if (demux[demux_id].ca_fd>0) {
-		for (i=0;i<demux[demux_id].STREAMpidcount;i++)
-		{
+		for (i=0;i<demux[demux_id].STREAMpidcount;i++) {
 			ca_pid_t ca_pid2;
 			memset(&ca_pid2,0,sizeof(ca_pid2));
 			ca_pid2.pid = demux[demux_id].STREAMpids[i];
@@ -482,12 +483,8 @@ void dvbapi_process_emm (int demux_index, unsigned char *buffer, unsigned int le
 }
 
 void dvbapi_resort_ecmpids(int demux_index) {
-	ECMPIDSTYPE tmppids[ECM_PIDS];
-	ECMPIDSTYPE tmppids2[ECM_PIDS];
-
-	int tmppidcount=0,tmppid2count=0,n;
-
-	int i,k,j;
+	ECMPIDSTYPE tmppids[ECM_PIDS],tmppids2[ECM_PIDS];
+	int tmppidcount=0,tmppid2count=0,n,i,k,j;
 
 	for (i=0;i<MAX_CAID;i++)
 		global_caid_list[i]=0;
@@ -593,7 +590,7 @@ int dvbapi_parse_capmt(unsigned char *buffer, unsigned int length) {
 		demux_index2 = buffer[20];
 	} else {
 		//neutrino workaround
-		dvbapi_stop_descrambling_all(0);
+		//dvbapi_stop_descrambling_all(0);
 	}
 
 	for (i=0;i<MAX_DEMUX;i++) {
@@ -610,6 +607,10 @@ int dvbapi_parse_capmt(unsigned char *buffer, unsigned int length) {
 				demux[i].active=1;
 			return 0;
 		}
+	}
+
+	if (global_support_pip != 1 && global_merged_capmt != 1) {
+		dvbapi_stop_descrambling_all(0);
 	}
 
 	//get free id
@@ -812,7 +813,7 @@ int dvbapi_main_local() {
 	struct pollfd pfd2[MAX_FILTER+1];
 	int i,rc;
 	pthread_t p1;
-	char md5buf[CS_ECMSTORESIZE];
+	unsigned char md5buf[CS_ECMSTORESIZE];
 
 	if (cfg->dvbapi_usr[0]==0) {
 	    //
@@ -832,7 +833,7 @@ int dvbapi_main_local() {
 		demux[i].cadev_index=-1;
 		demux[i].ca_fd=0;
 		demux[i].demux_index=-1;
-		memset(demux[i].buffer_cache_dmx,0 ,12);
+		memset(demux[i].buffer_cache_dmx, 0, CS_ECMSTORESIZE);
 		for (rc=0;rc<MAX_FILTER;rc++) demux[i].demux_fd[rc].fd=0;
 	}
 
