@@ -66,7 +66,7 @@ typedef struct demux_s
 	unsigned short emm_pid;
 	unsigned short STREAMpidcount;
 	unsigned short STREAMpids[ECM_PIDS];
-	unsigned char buffer_cache_dmx[12];
+	unsigned char buffer_cache_dmx[CS_ECMSTORESIZE];
 	unsigned char lastcw0[8];
 	unsigned char lastcw1[8];
 } DEMUXTYPE;
@@ -469,13 +469,16 @@ void dvbapi_process_emm (int demux_index, unsigned char *buffer, unsigned int le
 	epg.l=len;
 	memcpy(epg.emm, buffer, epg.l);
 
+	int found=0;
 	for (i=0;i<CS_MAXREADER;i++) {
 		if (reader[i].caid[0] == demux[demux_index].ca_system_id) {
 			client[cs_idx].au=i;
-//			memcpy(epg.hexserial, reader[client[cs_idx].au].hexserial, 8);
+			found=1;
+			break;
 		}
 	}
-	do_emm(&epg);
+	if (found==1)
+		do_emm(&epg);
 }
 
 void dvbapi_resort_ecmpids(int demux_index) {
@@ -564,7 +567,7 @@ int dvbapi_parse_capmt(unsigned char *buffer, unsigned int length) {
 	unsigned short i, u;
 	unsigned short ca_mask=0x01, demux_index2=0x00;
 
-	int ca_pmt_list_management = buffer[0];
+	//int ca_pmt_list_management = buffer[0];
 	unsigned int program_number = (buffer[1] << 8) | buffer[2];
 	int program_info_length = ((buffer[4] & 0x0F) << 8) | buffer[5];
 /*
@@ -809,6 +812,7 @@ int dvbapi_main_local() {
 	struct pollfd pfd2[MAX_FILTER+1];
 	int i,rc;
 	pthread_t p1;
+	char md5buf[CS_ECMSTORESIZE];
 
 	if (cfg->dvbapi_usr[0]==0) {
 	    //
@@ -901,15 +905,17 @@ int dvbapi_main_local() {
 
 				if (pfd2[i].fd==demux[demux_index].demux_fd[n].fd) {
 					if (demux[demux_index].demux_fd[n].type==TYPE_ECM) {
-						//ECM
 						if (len != (((buffer[1] & 0xf) << 8) | buffer[2]) + 3) //invaild CAT length
 							continue;
 
 						if (buffer[0] != 0x80 && buffer[0] != 0x81) 
 							continue;
 
-						if (memcmp(buffer, demux[demux_index].buffer_cache_dmx, 12) != 0) {
-							memcpy(demux[demux_index].buffer_cache_dmx, buffer, 12);
+						memcpy(md5buf, MD5(buffer, len, NULL), CS_ECMSTORESIZE);
+
+						if (memcmp(md5buf, demux[demux_index].buffer_cache_dmx, CS_ECMSTORESIZE) != 0) {
+							//cs_dump(md5buf,CS_ECMSTORESIZE,"MD5 ECM:");
+							memcpy(demux[demux_index].buffer_cache_dmx, md5buf, CS_ECMSTORESIZE);
 							cs_debug("dvbapi: Read %d bytes\tTable-id: %02x\tCA section length: %d", len, buffer[0], len);
 
 							//grep emm provid
