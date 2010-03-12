@@ -2382,6 +2382,26 @@ void cs_log_config()
 #endif
 }
 
+void cs_waitforcardinit()
+{
+	if (cfg->waitforcards)
+	{
+		int card_init_done, i;
+		cs_sleepms(3000);  // short sleep for card detect to work proberly
+		do {
+			card_init_done = 1;
+			for (i = 0; i < CS_MAXREADER; i++) {
+				if (reader[i].card_status == CARD_NEED_INIT) {
+					card_init_done = 0;
+					break;
+				}
+			}
+			cs_sleepms(300); // wait a little bit
+			alarm(cfg->cmaxidle + cfg->ctimeout / 1000 + 1); 
+		} while (!card_init_done);
+	}
+}
+
 int main (int argc, char *argv[])
 {
   struct   sockaddr_in cad;     /* structure to hold client's address */
@@ -2556,25 +2576,9 @@ int main (int argc, char *argv[])
 #endif
   init_cardreader();
 
-  if (cfg->waitforcards)
-  {
-      int card_init_done;
-      cs_log("waiting for local card init");
-      cs_sleepms(3000);  // short sleep for card detect to work proberly
-      do {
-          card_init_done = 1;
-          for (i = 0; i < CS_MAXREADER; i++) {
-            if (reader[i].card_status == CARD_NEED_INIT) {
-              card_init_done = 0;
-              break;
-            }
-          }
-          cs_sleepms(300);              // wait a little bit
-          alarm(cfg->cmaxidle + cfg->ctimeout / 1000 + 1); 
-      } while (!card_init_done);
-      cs_log("init for all local cards done");
-
-  }
+  cs_log("waiting for local card init");
+  cs_waitforcardinit();
+  cs_log("init for all local cards done");
 
 #ifdef CS_ANTICASC
   if( !cfg->ac_enabled )

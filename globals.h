@@ -94,22 +94,6 @@
 #define CS_MAXLOGHIST     30
 #define CS_LOGHISTSIZE    160 // 32+128: username + logline
 
-#ifdef OLD_DEFS
-#ifdef  CS_EMBEDDED
-#define CS_MAXPENDING   32
-#define CS_ECMCACHESIZE   32
-#define CS_EMMCACHESIZE   64
-#define CS_MAXPID   32
-#define CS_MAXREADER    8
-#else
-#define CS_MAXPENDING   128
-#define CS_ECMCACHESIZE   128
-#define CS_EMMCACHESIZE   256
-#define CS_MAXPID   128
-#define CS_MAXREADER    64
-#endif
-#endif
-
 #ifdef  CS_EMBEDDED
 #define CS_MAXPID   32
 #define CS_MAXREADER    (CS_MAXPID>>1)
@@ -448,7 +432,7 @@ struct s_client
 
 struct s_reader
 {
-  int		smargopatch; //FIXME workaround for Smargo until native mode works
+  int		smargopatch;
   int		pid;
   int       cs_idx;
   int       enable;
@@ -510,6 +494,7 @@ struct s_reader
   char      cc_build[5];    // cccam build number
   int       cc_maxhop;      // cccam max distance
   void      *cc;            // ptr to cccam internal data struct
+  uchar     cc_id;
   uchar     tcp_connected;
   int       tcp_ito;      // inactivity timeout
   int       tcp_rto;      // reconnect timeout
@@ -815,6 +800,7 @@ extern ulong a2i(char *, int);
 extern int boundary(int, int);
 extern void cs_ftime(struct timeb *);
 extern void cs_sleepms(unsigned int);
+extern void cs_sleepus(unsigned int);
 extern int bytes_available(int);
 extern void cs_setpriority(int);
 extern struct s_auth *find_user(char *);
@@ -911,6 +897,7 @@ extern int chk_avail_reader(ECM_REQUEST *, struct s_reader *);
 extern int matching_reader(ECM_REQUEST *, struct s_reader *);
 extern void set_signal_handler(int , int , void (*)(int));
 extern void cs_log_config(void);
+extern void cs_waitforcardinit(void);
 extern void cs_reinit_clients(void);
 extern void cs_resolve(void);
 extern void chk_dcw(int fd);
