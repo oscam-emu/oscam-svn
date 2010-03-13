@@ -744,6 +744,33 @@ int nagra2_get_emm_type(EMM_PACKET *ep, struct s_reader * rdr) //returns TRUE if
 	}
 }
 
+uchar *nagra2_get_emm_filter(struct s_reader * rdr, int type)
+{
+	static uchar filter[32];
+	memset(filter, 0, 32);
+
+	switch (type) {
+		case GLOBAL:
+			filter[0]    = 0x82;
+			filter[0+16] = 0xFF;
+			break;
+		case SHARED:
+		case UNIQUE:
+			filter[0]    = 0x83;
+			filter[0+16] = 0xFF;
+			filter[3]    = rdr->hexserial[4];
+			filter[3+16] = 0xFF;
+			filter[4]    = rdr->hexserial[3];
+			filter[4+16] = 0xFF;
+			filter[5]    = rdr->hexserial[2];
+			filter[5+16] = 0xFF;
+			break;
+	}
+
+	return filter;
+}
+
+
 int nagra2_do_emm(EMM_PACKET *ep)
 {
 	if (!is_tiger)
