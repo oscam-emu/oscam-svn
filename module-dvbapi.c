@@ -451,8 +451,8 @@ void dvbapi_parse_cat(int demux_index, uchar *buf, int len) {
 void dvbapi_stop_descrambling(int demux_id) {
 	int i;
 
-	if (demux[demux_id].pidindex==-1) return;
-	cs_debug("dvbapi: Stop descrambling CAID: %04x", demux[demux_id].ECMpids[demux[demux_id].pidindex].CA_System_ID);
+	//if (demux[demux_id].pidindex==-1) return;
+	//cs_debug("dvbapi: Stop descrambling CAID: %04x", demux[demux_id].ECMpids[demux[demux_id].pidindex].CA_System_ID);
 
 	demux[demux_id].demux_index=-1;
 	demux[demux_id].program_number=0;
@@ -515,7 +515,6 @@ void dvbapi_start_descrambling(int demux_index, unsigned short caid, unsigned sh
 	}
 
 	demux[demux_index].pidindex=n;
-	cs_log("pidindex %d", demux[demux_index].pidindex);
 
 	demux[demux_index].ca_fd = dvbapi_open_device(demux_index,1);
 	if (demux[demux_index].ca_fd<=0)
@@ -530,6 +529,8 @@ void dvbapi_start_descrambling(int demux_index, unsigned short caid, unsigned sh
 			cs_debug("dvbapi: Error Stream SET_PID");
 	}
 
+	if (cfg->dvbapi_au==1)
+		dvbapi_start_filter(demux_index, caid, 0x001, 0x01, 0xFF, TYPE_EMM); //CAT
 }
 
 void dvbapi_process_emm (int demux_index, unsigned char *buffer, unsigned int len) {
@@ -715,8 +716,6 @@ int dvbapi_parse_capmt(unsigned char *buffer, unsigned int length, int connfd) {
 			cs_debug("dvbapi: trying CA_System_ID: %04x CA_PID: %04x", demux[demux_id].ECMpids[0].CA_System_ID, demux[demux_id].ECMpids[0].CA_PID);
 
 			dvbapi_start_filter(demux_id, demux[demux_id].ECMpids[0].CA_System_ID, demux[demux_id].ECMpids[0].CA_PID, 0x80, 0xF0, TYPE_ECM);
-			if (cfg->dvbapi_au==1)
-				dvbapi_start_filter(demux_id, demux[demux_id].ECMpids[0].CA_System_ID, 0x001, 0x01, 0xFF, TYPE_EMM); //CAT
 			
 			demux[demux_id].ECMpids[0].checked=1;
 		}
@@ -989,9 +988,18 @@ void dvbapi_main_local() {
 									dvbapi_stop_filter(demux_index, TYPE_EMM);
 									if (cfg->dvbapi_au==1) {
 										for (g=0;g<demux[demux_index].ECMpidcount;g++) {
-											if (demux[demux_index].demux_fd[n].CA_System_ID == demux[demux_index].ECMpids[g].CA_System_ID && demux[demux_index].ECMpids[g].EMM_PID>0)
-												dvbapi_start_emm_filter(demux_index, SHARED, demux[demux_index].ECMpids[g].CA_System_ID, demux[demux_index].ECMpids[g].EMM_PID, 0x80, 0xF0, TYPE_EMM);
-												dvbapi_start_emm_filter(demux_index, GLOBAL, demux[demux_index].ECMpids[g].CA_System_ID, demux[demux_index].ECMpids[g].EMM_PID, 0x80, 0xF0, TYPE_EMM);
+											if (demux[demux_index].demux_fd[n].CA_System_ID == demux[demux_index].ECMpids[g].CA_System_ID && demux[demux_index].ECMpids[g].EMM_PID>0) {
+												switch(demux[demux_index].demux_fd[n].CA_System_ID >> 8) { 
+													case 0x17:
+													case 0x18: // NAGRA EMM 
+														dvbapi_start_emm_filter(demux_index, SHARED, demux[demux_index].ECMpids[g].CA_System_ID, demux[demux_index].ECMpids[g].EMM_PID, 0x80, 0xF0, TYPE_EMM);
+														dvbapi_start_emm_filter(demux_index, GLOBAL, demux[demux_index].ECMpids[g].CA_System_ID, demux[demux_index].ECMpids[g].EMM_PID, 0x80, 0xF0, TYPE_EMM);
+														break;
+													default:
+														dvbapi_start_filter(demux_index, demux[demux_index].ECMpids[g].CA_System_ID, demux[demux_index].ECMpids[g].EMM_PID, 0x80, 0xF0, TYPE_EMM);
+														break;
+												}
+											}
 										}
 									}
 								}
