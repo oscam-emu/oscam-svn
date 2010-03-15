@@ -150,7 +150,9 @@ struct box_devices devices[BOX_COUNT] = {
 int selected_box=-1;
 int selected_api=-1;
 
-int dvbapi_set_filter(int dmx_fd, int api, unsigned short pid, unsigned char filt, unsigned char mask, int timeout) {
+extern uchar *nagra2_get_emm_filter(struct s_reader*, int);
+
+int dvbapi_set_filter(int dmx_fd, int api, unsigned short pid, unsigned char *filt, unsigned char *mask, int timeout) {
 	int ret=-1;
 
 	cs_debug("dvbapi: set filter pid:%04x, value:%04x",pid, filt);
@@ -166,55 +168,7 @@ int dvbapi_set_filter(int dmx_fd, int api, unsigned short pid, unsigned char fil
 			sFP2.pid			= pid;
 			sFP2.timeout			= timeout;
 			sFP2.flags			= DMX_IMMEDIATE_START;
-			sFP2.filter.filter[0]	= filt;
-			sFP2.filter.mask[0]		= mask;
-			ret=ioctl(dmx_fd, DMX_SET_FILTER, &sFP2);
-
-			break;
-		case 1:
-			api=api;
-			struct dmxSctFilterParams sFP1;
-
-			memset(&sFP1,0,sizeof(sFP1));
-
-			sFP1.pid			= pid;
-			sFP1.timeout			= timeout;
-			sFP1.flags			= DMX_IMMEDIATE_START;
-			sFP1.filter.filter[0]	= filt;
-			sFP1.filter.mask[0]		= mask;
-			ret=ioctl(dmx_fd, DMX_SET_FILTER1, &sFP1);
-
-			break;
-		default:
-			break;
-	}
-
-	if (ret < 0)
-		cs_debug("dvbapi: could not start demux filter (Errno: %d)", errno);
-
-	return ret;
-}
-
-
-int dvbapi_set_emm_filter(int dmx_fd, int api, unsigned short pid, unsigned char *filt, unsigned char *mask, int timeout) {
-	int ret=-1;
-
-	cs_debug("dvbapi: set filter pid:%04x, value:%04x",pid, filt);
-
-	switch(api)
-	{
-		case 0:
-			api=api;
-			struct dmx_sct_filter_params sFP2;
-
-			memset(&sFP2,0,sizeof(sFP2));
-
-			sFP2.pid			= pid;
-			sFP2.timeout			= timeout;
-			sFP2.flags			= DMX_IMMEDIATE_START;
-			//sFP2.filter.filter[0]	= filt;
 			memcpy(sFP2.filter.filter,filt,16);
-			//sFP2.filter.mask[0]		= mask;
 			memcpy(sFP2.filter.mask,mask,16);
 			ret=ioctl(dmx_fd, DMX_SET_FILTER, &sFP2);
 
@@ -228,10 +182,8 @@ int dvbapi_set_emm_filter(int dmx_fd, int api, unsigned short pid, unsigned char
 			sFP1.pid			= pid;
 			sFP1.timeout			= timeout;
 			sFP1.flags			= DMX_IMMEDIATE_START;
-			//sFP1.filter.filter[0]	= filt;
 			memcpy(sFP1.filter.filter,filt,16);
-			//sFP1.filter.mask[0]		= mask;
-			memcpy(sFP1.filter.filter,filt,16);
+			memcpy(sFP1.filter.mask,mask,16);
 			ret=ioctl(dmx_fd, DMX_SET_FILTER1, &sFP1);
 
 			break;
@@ -244,7 +196,6 @@ int dvbapi_set_emm_filter(int dmx_fd, int api, unsigned short pid, unsigned char
 
 	return ret;
 }
-
 
 int dvbapi_check_array(unsigned short *array, int len, unsigned short match) {
 	int i;
@@ -261,11 +212,16 @@ int dvbapi_detect_api() {
 	int i,devnum=-1;
 	int apinum=-1;
 	int dmx_fd=0;
+	uchar filter[16], filtermask[16];
+
+	memset(filter,0,16);
+	memset(filtermask,0,16);
+	filter[0]=0x01;
+	filtermask[0]=0xFF;
 
 	char device_path[128];
 
-	for (i=0;i<BOX_COUNT;i++)
-	{
+	for (i=0;i<BOX_COUNT;i++) {
 		sprintf(device_path, devices[i].demux_device_path, 0);
 		if ((dmx_fd = open(device_path, O_RDWR)) > 0) {
 			devnum=i;
@@ -275,11 +231,10 @@ int dvbapi_detect_api() {
 
 	if (dmx_fd < 0) return 0;
 
-	int ret=0;
+	int ret=-1;
 
-	for (i=0;i<num_apis;i++)
-	{
-		ret=dvbapi_set_filter(dmx_fd, i, 0x0001, 0x01, 0xFF, 1);
+	for (i=0;i<num_apis;i++) {
+		ret=dvbapi_set_filter(dmx_fd, i, 0x0001, filter, filtermask, 1);
 
 		if (ret >= 0)
 		{
@@ -312,7 +267,7 @@ int dvbapi_read_device(int dmx_fd, unsigned char *buf, int length, int debug) {
 	len = read(dmx_fd, buf, length);
 
 	if (len==-1 && errno!=75) //FIXME: read error 75, reason unknown (dbox2?)
-		cs_log("dvbapi: read error %d", errno);
+		cs_log("dvbapi: read error %d on fd %d", errno, dmx_fd);
 
 	if (debug==1)
 		cs_debug("dvbapi: Read %d bytes from demux", len);
@@ -362,8 +317,9 @@ int dvbapi_stop_filter(int demux_index, int type) {
 	return 1;
 }
 
-void dvbapi_start_filter(int demux_index, ushort caid, unsigned short pid, ushort table, ushort mask, int type) {
+void dvbapi_start_filter(int demux_index, ushort caid, unsigned short pid, uchar table, uchar mask, int type) {
 	int dmx_fd,i,n=-1;
+	uchar filter[16], filtermask[16];
 
 	for (i=0;i<MAX_FILTER;i++) {
 		if (demux[demux_index].demux_fd[i].fd<=0) {
@@ -384,11 +340,18 @@ void dvbapi_start_filter(int demux_index, ushort caid, unsigned short pid, ushor
 	demux[demux_index].demux_fd[n].PID=pid;
 	demux[demux_index].demux_fd[n].type=type;
 
-	dvbapi_set_filter(dmx_fd, selected_api, pid, table, mask, 4000);
+	memset(filter,0,16);
+	memset(filtermask,0,16);
+
+	filter[0]=table;
+	filtermask[0]=mask;
+
+	dvbapi_set_filter(dmx_fd, selected_api, pid, filter, filtermask, 4000);
 }
 
 void dvbapi_start_emm_filter(int demux_index, int emmtype, ushort caid, unsigned short pid, ushort table, ushort mask, int type) {
 	int dmx_fd,i,n=-1;
+	uchar filter[32];
 
 	if (demux[demux_index].pidindex==-1) return;
 
@@ -401,7 +364,19 @@ void dvbapi_start_emm_filter(int demux_index, int emmtype, ushort caid, unsigned
 		}
 	}
 
-	uchar *filter = nagra2_get_emm_filter(&reader[client[cs_idx].au], emmtype);
+	switch(caid >> 8) { 
+		case 0x17:
+		case 0x18: // NAGRA EMM
+			i=0;
+			uchar *filter1 = nagra2_get_emm_filter(&reader[client[cs_idx].au], emmtype);
+			memcpy(filter,filter1,32);
+			break;
+		default:
+			memset(filter,0,32);
+			filter[0]=table;
+			filter[0+16]=mask;
+			break;
+	}
 
 	for (i=0;i<MAX_FILTER;i++) {
 		if (demux[demux_index].demux_fd[i].fd<=0) {
@@ -422,9 +397,8 @@ void dvbapi_start_emm_filter(int demux_index, int emmtype, ushort caid, unsigned
 	demux[demux_index].demux_fd[n].PID=pid;
 	demux[demux_index].demux_fd[n].type=type;
 
-	cs_log("filter %d", emmtype);
-	cs_dump(filter, 32, "filter:");
-	dvbapi_set_emm_filter(dmx_fd, selected_api, pid, filter, filter+16, 4000);
+	cs_dump(filter, 32, "demux filter:");
+	dvbapi_set_filter(dmx_fd, selected_api, pid, filter, filter+16, 4000);
 }
 
 void dvbapi_parse_cat(int demux_index, uchar *buf, int len) {
@@ -451,16 +425,13 @@ void dvbapi_parse_cat(int demux_index, uchar *buf, int len) {
 void dvbapi_stop_descrambling(int demux_id) {
 	int i;
 
-	//if (demux[demux_id].pidindex==-1) return;
-	//cs_debug("dvbapi: Stop descrambling CAID: %04x", demux[demux_id].ECMpids[demux[demux_id].pidindex].CA_System_ID);
-
 	demux[demux_id].demux_index=-1;
 	demux[demux_id].program_number=0;
 	demux[demux_id].socket_fd=0;
 	demux[demux_id].pidindex=-1;
 
-	dvbapi_stop_filter(demux_id, 0);
-	dvbapi_stop_filter(demux_id, 1);
+	dvbapi_stop_filter(demux_id, TYPE_ECM);
+	dvbapi_stop_filter(demux_id, TYPE_EMM);
 
 	memset(demux[demux_id].buffer_cache_dmx, 0, CS_ECMSTORESIZE);
 
@@ -915,10 +886,10 @@ void dvbapi_main_local() {
 				}
 
 				if (type[i]==1) {
-					if (pfd2[i].fd==listenfd) {
-						cs_debug("dvbapi: new socket connection");
+					if (pfd2[i].fd==listenfd) {						
 						connfd = accept(listenfd, (struct sockaddr *)&servaddr, (socklen_t *)&clilen);
-						
+						cs_debug("dvbapi: new socket connection %d", connfd);
+
 						if (connfd <= 0)
 							continue;
 
@@ -981,28 +952,30 @@ void dvbapi_main_local() {
 							}
 						}
 						if (demux[demux_index].demux_fd[n].type==TYPE_EMM) {
-							if (mbuf[0]==0x01) {
+							if (mbuf[0]==0x01) { //CAT
 								cs_debug("dvbapi: receiving cat");
 								dvbapi_parse_cat(demux_index, mbuf, len);
-								if (demux[demux_index].pidindex > -1) {
-									dvbapi_stop_filter(demux_index, TYPE_EMM);
-									if (cfg->dvbapi_au==1) {
-										for (g=0;g<demux[demux_index].ECMpidcount;g++) {
-											if (demux[demux_index].demux_fd[n].CA_System_ID == demux[demux_index].ECMpids[g].CA_System_ID && demux[demux_index].ECMpids[g].EMM_PID>0) {
-												switch(demux[demux_index].demux_fd[n].CA_System_ID >> 8) { 
-													case 0x17:
-													case 0x18: // NAGRA EMM 
-														dvbapi_start_emm_filter(demux_index, SHARED, demux[demux_index].ECMpids[g].CA_System_ID, demux[demux_index].ECMpids[g].EMM_PID, 0x80, 0xF0, TYPE_EMM);
-														dvbapi_start_emm_filter(demux_index, GLOBAL, demux[demux_index].ECMpids[g].CA_System_ID, demux[demux_index].ECMpids[g].EMM_PID, 0x80, 0xF0, TYPE_EMM);
-														break;
-													default:
-														dvbapi_start_filter(demux_index, demux[demux_index].ECMpids[g].CA_System_ID, demux[demux_index].ECMpids[g].EMM_PID, 0x80, 0xF0, TYPE_EMM);
-														break;
-												}
-											}
+								if (demux[demux_index].pidindex < 0)
+									continue;
+								
+								dvbapi_stop_filter(demux_index, TYPE_EMM);
+								if (cfg->dvbapi_au==0)
+									continue;
+								
+								for (g=0;g<demux[demux_index].ECMpidcount;g++) {
+									if (demux[demux_index].demux_fd[n].CA_System_ID == demux[demux_index].ECMpids[g].CA_System_ID && demux[demux_index].ECMpids[g].EMM_PID>0) {
+										switch(demux[demux_index].demux_fd[n].CA_System_ID >> 8) { 
+											case 0x17:
+											case 0x18: // NAGRA EMM 
+												dvbapi_start_emm_filter(demux_index, SHARED, demux[demux_index].ECMpids[g].CA_System_ID, demux[demux_index].ECMpids[g].EMM_PID, 0x80, 0xF0, TYPE_EMM);
+												dvbapi_start_emm_filter(demux_index, GLOBAL, demux[demux_index].ECMpids[g].CA_System_ID, demux[demux_index].ECMpids[g].EMM_PID, 0x80, 0xF0, TYPE_EMM);
+												break;
+											default:
+												dvbapi_start_filter(demux_index, demux[demux_index].ECMpids[g].CA_System_ID, demux[demux_index].ECMpids[g].EMM_PID, 0x80, 0xF0, TYPE_EMM);
+												break;
 										}
 									}
-								}
+								}																	
 								continue;
 							}
 							dvbapi_process_emm(demux_index, mbuf, len);
