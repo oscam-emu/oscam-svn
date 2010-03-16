@@ -350,6 +350,7 @@ struct s_cardsystem
 	int  (*do_emm)();
 	void (*post_process)();
 	int  (*get_emm_type)();
+	uchar* (*get_emm_filter)();
 };
 
 #ifdef IRDETO_GUESSING
@@ -621,6 +622,7 @@ struct s_config
 	ulong		delay;
 	int		bindwait;
 	int		resolvedelay;
+	int		clientdyndns;
 	int		tosleep;
 	in_addr_t	srvip;
 	char		*pidfile;

@@ -817,4 +817,5 @@ void reader_nagra(struct s_cardsystem *ph)
 	ph->card_info=nagra2_card_info;
 	ph->card_init=nagra2_card_init;
 	ph->get_emm_type=nagra2_get_emm_type;
+	ph->get_emm_filter=nagra2_get_emm_filter;
 }

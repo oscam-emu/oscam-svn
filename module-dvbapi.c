@@ -607,6 +607,7 @@ void dvbapi_parse_descriptor(int demux_id, int i, unsigned int info_length, unsi
 			if (added==0) {
 				demux[demux_id].ECMpids[demux[demux_id].ECMpidcount].CA_PID=descriptor_ca_pid;
 				demux[demux_id].ECMpids[demux[demux_id].ECMpidcount].CA_System_ID=descriptor_ca_system_id;
+				demux[demux_id].ECMpids[demux[demux_id].ECMpidcount].checked=0;
 				demux[demux_id].ECMpids[demux[demux_id].ECMpidcount++].EMM_PID=0;
 			}
 		}
