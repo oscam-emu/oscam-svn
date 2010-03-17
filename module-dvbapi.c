@@ -155,7 +155,7 @@ extern uchar *nagra2_get_emm_filter(struct s_reader*, int);
 int dvbapi_set_filter(int dmx_fd, int api, unsigned short pid, unsigned char *filt, unsigned char *mask, int timeout) {
 	int ret=-1;
 
-	cs_debug("dvbapi: set filter pid:%04x, value:%04x",pid, filt);
+	cs_debug("dvbapi: set filter pid:%04x", pid);
 
 	switch(api)
 	{
@@ -266,7 +266,7 @@ int dvbapi_read_device(int dmx_fd, unsigned char *buf, int length, int debug) {
 
 	len = read(dmx_fd, buf, length);
 
-	if (len==-1 && errno!=75) //FIXME: read error 75, reason unknown (dbox2?)
+	if (len==-1)
 		cs_log("dvbapi: read error %d on fd %d", errno, dmx_fd);
 
 	if (debug==1)
@@ -299,7 +299,7 @@ int dvbapi_open_device(int index_demux, int type) {
 			cs_debug("dvbapi: error opening device %s (Errno: %d)", device_path, errno);
 	}
 
-	cs_debug("dvbapi: DEVICE open (%s)", device_path);
+	cs_debug("dvbapi: DEVICE open (%s) fd %d", device_path, dmx_fd);
 	return dmx_fd;
 }
 
@@ -349,11 +349,14 @@ void dvbapi_start_filter(int demux_index, ushort caid, unsigned short pid, uchar
 	dvbapi_set_filter(dmx_fd, selected_api, pid, filter, filtermask, 4000);
 }
 
-void dvbapi_start_emm_filter(int demux_index, int emmtype, ushort caid, unsigned short pid, ushort table, ushort mask, int type) {
+void dvbapi_start_emm_filter(int demux_index, int emmtype, int type) {
 	int dmx_fd,i,n=-1;
 	uchar filter[32];
 
 	if (demux[demux_index].pidindex==-1) return;
+
+	ushort caid = demux[demux_index].ECMpids[demux[demux_index].pidindex].CA_System_ID;
+	ushort pid  = demux[demux_index].ECMpids[demux[demux_index].pidindex].EMM_PID;
 
 	int found=0;
 	for (i=0;i<CS_MAXREADER;i++) {
@@ -364,6 +367,7 @@ void dvbapi_start_emm_filter(int demux_index, int emmtype, ushort caid, unsigned
 		}
 	}
 
+#ifdef NOT_MODULAR
 	switch(caid >> 8) { 
 		case 0x17:
 		case 0x18: // NAGRA EMM
@@ -372,11 +376,23 @@ void dvbapi_start_emm_filter(int demux_index, int emmtype, ushort caid, unsigned
 			memcpy(filter,filter1,32);
 			break;
 		default:
+			if (emmtype!=GLOBAL) return;
 			memset(filter,0,32);
-			filter[0]=table;
-			filter[0+16]=mask;
+			filter[0]=0x80;
+			filter[0+16]=0xF0;
 			break;
 	}
+#else
+	if (cardsystem[reader[client[cs_idx].au].card_system-1].get_emm_filter) {
+		uchar *filter1 = cardsystem[reader[client[cs_idx].au].card_system-1].get_emm_filter(&reader[client[cs_idx].au], emmtype);
+		memcpy(filter,filter1,32);
+	} else {
+		if (emmtype!=GLOBAL) return;
+		memset(filter,0,32);
+		filter[0]=0x80;
+		filter[0+16]=0xF0;
+	}
+#endif
 
 	for (i=0;i<MAX_FILTER;i++) {
 		if (demux[demux_index].demux_fd[i].fd<=0) {
@@ -509,7 +525,6 @@ void dvbapi_process_emm (int demux_index, unsigned char *buffer, unsigned int le
 	EMM_PACKET epg;
 
 	if (demux[demux_index].pidindex==-1) return;
-	cs_debug("dvbapi: EMM Type: 0x%02x caid: %04x", buffer[0], demux[demux_index].ECMpids[demux[demux_index].pidindex].CA_System_ID);
 	cs_ddump(buffer, len, "emm:");
 
 	//force emm output
@@ -956,6 +971,7 @@ void dvbapi_main_local() {
 							if (mbuf[0]==0x01) { //CAT
 								cs_debug("dvbapi: receiving cat");
 								dvbapi_parse_cat(demux_index, mbuf, len);
+
 								if (demux[demux_index].pidindex < 0)
 									continue;
 								
@@ -963,20 +979,9 @@ void dvbapi_main_local() {
 								if (cfg->dvbapi_au==0)
 									continue;
 								
-								for (g=0;g<demux[demux_index].ECMpidcount;g++) {
-									if (demux[demux_index].demux_fd[n].CA_System_ID == demux[demux_index].ECMpids[g].CA_System_ID && demux[demux_index].ECMpids[g].EMM_PID>0) {
-										switch(demux[demux_index].demux_fd[n].CA_System_ID >> 8) { 
-											case 0x17:
-											case 0x18: // NAGRA EMM 
-												dvbapi_start_emm_filter(demux_index, SHARED, demux[demux_index].ECMpids[g].CA_System_ID, demux[demux_index].ECMpids[g].EMM_PID, 0x80, 0xF0, TYPE_EMM);
-												dvbapi_start_emm_filter(demux_index, GLOBAL, demux[demux_index].ECMpids[g].CA_System_ID, demux[demux_index].ECMpids[g].EMM_PID, 0x80, 0xF0, TYPE_EMM);
-												break;
-											default:
-												dvbapi_start_filter(demux_index, demux[demux_index].ECMpids[g].CA_System_ID, demux[demux_index].ECMpids[g].EMM_PID, 0x80, 0xF0, TYPE_EMM);
-												break;
-										}
-									}
-								}																	
+								dvbapi_start_emm_filter(demux_index, SHARED, TYPE_EMM);
+								dvbapi_start_emm_filter(demux_index, GLOBAL, TYPE_EMM);
+																									
 								continue;
 							}
 							dvbapi_process_emm(demux_index, mbuf, len);
