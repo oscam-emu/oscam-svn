@@ -655,7 +655,7 @@ int dvbapi_parse_capmt(unsigned char *buffer, unsigned int length, int connfd) {
 
 	if (demux_id<0) {
 		cs_log("dvbapi: error no free id (MAX_DEMUX)");
-		return 0;
+		return -1;
 	}
 
 	cs_ddump(buffer, length, "capmt:");
@@ -709,7 +709,7 @@ int dvbapi_parse_capmt(unsigned char *buffer, unsigned int length, int connfd) {
 	} else
 		cs_log("dvbapi: new program number: %04X", program_number);
 
-	return 0;
+	return demux_id;
 }
 
 
@@ -798,6 +798,57 @@ void dvbapi_chk_caidtab(char *caidasc, CAIDTAB *ctab) {
 	}
 }
 
+time_t pmt_timestamp=0;
+int pmt_id=-1, dir_fd=-1;
+
+void event_handler(int signal) {
+	struct stat pmt_info;
+	uchar inhalt[200], dest[200];
+	int len;
+	int pmt_fd = open("/tmp/pmt.tmp", O_RDONLY);
+	if(pmt_fd>0) {
+		if (fstat(pmt_fd, &pmt_info) == 0) {
+			if (pmt_info.st_mtime == pmt_timestamp) {
+				return;
+			}
+
+			if (pmt_id > -1) {
+				dvbapi_stop_descrambling(pmt_id);
+				fcntl(dir_fd, F_NOTIFY, 0);
+				close(dir_fd);
+				close(pmt_fd);
+				return;
+			}
+
+			pmt_timestamp = pmt_info.st_mtime;
+
+			cs_sleepms(100);
+			//02 B0 <len> <srvid1> <srvid2> ..
+			len = read(pmt_fd,inhalt,sizeof(inhalt));
+			if (len<1) return;
+
+			cs_ddump(inhalt,len,"pmt:");
+		
+			memcpy(dest, "\x00\xFF\xFF\x00\x00\x13\x00", 7);
+			
+			dest[1] = inhalt[3];
+			dest[2] = inhalt[4];
+			dest[5] = inhalt[11]+1;
+		
+			memcpy(dest + 7, inhalt + 12, len - 12 - 4);
+
+			pmt_id = dvbapi_parse_capmt(dest, 7 + len - 12 - 4, -1);
+			close(pmt_fd);
+		}
+	} else {
+		if (pmt_id > -1)
+			dvbapi_stop_descrambling(pmt_id);
+
+		fcntl(dir_fd, F_NOTIFY, 0);
+		close(dir_fd);
+	}
+}
+
 void dvbapi_main_local() {
 	int maxpfdsize=(MAX_DEMUX*MAX_FILTER)+MAX_DEMUX+2;
 	struct pollfd pfd2[maxpfdsize];
@@ -840,6 +891,23 @@ void dvbapi_main_local() {
 
 	dvbapi_chk_caidtab(cfg->dvbapi_priority, &prioritytab);
 	dvbapi_chk_caidtab(cfg->dvbapi_ignore, &ignoretab);
+
+	int pmt_fd = open("/tmp/pmt.tmp", O_RDONLY);
+	if(pmt_fd>0) {
+		struct sigaction signal_action;
+		signal_action.sa_handler = event_handler;
+		sigemptyset(&signal_action.sa_mask);
+		signal_action.sa_flags = 0;
+		sigaction(SIGRTMIN + 1, &signal_action, NULL);
+	
+		dir_fd = open("/tmp/", O_RDONLY);
+		if (dir_fd >= 0) {
+			fcntl(dir_fd, F_SETSIG, SIGRTMIN + 1);
+			fcntl(dir_fd, F_NOTIFY, DN_MODIFY | DN_CREATE | DN_DELETE | DN_MULTISHOT);
+			event_handler(SIGRTMIN + 1);
+		}
+		close(pmt_fd);
+	}
 
 	cs_ftime(&tp);
 	tp.time+=500;
