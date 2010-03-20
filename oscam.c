@@ -2121,26 +2121,25 @@ void do_emm(EMM_PACKET *ep)
 
 	cs_ddump_mask(D_EMM, ep->hexserial, 8, "emm UA/SA:");
 
+	char *typtext[]={"UNKNOWN", "UNIQUE", "SHARED", "GLOBAL"};
+	cs_debug_mask(D_EMM, "emmtype %s. Reader %s has serial %s.", typtext[ep->type], reader[au].label, cs_hexdump(0, reader[au].hexserial, 8));
+
 	switch (ep->type) {
 		case UNKNOWN:
-  			cs_debug_mask(D_EMM, "emmtype UNKNOWN. Reader %s has serial %s.", reader[au].label, cs_hexdump(0, reader[au].hexserial, 8));
 			if (reader[au].blockemm_unknown) return;
 			break;
 
 		case UNIQUE:
-  			cs_debug_mask(D_EMM, "emmtype UNIQUE. Reader %s has serial %s.", reader[au].label, cs_hexdump(0, reader[au].hexserial, 8));
 			if (reader[au].blockemm_u) return;
 			break;
 
 		case SHARED:
-  			cs_debug_mask(D_EMM, "emmtype SHARED. Reader %s has serial %s.", reader[au].label, cs_hexdump(0, reader[au].hexserial, 8));
 			if (reader[au].blockemm_s) return;
 			break;
 
 		// FIXME only camd33 delivers hexserial from the net, newcamd, camd35 copy 
 		// cardreader hexserial in; reader_get_emm_type overwrites this with real SA value if known!
 		case GLOBAL:
-  			cs_debug_mask(D_EMM, "emmtype GLOBAL. Reader %s has serial %s.", reader[au].label, cs_hexdump(0, reader[au].hexserial, 8));
 			if (reader[au].blockemm_g) return;
 			break;
 	}

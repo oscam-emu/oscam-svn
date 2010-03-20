@@ -36,6 +36,7 @@ extern "C" {
 char * __md5_crypt(const char *, const char *);
 unsigned char *MD5(const unsigned char *, unsigned long, unsigned char *);
 unsigned long crc32(unsigned long, const unsigned char *, unsigned int);
+const u_int32_t MD5_C[256];
 
 #ifdef  __cplusplus
 }

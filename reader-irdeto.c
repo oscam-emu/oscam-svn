@@ -289,6 +289,29 @@ int irdeto_do_ecm(ECM_REQUEST *er)
   return OK;
 }
 
+uchar *irdeto_get_emm_filter(struct s_reader * rdr, int type)
+{
+	static uint8_t filter[32];
+	memset(filter, 0x00, 32);
+
+	switch (type) {
+		case GLOBAL:
+			filter[1]    = 0x00;
+			filter[1+16] = 0x2F;
+			break;
+		case SHARED:
+		case UNIQUE:
+			filter[1]    = 0xD2;
+			filter[1+16] = 0xFE;
+			memcpy(filter+2, rdr->hexserial, 2);
+			memset(filter+2+16, 0xFF, 2);
+
+			break;
+	}
+
+	return filter;
+}
+
 int irdeto_get_emm_type(EMM_PACKET *ep, struct s_reader * rdr) {
 
 	int l = (ep->emm[3]&0x07);
@@ -436,4 +459,5 @@ void reader_irdeto(struct s_cardsystem *ph)
 	ph->card_info=irdeto_card_info;
 	ph->card_init=irdeto_card_init;
 	ph->get_emm_type=irdeto_get_emm_type;
+	ph->get_emm_filter=irdeto_get_emm_filter;
 }

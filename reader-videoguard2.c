@@ -42,7 +42,7 @@ static int cw_is_valid(unsigned char *cw) //returns 1 if cw_is_valid, returns 0 
     }
   return ERROR;
 }
-
+/*
 unsigned short NdTabB001[0x4][0x20]= {
 	{ 0xEAF1,0x0237,0x29D0,0xBAD2,0xE9D3,0x8BAE,0x2D6D,0xCD1B,
 		0x538D,0xDE6B,0xA634,0xF81A,0x18B5,0x5087,0x14EA,0x672E,
@@ -64,7 +64,7 @@ unsigned short NdTabB001[0x4][0x20]= {
 
 unsigned short Hash3[] = {0x0123,0x4567,0x89AB,0xCDEF,0xF861,0xCB52};
 unsigned char Hash4[] = {0x0B,0x04,0x07,0x08,0x05,0x09,0x0B,0x0A,0x07,0x02,0x0A,0x05,0x04,0x08,0x0D,0x0F};
-/*
+
 static void postprocess_cw(unsigned char *cw, int nTableIdx)
 {
   if (!cw_is_valid(cw)) //if cw is all zero, keep it that way
@@ -1026,7 +1026,7 @@ static int Transform_MD5_C069B411(MyData *Data){	// ROM:C069B411
     unsigned char mem08C0[] = {0x00, 0x01, 0x05, 0x00, 0x01, 0x05, 0x03, 0x07};
 
 
-
+/*
 
     int MD5_C[] = {
 								// round 1
@@ -1051,7 +1051,7 @@ static int Transform_MD5_C069B411(MyData *Data){	// ROM:C069B411
 		0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391
 	};
 
-
+*/
 
 	unsigned char S[] = {7, 12, 17, 22,
 		5, 9, 14, 20,
@@ -1318,6 +1318,7 @@ static const unsigned char * payload_addr(const unsigned char *data, const unsig
 
 int videoguard_get_emm_type(EMM_PACKET *ep, struct s_reader * rdr) //returns TRUE if shared emm matches SA, unique emm matches serial, or global or unknown
 {
+	rdr=rdr;
 	ep->type=UNKNOWN; //FIXME not sure how this maps onto global, unique and shared!
 	return TRUE; //FIXME let it all pass without checking serial or SA, without filling ep->hexserial
 }
