@@ -494,6 +494,7 @@ struct s_reader
   char      cc_version[7];  // cccam version
   char      cc_build[5];    // cccam build number
   int       cc_maxhop;      // cccam max distance
+  int		cc_currenthops; // number of hops for CCCam
   void      *cc;            // ptr to cccam internal data struct
   uchar     cc_id;
   uchar     tcp_connected;
@@ -671,6 +672,7 @@ struct s_config
 	in_addr_t	ncd_srvip;
 	uchar		ncd_key[16];
 	int		ncd_keepalive;
+	int		ncd_mgclient;
 	struct s_ip 	*ncd_allowed;
 	PTAB		cc_ptab;
 	int		rad_port;
@@ -750,6 +752,7 @@ typedef struct ecm_request_t
   struct timeb  tps;    // incoming time stamp
   uchar         locals_done;
   int		btun; // mark er as betatunneled
+  int		hops; // number of hops for CCCam
 
 #ifdef CS_WITH_GBOX
   ushort	gbxCWFrom;
@@ -824,6 +827,7 @@ void clear_tuntab(struct s_tuntab *ttab);
 extern int safe_overwrite_with_bak(char *destfile, char *tmpfile, char *bakfile, int forceBakOverWrite);
 extern void fprintf_conf(FILE *f, int varnameWidth, const char *varname, const char *fmtstring, ...);
 extern void cs_strncpy(char * destination, const char * source, size_t num);
+extern char *get_servicename(int srvid, int caid);
 
 // oscam variables
 extern int pfd, rfd, fd_c2m, fd_m2c, cs_idx, *c_start, cs_ptyp, cs_dblevel, cs_hw;
@@ -1037,7 +1041,6 @@ extern void module_dvbapi(struct s_module *);
 
 // module-monitor
 extern char *monitor_get_proto(int idx);
-extern char *monitor_get_srvname(int srvid, int caid);
 extern int cs_idx2ridx(int idx);
 
 #ifdef WEBIF

@@ -922,6 +922,16 @@ void chk_t_newcamd(char *token, char *value)
 		}
 	}
 
+	if (!strcmp(token, "mgclient")) {
+		if(strlen(value) == 0) {
+			cfg->ncd_mgclient = 0;
+			return;
+		} else {
+			cfg->ncd_mgclient = atoi(value);
+			return;
+		}
+	}
+
 	if (token[0] != '#')
 		fprintf(stderr, "Warning: keyword '%s' in newcamd section not recognized\n", token);
 }
@@ -1652,6 +1662,7 @@ int write_config()
 		}
 		fprintf(f,"\n");
 		fprintf_conf(f, CONFVARWIDTH, "keepalive", "%d\n", cfg->ncd_keepalive);
+		fprintf_conf(f, CONFVARWIDTH, "mgclient", "%d\n", cfg->ncd_mgclient);
 		fprintf(f,"\n");
 	}
 
@@ -1745,7 +1756,20 @@ int write_config()
 #endif
 
 	/*serial*/
+	if (cfg->ser_device[0]){
+		fprintf(f,"[serial]\n");
+		char sdevice[512];
+		cs_strncpy(sdevice, cfg->ser_device, sizeof(sdevice));
+		char *ptr;
+		char delimiter[2]; delimiter[0] = 1; delimiter[1] = '\0';
 
+		ptr = strtok(sdevice, delimiter);
+		while(ptr != NULL) {
+			fprintf_conf(f, CONFVARWIDTH, "device", "%s\n", ptr);
+			ptr = strtok(NULL, delimiter);
+		}
+		fprintf(f,"\n");
+	}
 
 	/*cccam*/
 	if ( cfg->cc_port > 0) {
@@ -2113,67 +2137,67 @@ int init_sidtab()
 
 int init_srvid()
 {
-  int nr;
-  FILE *fp;
-  char *payload;
-  static struct s_srvid *srvid=(struct s_srvid *)0;
-  sprintf(token, "%s%s", cs_confdir, cs_srid);
+	int nr;
+	FILE *fp;
+	char *payload;
+	static struct s_srvid *srvid=(struct s_srvid *)0;
+	sprintf(token, "%s%s", cs_confdir, cs_srid);
 
-  if (!(fp=fopen(token, "r"))) {
-    cs_log("can't open file \"%s\" (err=%d), no service-id's loaded", token, errno);
-    return(0);
-  }
+	if (!(fp=fopen(token, "r"))) {
+		cs_log("can't open file \"%s\" (err=%d), no service-id's loaded", token, errno);
+		return(0);
+	}
 
-  nr=0;
-  while (fgets(token, sizeof(token), fp)) {
+	nr=0;
+	while (fgets(token, sizeof(token), fp)) {
 
 		int l;
 		void *ptr;
-                char *tmp;
-                tmp = trim(token);
+		char *tmp;
+		tmp = trim(token);
 
-                if (tmp[0] == '#') continue;
-                if ((l=strlen(tmp)) < 6) continue;
+		if (tmp[0] == '#') continue;
+		if ((l=strlen(tmp)) < 6) continue;
 		if (!(payload=strchr(token, '|'))) continue;
 		*payload++ = '\0';
 
 		if (!(ptr = malloc(sizeof(struct s_srvid)))) {
-      cs_log("Error allocating memory (errno=%d)", errno);
-      return(1);
-    }
+			cs_log("Error allocating memory (errno=%d)", errno);
+			return(1);
+		}
 
-    if (srvid)
-      srvid->next = ptr;
-    else
-      cfg->srvid = ptr;
+		if (srvid)
+			srvid->next = ptr;
+		else
+			cfg->srvid = ptr;
 
-    srvid = ptr;
-    memset(srvid, 0, sizeof(struct s_srvid));
+		srvid = ptr;
+		memset(srvid, 0, sizeof(struct s_srvid));
 
-    int i;
-    char *ptr1;
-    for (i = 0, ptr1 = strtok(payload, "|"); ptr1; ptr1 = strtok(NULL, "|"), i++){
+		int i;
+		char *ptr1;
+		for (i = 0, ptr1 = strtok(payload, "|"); ptr1; ptr1 = strtok(NULL, "|"), i++){
 			switch(i){
-				case 0:
-					cs_strncpy(srvid->prov, trim(ptr1), sizeof(srvid->prov));
-					break;
-				case 1:
-					cs_strncpy(srvid->name, trim(ptr1), sizeof(srvid->name));
-					break;
-				case 2:
-					cs_strncpy(srvid->type, trim(ptr1), sizeof(srvid->type));
-					break;
-				case 3:
-					cs_strncpy(srvid->desc, trim(ptr1), sizeof(srvid->desc));
-					break;
+			case 0:
+				cs_strncpy(srvid->prov, trim(ptr1), sizeof(srvid->prov));
+				break;
+			case 1:
+				cs_strncpy(srvid->name, trim(ptr1), sizeof(srvid->name));
+				break;
+			case 2:
+				cs_strncpy(srvid->type, trim(ptr1), sizeof(srvid->type));
+				break;
+			case 3:
+				cs_strncpy(srvid->desc, trim(ptr1), sizeof(srvid->desc));
+				break;
 			}
 		}
 
-    char *srvidasc = strchr(token, ':');
-    *srvidasc++ = '\0';
-    srvid->srvid = word_atob(srvidasc);
+		char *srvidasc = strchr(token, ':');
+		*srvidasc++ = '\0';
+		srvid->srvid = word_atob(srvidasc);
 
-    srvid->ncaid = 0;
+		srvid->ncaid = 0;
 		for (i = 0, ptr1 = strtok(token, ","); (ptr1) && (i < 10) ; ptr1 = strtok(NULL, ","), i++){
 			srvid->caid[i] = word_atob(ptr1);
 			srvid->ncaid = i+1;
@@ -2182,13 +2206,13 @@ int init_srvid()
 		nr++;
 	}
 
-  fclose(fp);
-  if (nr>0)
+	fclose(fp);
+	if (nr>0)
 		cs_log("%d service-id's loaded", nr);
 	else{
 		cs_log("oscam.srvid loading failed, old format");
 	}
-  return(0);
+	return(0);
 }
 
 static void chk_reader(char *token, char *value, struct s_reader *rdr)

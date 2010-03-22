@@ -1165,9 +1165,15 @@ int cs_auth_client(struct s_auth *account, char *e_txt)
 				e_txt ? e_txt : t_msg[rc]);
 		break;
 	default:            // grant/check access
-		if (client[cs_idx].ip && account->dyndns[0])
-			if (client[cs_idx].ip != account->dynip)
-				rc=2;
+		if (client[cs_idx].ip && account->dyndns[0]) {
+			if (cfg->clientdyndns) {
+				if (client[cs_idx].ip != account->dynip)
+					rc=2;
+			}
+			else
+				cs_log("Warning: clientdyndns disabled in config. Enable clientdyndns to use hostname restrictions");
+		}
+
 		if (!rc)
 		{
 			client[cs_idx].dup=0;
@@ -1635,7 +1641,7 @@ int send_dcw(ECM_REQUEST *er)
 	if(cfg->mon_appendchaninfo)
 		cs_log("%s (%04X&%06X/%04X/%02X:%04X): %s (%d ms)%s - %s",
 				uname, er->caid, er->prid, er->srvid, er->l, lc,
-				er->rcEx?erEx:stxt[er->rc], client[cs_idx].cwlastresptime, sby, monitor_get_srvname(er->srvid, er->caid));
+				er->rcEx?erEx:stxt[er->rc], client[cs_idx].cwlastresptime, sby, get_servicename(er->srvid, er->caid));
 	else
 		cs_log("%s (%04X&%06X/%04X/%02X:%04X): %s (%d ms)%s",
 				uname, er->caid, er->prid, er->srvid, er->l, lc,
@@ -2109,8 +2115,9 @@ void log_emm_request(int auidx)
 void do_emm(EMM_PACKET *ep)
 {
 	int au;
-	au = client[cs_idx].au;
+	char *typtext[]={"UNKNOWN", "UNIQUE", "SHARED", "GLOBAL"}; 
 
+	au = client[cs_idx].au;
 	cs_ddump_mask(D_ATR, ep->emm, ep->l, "emm:");
 
 	if ((au < 0) || (au >= CS_MAXREADER))
@@ -2120,9 +2127,7 @@ void do_emm(EMM_PACKET *ep)
 		return;
 
 	cs_ddump_mask(D_EMM, ep->hexserial, 8, "emm UA/SA:");
-
-	char *typtext[]={"UNKNOWN", "UNIQUE", "SHARED", "GLOBAL"};
-	cs_debug_mask(D_EMM, "emmtype %s. Reader %s has serial %s.", typtext[ep->type], reader[au].label, cs_hexdump(0, reader[au].hexserial, 8));
+	cs_debug_mask(D_EMM, "emmtype %s. Reader %s has serial %s.", typtext[ep->type], reader[au].label, cs_hexdump(0, reader[au].hexserial, 8)); 
 
 	switch (ep->type) {
 		case UNKNOWN:

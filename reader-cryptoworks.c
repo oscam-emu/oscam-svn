@@ -509,7 +509,7 @@ int cryptoworks_do_emm(EMM_PACKET *ep)
   */
    
   //cs_log("[cryptoworks-reader] EMM Dump:..: %s",cs_hexdump(1, emm, emm[2])); 
-  switch(ep->emm[0])
+  switch(ep->type)
   {
   	 case UNKNOWN:
 		  // FIXME emm via camd3.5x was returned from check_emm_type as UNKNOWN

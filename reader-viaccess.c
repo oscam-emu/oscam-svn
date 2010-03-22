@@ -356,23 +356,23 @@ int viaccess_do_ecm(ECM_REQUEST *er)
 
 int viaccess_get_emm_type(EMM_PACKET *ep, struct s_reader * rdr) //returns TRUE if shared emm matches SA, unique emm matches serial, or global or unknown
 {
-	rdr=rdr;
-	switch (ep->emm[0]) {
-		case 0x8C:
-		case 0x8D:
-			ep->type=GLOBAL;
-			break;
-		case 0x8E:
-			ep->type=SHARED;
-			break;
-		case 0x88:
-			ep->type=UNIQUE; // ?
-			break;
-		default:
-			ep->type=UNKNOWN;
-			break;
-	}
-	return TRUE;
+	rdr=rdr; 
+	switch (ep->emm[0]) { 
+		case 0x8C: 
+		case 0x8D: 
+			ep->type=GLOBAL; 
+			break; 
+		case 0x8E: 
+			ep->type=SHARED; 
+			break; 
+		case 0x88: 
+			ep->type=UNIQUE; // ? 
+			break; 
+		default: 
+			ep->type=UNKNOWN; 
+			break; 
+	} 
+	return TRUE; 
 }
 
 int viaccess_do_emm(EMM_PACKET *ep)

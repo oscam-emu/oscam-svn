@@ -6,6 +6,10 @@
 #define HAVE_DVBAPI
 #endif
 
+#ifndef IRDETO_GUESSING
+//#define IRDETO_GUESSING
+#endif
+
 #ifndef MODULE_MONITOR
 #define MODULE_MONITOR
 #endif
@@ -16,6 +20,10 @@
 
 #ifndef MODULE_CAMD35
 #define MODULE_CAMD35
+#endif
+
+#ifndef MODULE_CAMD35_TCP
+#define MODULE_CAMD35_TCP
 #endif
 
 #ifndef MODULE_NEWCAMD
@@ -34,9 +42,7 @@
 //#define MODULE_SERIAL
 #endif
 
-#ifndef MODULE_CAMD35_TCP
-#define MODULE_CAMD35_TCP
-#endif
+
 
 #ifndef WITH_CARDREADER
 #define WITH_CARDREADER
