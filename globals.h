@@ -493,7 +493,9 @@ struct s_reader
   char      cc_version[7];  // cccam version
   char      cc_build[5];    // cccam build number
   int       cc_maxhop;      // cccam max distance
+  int       cc_currenthops; // number of hops for CCCam
   void      *cc;            // ptr to cccam internal data struct
+  uchar     cc_id;
   uchar     tcp_connected;
   int       tcp_ito;      // inactivity timeout
   int       tcp_rto;      // reconnect timeout
