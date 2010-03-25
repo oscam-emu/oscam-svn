@@ -591,7 +591,7 @@ static int cc_send_ecm(ECM_REQUEST *er, uchar *buf)
     memcpy(ecmbuf+13, cur_er->ecm, cur_er->l);
 
     cc->count = cur_er->idx;
-
+    reader[ridx].cc_currenthops = cc->cur_card->hop + 1;
     cs_log("cccam: sending ecm for sid %04x to card %08x, hop %d", cur_er->srvid, cc->cur_card->id, cc->cur_card->hop + 1);
     n = cc_cmd_send(ecmbuf, cur_er->l+13, MSG_CW_ECM);      // send ecm
 
@@ -687,7 +687,7 @@ static cc_msg_type_t cc_parse_msg(uint8 *buf, int l)
       card->hop = buf[14];
       memcpy(card->key, buf+16, 8);
 
-      cs_log("cccam: card %08x added, caid %04x, hop %d, key %s",
+      cs_debug("cccam: card %08x added, caid %04x, hop %d, key %s",
           card->id, card->caid, card->hop, cs_hexdump(0, card->key, 8));
 
 
@@ -695,7 +695,7 @@ static cc_msg_type_t cc_parse_msg(uint8 *buf, int l)
         uint8 *prov = malloc(3);
 
         memcpy(prov, buf+25+(7*i), 3);
-        cs_log("      prov %d, %06x", i+1, b2i(3, prov));
+        cs_debug("      prov %d, %06x", i+1, b2i(3, prov));
 
         llist_append(card->provs, prov);
       }
@@ -785,8 +785,12 @@ static cc_msg_type_t cc_parse_msg(uint8 *buf, int l)
     }
     break;
   case MSG_KEEPALIVE:
-    cc_cmd_send(NULL, 0, MSG_KEEPALIVE);
-    cs_debug("cccam: keepalive");
+    if (!reader[ridx].cc) {
+      cs_debug("cccam: keepalive ack");
+    } else {
+      cc_cmd_send(NULL, 0, MSG_KEEPALIVE);
+      cs_debug("cccam: keepalive");
+    }
     break;
   case MSG_BAD_ECM:
     //cc->ecm_count = 1;
@@ -1008,76 +1012,100 @@ static int cc_cli_connect(void)
 static void cc_srv_report_cards()
 {
   int j;
-  uint id = 1, r, k;
-  uint8 hop = 0, reshare;
+  uint r, k;
+  uint8 hop = 0, reshare, flt;
   uint8 buf[CC_MAXMSGSIZE];
   struct cc_data *cc = client[cs_idx].cc;
 
+  cs_debug("cccam: reporting card changes to client...");
+
   reshare = cfg->cc_reshare;
 
-  for (r=0; r<CS_MAXREADER; r++) {
-    if (reader[r].caid[0]) {
-      if (reader[r].tcp_connected || reader[r].card_status == CARD_INSERTED) {
-        memset(buf, 0, sizeof(buf));
-
-        buf[0] = id >> 24;
-        buf[1] = id >> 16;
-        buf[2] = id >> 8;
-        buf[3] = id & 0xff;
-        buf[8] = reader[r].caid[0] >> 8;
-        buf[9] = reader[r].caid[0] & 0xff;
-        buf[10] = hop;
-        buf[11] = reshare;
-        buf[20] = reader[r].nprov;
-
-        for (j=0; j<reader[r].nprov; j++)
-          if (reader[r].card_status == CARD_INSERTED)
-              memcpy(buf + 21 + (j*7), reader[r].prid[j]+1, 3);
-          else
-              memcpy(buf + 21 + (j*7), reader[r].prid[j], 3);
-
-        buf[21 + (j*7)] = 1;
-        memcpy(buf + 22 + (j*7), cc->node_id, 8);
-
-        cc_cmd_send(buf, 30 + (j*7), MSG_NEW_CARD);
-
-        id++;
-      }
-    }
-
-
-    if (reader[r].ftab.filts) {
-      for (j=0; j<CS_MAXFILTERS; j++) {
-        if (reader[r].ftab.filts[j].caid) {
+  for (r=0; r<CS_MAXREADER; r++)
+  {
+    flt = 0;
+    if (reader[r].ftab.filts)
+    {
+      for (j=0; j<CS_MAXFILTERS; j++)
+      {
+        if (reader[r].ftab.filts[j].caid && !reader[r].cc_id)
+  {
+          reader[r].cc_id = 0x63 + r;
           memset(buf, 0, sizeof(buf));
-
-          buf[0] = id >> 24;
-          buf[1] = id >> 16;
-          buf[2] = id >> 8;
-          buf[3] = id & 0xff;
+          buf[0] = reader[r].cc_id >> 24;
+          buf[1] = reader[r].cc_id >> 16;
+          buf[2] = reader[r].cc_id >> 8;
+          buf[3] = reader[r].cc_id & 0xff;
+    buf[7] = reader[r].cc_id;
           buf[8] = reader[r].ftab.filts[j].caid >> 8;
           buf[9] = reader[r].ftab.filts[j].caid & 0xff;
           buf[10] = hop;
           buf[11] = reshare;
           buf[20] = reader[r].ftab.filts[j].nprids;
-
-          for (k=0; k<reader[r].ftab.filts[j].nprids; k++) {
+          for (k=0; k<reader[r].ftab.filts[j].nprids; k++)
+    {
             buf[21 + (k*7)] = reader[r].ftab.filts[j].prids[k] >> 16;
             buf[22 + (k*7)] = reader[r].ftab.filts[j].prids[k] >> 8;
-            buf[23 + (k*7)] = reader[r].ftab.filts[j].prids[k] & 0xff;
+            buf[23 + (k*7)] = reader[r].ftab.filts[j].prids[k] & 0xFF;
           }
+    buf[21 + (k*7)] = 1;
+          memcpy(buf + 22 + (k*7), cc->node_id, 8);
 
-          buf[21 + (k*7)] = 1;
-          memcpy(buf + 22 + (k*7), cc->node_id, 7);
-
-          cc_cmd_send(buf, 30 + (k*7), MSG_NEW_CARD);
-
-          id++;
+  // reader[r].cc_id = buf[7];
+          cs_debug("cccam: send new card (1)...");
+   cc_cmd_send(buf, 30 + (k*7), MSG_NEW_CARD);
+    flt = 1;
         }
       }
     }
+
+    if (reader[r].caid[0] && !flt)
+    {
+      memset(buf, 0, sizeof(buf));
+      if ((reader[r].tcp_connected || reader[r].card_status == CARD_INSERTED) && !reader[r].cc_id)
+      {
+        reader[r].cc_id = 0x63 + r;
+        buf[0] = reader[r].cc_id >> 24;
+        buf[1] = reader[r].cc_id >> 16;
+        buf[2] = reader[r].cc_id >> 8;
+        buf[3] = reader[r].cc_id & 0xff;
+        buf[7] = reader[r].cc_id;
+        buf[8] = reader[r].caid[0] >> 8;
+        buf[9] = reader[r].caid[0] & 0xff;
+        buf[10] = hop;
+        buf[11] = reshare;
+        buf[20] = reader[r].nprov;
+        for (j=0; j<reader[r].nprov; j++)
+        {
+          if (reader[r].card_status == CARD_INSERTED)
+        memcpy(buf + 21 + (j*7), reader[r].prid[j]+1, 3);
+    else
+        memcpy(buf + 21 + (j*7), reader[r].prid[j], 3);
+        }
+
+        buf[21 + (j*7)] = 1;
+        memcpy(buf + 22 + (j*7), cc->node_id, 8);
+
+    //    reader[r].cc_id = buf[7];
+        cs_debug("cccam: send new card (2)...");
+        cc_cmd_send(buf, 30 + (j*7), MSG_NEW_CARD);
+      }
+      else
+        if ((reader[r].card_status != CARD_INSERTED) && (!reader[r].tcp_connected) && reader[r].cc_id)
+        {
+          buf[0] = reader[r].cc_id >> 24;
+          buf[1] = reader[r].cc_id >> 16;
+          buf[2] = reader[r].cc_id >> 8;
+          buf[3] = reader[r].cc_id & 0xff;
+          reader[r].cc_id = 0;
+          cs_debug("cccam: send remove card...");
+          cc_cmd_send(buf, 4, MSG_CARD_REMOVED);
+          cs_debug("cccam: OK!");
+        }
+    }
   }
 }
+
 
 static int cc_srv_connect()
 {
@@ -1099,7 +1127,7 @@ static int cc_srv_connect()
   cc = malloc(sizeof(struct cc_data));
   if (cc==NULL) {
     cs_log("cccam: cannot allocate memory");
-    return -1;
+    cs_exit(0);
   }
 
   client[cs_idx].cc = cc;
@@ -1133,14 +1161,20 @@ static int cc_srv_connect()
     cs_ddump(buf, 20, "cccam: recv:");
     cc_crypt(&cc->block[DECRYPT], buf, 20, DECRYPT);
     cs_ddump(buf, 20, "cccam: hash:");
-  } else return -1;
+  } else {
+    cs_log("cccam:%d: receive failed errno: %d (%s)", __LINE__, errno, strerror(errno));
+    cs_exit(0);
+  }
 
   // receive username
   if ((i=recv(pfd, buf, 20, MSG_WAITALL)) == 20) {
     cc_crypt(&cc->block[DECRYPT], buf, 20, DECRYPT);
     cs_ddump(buf, 20, "cccam: username '%s':", buf);
     strncpy(usr, (char *)buf, sizeof(usr));
-  } else return -1;
+  } else {
+    cs_log("cccam:%d: receive username failed errno: %d (%s)", __LINE__, errno, strerror(errno));
+    cs_exit(0);
+  }
 
   for (account=cfg->account; account; account=account->next)
     if (strcmp(usr, account->usr) == 0) {
@@ -1153,7 +1187,10 @@ static int cc_srv_connect()
   if ((i=recv(pfd, buf, 6, MSG_WAITALL)) == 6) {
     cc_crypt(&cc->block[DECRYPT], buf, 6, DECRYPT);
     cs_ddump(buf, 6, "cccam: pwd check '%s':", buf);
-  } else return -1;
+  } else {
+    cs_log("cccam:%d: receive passwd failed errno: %d (%s)", __LINE__, errno, strerror(errno));
+    cs_exit(0);
+  }
 
   cs_auth_client(account, NULL);
   //cs_auth_client((struct s_auth *)(-1), NULL);
@@ -1175,11 +1212,16 @@ static int cc_srv_connect()
   // send cli data ack
   cc_cmd_send(NULL, 0, MSG_CLI_DATA);
 
-  if (cc_send_srv_data()<0) return -1;
+  if (cc_send_srv_data()<0) {
+	cs_log("cccam:%d: cc_send_srv_data() failed errno: %d (%s)", __LINE__, errno, strerror(errno));
+	cs_exit(0);
+  }
 
   is_server = 1;
 
   // report cards
+  for (i=0; i<CS_MAXREADER; i++)
+    reader[i].cc_id = 0;
   cc_srv_report_cards();
 
   cmi = 0;
@@ -1188,32 +1230,39 @@ static int cc_srv_connect()
     i=process_input(mbuf, sizeof(mbuf), 10); //cfg->cmaxidle);
     if (i == -9) {
       cc_srv_report_cards();
-      cmi += 10;
-      if (cmi >= cfg->cmaxidle) {
-        //cs_log("cccam: keepalive after %d sec", cfg->cmaxidle);
-        cmi = 0;
+      //cmi += 10;
+     // if (cmi >= cfg->cmaxidle) {
+    //    cmi = 0;
         if (cc_cmd_send(NULL, 0, MSG_KEEPALIVE) > 0) {
-          cs_debug("cccam: keepalive");
+          cs_debug("cccam: keepalive after maxidle is reached");
           i = 1;
         }
-      }
+   //   }
     } else if (i <= 0) break;
   }
 
   cs_disconnect_client();
+
+  for (i=0; i<CS_MAXREADER; i++)
+    reader[i].cc_id = 0;
 
   return 0;
 }
 
 void cc_srv_init()
 {
+  //cs_waitforcardinit();
   pfd=client[cs_idx].udp_fd;
   //cc_auth_client(client[cs_idx].ip);
   cc_srv_connect();
+
+  
+  cs_exit(0);
 }
 
 int cc_cli_init()
 {
+  //cs_waitforcardinit();
   if (!reader[ridx].tcp_connected) {
     static struct sockaddr_in loc_sa;
     struct protoent *ptrp;
