@@ -332,7 +332,10 @@ void cs_exit(int sig)
     cs_log("exit with signal %d", sig);
   switch(client[cs_idx].typ)
   {
-    case 'c': cs_statistics(cs_idx);
+    case 'c':
+    	client[cs_idx].last_caid = 0xFFFF;
+    	client[cs_idx].last_srvid = 0xFFFF;
+    	cs_statistics(cs_idx);
     case 'm': break;
     case 'n': *log_fd=0;
               break;
@@ -1179,6 +1182,8 @@ int cs_auth_client(struct s_auth *account, char *e_txt)
 			client[cs_idx].dup=0;
 			if (client[cs_idx].typ=='c')
 			{
+				client[cs_idx].last_caid = 0xFFFE;
+				client[cs_idx].last_srvid = 0xFFFE;
 				client[cs_idx].expirationdate=account->expirationdate;
 				client[cs_idx].disabled=account->disabled;
 				client[cs_idx].c35_suppresscmd08 = account->c35_suppresscmd08;
@@ -1245,20 +1250,20 @@ int cs_auth_client(struct s_auth *account, char *e_txt)
 	{
 		cs_log("%s %s:%d-client %s%s (%s, %s)",
 				client[cs_idx].crypted ? t_crypt : t_plain,
-						e_txt ? e_txt : ph[client[cs_idx].ctyp].desc,
-								cfg->ncd_ptab.ports[client[cs_idx].port_idx].s_port,
-								client[cs_idx].ip ? cs_inet_ntoa(client[cs_idx].ip) : "",
-										client[cs_idx].ip ? t_grant : t_grant+1,
-												username(cs_idx), t_msg[rc]);
+				e_txt ? e_txt : ph[client[cs_idx].ctyp].desc,
+				cfg->ncd_ptab.ports[client[cs_idx].port_idx].s_port,
+				client[cs_idx].ip ? cs_inet_ntoa(client[cs_idx].ip) : "",
+				client[cs_idx].ip ? t_grant : t_grant+1,
+				username(cs_idx), t_msg[rc]);
 	}
 	else
 	{
 		cs_log("%s %s-client %s%s (%s, %s)",
 				client[cs_idx].crypted ? t_crypt : t_plain,
-						e_txt ? e_txt : ph[client[cs_idx].ctyp].desc,
-								client[cs_idx].ip ? cs_inet_ntoa(client[cs_idx].ip) : "",
-										client[cs_idx].ip ? t_grant : t_grant+1,
-												username(cs_idx), t_msg[rc]);
+				e_txt ? e_txt : ph[client[cs_idx].ctyp].desc,
+				client[cs_idx].ip ? cs_inet_ntoa(client[cs_idx].ip) : "",
+				client[cs_idx].ip ? t_grant : t_grant+1,
+				username(cs_idx), t_msg[rc]);
 	}
 
 	break;
@@ -1987,9 +1992,9 @@ void get_cw(ECM_REQUEST *er)
 		i = er->srvid;
 
 		if ((i != client[cs_idx].last_srvid) || (!client[cs_idx].lastswitch)) {
-			client[cs_idx].lastswitch = now;
 			if(cfg->usrfileflag)
 				cs_statistics(cs_idx);
+			client[cs_idx].lastswitch = now;
 		}
 
 		// user sleeping
@@ -2123,8 +2128,12 @@ void do_emm(EMM_PACKET *ep)
 	if ((au < 0) || (au >= CS_MAXREADER))
 		return;
 
-	if (!reader_get_emm_type(ep, &reader[au])) //decodes ep->type and ep->hexserial from the EMM
-		return;
+	if (reader[au].card_system>0) {
+		if (!reader_get_emm_type(ep, &reader[au])) { //decodes ep->type and ep->hexserial from the EMM
+			cs_debug_mask(D_EMM, "emm skipped");
+			return;
+		}
+	}
 
 	cs_ddump_mask(D_EMM, ep->hexserial, 8, "emm UA/SA:");
 	cs_debug_mask(D_EMM, "emmtype %s. Reader %s has serial %s.", typtext[ep->type], reader[au].label, cs_hexdump(0, reader[au].hexserial, 8)); 

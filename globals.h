@@ -335,6 +335,7 @@ struct s_module
   int  (*c_recv_chk)();
   int  (*c_init)();
   int  (*c_send_ecm)();
+  int  (*c_send_emm)();
   int  (*c_init_log)();
   int  (*c_recv_log)();
   int  c_port;

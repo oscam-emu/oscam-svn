@@ -134,11 +134,6 @@ int selected_api=-1;
 
 int emm_count[]={0,0,0,0};
 
-#if 0
-extern uchar *nagra2_get_emm_filter(struct s_reader*, int);
-extern uchar *irdeto_get_emm_filter(struct s_reader*, int);
-#endif
-
 int dvbapi_set_filter(int dmx_fd, int api, unsigned short pid, uchar *filt, uchar *mask, int timeout) {
 	int ret=-1;
 
@@ -344,37 +339,6 @@ void dvbapi_start_emm_filter(int demux_index, int emmtype, int type) {
 	ushort caid = demux[demux_index].ECMpids[demux[demux_index].pidindex].CA_System_ID;
 	ushort pid  = demux[demux_index].ECMpids[demux[demux_index].pidindex].EMM_PID;
 
-	int found=0;
-	for (i=0;i<CS_MAXREADER;i++) {
-		if (reader[i].caid[0] == demux[demux_index].ECMpids[demux[demux_index].pidindex].CA_System_ID) {
-			client[cs_idx].au=i;
-			found=1;
-			break;
-		}
-	}
-
-#ifdef NOT_MODULAR
-#define SC_IRDETO 1 //reader-common.c
-#define SC_NAGRA 8
-	switch(reader[client[cs_idx].au].card_system) {
-		case SC_IRDETO:
-			i=0;
-			uchar *filter1 = irdeto_get_emm_filter(&reader[client[cs_idx].au], emmtype);
-			memcpy(filter,filter1,32);
-			break;
-		case SC_NAGRA:
-			i=0;
-			uchar *filter1 = nagra2_get_emm_filter(&reader[client[cs_idx].au], emmtype);
-			memcpy(filter,filter1,32);
-			break;
-		default:
-			if (emmtype!=GLOBAL) return;
-			memset(filter,0,32);
-			filter[0]=0x80;
-			filter[0+16]=0xF0;
-			break;
-	}
-#else
 	if (cardsystem[reader[client[cs_idx].au].card_system-1].get_emm_filter) {
 		uchar *filter1 = cardsystem[reader[client[cs_idx].au].card_system-1].get_emm_filter(&reader[client[cs_idx].au], emmtype);
 		memcpy(filter,filter1,32);
@@ -384,7 +348,6 @@ void dvbapi_start_emm_filter(int demux_index, int emmtype, int type) {
 		filter[0]=0x80;
 		filter[0+16]=0xF0;
 	}
-#endif
 
 	for (i=0;i<MAX_FILTER;i++) {
 		if (demux[demux_index].demux_fd[i].fd<=0) {
@@ -524,7 +487,7 @@ void dvbapi_process_emm (int demux_index, unsigned char *buffer, unsigned int le
 
 	epg.l=len;
 	memcpy(epg.emm, buffer, epg.l);
-
+/*
 	int found=0;
 	for (i=0;i<CS_MAXREADER;i++) {
 		if (reader[i].caid[0] == demux[demux_index].ECMpids[demux[demux_index].pidindex].CA_System_ID) {
@@ -533,15 +496,14 @@ void dvbapi_process_emm (int demux_index, unsigned char *buffer, unsigned int le
 			break;
 		}
 	}
-
-	if (found==1 && reader[client[cs_idx].au].card_system>0) {
+*/
+	//if (found==1 && reader[client[cs_idx].au].card_system>0) {
 		cardsystem[reader[client[cs_idx].au].card_system-1].get_emm_type(&epg, &reader[client[cs_idx].au]);
 		char *typtext[]={"UNKNOWN", "UNIQUE", "SHARED", "GLOBAL"};
 		emm_count[epg.type]++;
 		cs_debug("dvbapi: %s emm (unk/g/s/u) (%d/%d/%d/%d)", typtext[epg.type], emm_count[UNKNOWN], emm_count[GLOBAL], emm_count[SHARED], emm_count[UNIQUE]);
 		do_emm(&epg);
-	}
-
+	//}
 }
 
 void dvbapi_resort_ecmpids(int demux_index) {
@@ -788,13 +750,14 @@ int pmt_id=-1, dir_fd=-1;
 
 void event_handler(int signal) {
 	struct stat pmt_info;
-	uchar inhalt[200], dest[200];
-	int len;
+	uchar inhalt[400], dest[200];
+	uint len;
 	signal=signal;
 	int pmt_fd = open("/tmp/pmt.tmp", O_RDONLY);
 	if(pmt_fd>0) {
 		if (fstat(pmt_fd, &pmt_info) == 0) {
 			if (pmt_info.st_mtime == pmt_timestamp) {
+				close(pmt_fd);
 				return;
 			}
 
@@ -809,10 +772,29 @@ void event_handler(int signal) {
 			pmt_timestamp = pmt_info.st_mtime;
 
 			cs_sleepms(100);
-			//02 B0 <len> <srvid1> <srvid2> ..
+
 			len = read(pmt_fd,inhalt,sizeof(inhalt));
 			if (len<1) return;
+#ifdef QBOXHD
+			uint j1,j2;
+			// QboxHD pmt.tmp is the full capmt written as a string of hex values
+			// pmt.tmp must be longer than 3 bytes (6 hex chars) and even length
+			if ((len<6) || ((len%2) != 0)) {
+				cs_log("dvbapi: error parsing QboxHD pmt.tmp, incorrect length");
+				return;
+			}
 
+			for(j2=0,j1=0;j2<len;j2+=2,j1++) {
+				if (sscanf((char*)inhalt+j2,"%02X",(uint*)dest+j1) != 1) {
+					cs_log("dvbapi: error parsing QboxHD pmt.tmp, data not valid in position %d",j2);
+					return;
+				}
+			}
+
+			cs_ddump(dest,len/2,"QboxHD pmt.tmp:");
+
+			pmt_id = dvbapi_parse_capmt(dest+4, (len/2)-4, -1);
+#else
 			cs_ddump(inhalt,len,"pmt:");
 		
 			memcpy(dest, "\x00\xFF\xFF\x00\x00\x13\x00", 7);
@@ -824,6 +806,7 @@ void event_handler(int signal) {
 			memcpy(dest + 7, inhalt + 12, len - 12 - 4);
 
 			pmt_id = dvbapi_parse_capmt(dest, 7 + len - 12 - 4, -1);
+#endif
 			close(pmt_fd);
 		}
 	} else {
@@ -956,9 +939,9 @@ void dvbapi_main_local() {
 				}
 
 				if (type[i]==1) {
-					if (pfd2[i].fd==listenfd) {						
+					if (pfd2[i].fd==listenfd) {
+						cs_debug("dvbapi: new socket connection");
 						connfd = accept(listenfd, (struct sockaddr *)&servaddr, (socklen_t *)&clilen);
-						cs_debug("dvbapi: new socket connection %d", connfd);
 
 						if (connfd <= 0) {
 							cs_log("dvbapi: accept() returns error %d, fd event %d", errno, pfd2[i].revents);
@@ -980,7 +963,7 @@ void dvbapi_main_local() {
 					} else {
 						cs_log("dvbapi: New capmt on old socket. Please report.");
 						len = read(pfd2[i].fd, mbuf, sizeof(mbuf));
-						cs_dump(mbuf, len, "message:");					
+						cs_dump(mbuf, len, "message:");
 					}
 				} else { // type==0
 					if ((len=dvbapi_read_device(pfd2[i].fd, mbuf, sizeof(mbuf), 0)) <= 0)
