@@ -26,7 +26,8 @@ check_test() {
 
 disable_all() {
 	for i in $1; do
-		cat $configfile | sed "s/^#define ${i}/\/\/#define ${i}/g" > $configfile
+		sed "s/^#define ${i}/\/\/#define ${i}/g" $configfile > $configfile.new
+		mv $configfile.new $configfile
 	done
 
 }
@@ -34,7 +35,8 @@ disable_all() {
 enable_package() {
 	for i in $(cat $tempfile); do
 		strip=$(echo $i | sed "s/\"//g")
-		cat $configfile | sed "s/\/\/#define ${strip}/#define ${strip}/g" > $configfile
+		sed "s/\/\/#define ${strip}/#define ${strip}/g" $configfile > $configfile.new
+		mv $configfile.new $configfile
 	done
 }
 
