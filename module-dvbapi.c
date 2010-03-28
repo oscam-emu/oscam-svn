@@ -487,7 +487,7 @@ void dvbapi_process_emm (int demux_index, unsigned char *buffer, unsigned int le
 
 	epg.l=len;
 	memcpy(epg.emm, buffer, epg.l);
-/*
+
 	int found=0;
 	for (i=0;i<CS_MAXREADER;i++) {
 		if (reader[i].caid[0] == demux[demux_index].ECMpids[demux[demux_index].pidindex].CA_System_ID) {
@@ -496,14 +496,13 @@ void dvbapi_process_emm (int demux_index, unsigned char *buffer, unsigned int le
 			break;
 		}
 	}
-*/
-	//if (found==1 && reader[client[cs_idx].au].card_system>0) {
+	if (found==1 && reader[client[cs_idx].au].card_system>0) {
 		cardsystem[reader[client[cs_idx].au].card_system-1].get_emm_type(&epg, &reader[client[cs_idx].au]);
 		char *typtext[]={"UNKNOWN", "UNIQUE", "SHARED", "GLOBAL"};
 		emm_count[epg.type]++;
 		cs_debug("dvbapi: %s emm (unk/g/s/u) (%d/%d/%d/%d)", typtext[epg.type], emm_count[UNKNOWN], emm_count[GLOBAL], emm_count[SHARED], emm_count[UNIQUE]);
 		do_emm(&epg);
-	//}
+	}
 }
 
 void dvbapi_resort_ecmpids(int demux_index) {
