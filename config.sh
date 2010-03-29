@@ -13,11 +13,11 @@ if [ -z "${DIALOG}" ]; then
 fi
 
 addons="WEBIF HAVE_DVBAPI IRDETO_GUESSING"
-protocols="MODULE_CAMD33 MODULE_CAMD35 MODULE_CAMD35_TCP MODULE_NEWCAMD MODULE_CCCAM MODULE_RADEGAST MODULE_MONITOR"
-readers="READER_NAGRA READER_IRDETO READER_CONAX READER_CRYPTOWORKS READER_SECA READER_VIACCESS READER_VIDEOGUARD READER_DRE"
+protocols="MODULE_CAMD33 MODULE_CAMD35 MODULE_CAMD35_TCP MODULE_NEWCAMD MODULE_CCCAM MODULE_RADEGAST MODULE_SERIAL MODULE_MONITOR"
+readers="WITH_CARDREADER READER_NAGRA READER_IRDETO READER_CONAX READER_CRYPTOWORKS READER_SECA READER_VIACCESS READER_VIDEOGUARD READER_DRE"
 
 check_test() {
-	if [ "$(cat $configfile | grep "^#define $1")" != "" ]; then
+	if [ "$(cat $configfile | grep "^#define $1$")" != "" ]; then
 		echo "on"
 	else
 		echo "off"
@@ -26,8 +26,7 @@ check_test() {
 
 disable_all() {
 	for i in $1; do
-		sed "s/^#define ${i}/\/\/#define ${i}/g" $configfile > $configfile.new
-		mv $configfile.new $configfile
+		sed -i "s/^#define ${i}$/\/\/#define ${i}/g" $configfile
 	done
 
 }
@@ -35,8 +34,7 @@ disable_all() {
 enable_package() {
 	for i in $(cat $tempfile); do
 		strip=$(echo $i | sed "s/\"//g")
-		sed "s/\/\/#define ${strip}/#define ${strip}/g" $configfile > $configfile.new
-		mv $configfile.new $configfile
+		sed -i "s/\/\/#define ${strip}$/#define ${strip}/g" $configfile
 	done
 }
 
@@ -81,6 +79,7 @@ menu_protocols() {
 		MODULE_NEWCAMD	"Newcamd"	$(check_test "MODULE_NEWCAMD") \
 		MODULE_CCCAM		"CCCam"	$(check_test "MODULE_CCCAM") \
 		MODULE_RADEGAST	"Radegast"	$(check_test "MODULE_RADEGAST") \
+		MODULE_SERIAL		"Serial"	$(check_test "MODULE_SERIAL") \
 		MODULE_MONITOR	"Monitor"	$(check_test "MODULE_MONITOR") \
 		2> ${tempfile}
 
@@ -106,6 +105,10 @@ menu_reader() {
 	opt=${?}
 	if [ $opt != 0 ]; then return; fi
 
+	menuitem=`cat $tempfile`
+	if [ "$menuitem" != "" ]; then
+		echo -n " \"WITH_CARDREADER\"" >> ${tempfile}
+	fi
 	disable_all "$readers"
 	enable_package
 }

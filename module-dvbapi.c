@@ -459,7 +459,6 @@ void dvbapi_start_descrambling(int demux_index, unsigned short caid, unsigned sh
 }
 
 void dvbapi_process_emm (int demux_index, unsigned char *buffer, unsigned int len) {
-	int i;
 	EMM_PACKET epg;
 
 	if (demux[demux_index].pidindex==-1) return;
@@ -762,7 +761,7 @@ void event_handler(int signal) {
 			uint j1,j2;
 			// QboxHD pmt.tmp is the full capmt written as a string of hex values
 			// pmt.tmp must be longer than 3 bytes (6 hex chars) and even length
-			if ((len<6) || ((len%2) != 0)) {
+			if ((len<6) || ((len%2) != 0) || ((len/2)>sizeof(dest))) {
 				cs_log("dvbapi: error parsing QboxHD pmt.tmp, incorrect length");
 				return;
 			}
@@ -778,6 +777,7 @@ void event_handler(int signal) {
 
 			pmt_id = dvbapi_parse_capmt(dest+4, (len/2)-4, -1);
 #else
+			if (len>sizeof(dest)) return;
 			cs_ddump(mbuf,len,"pmt:");
 		
 			memcpy(dest, "\x00\xFF\xFF\x00\x00\x13\x00", 7);
