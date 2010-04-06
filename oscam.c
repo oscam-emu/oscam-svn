@@ -9,6 +9,7 @@
 /*****************************************************************************
         Globals
 *****************************************************************************/
+int ridx=0;
 int pfd=0;      // Primary FD, must be closed on exit
 int mfdr=0;     // Master FD (read)
 int fd_m2c=0;   // FD Master -> Client (for clients / read )
@@ -415,10 +416,10 @@ static void cs_sighup()
 
 static void cs_accounts_chk()
 {
-  int i;
   init_userdb();
   cs_reinit_clients();
 #ifdef CS_ANTICASC
+  int i;
   for (i=0; i<CS_MAXPID; i++)
     if (client[i].typ=='a')
     {
@@ -536,7 +537,7 @@ int cs_fork(in_addr_t ip, in_port_t port)
 {
   int i;
   pid_t pid;
-  for (i=1; (i<CS_MAXPID) && (client[i].pid); i++);
+  for (i=1; (i<CS_MAXPID) && (client[i].pid); i++); //find next available client index i
   if (i<CS_MAXPID)
   {
     int fdp[2];
@@ -547,8 +548,65 @@ int cs_fork(in_addr_t ip, in_port_t port)
       cs_log("Cannot create pipe (errno=%d)", errno);
       cs_exit(1);
     }
-    switch(pid=fork())
-    {
+		if (reader[ridx].typ == R_SC8in1 && port == 99) { //SC8in1 reader gets threaded, not forked
+                        if (reader[ridx].handle == 0)
+				reader_device_init(&reader[ridx]); 
+			cs_log("creating thread for device %s slot %i with ridx %i=%i", reader[ridx].device, reader[ridx].slot, reader[ridx].ridx, ridx);
+			int rc;
+			pthread_t dummy;
+			rc = pthread_create(&dummy, NULL, start_cardreader, (void *)&reader[ridx]);
+ 			if (rc)
+   			cs_log("ERROR; return code from pthread_create() is %d\n", rc);
+			//client part
+     	is_server=((ip) || (port<90)) ? 1 : 0; //FIXME global should be local per thread
+     	//cs_ptyp=D_CLIENT;
+			fd_m2c = fdp[0];
+			cs_idx=i; //although thread runs in master process, reserve an cs_idx slot
+#ifndef CS_NOSHM
+			shmid=0;
+#endif
+			//master part
+			client[i].fd_m2c=fdp[1];
+			client[i].dbglvl=cs_dblevel;
+			client[i].stat=1;
+			client[i].typ='r';   // reader
+			client[i].sidtabok=reader[ridx].sidtabok;
+			client[i].sidtabno=reader[ridx].sidtabno;
+			reader[ridx].fd=client[i].fd_m2c;
+			reader[ridx].cs_idx=i; //although thread runs in master process, reserve an cs_idx slot
+			pid=getpid();
+			reader[ridx].pid=pid;
+      if (reader[ridx].r_port)
+				cs_log("proxy thread started (pid=%d, server=%s)",pid, reader[ridx].device);
+			else {
+				switch(reader[ridx].typ) {
+					case R_MOUSE:
+					case R_SMART:
+						cs_log("reader thread started (pid=%d, device=%s, detect=%s%s, mhz=%d, cardmhz=%d)",pid, 
+								reader[ridx].device,reader[ridx].detect&0x80 ? "!" : "",RDR_CD_TXT[reader[ridx].detect&0x7f],
+								reader[ridx].mhz,reader[ridx].cardmhz);
+						break;
+					case R_SC8in1:
+						cs_log("reader thread started (pid=%d, device=%s:%i, detect=%s%s, mhz=%d, cardmhz=%d)",pid, 
+								reader[ridx].device,reader[ridx].slot,reader[ridx].detect&0x80 ? "!" : "",
+								RDR_CD_TXT[reader[ridx].detect&0x7f],reader[ridx].mhz,reader[ridx].cardmhz);
+						break;
+					default:
+						cs_log("reader thread started (pid=%d, device=%s)",pid, reader[ridx].device);
+				}
+				client[i].ip=client[0].ip;
+				strcpy(client[i].usr, client[0].usr);
+			}
+			cdiff=i;
+			client[i].login=client[i].last=time((time_t *)0);
+			client[i].pid=pid;    // MUST be last -> wait4master()
+			cs_last_idx=i;
+			i=0;
+		}
+		else {
+     pid=fork();
+     switch(pid)
+     {
       case -1:
         cs_log("PANIC: Cannot fork() (errno=%d)", errno);
         cs_exit(1);
@@ -588,7 +646,7 @@ int cs_fork(in_addr_t ip, in_port_t port)
           client[i].stat=1;
           switch(port)
           {
-            case 99: client[i].typ='r';   // reader
+            case 99: client[i].typ='r';   // reader that is not Sc8in1 gets forked, not threaded
                      client[i].sidtabok=reader[ridx].sidtabok;
                      client[i].sidtabno=reader[ridx].sidtabno;
                      reader[ridx].fd=client[i].fd_m2c;
@@ -658,7 +716,8 @@ int cs_fork(in_addr_t ip, in_port_t port)
         client[i].pid=pid;    // MUST be last -> wait4master()
         cs_last_idx=i;
         i=0;
-    }
+     }//switch
+		}//else
   }
   else
   {
@@ -1051,17 +1110,19 @@ static void cs_http()
 
 static void init_cardreader()
 {
-	for (ridx=0; ridx<CS_MAXREADER; ridx++)
-		if ((reader[ridx].device[0]) && (reader[ridx].enable == 1))
+	for (ridx=0; ridx<CS_MAXREADER; ridx++) {
+		reader[ridx].ridx = ridx; //FIXME
+		if ((reader[ridx].device[0]) && (reader[ridx].enable == 1)) {
 			switch(cs_fork(0, 99)) {
 				case -1:
 					cs_exit(1);
 				case  0:
 					break;
 				default:
-
-		wait4master();
-		start_cardreader();
+				wait4master();
+				start_cardreader(&reader[ridx]);
+			}
+		}
 	}
 }
 
@@ -1283,19 +1344,23 @@ void cs_disconnect_client(void)
 
 int check_ecmcache(ECM_REQUEST *er, ulong grp)
 {
-  int i;
-// cs_ddump(ecmd5, CS_ECMSTORESIZE, "ECM search");
-//cs_log("cache CHECK: grp=%lX", grp);
-  for(i=0; i<CS_ECMCACHESIZE; i++)
-    if ((grp & ecmcache[i].grp) &&
-        ecmcache[i].caid==er->caid &&
-        (!memcmp(ecmcache[i].ecmd5, er->ecmd5, CS_ECMSTORESIZE)))
-    {
-//cs_log("cache found: grp=%lX cgrp=%lX", grp, ecmcache[i].grp);
-      memcpy(er->cw, ecmcache[i].cw, 16);
-      return(1);
-    }
-  return(0);
+	// disable cache1 and cache2
+	if (!cfg->cachecm) return(0);
+	
+	int i;
+	//cs_ddump(ecmd5, CS_ECMSTORESIZE, "ECM search");
+	//cs_log("cache CHECK: grp=%lX", grp);
+	for(i=0; i<CS_ECMCACHESIZE; i++) {
+		if ((grp & ecmcache[i].grp) &&
+		     ecmcache[i].caid==er->caid &&
+		     (!memcmp(ecmcache[i].ecmd5, er->ecmd5, CS_ECMSTORESIZE)))
+		{
+			//cs_log("cache found: grp=%lX cgrp=%lX", grp, ecmcache[i].grp);
+			memcpy(er->cw, ecmcache[i].cw, 16);
+			return(1);
+		}
+	}
+	return(0);
 }
 
 static void store_ecm(ECM_REQUEST *er)
@@ -2079,7 +2144,7 @@ void get_cw(ECM_REQUEST *er)
 	if(er->rc > 99 && er->rc != 1) {
 
 		for (i = m = 0; i < CS_MAXREADER; i++)
-			if (matching_reader(er, &reader[i]) && (i != ridx))
+			if (matching_reader(er, &reader[i]))
 				m|=er->reader[i] = (reader[i].fallback)? 2: 1;
 
 		switch(m) {
@@ -2135,6 +2200,8 @@ void do_emm(EMM_PACKET *ep)
 			return;
 		}
 	}
+	else
+		return;
 
 	cs_ddump_mask(D_EMM, ep->hexserial, 8, "emm UA/SA:");
 	cs_debug_mask(D_EMM, "emmtype %s. Reader %s has serial %s.", typtext[ep->type], reader[au].label, cs_hexdump(0, reader[au].hexserial, 8)); 
@@ -2162,9 +2229,12 @@ void do_emm(EMM_PACKET *ep)
 	client[cs_idx].lastemm = time((time_t)0);
 	cs_ddump_mask(D_EMM, ep->emm, ep->l, "emm:");
 
+	if (!reader[au].aucaid)
+		reader[au].aucaid = reader[au].caid[0];
+
 	if (reader[au].card_system>0) {
 		if ((!reader[au].fd) ||       // reader has no fd
-		(reader[au].caid[0] != b2i(2,ep->caid))) {   // wrong caid
+		(reader[au].aucaid != b2i(2,ep->caid))) {   // wrong caid
 #ifdef WEBIF
 			client[cs_idx].emmnok++;
 #endif
@@ -2177,6 +2247,8 @@ void do_emm(EMM_PACKET *ep)
 	ep->cidx = cs_idx;
 	cs_debug_mask(D_EMM, "emm is being sent to reader %s.", reader[au].label);
 	write_to_pipe(reader[au].fd, PIP_ID_EMM, (uchar *) ep, sizeof(EMM_PACKET));
+	if (reader[au].typ & R_IS_NETWORK)
+		cs_log("emm written to %s type=%s len=%d", reader[au].label, typtext[ep->type], ep->l);
 }
 
 static int comp_timeb(struct timeb *tpa, struct timeb *tpb)

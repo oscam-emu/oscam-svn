@@ -10,6 +10,8 @@
 #define MAX_ATR_LEN 33         // max. ATR length
 #define MAX_HIST    15         // max. number of historical characters
 
+#define write_cmd_vg(cmd, data) (card_write(reader, cmd, data, cta_res, &cta_lr) == 0)
+
 //////  ====================================================================================
 
 int aes_active=0;
@@ -42,7 +44,6 @@ static int cw_is_valid(unsigned char *cw) //returns 1 if cw_is_valid, returns 0 
     }
   return ERROR;
 }
-
 
  unsigned short NdTabB001[0x15][0x20]= {  
             {  0xEAF1,0x0237,0x29D0,0xBAD2,0xE9D3,0x8BAE,0x2D6D,0xCD1B,0x538D,0xDE6B,0xA634,0xF81A,0x18B5,0x5087,0x14EA,0x672E,  
@@ -88,7 +89,7 @@ static int cw_is_valid(unsigned char *cw) //returns 1 if cw_is_valid, returns 0 
             {  0x9999,0x98FE,0xA108,0x6588,0xF90B,0x4554,0xFF38,0x4642,0x8F5F,0x6CC3,0x4E8E,0xFF7E,0x64C2,0x50CA,0x0E7F,0xAD7D,  
                0x6AAB,0x33C1,0xE1F4,0x6165,0x7894,0x83B9,0x0A0C,0x38AF,0x5803,0x18C0,0xFA36,0x592C,0x4548,0xABB8,0x1527,0xAEE9  }
 
-}; 
+};
 
 unsigned short Hash3[] = {0x0123,0x4567,0x89AB,0xCDEF,0xF861,0xCB52};
 unsigned char Hash4[] = {0x0B,0x04,0x07,0x08,0x05,0x09,0x0B,0x0A,0x07,0x02,0x0A,0x05,0x04,0x08,0x0D,0x0F};
@@ -398,9 +399,6 @@ static void cCamCryptVG2_RotateRightAndHash(unsigned char *p)
 
 unsigned char CW1[8], CW2[8];
 
-extern uchar cta_res[];
-extern ushort cta_lr;
-
 extern int io_serial_need_dummy_char;
 
 struct CmdTabEntry {
@@ -446,30 +444,29 @@ static int status_ok(const unsigned char *status){
                || status[1] == 0xa0 || status[1] == 0xa1);
 }
 
-#define write_cmd(cmd, data) (card_write(cmd, data) == 0)
-#define read_cmd(cmd, data) (card_write(cmd, NULL) == 0)
-
-static int read_cmd_len(const unsigned char *cmd) 
+static int read_cmd_len(struct s_reader * reader, const unsigned char *cmd) 
 { 
+  def_resp;
   unsigned char cmd2[5];
   memcpy(cmd2,cmd,5);
   cmd2[3]=0x80;
   cmd2[4]=1;
-  if(!read_cmd(cmd2,NULL) || cta_res[1] != 0x90 || cta_res[2] != 0x00) {
+  if(!write_cmd_vg(cmd2,NULL) || cta_res[1] != 0x90 || cta_res[2] != 0x00) {
     cs_debug("[videoguard2-reader] failed to read %02x%02x cmd length (%02x %02x)",cmd[1],cmd[2],cta_res[1],cta_res[2]);
     return -1;
     }
   return cta_res[0];
 }
 
-static int do_cmd(const unsigned char *ins, const unsigned char *txbuff, unsigned char *rxbuff)
+static int do_cmd(struct s_reader * reader, const unsigned char *ins, const unsigned char *txbuff, unsigned char *rxbuff, unsigned char * cta_res)
 {
+  ushort cta_lr;
   unsigned char ins2[5];
   memcpy(ins2,ins,5);
   unsigned char len=0, mode=0;
   if(cmd_table_get_info(ins2,&len,&mode)) {
     if(len==0xFF && mode==2) {
-      if(ins2[4]==0) ins2[4]=len=read_cmd_len(ins2);
+      if(ins2[4]==0) ins2[4]=len=read_cmd_len(reader, ins2);
       }
     else if(mode!=0) ins2[4]=len;
     }
@@ -479,13 +476,13 @@ static int do_cmd(const unsigned char *ins, const unsigned char *txbuff, unsigne
   unsigned char tmp[264];
   if(!rxbuff) rxbuff=tmp;
   if(mode>1) {
-    if(!read_cmd(ins2,NULL) || !status_ok(cta_res+len)) return -1;
+    if(!write_cmd_vg(ins2,NULL) || !status_ok(cta_res+len)) return -1;
     memcpy(rxbuff,ins2,5);
     memcpy(rxbuff+5,cta_res,len);
     memcpy(rxbuff+5+len,cta_res+len,2);
     }
   else {
-    if(!write_cmd(ins2,(uchar *)txbuff) || !status_ok(cta_res)) return -2;
+    if(!write_cmd_vg(ins2,(uchar *)txbuff) || !status_ok(cta_res)) return -2;
     memcpy(rxbuff,ins2,5);
     memcpy(rxbuff+5,txbuff,len);
     memcpy(rxbuff+5+len,cta_res,2);
@@ -544,11 +541,11 @@ static tier_t skyit_tiers[] =
   { 0x02FE, "PPV" }
 };
 
-static char *get_tier_name(unsigned short tier_id){
+static char *get_tier_name(struct s_reader * reader, unsigned short tier_id){
   static char *empty = "";
   unsigned int i;
 
-  switch (reader[ridx].caid[0])
+  switch (reader->caid[0])
   {
     case 0x919:
     case 0x93b:
@@ -560,39 +557,41 @@ static char *get_tier_name(unsigned short tier_id){
   return empty;
 }
 
-static void read_tiers(void)
+static void read_tiers(struct s_reader * reader)
 {
+  def_resp;
   static const unsigned char ins2a[5] = { 0xd0,0x2a,0x00,0x00,0x00 };
   int l;
-  l=do_cmd(ins2a,NULL,NULL);
+  l=do_cmd(reader, ins2a,NULL,NULL,cta_res);
   if(l<0 || !status_ok(cta_res+l)) return;
   static unsigned char ins76[5] = { 0xd0,0x76,0x00,0x00,0x00 };
   ins76[3]=0x7f; ins76[4]=2;
-  if(!read_cmd(ins76,NULL) || !status_ok(cta_res+2)) return;
+  if(!write_cmd_vg(ins76,NULL) || !status_ok(cta_res+2)) return;
   ins76[3]=0; ins76[4]=0;
   int num=cta_res[1];
   int i;
-  reader[ridx].init_history_pos = 0; //reset for re-read
-  memset(reader[ridx].init_history, 0, sizeof(reader[ridx].init_history));
+  reader->init_history_pos = 0; //reset for re-read
+  memset(reader->init_history, 0, sizeof(reader->init_history));
   for(i=0; i<num; i++) {
     ins76[2]=i;
-    l=do_cmd(ins76,NULL,NULL);
+    l=do_cmd(reader, ins76,NULL,NULL,cta_res);
     if(l<0 || !status_ok(cta_res+l)) return;
     if(cta_res[2]==0 && cta_res[3]==0) break;
     int y,m,d,H,M,S;
     rev_date_calc(&cta_res[4],&y,&m,&d,&H,&M,&S);
     unsigned short tier_id = (cta_res[2] << 8) | cta_res[3];
-    char *tier_name = get_tier_name(tier_id);
-    cs_ri_log("[videoguard2-reader] tier: %04x, expiry date: %04d/%02d/%02d-%02d:%02d:%02d %s",tier_id,y,m,d,H,M,S,tier_name);
+    char *tier_name = get_tier_name(reader, tier_id);
+    cs_ri_log(reader, "[videoguard2-reader] tier: %04x, expiry date: %04d/%02d/%02d-%02d:%02d:%02d %s",tier_id,y,m,d,H,M,S,tier_name);
     }
 }
 
-int videoguard_card_init(ATR newatr)
+int videoguard_card_init(struct s_reader * reader, ATR newatr)
 {
 	get_hist;
 	if ((hist_size < 7) || (hist[1] != 0xB0) || (hist[4] != 0xFF) || (hist[5] != 0x4A) || (hist[6] != 0x50))
 		return ERROR;
 	get_atr;
+	def_resp;
   /* known atrs */
   unsigned char atr_bskyb[] = { 0x3F, 0x7F, 0x13, 0x25, 0x03, 0x33, 0xB0, 0x06, 0x69, 0xFF, 0x4A, 0x50, 0xD0, 0x00, 0x00, 0x53, 0x59, 0x00, 0x00, 0x00 };
   unsigned char atr_bskyb_new[] = { 0x3F, 0xFD, 0x13, 0x25, 0x02, 0x50, 0x00, 0x0F, 0x33, 0xB0, 0x0F, 0x69, 0xFF, 0x4A, 0x50, 0xD0, 0x00, 0x00, 0x53, 0x59, 0x02 };
@@ -609,57 +608,57 @@ int videoguard_card_init(ATR newatr)
 
     if ((atr_size == sizeof (atr_bskyb)) && (memcmp (atr, atr_bskyb, atr_size) == 0))
     {
-        cs_ri_log("[videoguard2-reader] type: VideoGuard BSkyB");
+        cs_ri_log(reader, "[videoguard2-reader] type: VideoGuard BSkyB");
         /* BSkyB seems to need one additionnal byte in the serial communication... */
         io_serial_need_dummy_char = 1;
 				BASEYEAR = 2000;
     }
     else if ((atr_size == sizeof (atr_bskyb_new)) && (memcmp (atr, atr_bskyb_new, atr_size) == 0))
     {
-        cs_ri_log("[videoguard2-reader] type: VideoGuard BSkyB - New");
+        cs_ri_log(reader, "[videoguard2-reader] type: VideoGuard BSkyB - New");
     }
     else if ((atr_size == sizeof (atr_skyitalia)) && (memcmp (atr, atr_skyitalia, atr_size) == 0))
     {
-        cs_ri_log("[videoguard2-reader] type: VideoGuard Sky Italia");
+        cs_ri_log(reader, "[videoguard2-reader] type: VideoGuard Sky Italia");
     }
     else if ((atr_size == sizeof (atr_directv)) && (memcmp (atr, atr_directv, atr_size) == 0))
     {
-        cs_ri_log("[videoguard2-reader] type: VideoGuard DirecTV");
+        cs_ri_log(reader, "[videoguard2-reader] type: VideoGuard DirecTV");
     }
     else if ((atr_size == sizeof (atr_yes)) && (memcmp (atr, atr_yes, atr_size) == 0))
     {
-        cs_ri_log("[videoguard2-reader] type: VideoGuard YES DBS Israel");
+        cs_ri_log(reader, "[videoguard2-reader] type: VideoGuard YES DBS Israel");
     }
     else if ((atr_size == sizeof (atr_viasat_new)) && (memcmp (atr, atr_viasat_new, atr_size) == 0))
     {
-        cs_ri_log("[videoguard2-reader] type: VideoGuard Viasat new (093E)");
+        cs_ri_log(reader, "[videoguard2-reader] type: VideoGuard Viasat new (093E)");
 				BASEYEAR = 2000;
     }
     else if ((atr_size == sizeof (atr_viasat_scandinavia)) && (memcmp (atr, atr_viasat_scandinavia, atr_size) == 0))
     {
-        cs_ri_log("[videoguard2-reader] type: VideoGuard Viasat Scandinavia");
+        cs_ri_log(reader, "[videoguard2-reader] type: VideoGuard Viasat Scandinavia");
 				BASEYEAR = 2000;
     }
     else if ((atr_size == sizeof (atr_skyitalia93b)) && (memcmp (atr, atr_skyitalia93b, atr_size) == 0))
     {
-        cs_ri_log("[videoguard2-reader] type: VideoGuard Sky Italia new (093B)");
+        cs_ri_log(reader, "[videoguard2-reader] type: VideoGuard Sky Italia new (093B)");
     }
     else if ((atr_size == sizeof (atr_premiere)) && (memcmp (atr, atr_premiere, atr_size) == 0))
     {
-        cs_ri_log("[videoguard2-reader] type: VideoGuard Sky Germany");
+        cs_ri_log(reader, "[videoguard2-reader] type: VideoGuard Sky Germany");
     }
     else if ((atr_size == sizeof (atr_kbw)) && (memcmp (atr, atr_kbw, atr_size) == 0))
     {
-        cs_ri_log("[videoguard2-reader] type: VideoGuard Kabel BW");
+        cs_ri_log(reader, "[videoguard2-reader] type: VideoGuard Kabel BW");
     }
     else if ((atr_size == sizeof (atr_get)) && (memcmp (atr, atr_get, atr_size) == 0))
     {
-        cs_ri_log("[videoguard2-reader] type: VideoGuard Get Kabel Norway");
+        cs_ri_log(reader, "[videoguard2-reader] type: VideoGuard Get Kabel Norway");
         			BASEYEAR = 2004;
     }
     else if ((atr_size == sizeof (atr_foxtel_90b)) && (memcmp (atr, atr_foxtel_90b, atr_size) == 0))
     {
-	cs_ri_log("[videoguard2-reader] type: VideoGuard Foxtel Australia (090b)");
+	cs_ri_log(reader, "[videoguard2-reader] type: VideoGuard Foxtel Australia (090b)");
 				BASEYEAR = 2000;
     }
 /*    else
@@ -672,9 +671,9 @@ int videoguard_card_init(ATR newatr)
 
   unsigned char ins7401[5] = { 0xD0,0x74,0x01,0x00,0x00 };
   int l;
-  if((l=read_cmd_len(ins7401))<0) return ERROR; //not a videoguard2/NDS card or communication error
+  if((l=read_cmd_len(reader, ins7401))<0) return ERROR; //not a videoguard2/NDS card or communication error
   ins7401[4]=l;
-  if(!read_cmd(ins7401,NULL) || !status_ok(cta_res+l)) {
+  if(!write_cmd_vg(ins7401,NULL) || !status_ok(cta_res+l)) {
     cs_log ("[videoguard2-reader] failed to read cmd list");
     return ERROR;
     }
@@ -683,7 +682,7 @@ int videoguard_card_init(ATR newatr)
   unsigned char buff[256];
 
   unsigned char ins7416[5] = { 0xD0,0x74,0x16,0x00,0x00 };
-  if(do_cmd(ins7416, NULL, NULL)<0) {
+  if(do_cmd(reader, ins7416, NULL, NULL,cta_res)<0) {
     cs_log ("[videoguard2-reader] cmd 7416 failed");
     return ERROR;
     }
@@ -691,16 +690,16 @@ int videoguard_card_init(ATR newatr)
   unsigned char ins36[5] = { 0xD0,0x36,0x00,0x00,0x00 };
   unsigned char boxID [4];
 
-  if (reader[ridx].boxid > 0) {
+  if (reader->boxid > 0) {
     /* the boxid is specified in the config */
     int i;
     for (i=0; i < 4; i++) {
-        boxID[i] = (reader[ridx].boxid >> (8 * (3 - i))) % 0x100;
+        boxID[i] = (reader->boxid >> (8 * (3 - i))) % 0x100;
     }
   } else {
     /* we can try to get the boxid from the card */
     int boxidOK=0;
-    l=do_cmd(ins36, NULL, buff);
+    l=do_cmd(reader, ins36, NULL, buff,cta_res);
     if(l>=0) {
       int i;
       for(i=0; i<l ;i++) {
@@ -721,25 +720,25 @@ int videoguard_card_init(ATR newatr)
   unsigned char ins4C[5] = { 0xD0,0x4C,0x00,0x00,0x09 };
   unsigned char payload4C[9] = { 0,0,0,0, 3,0,0,0,4 };
   memcpy(payload4C,boxID,4);
-  if(!write_cmd(ins4C,payload4C) || !status_ok(cta_res+l)) {
+  if(!write_cmd_vg(ins4C,payload4C) || !status_ok(cta_res+l)) {
     cs_log("[videoguard2-reader] sending boxid failed");
     return ERROR;
     }
 
   //short int SWIRDstatus = cta_res[1];
   unsigned char ins58[5] = { 0xD0,0x58,0x00,0x00,0x00 };
-  l=do_cmd(ins58, NULL, buff);
+  l=do_cmd(reader, ins58, NULL, buff,cta_res);
   if(l<0) {
     cs_log("[videoguard2-reader] cmd ins58 failed");
     return ERROR;
     }
-  memset(reader[ridx].hexserial, 0, 8);
-  memcpy(reader[ridx].hexserial+2, cta_res+3, 4);
-  reader[ridx].caid[0] = cta_res[24]*0x100+cta_res[25];
+  memset(reader->hexserial, 0, 8);
+  memcpy(reader->hexserial+2, cta_res+3, 4);
+  reader->caid[0] = cta_res[24]*0x100+cta_res[25];
 
   /* we have one provider, 0x0000 */
-  reader[ridx].nprov = 1;
-  memset(reader[ridx].prid, 0x00, sizeof(reader[ridx].prid));
+  reader->nprov = 1;
+  memset(reader->prid, 0x00, sizeof(reader->prid));
 
   /*
   cs_log ("[videoguard2-reader] INS58 : Fuse byte=0x%02X, IRDStatus=0x%02X", cta_res[2],SWIRDstatus);
@@ -765,43 +764,43 @@ int videoguard_card_init(ATR newatr)
   unsigned char insB4[5] = { 0xD0,0xB4,0x00,0x00,0x40 };
   unsigned char tbuff[64];
   cCamCryptVG2_GetCamKey(tbuff);
-  l=do_cmd(insB4, tbuff, NULL);
+  l=do_cmd(reader, insB4, tbuff, NULL,cta_res);
   if(l<0 || !status_ok(cta_res)) {
     cs_log ("[videoguard2-reader] cmd D0B4 failed (%02X%02X)", cta_res[0], cta_res[1]);
     return ERROR;
     }
 
   unsigned char insBC[5] = { 0xD0,0xBC,0x00,0x00,0x00 };
-  l=do_cmd(insBC, NULL, NULL);
+  l=do_cmd(reader, insBC, NULL, NULL,cta_res);
   if(l<0) {
     cs_log("[videoguard2-reader] cmd D0BC failed");
     return ERROR;
     }
 
   unsigned char insBE[5] = { 0xD3,0xBE,0x00,0x00,0x00 };
-  l=do_cmd(insBE, NULL, NULL);
+  l=do_cmd(reader, insBE, NULL, NULL,cta_res);
   if(l<0) {
     cs_log("[videoguard2-reader] cmd D3BE failed");
     return ERROR;
     }
 
   unsigned char ins58a[5] = { 0xD1,0x58,0x00,0x00,0x00 };
-  l=do_cmd(ins58a, NULL, NULL);
+  l=do_cmd(reader, ins58a, NULL, NULL,cta_res);
   if(l<0) {
     cs_log("[videoguard2-reader] cmd D158 failed");
     return ERROR;
     }
 
   unsigned char ins4Ca[5] = { 0xD1,0x4C,0x00,0x00,0x00 };
-  l=do_cmd(ins4Ca,payload4C, NULL);
+  l=do_cmd(reader, ins4Ca,payload4C, NULL,cta_res);
   if(l<0 || !status_ok(cta_res)) {
     cs_log("[videoguard2-reader] cmd D14Ca failed");
     return ERROR;
     }
 
-  cs_ri_log("[videoguard2-reader] type: VideoGuard, caid: %04X, serial: %02X%02X%02X%02X, BoxID: %02X%02X%02X%02X",
-         reader[ridx].caid[0],
-         reader[ridx].hexserial[2],reader[ridx].hexserial[3],reader[ridx].hexserial[4],reader[ridx].hexserial[5],
+  cs_ri_log(reader, "[videoguard2-reader] type: VideoGuard, caid: %04X, serial: %02X%02X%02X%02X, BoxID: %02X%02X%02X%02X",
+         reader->caid[0],
+         reader->hexserial[2],reader->hexserial[3],reader->hexserial[4],reader->hexserial[5],
          boxID[0],boxID[1],boxID[2],boxID[3]);
 
   ///read_tiers();
@@ -810,11 +809,6 @@ int videoguard_card_init(ATR newatr)
 
   return OK;
 }
-
-
-
-
-
 
 static void do_post_dw_hash(unsigned char *cw, unsigned char *ecm_header_data) {
     int i,ecmi,ecm_header_count;
@@ -825,15 +819,15 @@ static void do_post_dw_hash(unsigned char *cw, unsigned char *ecm_header_data) {
 	if (!cw_is_valid(cw)) //if cw is all zero, keep it that way
 		return;
 
-	ecm_header_count=ecm_header_data[0];
+    ecm_header_count=ecm_header_data[0];
 
-	for(i=0, ecmi = 1; i<ecm_header_count; i++) {
-		if(ecm_header_data[ecmi+1] != 0xb0) {
-			ecmi += ecm_header_data[ecmi]+1;
-		} else {
-              	switch(ecm_header_data[ecmi+2]) {   //b0 01
-				case 1:
-				{
+    for(i=0, ecmi = 1; i<ecm_header_count; i++) {
+                if(ecm_header_data[ecmi+1] != 0xb0) {
+                        ecmi += ecm_header_data[ecmi]+1;
+                } else {
+                  switch(ecm_header_data[ecmi+2]) {   //b0 01
+                  case 1:
+                    {
 						unsigned short hk[8],i,j,m=0;
 						for (i = 0; i < 6; i++) hk[2+i]=Hash3[i];
 						for (i = 0; i < 2; i++) {
@@ -865,32 +859,33 @@ static void do_post_dw_hash(unsigned char *cw, unsigned char *ecm_header_data) {
 					cw[3] = (cw[0] + cw[1] + cw[2]) & 0xFF;
 					cw[7] = (cw[4] + cw[5] + cw[6]) & 0xFF;
 					cs_ddump (cw, 8, "Postprocessed2 DW:");
-					break;
-				}
-				case 3:
-				{
+                    break;
+                    }
+                case 3:
+                    {
 	  	  			memset(buffer,0,sizeof(buffer));
 		  			memcpy(buffer,cw,8);
 		  			memcpy(buffer+8,&ecm_header_data[ecmi+3],ecm_header_data[ecmi]-2);
 					MD5( buffer, 8+ecm_header_data[ecmi]-2, md5_digest) ;
 		  			memcpy(cw,md5_digest,8);
 					cs_ddump (cw, 8, "Postprocessed2 DW:");
-					break;
-              		}
+                    break;
+                    }
 
-				case 2:
-				{  /* Method 2 left out */
+                case 2:
+                    {  /* Method 2 left out */
 					//memcpy(DW_OUTPUT, DW_INPUT, 8);
-					break;
-				}
-			}
-		}
-	}
+                    break;
+                    }
+                  }
+                }
+    }
 }
 
-int videoguard_do_ecm(ECM_REQUEST *er)
+int videoguard_do_ecm(struct s_reader * reader, ECM_REQUEST *er)
 {
   //unsigned char cw[16];
+  unsigned char cta_res[CTA_RES_LEN];
   static unsigned char ins40[5] = { 0xD1,0x40,0x00,0x80,0xFF };
   static const unsigned char ins54[5] = { 0xD3,0x54,0x00,0x00,0x00};
   int posECMpart2=er->ecm[6]+7;
@@ -900,9 +895,9 @@ int videoguard_do_ecm(ECM_REQUEST *er)
   memcpy(&tbuff[1],&(er->ecm[posECMpart2+1]),lenECMpart2-1);
   ins40[4]=lenECMpart2;
   int l;
-  l = do_cmd(ins40,tbuff,NULL);
+  l = do_cmd(reader, ins40,tbuff,NULL,cta_res);
   if(l>0 && status_ok(cta_res)) {
-    l = do_cmd(ins54,NULL,NULL);
+    l = do_cmd(reader, ins54,NULL,NULL,cta_res);
     if(l>0 && status_ok(cta_res+l)) {
       if (!cw_is_valid(CW1)) //sky cards report 90 00 = ok but send cw = 00 when channel not subscribed
 	return ERROR;
@@ -1021,15 +1016,16 @@ int videoguard_get_emm_type(EMM_PACKET *ep, struct s_reader * rdr) //returns TRU
 	return TRUE; //FIXME let it all pass without checking serial or SA, without filling ep->hexserial
 }
 
-int videoguard_do_emm(EMM_PACKET *ep)
+int videoguard_do_emm(struct s_reader * reader, EMM_PACKET *ep)
 {
+  unsigned char cta_res[CTA_RES_LEN];
   unsigned char ins42[5] = { 0xD1,0x42,0x00,0x00,0xFF };
   int rc=ERROR;
 
-  const unsigned char *payload = payload_addr(ep->emm, reader[ridx].hexserial);
+  const unsigned char *payload = payload_addr(ep->emm, reader->hexserial);
   while (payload) {
     ins42[4]=*payload;
-    int l = do_cmd(ins42,payload+1,NULL);
+    int l = do_cmd(reader, ins42,payload+1,NULL,cta_res);
     if(l>0 && status_ok(cta_res)) {
       rc=OK;
       }
@@ -1037,7 +1033,7 @@ int videoguard_do_emm(EMM_PACKET *ep)
     cs_log("[videoguard2-reader] EMM request return code : %02X%02X", cta_res[0], cta_res[1]);
 //cs_dump(ep->emm, 64, "EMM:");
     if (status_ok (cta_res) && (cta_res[1] & 0x01)) {
-      read_tiers();
+      read_tiers(reader);
       }
 
     if (num_addr(ep->emm) == 1 && (int)(&payload[1] - &ep->emm[0]) + *payload + 1 < ep->l) {
@@ -1055,12 +1051,12 @@ int videoguard_do_emm(EMM_PACKET *ep)
   return(rc);
 }
 
-int videoguard_card_info(void)
+int videoguard_card_info(struct s_reader * reader)
 {
   /* info is displayed in init, or when processing info */
   cs_log("[videoguard2-reader] card detected");
   cs_log("[videoguard2-reader] type: VideoGuard" );
-  read_tiers ();
+  read_tiers (reader);
   return OK;
 }
 
