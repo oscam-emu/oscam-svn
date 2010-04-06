@@ -346,6 +346,9 @@ void dvbapi_start_emm_filter(int demux_index, int emmtype, int type) {
 	ushort caid = demux[demux_index].ECMpids[demux[demux_index].pidindex].CA_System_ID;
 	ushort pid  = demux[demux_index].ECMpids[demux[demux_index].pidindex].EMM_PID;
 
+	if (reader[client[cs_idx].au].card_system<1)
+		return;
+
 	if (cardsystem[reader[client[cs_idx].au].card_system-1].get_emm_filter) {
 		uchar *filter1 = cardsystem[reader[client[cs_idx].au].card_system-1].get_emm_filter(&reader[client[cs_idx].au], emmtype);
 		memcpy(filter,filter1,32);
@@ -776,7 +779,7 @@ void event_handler(int signal) {
 			}
 
 			for(j2=0,j1=0;j2<len;j2+=2,j1++) {
-				if (sscanf((char*)mbuf+j2,"%02X",(uint*)dest+j1) != 1) {
+				if (sscanf((char*)mbuf+j2, "%02X", dest+j1) != 1) {
 					cs_log("dvbapi: error parsing QboxHD pmt.tmp, data not valid in position %d",j2);
 					return;
 				}

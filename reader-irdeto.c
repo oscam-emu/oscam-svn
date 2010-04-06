@@ -289,29 +289,6 @@ int irdeto_do_ecm(struct s_reader * reader, ECM_REQUEST *er)
   return OK;
 }
 
-uchar *irdeto_get_emm_filter(struct s_reader * rdr, int type)
-{
-	static uint8_t filter[32];
-	memset(filter, 0x00, 32);
-
-	switch (type) {
-		case GLOBAL:
-			filter[1]    = 0x00;
-			filter[1+16] = 0x2F;
-			break;
-		case SHARED:
-		case UNIQUE:
-			filter[1]    = 0xD2;
-			filter[1+16] = 0xFE;
-			memcpy(filter+2, rdr->hexserial, 2);
-			memset(filter+2+16, 0xFF, 2);
-
-			break;
-	}
-
-	return filter;
-}
-
 int irdeto_get_emm_type(EMM_PACKET *ep, struct s_reader * rdr) {
 
 	int l = (ep->emm[3]&0x07);
@@ -351,6 +328,43 @@ int irdeto_get_emm_type(EMM_PACKET *ep, struct s_reader * rdr) {
 			return TRUE;
 	}
 
+}
+
+uchar *irdeto_get_emm_filter(struct s_reader * rdr, int type)
+{
+	static uint8_t filter[32];
+	memset(filter, 0x00, 32);
+
+	switch (type) {
+		case GLOBAL:
+			filter[0]    = 0x82;
+			filter[0+16] = 0xFF;
+			filter[1]    = 0x00;
+			filter[1+16] = 0x2F; // 0x00 to 0xD0
+			//filter[1]    = 0xD0;
+			//filter[1+16] = 0xFF;
+			break;
+		case SHARED:
+			filter[0]    = 0x82;
+			filter[0+16] = 0xFF;
+			filter[1]    = 0xD2;
+			filter[1+16] = 0xFF;
+			filter[2]    = rdr->sa[0][0];
+			filter[2+16] = 0xFF;
+			filter[3]    = rdr->sa[0][1];
+			filter[3+16] = 0xFF;
+			break;
+		case UNIQUE:
+			filter[0]    = 0x82;
+			filter[0+16] = 0xFF;
+			filter[1]    = 0xD3;
+			filter[1+16] = 0xFF;
+			memcpy(filter+2, rdr->hexserial, 4);
+			memset(filter+2+16, 0xFF, 4);
+			break;
+	}
+
+	return filter;
 }
 
 int irdeto_do_emm(struct s_reader * reader, EMM_PACKET *ep)
