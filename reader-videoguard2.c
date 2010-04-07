@@ -1067,4 +1067,5 @@ void reader_videoguard(struct s_cardsystem *ph)
 	ph->card_info=videoguard_card_info;
 	ph->card_init=videoguard_card_init;
 	ph->get_emm_type=videoguard_get_emm_type;
+	ph->caids[0]=0x09;
 }

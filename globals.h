@@ -353,6 +353,7 @@ struct s_cardsystem
 	void (*post_process)();
 	int  (*get_emm_type)();
 	uchar* (*get_emm_filter)();
+	uchar caids[2];
 };
 
 #ifdef IRDETO_GUESSING
@@ -1028,6 +1029,8 @@ extern void reader_post_process(struct s_reader * reader);
 extern int reader_ecm(struct s_reader * reader, ECM_REQUEST *);
 extern int reader_emm(struct s_reader * reader, EMM_PACKET *);
 int reader_get_emm_type(EMM_PACKET *ep, struct s_reader * reader);
+int get_cardsystem(ushort caid);
+uchar *get_emm_filter(struct s_reader * rdr, int type);
 
 #ifdef HAVE_PCSC
 // reader-pcsc

@@ -262,5 +262,6 @@ void reader_seca(struct s_cardsystem *ph)
 	ph->card_info=seca_card_info;
 	ph->card_init=seca_card_init;
 	ph->get_emm_type=seca_get_emm_type;
+	ph->caids[0]=0x01;
 }
 

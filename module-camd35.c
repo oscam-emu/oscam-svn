@@ -192,10 +192,10 @@ static void camd35_request_emm(ECM_REQUEST *er)
 			}
 		}
 		//we think client/server protocols should deliver all information, and only readers should discard EMM
-		mbuf[128] = reader[au].blockemm_g;
-		mbuf[129] = reader[au].blockemm_s;
-		mbuf[130] = reader[au].blockemm_u;
-		mbuf[131] = reader[au].card_system; //Cardsystem for Oscam client
+		mbuf[128] = (reader[au].blockemm_g == 1) ? 0: 1;
+		mbuf[129] = (reader[au].blockemm_s == 1) ? 0: 1;
+		mbuf[130] = (reader[au].blockemm_u == 1) ? 0: 1;
+		//mbuf[131] = reader[au].card_system; //Cardsystem for Oscam client
 	}
 	else		// disable emm
 		mbuf[20] = mbuf[39] = mbuf[40] = mbuf[47] = mbuf[49] = 1;
@@ -489,11 +489,11 @@ static int camd35_recv_chk(uchar *dcw, int *rc, uchar *buf)
 	ushort idx;
 
 	// reading CMD05 Emm request and set serial
-	if ((buf[0] == 0x05) && !(buf[131]==0xff)) {
+	if (buf[0] == 0x05) {
 
 		reader[ridx].nprov = 0; //reset if number changes on reader change
 		reader[ridx].nprov = buf[47];
-		reader[ridx].aucaid = b2i(2, buf+20);
+		reader[ridx].caid[0] = b2i(2, buf+20);
 
 		int i;
 		for (i=0; i<reader[ridx].nprov; i++) {
@@ -513,15 +513,15 @@ static int camd35_recv_chk(uchar *dcw, int *rc, uchar *buf)
 		reader[ridx].hexserial[6] = 0;
 		reader[ridx].hexserial[7] = 0;
 
-		reader[ridx].blockemm_g = buf[128];
-		reader[ridx].blockemm_s = buf[129];
-		reader[ridx].blockemm_u = buf[129];
-		reader[ridx].card_system = buf[131];
+		reader[ridx].blockemm_g = (buf[128]==1) ? 0: 1;
+		reader[ridx].blockemm_s = (buf[129]==1) ? 0: 1;
+		reader[ridx].blockemm_u = (buf[130]==1) ? 0: 1;
+		reader[ridx].card_system = get_cardsystem(reader[ridx].aucaid);
 		cs_log("CMD05 reader: %s serial: %s cardsyst: %d aucaid: %04X",
 				reader[ridx].label,
 				cs_hexdump(0, reader[ridx].hexserial, 8),
 				reader[ridx].card_system,
-				reader[ridx].aucaid);
+				reader[ridx].caid[0]);
 	}
 
 	// CMD44: old reject command introduced in mpcs

@@ -367,6 +367,39 @@ int reader_get_emm_type(EMM_PACKET *ep, struct s_reader * rdr) //rdr differs fro
 	return rc;
 }
 
+int get_cardsystem(ushort caid) {
+	int i,j;
+	for (i=0; i<CS_MAX_MOD; i++) {
+		if (cardsystem[i].caids) {
+			for (j=0;j<2;j++) {
+				if ((cardsystem[i].caids[j]==caid >> 8)) {
+					return i+1;
+				}
+			}
+		}
+	}
+	return 0;
+}
+
+uchar *get_emm_filter(struct s_reader * rdr, int type) {
+
+	static uint8_t filter[32];
+	memset(filter, 0xFF, 32); // should deliver a filter which not produce a flood if cardsystem is not yet implemented.
+
+	if (cardsystem[rdr->card_system-1].get_emm_filter) {
+		uchar *filter1 = cardsystem[rdr->card_system-1].get_emm_filter(rdr, type);
+		memcpy(filter,filter1,32);
+	} else {
+		if (type==GLOBAL) {
+			memset(filter,0,32);
+			filter[0]=0x80;
+			filter[0+16]=0xF0;
+		}
+	}
+
+	return filter;
+}
+
 int reader_emm(struct s_reader * reader, EMM_PACKET *ep)
 {
   int rc=-1;

@@ -658,4 +658,5 @@ void reader_viaccess(struct s_cardsystem *ph)
 	ph->card_info=viaccess_card_info;
 	ph->card_init=viaccess_card_init;
 	ph->get_emm_type=viaccess_get_emm_type;
+	ph->caids[0]=0x05;
 }
