@@ -128,7 +128,6 @@ static void usage()
   fprintf(stderr, "%s\n\n", logo);
   fprintf(stderr, "OSCam cardserver v%s, build #%s (%s) - (w) 2009-2010 streamboard SVN\n", CS_VERSION_X, CS_SVN_VERSION, CS_OSTYPE);
   fprintf(stderr, "\tsee http://streamboard.gmc.to:8001/wiki/ for more details\n");
-  fprintf(stderr, "\tbased on OSCam 0.99.x, (w) 2010 streamboard SVN\n");
   fprintf(stderr, "\tbased on streamboard mp-cardserver v0.9d - (w) 2004-2007 by dukat\n");
   fprintf(stderr, "\tinbuilt modules: ");
 #ifdef HAVE_DVBAPI
@@ -379,6 +378,7 @@ void cs_reinit_clients()
 				client[i].ncd_keepalive = account->ncd_keepalive;
 				client[i].c35_suppresscmd08 = account->c35_suppresscmd08;
 				client[i].tosleep	= (60*account->tosleep);
+				client[i].c35_sleepsend = account->c35_sleepsend;
 				client[i].monlvl	= account->monlvl;
 				client[i].disabled	= account->disabled;
 				client[i].fchid		= account->fchid;  // CHID filters
@@ -1254,6 +1254,7 @@ int cs_auth_client(struct s_auth *account, char *e_txt)
 				client[cs_idx].au=account->au;
 				client[cs_idx].autoau=account->autoau;
 				client[cs_idx].tosleep=(60*account->tosleep);
+				client[cs_idx].c35_sleepsend = account->c35_sleepsend;
 				memcpy(&client[cs_idx].ctab, &account->ctab, sizeof(client[cs_idx].ctab));
 				if (account->uniq)
 					cs_fake_client(account->usr, account->uniq, client[cs_idx].ip);
@@ -1345,7 +1346,7 @@ void cs_disconnect_client(void)
 int check_ecmcache(ECM_REQUEST *er, ulong grp)
 {
 	// disable cache1 and cache2
-	if (!cfg->cachecm) return(0);
+	if (!reader[ridx].cachecm) return(0);
 	
 	int i;
 	//cs_ddump(ecmd5, CS_ECMSTORESIZE, "ECM search");
@@ -1671,7 +1672,7 @@ int send_dcw(ECM_REQUEST *er)
 {
 	static char *stxt[]={"found", "cache1", "cache2", "emu",
 			"not found", "timeout", "sleeping",
-			"fake", "invalid", "corrupt", "no card", "expdate", "disabled"};
+			"fake", "invalid", "corrupt", "no card", "expdate", "disabled", "stopped"};
 	static char *stxtEx[]={"", "group", "caid", "ident", "class", "chid", "queue", "peer"};
 	static char *stxtWh[]={"", "user ", "reader ", "server ", "lserver "};
 	char sby[32]="";
@@ -2064,8 +2065,13 @@ void get_cw(ECM_REQUEST *er)
 		}
 
 		// user sleeping
-		if ((client[cs_idx].tosleep) && (now - client[cs_idx].lastswitch > client[cs_idx].tosleep))
-			er->rc = 6;
+		if ((client[cs_idx].tosleep) && (now - client[cs_idx].lastswitch > client[cs_idx].tosleep)) {
+			if (client[cs_idx].c35_sleepsend == 0xFF) {
+				er->rc = 13; // send stop command CMD08 {00 FF}
+			} else {
+				er->rc = 6;
+			}
+		}
 
 		client[cs_idx].last_srvid = i;
 		client[cs_idx].last_caid = m;
@@ -2229,16 +2235,12 @@ void do_emm(EMM_PACKET *ep)
 	client[cs_idx].lastemm = time((time_t)0);
 	cs_ddump_mask(D_EMM, ep->emm, ep->l, "emm:");
 
-	if (!reader[au].aucaid)
-		reader[au].aucaid = reader[au].caid[0];
-
-	if (reader[au].card_system>0) {
-		if ((!reader[au].fd) ||       // reader has no fd
-		(reader[au].aucaid != b2i(2,ep->caid))) {   // wrong caid
+	if (reader[au].card_system > 0) {
+		if ((!reader[au].fd) ||	(reader[au].caid[0] != b2i(2,ep->caid))) {   // wrong caid
 #ifdef WEBIF
 			client[cs_idx].emmnok++;
 #endif
-	  		return;
+			return;
 		}
 #ifdef WEBIF
 		client[cs_idx].emmok++;
@@ -2260,125 +2262,103 @@ static int comp_timeb(struct timeb *tpa, struct timeb *tpb)
   return(0);
 }
 
-static void build_delay(struct timeb *tpe, struct timeb *tpc)
-{
-  if (comp_timeb(tpe, tpc)>0)
-  {
-    tpe->time=tpc->time;
-    tpe->millitm=tpc->millitm;
-  }
-}
-
 struct timeval *chk_pending(struct timeb tp_ctimeout)
 {
-  int i;
-  ulong td;
-  struct timeb tpn, tpe, tpc; // <n>ow, <e>nd, <c>heck
-  static struct timeval tv;
+	int i;
+	ulong td;
+	struct timeb tpn, tpe, tpc; // <n>ow, <e>nd, <c>heck
+	static struct timeval tv;
 
-  ECM_REQUEST *er;
-  cs_ftime(&tpn);
-  tpe=tp_ctimeout;    // latest delay -> disconnect
+	ECM_REQUEST *er;
+	cs_ftime(&tpn);
+	tpe=tp_ctimeout;    // latest delay -> disconnect
 
-  if (ecmtask)
-    i=(ph[client[cs_idx].ctyp].multi)?CS_MAXPENDING:1;
-  else
-    i=0;
-//cs_log("num pend=%d", i);
-  for (--i; i>=0; i--)
-    if (ecmtask[i].rc>=100) // check all pending ecm-requests
-    {
-      int act, j;
-      er=&ecmtask[i];
-      tpc=er->tps;
-      tpc.millitm += (er->stage) ? cfg->ctimeout : cfg->ftimeout;
-      tpc.time += tpc.millitm / 1000;
-      tpc.millitm = tpc.millitm % 1000;
-      if (!er->stage)
-      {
-        for (j=0, act=1; (act) && (j<CS_MAXREADER); j++)
-        {
-            if (cfg->preferlocalcards && !er->locals_done)
-            {
-                if ((er->reader[j]&1) && !(reader[j].typ & R_IS_NETWORK))
-                    act=0;
-            }
-            else if (cfg->preferlocalcards && er->locals_done)
-            {
-                if ((er->reader[j]&1) && (reader[j].typ & R_IS_NETWORK))
-                    act=0;
-            }
-            else
-            {
-                if (er->reader[j]&1)
-                    act=0;
-            }
-        }
-//cs_log("stage 0, act=%d r0=%d, r1=%d, r2=%d, r3=%d, r4=%d r5=%d", act,
-//    er->reader[0], er->reader[1], er->reader[2],
-//    er->reader[3], er->reader[4], er->reader[5]);
-        if (act)
-        {
-          int inc_stage = 1;
+	if (ecmtask)
+		i=(ph[client[cs_idx].ctyp].multi)?CS_MAXPENDING:1;
+	else
+		i=0;
 
-          if (cfg->preferlocalcards && !er->locals_done)
-          {
-              int i;
+	//cs_log("num pend=%d", i);
 
-              er->locals_done = 1;
-              for (i = 0; i < CS_MAXREADER; i++)
-              {
-                  if (reader[i].typ & R_IS_NETWORK)
-                  {
-                      inc_stage = 0;
-                  }
-              }
-          }
-          if (!inc_stage)
-          {
-              request_cw(er, er->stage, 2);
-              tpc.millitm += 1000 * (tpn.time - er->tps.time) + tpn.millitm - er->tps.millitm;
-              tpc.time += tpc.millitm / 1000;
-              tpc.millitm = tpc.millitm % 1000;
-          }
-          else
-          {
-              er->locals_done = 0;
-              er->stage++;
-              request_cw(er, er->stage, cfg->preferlocalcards ? 1 : 0);
+	for (--i; i>=0; i--) {
+		if (ecmtask[i].rc>=100) { // check all pending ecm-requests 
+			int act, j;
+			er=&ecmtask[i];
+			tpc=er->tps;
+			tpc.millitm += (er->stage) ? cfg->ctimeout : cfg->ftimeout;
+			tpc.time += tpc.millitm / 1000;
+			tpc.millitm = tpc.millitm % 1000;
+			if (!er->stage) {
+				for (j=0, act=1; (act) && (j<CS_MAXREADER); j++) {
+					if (cfg->preferlocalcards && !er->locals_done) {
+						if ((er->reader[j]&1) && !(reader[j].typ & R_IS_NETWORK))
+							act=0;
+					} else if (cfg->preferlocalcards && er->locals_done) {
+						if ((er->reader[j]&1) && (reader[j].typ & R_IS_NETWORK))
+							act=0;
+					} else {
+						if (er->reader[j]&1)
+							act=0;
+					}
+				}
 
-              tpc.millitm += (cfg->ctimeout-cfg->ftimeout);
-              tpc.time += tpc.millitm / 1000;
-              tpc.millitm = tpc.millitm % 1000;
-          }
-        }
-      }
-      if (comp_timeb(&tpn, &tpc)>0) // action needed
-      {
-//cs_log("Action now %d.%03d", tpn.time, tpn.millitm);
-//cs_log("           %d.%03d", tpc.time, tpc.millitm);
-        if (er->stage)
-        {
-          er->rc=5; // timeout
-          send_dcw(er);
-          continue;
-        }
-        else
-        {
-          er->stage++;
-          request_cw(er, er->stage, 0);
-          tpc.millitm += (cfg->ctimeout-cfg->ftimeout);
-          tpc.time += tpc.millitm / 1000;
-          tpc.millitm = tpc.millitm % 1000;
-        }
-      }
-      build_delay(&tpe, &tpc);
-    }
-  td=(tpe.time-tpn.time)*1000+(tpe.millitm-tpn.millitm)+5;
-  tv.tv_sec = td/1000;
-  tv.tv_usec = (td%1000)*1000;
-//cs_log("delay %d.%06d", tv.tv_sec, tv.tv_usec);
-  return(&tv);
+				//cs_log("stage 0, act=%d r0=%d, r1=%d, r2=%d, r3=%d, r4=%d r5=%d", act,
+				//    er->reader[0], er->reader[1], er->reader[2],
+				//    er->reader[3], er->reader[4], er->reader[5]);
+
+				if (act) {
+					int inc_stage = 1;
+					if (cfg->preferlocalcards && !er->locals_done) {
+						er->locals_done = 1;
+						for (j = 0; j < CS_MAXREADER; j++) {
+							if (reader[j].typ & R_IS_NETWORK)
+								inc_stage = 0;
+						}
+					}
+					if (!inc_stage) {
+						request_cw(er, er->stage, 2);
+						tpc.millitm += 1000 * (tpn.time - er->tps.time) + tpn.millitm - er->tps.millitm;
+						tpc.time += tpc.millitm / 1000;
+						tpc.millitm = tpc.millitm % 1000;
+					} else {
+						er->locals_done = 0;
+						er->stage++;
+						request_cw(er, er->stage, cfg->preferlocalcards ? 1 : 0);
+
+						tpc.millitm += (cfg->ctimeout-cfg->ftimeout);
+						tpc.time += tpc.millitm / 1000;
+						tpc.millitm = tpc.millitm % 1000;
+					}
+				}
+			}
+			if (comp_timeb(&tpn, &tpc)>0) { // action needed 
+				//cs_log("Action now %d.%03d", tpn.time, tpn.millitm);
+				//cs_log("           %d.%03d", tpc.time, tpc.millitm);
+				if (er->stage) {
+					er->rc=5; // timeout
+					send_dcw(er);
+					continue;
+				} else {
+					er->stage++;
+					request_cw(er, er->stage, 0);
+					tpc.millitm += (cfg->ctimeout-cfg->ftimeout);
+					tpc.time += tpc.millitm / 1000;
+					tpc.millitm = tpc.millitm % 1000;
+				}
+			}
+			//build_delay(&tpe, &tpc);
+			if (comp_timeb(&tpe, &tpc)>0) {
+				tpe.time=tpc.time;
+				tpe.millitm=tpc.millitm;
+			}
+		}
+	}
+
+	td=(tpe.time-tpn.time)*1000+(tpe.millitm-tpn.millitm)+5;
+	tv.tv_sec = td/1000;
+	tv.tv_usec = (td%1000)*1000;
+	//cs_log("delay %d.%06d", tv.tv_sec, tv.tv_usec);
+	return(&tv);
 }
 
 int process_input(uchar *buf, int l, int timeout)

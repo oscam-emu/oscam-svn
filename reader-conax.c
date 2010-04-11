@@ -228,28 +228,32 @@ uchar *conax_get_emm_filter(struct s_reader * rdr, int type)
 	static uint8_t filter[32];
 	memset(filter, 0x00, 32);
 
-	/* this section is not yet ready */
-
 	switch (type) {
 		case GLOBAL:
-			filter[0]    = 0x80;
-			filter[0+16] = 0xF0;
-			filter[1]    = 0x00;
-			filter[1+16] = 0x00; // 0x00 to 0xD0
+			filter[0]    = 0x82;
+			filter[0+16] = 0xFF;
+			// FIXME: dont see any conax global EMM yet
+			filter[1]    = 0xFF;
+			filter[1+16] = 0xFF;
+			// END
+			filter[8]    = 0x70;
+			filter[8+16] = 0xFF;
 			break;
+
 		case SHARED:
-			filter[0]    = 0x80;
-			filter[0+16] = 0xF0;
-			filter[1]    = 0x00;
-			filter[1+16] = 0x00;
+			filter[0]    = 0x82;
+			filter[0+16] = 0xFF;
+			filter[8]    = 0x70;
+			filter[8+16] = 0xFF;
 			memcpy(filter+4, rdr->sa[0], 4);
 			memset(filter+4+16, 0xFF, 4);
 			break;
+
 		case UNIQUE:
-			filter[0]    = 0x80;
-			filter[0+16] = 0xF0;
-			filter[1]    = 0x00;
-			filter[1+16] = 0x00;
+			filter[0]    = 0x82;
+			filter[0+16] = 0xFF;
+			filter[8]    = 0x70;
+			filter[8+16] = 0xFF;
 			memcpy(filter+4, rdr->hexserial + 2, 4);
 			memset(filter+4+16, 0xFF, 4);
 			break;
@@ -337,5 +341,6 @@ void reader_conax(struct s_cardsystem *ph)
 	ph->card_info=conax_card_info;
 	ph->card_init=conax_card_init;
 	ph->get_emm_type=conax_get_emm_type;
+	ph->get_emm_filter=conax_get_emm_filter;
 	ph->caids[0]=0x0B;
 }

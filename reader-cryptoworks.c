@@ -459,11 +459,11 @@ int cryptoworks_get_emm_type(EMM_PACKET *ep, struct s_reader * rdr)
   	 		if(ep->emm[3]==0xA9 && ep->emm[4]==0xFF && ep->emm[13]==0x80 && ep->emm[14]==0x05) {
 				ep->type = UNIQUE;
 				memset(ep->hexserial, 0, 8);
-				memcpy(ep->hexserial, ep->emm + 5, 6);
-				strcpy(dumprdrserial, cs_hexdump(1, rdr->hexserial, 6));
+				memcpy(ep->hexserial, ep->emm + 5, 5);
+				strcpy(dumprdrserial, cs_hexdump(1, rdr->hexserial, 5));
 				cs_debug_mask(D_EMM, "CRYPTOWORKS EMM: UNIQUE, ep = %s rdr = %s", 
-					      cs_hexdump(1, ep->hexserial, 6), dumprdrserial);
-				return (!memcmp(ep->emm + 5, rdr->hexserial, 6)); // check for serial
+					      cs_hexdump(1, ep->hexserial, 5), dumprdrserial);
+				return (!memcmp(ep->emm + 5, rdr->hexserial, 5)); // check for serial
 			}
 
 		case 0x84:
@@ -477,6 +477,7 @@ int cryptoworks_get_emm_type(EMM_PACKET *ep, struct s_reader * rdr)
 				return (!memcmp(ep->emm + 5, rdr->hexserial, 4)); // check for SA
 			}
 
+		case 0x86:
 		case 0x88:
 		case 0x89:
   	 		if(ep->emm[3]==0xA9 && ep->emm[4]==0xFF && ep->emm[8]==0x83 && ep->emm[9]==0x01) {
@@ -538,8 +539,8 @@ uchar *cryptoworks_get_emm_filter(struct s_reader * rdr, int type)
 			filter[1+16] = 0xFF;
 			filter[2]    = 0xFF;
 			filter[2+16] = 0xFF;
-			memcpy(filter+3, rdr->hexserial, 6);
-			memset(filter+3+16, 0xFF, 6);
+			memcpy(filter+3, rdr->hexserial, 5);
+			memset(filter+3+16, 0xFF, 5);
 			filter[11]    = 0x80;
 			filter[11+16] = 0xFF;
 			filter[12]    = 0x05;
@@ -593,11 +594,11 @@ int cryptoworks_do_emm(struct s_reader * reader, EMM_PACKET *ep)
   	 //SA
   	 case SHARED:
 				insEMM_SA[4]=ep->emm[2]-6;
-				if(emm[11]==insEMM_SA[4]-3)
-				{
+				//if(emm[11]==insEMM_SA[4]-3)
+				//{
 					write_cmd(insEMM_SA, emm+9);
 					rc=((cta_res[0]==0x90)&&(cta_res[1]==0x00));					
-				}
+				//}
   	 	break;
   	 
   	 //UA	  	 

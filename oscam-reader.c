@@ -482,16 +482,16 @@ static int reader_do_emm(struct s_reader * reader, EMM_PACKET *ep)
   //counting results
   switch(rc){
 	  case 0:
-		  reader->emmerror++;
+		  reader->emmerror[ep->type]++;
 		  break;
 	  case 1:
-		  reader->emmwritten++;
+		  reader->emmwritten[ep->type]++;
 		  break;
 	  case 2:
-		  reader->emmskipped++;
+		  reader->emmskipped[ep->type]++;
 		  break;
 	  case 3:
-		  reader->emmblocked++;
+		  reader->emmblocked[ep->type]++;
 		  break;
   }
 #endif
@@ -523,7 +523,7 @@ static int reader_listen(struct s_reader * reader, int fd1, int fd2)
   }
 #endif
   
-  //if (master_pid!=getppid()) cs_exit(0);
+  if (master_pid!=getppid()) cs_exit(0);
   tcp_toflag=(fd2 && is_tcp && reader->tcp_ito && reader->tcp_connected);
   tv.tv_sec = 0;
   tv.tv_usec = 100000L;
@@ -540,7 +540,7 @@ static int reader_listen(struct s_reader * reader, int fd1, int fd2)
   fdmax=(fd1>fd2) ? fd1 : fd2;
   fdmax=(fdmax>logfd) ? fdmax : logfd;
   if (select(fdmax+1, &fds, 0, 0, (use_tv) ? &tv : 0)<0) return(0);
-  //if (master_pid!=getppid()) cs_exit(0);
+  if (master_pid!=getppid()) cs_exit(0);
 
   if ((logfd) && (FD_ISSET(logfd, &fds)))
   {

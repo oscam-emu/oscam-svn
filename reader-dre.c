@@ -296,20 +296,55 @@ int dre_do_ecm (struct s_reader * reader, ECM_REQUEST * er)
 
 int dre_get_emm_type(EMM_PACKET *ep, struct s_reader * rdr)
 {
-  rdr=rdr;
   switch (ep->emm[0]) {
 		case 0x87:
-			ep->type = UNIQUE; //FIXME no filling of ep->hexserial
-			break;
+			ep->type = UNIQUE;
+			return TRUE; //FIXME: no filling of ep->hexserial
+
 		case 0x89:
-			ep->type = SHARED; //FIXME no filling of ep->hexserial
-			break;
+			ep->type = SHARED;
+			// FIXME: Seems to be that SA is only used with caid 0x4ae1
+			if (rdr->caid[0] == 0x4ae1) {
+				memset(ep->hexserial, 0, 8);
+				memcpy(ep->hexserial, ep->emm + 3, 4);
+				return (!memcmp(&rdr->sa[0][0], ep->emm + 3, 4));
+			}
+			else
+				return TRUE;
 		default:
 			ep->type = UNKNOWN;
+			return TRUE;
 	}
-	return TRUE; //FIXME no checking of serial or SA
 }
-	
+
+uchar *dre_get_emm_filter(struct s_reader * rdr, int type)
+{
+        static uint8_t filter[32];
+        memset(filter, 0x00, 32);
+
+        switch (type) {
+                case GLOBAL:
+			//FIXME: Dont now how to filter GLOBAL EMM's
+                        filter[0]    = 0xFF; //dummy
+                        filter[0+16] = 0xFF;
+                        break;
+                case SHARED:
+                        filter[0]    = 0x89;
+                        filter[0+16] = 0xFF;
+			// FIXME: Seems to be that SA is only used with caid 0x4ae1
+			if (rdr->caid[0] == 0x4ae1) {
+                        	memcpy(filter+1, &rdr->sa[0][0], 4);
+                        	memset(filter+1+16, 0xFF, 4);
+			}
+                        break;
+                case UNIQUE:
+			//FIXME: No filter for hexserial
+                        filter[0]    = 0x87;
+                        filter[0+16] = 0xFF;
+			break;
+	}
+	return filter;
+}
 
 int dre_do_emm (struct s_reader * reader, EMM_PACKET * ep)
 {
@@ -317,7 +352,6 @@ int dre_do_emm (struct s_reader * reader, EMM_PACKET * ep)
   int emm_length = ((ep->emm[1] & 0x0f) << 8) + ep->emm[2];
 
   cs_ddump (ep->emm, emm_length + 3, "EMM:");
-  ep->type = ep->emm[0];
 
   if (reader->caid[0] == 0x4ae1) {
     static uchar emmcmd52[0x3a];
@@ -399,4 +433,6 @@ void reader_dre(struct s_cardsystem *ph)
 	ph->card_info=dre_card_info;
 	ph->card_init=dre_card_init;
 	ph->get_emm_type=dre_get_emm_type;
+	ph->get_emm_filter=dre_get_emm_filter;
+	ph->caids[0]=0x4A;
 }

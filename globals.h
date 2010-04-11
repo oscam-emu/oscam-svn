@@ -378,6 +378,7 @@ struct s_client
   time_t	lastecm;
   time_t	expirationdate;
   int		c35_suppresscmd08;
+  int		c35_sleepsend;
   int		ncd_keepalive;
   int		disabled;
   ulong		grp;
@@ -477,7 +478,6 @@ struct s_reader  //contains device info, reader info and card info
   uchar     sa[CS_MAXPROV][4];    // viaccess & seca
   ushort    acs;    // irdeto
   ushort    caid[16];
-  ushort    aucaid;
   uchar     b_nano[256];
   int       blockemm_unknown; //block EMMs that have unknown type
   int       blockemm_u;				//blcok Unique EMMs
@@ -488,6 +488,7 @@ struct s_reader  //contains device info, reader info and card info
   int		ucpk_valid;
   int       logemm;
   int       cachemm;
+  int       cachecm;
   int       rewritemm;
   int       card_status;
   int       deprecated; //if 0 ATR obeyed, if 1 default speed (9600) is chosen; for devices that cannot switch baudrate
@@ -530,10 +531,10 @@ struct s_reader  //contains device info, reader info and card info
 #endif
   int       msg_idx;
 #ifdef WEBIF
-  int		emmwritten; //count written EMM
-  int		emmskipped; //count skipped EMM
-  int		emmerror;	//count error EMM
-  int		emmblocked;	//count blocked EMM
+  int		emmwritten[4]; //count written EMM
+  int		emmskipped[4]; //count skipped EMM
+  int		emmerror[4];	//count error EMM
+  int		emmblocked[4];	//count blocked EMM
 #endif
 #ifdef HAVE_PCSC
   SCARDCONTEXT hContext;
@@ -606,6 +607,7 @@ struct s_auth
   uchar     dyndns[64];
   time_t    expirationdate;
   int       c35_suppresscmd08;
+  int       c35_sleepsend;
   int       ncd_keepalive;
   int       disabled;
   struct   s_auth *next;
@@ -637,7 +639,6 @@ struct s_config
 	ulong		ctimeout;
 	ulong		ftimeout;
 	ulong		cmaxidle;
-	int		cachecm;
 	int		ulparent;
 	ulong		delay;
 	int		bindwait;
@@ -730,6 +731,7 @@ struct s_config
 	char		dvbapi_boxtype[20];
 	CAIDTAB	dvbapi_prioritytab;
 	CAIDTAB	dvbapi_ignoretab;
+	CAIDTAB	dvbapi_delaytab;
 #endif
 
 #ifdef CS_ANTICASC

@@ -47,6 +47,7 @@ int seca_do_ecm(struct s_reader * reader, ECM_REQUEST *);
 int seca_do_emm(struct s_reader * reader, EMM_PACKET *);
 int seca_get_emm_type(EMM_PACKET *, struct s_reader *);
 int seca_card_info(struct s_reader * reader);
+uchar *seca_get_emm_filter(struct s_reader * rdr, int type);
 
 // reader nagra2/3
 int nagra2_card_init(struct s_reader * reader, ATR atr);
@@ -70,7 +71,7 @@ int dre_do_ecm(struct s_reader * reader, ECM_REQUEST *);
 int dre_do_emm(struct s_reader * reader, EMM_PACKET *);
 int dre_get_emm_type(EMM_PACKET *, struct s_reader *);
 int dre_card_info(void);
-
+uchar *dre_get_emm_filter(struct s_reader * rdr, int type);
 
 #define write_cmd(cmd, data) \
 { \

@@ -175,6 +175,34 @@ int seca_get_emm_type(EMM_PACKET *ep, struct s_reader * rdr) //returns TRUE if s
 			return TRUE;
 	}
 }
+
+uchar *seca_get_emm_filter(struct s_reader * rdr, int type)
+{
+	static uint8_t filter[32];
+	memset(filter, 0x00, 32);
+
+	switch (type) {
+		case GLOBAL:
+			// FIXME: Seems to be that seca has no EMM-G ?!
+			filter[0]    = 0xFF;
+			filter[0+16] = 0xFF;
+			break;
+
+		case SHARED:
+			filter[0]    = 0x84;
+			filter[0+16] = 0xFF;
+			//FIXME: no filter for sa / provider
+			break;
+
+		case UNIQUE:
+			filter[0]    = 0x82;
+			filter[0+16] = 0xFF;
+			memcpy(filter+1, rdr->hexserial, 6);
+			memset(filter+1+16, 0xFF, 6);
+			break;
+	}
+	return filter;
+}
 	
 int seca_do_emm(struct s_reader * reader, EMM_PACKET *ep)
 {
@@ -262,6 +290,7 @@ void reader_seca(struct s_cardsystem *ph)
 	ph->card_info=seca_card_info;
 	ph->card_init=seca_card_init;
 	ph->get_emm_type=seca_get_emm_type;
+	ph->get_emm_filter=seca_get_emm_filter;
 	ph->caids[0]=0x01;
 }
 

@@ -16,28 +16,31 @@ extern struct s_reader *reader;
 static	uchar upwd[64]={0};
 static	uchar *req;
 static  int is_udp=1;
+static int stopped;
+static int lastcaid;
+static int lastsrvid;
 
 static int camd35_send(uchar *buf)
 {
-  int l;
-  unsigned char rbuf[REQ_SIZE+15+4], *sbuf=rbuf+4;
+	int l;
+	unsigned char rbuf[REQ_SIZE+15+4], *sbuf = rbuf + 4;
 
-  if (!client[cs_idx].udp_fd) return(-1);
-  l=20+buf[1]+(((buf[0]==3) || (buf[0]==4)) ? 0x34 : 0);
-  memcpy(rbuf, client[cs_idx].ucrc, 4);
-  memcpy(sbuf, buf, l);
-  memset(sbuf+l, 0xff, 15);	// set unused space to 0xff for newer camd3's
-  memcpy(sbuf+4, i2b(4, crc32(0L, sbuf+20, sbuf[1])), 4);
-  l=boundary(4, l);
-  cs_ddump(sbuf, l, "send %d bytes to %s", l, remote_txt());
-  aes_encrypt(sbuf, l);
+	if (!client[cs_idx].udp_fd) return(-1);
+	l = 20 + buf[1] + (((buf[0] == 3) || (buf[0] == 4)) ? 0x34 : 0);
+	memcpy(rbuf, client[cs_idx].ucrc, 4);
+	memcpy(sbuf, buf, l);
+	memset(sbuf + l, 0xff, 15);	// set unused space to 0xff for newer camd3's
+	memcpy(sbuf + 4, i2b(4, crc32(0L, sbuf+20, sbuf[1])), 4);
+	l = boundary(4, l);
+	cs_ddump(sbuf, l, "send %d bytes to %s", l, remote_txt());
+	aes_encrypt(sbuf, l);
 
-  if (is_udp)
-    return(sendto(client[cs_idx].udp_fd, rbuf, l+4, 0,
-                  (struct sockaddr *)&client[cs_idx].udp_sa,
-                  sizeof(client[cs_idx].udp_sa)));
-  else
-    return(send(client[cs_idx].udp_fd, rbuf, l+4, 0));
+	if (is_udp)
+		return(sendto(client[cs_idx].udp_fd, rbuf, l+4, 0,
+				(struct sockaddr *)&client[cs_idx].udp_sa,
+				sizeof(client[cs_idx].udp_sa)));
+	else
+		return(send(client[cs_idx].udp_fd, rbuf, l + 4, 0));
 }
 
 static int camd35_auth_client(uchar *ucrc)
@@ -208,64 +211,77 @@ static void camd35_request_emm(ECM_REQUEST *er)
 
 static void camd35_send_dcw(ECM_REQUEST *er)
 {
-  uchar *buf;
-  buf=req+(er->cpti*REQ_SIZE);	// get orig request
+	uchar *buf;
+	buf = req + (er->cpti * REQ_SIZE);	// get orig request
 
-  if (((er->rcEx > 0) || (er->rc == 8)) && !client[cs_idx].c35_suppresscmd08)
-  {
-    buf[0]=0x08;
-    buf[1]=2;
-    memset(buf+20, 0, buf[1]);
-  }
-  else
-  {
-    // Send CW
-    if ((er->rc < 4) || (er->rc == 7))
-    {
-      if (buf[0]==3)
-        memmove(buf+20+16, buf+20+buf[1], 0x34);
-      buf[0]++;
-      buf[1]=16;
-      memcpy(buf+20, er->cw, buf[1]);
-    }
-    else 
-    {
-      // Send old CMD44 to prevent cascading problems with older mpcs/oscam versions
-      buf[0]=0x44;
-      buf[1]=0;
-    }
-  }
-  camd35_send(buf);
-  camd35_request_emm(er);
+	if (((er->rcEx > 0) || (er->rc == 8)) && !client[cs_idx].c35_suppresscmd08)
+	{
+		buf[0] = 0x08;
+		buf[1] = 2;
+		memset(buf + 20, 0, buf[1]);
+	}
+	else if (er->rc == 13)
+	{
+		buf[0] = 0x08;
+		buf[1] = 2;
+		buf[20] = 0;
+		/*
+		 * the second Databyte should be forseen for a sleeptime in minutes
+		 * whoever knows the camd3 protocol related to CMD08 - please help!
+		 * on tests this don't work with native camd3
+		 */
+		buf[21] = 0xFF;
+		cs_log("%s stop request send", client[cs_idx].usr);
+	}
+	else
+	{
+		// Send CW
+		if ((er->rc < 4) || (er->rc == 7))
+		{
+			if (buf[0]==3)
+				memmove(buf + 20 + 16, buf + 20 + buf[1], 0x34);
+			buf[0]++;
+			buf[1] = 16;
+			memcpy(buf+20, er->cw, buf[1]);
+		}
+		else
+		{
+			// Send old CMD44 to prevent cascading problems with older mpcs/oscam versions
+			buf[0] = 0x44;
+			buf[1] = 0;
+		}
+	}
+	camd35_send(buf);
+	camd35_request_emm(er);
 }
 
 static void camd35_process_ecm(uchar *buf)
 {
-  ECM_REQUEST *er;
-  if (!(er=get_ecmtask()))
-    return;
-  er->l=buf[1];
-  memcpy(req+(er->cpti*REQ_SIZE), buf, 0x34+20+er->l);	// save request
-  er->srvid=b2i(2, buf+ 8);
-  er->caid =b2i(2, buf+10);
-  er->prid =b2i(4, buf+12);
-  er->pid  =b2i(2, buf+16);
-  memcpy(er->ecm, buf+20, er->l);
-  get_cw(er);
+	ECM_REQUEST *er;
+	if (!(er = get_ecmtask()))
+		return;
+	er->l = buf[1];
+	memcpy(req + (er->cpti*REQ_SIZE), buf, 0x34 + 20 + er->l);	// save request
+	er->srvid = b2i(2, buf+ 8);
+	er->caid = b2i(2, buf+10);
+	er->prid = b2i(4, buf+12);
+	er->pid  = b2i(2, buf+16);
+	memcpy(er->ecm, buf + 20, er->l);
+	get_cw(er);
 }
 
 static void camd35_process_emm(uchar *buf)
 {
-  int au;
-  EMM_PACKET epg;
-  memset(&epg, 0, sizeof(epg));
-  au=client[cs_idx].au;
-  if ((au<0) || (au>CS_MAXREADER)) return;  // TODO
-  epg.l=buf[1];
-  memcpy(epg.caid     , buf+10              , 2);
-  memcpy(epg.provid   , buf+12              , 4);
-  memcpy(epg.emm      , buf+20              , epg.l);
-  do_emm(&epg);
+	int au;
+	EMM_PACKET epg;
+	memset(&epg, 0, sizeof(epg));
+	au = client[cs_idx].au;
+	if ((au < 0) || (au > CS_MAXREADER)) return;  // TODO
+	epg.l = buf[1];
+	memcpy(epg.caid, buf + 10, 2);
+	memcpy(epg.provid, buf + 12 , 4);
+	memcpy(epg.emm, buf + 20, epg.l);
+	do_emm(&epg);
 }
 
 static void camd35_server()
@@ -444,24 +460,40 @@ static int tcp_connect()
 
 static int camd35_send_ecm(ECM_REQUEST *er, uchar *buf)
 {
-  if (!client[cs_idx].udp_sa.sin_addr.s_addr)	// once resolved at least
-    return(-1);
+	char *typtext[]={"ok", "invalid", "sleeping"};
 
-  if (!is_udp && !tcp_connect()) return(-1);
+	if (stopped) {
+		if (er->srvid == lastsrvid && er->caid == lastcaid){
+			cs_log("%s is stopped - requested by server (%s)",
+					reader[ridx].label, typtext[stopped]);
+			return(-1);
+		}
+		else {
+			stopped = 0;
+		}
+	}
 
-  memset(buf, 0, 20);
-  memset(buf+20, 0xff, er->l+15);
-  buf[1]=er->l;
-  memcpy(buf+ 8, i2b(2, er->srvid), 2);
-  memcpy(buf+10, i2b(2, er->caid ), 2);
-  memcpy(buf+12, i2b(4, er->prid ), 4);
-//  memcpy(buf+16, i2b(2, er->pid  ), 2);
-//  memcpy(buf+16, &er->idx , 2);
-  memcpy(buf+16, i2b(2, er->idx ), 2);
-  buf[18]=0xff;
-  buf[19]=0xff;
-  memcpy(buf+20, er->ecm  , er->l);
-  return((camd35_send(buf)<1) ? (-1) : 0);
+	lastsrvid = er->srvid;
+	lastcaid = er->caid;
+
+	if (!client[cs_idx].udp_sa.sin_addr.s_addr)	// once resolved at least
+		return(-1);
+
+	if (!is_udp && !tcp_connect()) return(-1);
+
+	memset(buf, 0, 20);
+	memset(buf + 20, 0xff, er->l+15);
+	buf[1]=er->l;
+	memcpy(buf + 8, i2b(2, er->srvid), 2);
+	memcpy(buf + 10, i2b(2, er->caid ), 2);
+	memcpy(buf + 12, i2b(4, er->prid ), 4);
+	//  memcpy(buf+16, i2b(2, er->pid  ), 2);
+	//  memcpy(buf+16, &er->idx , 2);
+	memcpy(buf + 16, i2b(2, er->idx ), 2);
+	buf[18] = 0xff;
+	buf[19] = 0xff;
+	memcpy(buf + 20, er->ecm  , er->l);
+	return((camd35_send(buf) < 1) ? (-1) : 0);
 }
 
 static int camd35_send_emm(EMM_PACKET *ep)
@@ -487,9 +519,10 @@ static int camd35_send_emm(EMM_PACKET *ep)
 static int camd35_recv_chk(uchar *dcw, int *rc, uchar *buf)
 {
 	ushort idx;
+	char *typtext[]={"ok", "invalid", "sleeping"};
 
 	// reading CMD05 Emm request and set serial
-	if (buf[0] == 0x05) {
+	if (buf[0] == 0x05 && buf[1] == 111) {
 
 		reader[ridx].nprov = 0; //reset if number changes on reader change
 		reader[ridx].nprov = buf[47];
@@ -497,8 +530,8 @@ static int camd35_recv_chk(uchar *dcw, int *rc, uchar *buf)
 
 		int i;
 		for (i=0; i<reader[ridx].nprov; i++) {
-			if (((reader[ridx].aucaid >= 0x1700) && (reader[ridx].aucaid <= 0x1799))  ||	// Betacrypt
-					((reader[ridx].aucaid >= 0x0600) && (reader[ridx].aucaid <= 0x0699)))	// Irdeto (don't know if this is correct, cause I don't own a IRDETO-Card)
+			if (((reader[ridx].caid[0] >= 0x1700) && (reader[ridx].caid[0] <= 0x1799))  ||	// Betacrypt
+					((reader[ridx].caid[0] >= 0x0600) && (reader[ridx].caid[0] <= 0x0699)))	// Irdeto (don't know if this is correct, cause I don't own a IRDETO-Card)
 			{
 				reader[ridx].prid[i][0] = buf[48 + (i*5)];
 				memcpy(&reader[ridx].prid[i][1], &buf[50 + (i * 5)], 3);
@@ -516,12 +549,20 @@ static int camd35_recv_chk(uchar *dcw, int *rc, uchar *buf)
 		reader[ridx].blockemm_g = (buf[128]==1) ? 0: 1;
 		reader[ridx].blockemm_s = (buf[129]==1) ? 0: 1;
 		reader[ridx].blockemm_u = (buf[130]==1) ? 0: 1;
-		reader[ridx].card_system = get_cardsystem(reader[ridx].aucaid);
-		cs_log("CMD05 reader: %s serial: %s cardsyst: %d aucaid: %04X",
+		reader[ridx].card_system = get_cardsystem(reader[ridx].caid[0]);
+		cs_log("%s CMD05 AU request for caid: %04X",
 				reader[ridx].label,
-				cs_hexdump(0, reader[ridx].hexserial, 8),
-				reader[ridx].card_system,
 				reader[ridx].caid[0]);
+	}
+
+	if (buf[0] == 0x08) {
+		if(buf[21] == 0xFF) {
+			stopped = 2; // server says sleep
+		} else {
+			stopped = 1; // server says invalid
+		}
+		cs_log("%s CMD08 stop request by server (%s)",
+				reader[ridx].label, typtext[stopped]);
 	}
 
 	// CMD44: old reject command introduced in mpcs

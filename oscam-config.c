@@ -398,16 +398,6 @@ void chk_t_global(char *token, char *value)
 		}
 	}
 
-	if (!strcmp(token, "ecmcache")) {
-		if(strlen(value) == 0) {
-			cfg->cachecm = 1;
-			return;
-		} else {
-			cfg->cachecm = atoi(value);
-			return;
-		}
-	}
-
 	if (!strcmp(token, "bindwait")) {
 		if (strlen(value) == 0) {
 			cfg->bindwait = CS_BIND_TIMEOUT;
@@ -1128,6 +1118,11 @@ void chk_t_dvbapi(char *token, char *value)
 		return;
 	}
 
+	if (!strcmp(token, "cw_delay")) {
+		dvbapi_chk_caidtab(value, &cfg->dvbapi_delaytab);
+		return;
+	}
+
 	if (token[0] != '#')
 		fprintf(stderr, "Warning: keyword '%s' in dvbapi section not recognized\n",token);
 }
@@ -1280,7 +1275,6 @@ int init_config()
 	cfg->pidfile = NULL;
 	cfg->usrfile = NULL;
 	cfg->cwlogdir = NULL;
-	cfg->cachecm = 1;
 #ifdef WEBIF
 	strcpy(cfg->http_user, "");
 	strcpy(cfg->http_pwd, "");
@@ -1393,7 +1387,19 @@ void chk_account(char *token, char *value, struct s_auth *account)
 			account->tosleep = 0;
 			return;
 		} else {
-			account->tosleep=atoi(value);
+			account->tosleep = atoi(value);
+			return;
+		}
+	}
+
+	if (!strcmp(token, "sleepsend")) {
+		if(strlen(value) == 0) {
+			account->c35_sleepsend = 0;
+			return;
+		} else {
+			account->c35_sleepsend = atoi(value);
+			if (account->c35_sleepsend > 0xFF)
+				account->c35_sleepsend = 0xFF;
 			return;
 		}
 	}
@@ -1454,13 +1460,14 @@ void chk_account(char *token, char *value, struct s_auth *account)
 
 	if (!strcmp(token, "au")) {
 		//set default values for usage during runtime from Webif
-		account->au=-1;
+		account->au = -1;
 		account->autoau=0;
 
-		if(value && value[0]=='1') account->autoau=1;
-			for (i=0; i<CS_MAXREADER; i++)
-				if ((reader[i].label[0]) && (!strncmp(reader[i].label, value, strlen(reader[i].label))))
-					account->au=i;
+		if(value && value[0] == '1')
+			account->autoau = 1;
+		for (i = 0; i < CS_MAXREADER; i++)
+			if ((reader[i].label[0]) && (!strncmp(reader[i].label, value, strlen(reader[i].label))))
+				account->au = i;
 		return;
 	}
 
@@ -1608,7 +1615,6 @@ int write_config()
 	fprintf_conf(f, CONFVARWIDTH, "fallbacktimeout", "%ld\n", cfg->ftimeout);
 	fprintf_conf(f, CONFVARWIDTH, "clientmaxidle", "%d\n", cfg->cmaxidle);
 	fprintf_conf(f, CONFVARWIDTH, "cachedelay", "%ld\n", cfg->delay);
-	fprintf_conf(f, CONFVARWIDTH, "ecmcache", "%ld\n", cfg->cachecm);
 	fprintf_conf(f, CONFVARWIDTH, "bindwait", "%d\n", cfg->bindwait);
 	fprintf_conf(f, CONFVARWIDTH, "netprio", "%ld\n", cfg->netprio);
 	fprintf_conf(f, CONFVARWIDTH, "clientdyndns", "%d\n", cfg->clientdyndns);
@@ -1929,6 +1935,9 @@ int write_userdb()
 
 		if (account->c35_suppresscmd08)
 			fprintf_conf(f, CONFVARWIDTH, "suppresscmd08", "%d\n", account->c35_suppresscmd08);
+
+		if (account->c35_sleepsend)
+			fprintf_conf(f, CONFVARWIDTH, "sleepsend", "%d\n", account->c35_sleepsend);
 
 		fprintf_conf(f, CONFVARWIDTH, "keepalive", "%d\n", account->ncd_keepalive);
 
@@ -2830,6 +2839,16 @@ static void chk_reader(char *token, char *value, struct s_reader *rdr)
 		}
 	}
 
+	if (!strcmp(token, "ecmcache")) {
+		if(strlen(value) == 0) {
+			rdr->cachecm = 1;
+			return;
+		} else {
+			rdr->cachecm = atoi(value);
+			return;
+		}
+	}
+
 	if (!strcmp(token, "blocknano")) {
 		//wildcard is used
 		if (!strcmp(value,"all")) {
@@ -3056,6 +3075,7 @@ int init_readerdb()
 			reader[nr].mhz = 357;
 			reader[nr].cardmhz = 357;
 			reader[nr].deprecated = 0;
+			reader[nr].cachecm = 1;
 			strcpy(reader[nr].pincode, "none");
 			for (i=1; i<CS_MAXCAIDTAB; reader[nr].ctab.mask[i++]=0xffff);
 			continue;

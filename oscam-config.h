@@ -51,7 +51,7 @@
 
 #ifdef WITH_CARDREADER
 #ifndef READER_NAGRA
-#define READER_NAGRA
+//#define READER_NAGRA
 #endif
 
 #ifndef READER_IRDETO

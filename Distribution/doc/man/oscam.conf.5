@@ -138,11 +138,6 @@ max log file size, default:10
 .RS 3n
 1 = try decoding on local cards first, default:0
 .RE
-.PP
-\fBecmcache\fP = \fB0\fP|\fB1\fP
-.RS 3n
-1 = disable ECM cache, default:0
-.RE
 .SS "The [monitor] section"
 .PP
 \fBport\fP = \fB0\fP|\fBport\fP
@@ -239,6 +234,12 @@ path to an executable script which you wish to start from web interface, default
 .RS 3n
 http web interface connections allowed, default:none
  example: httpallowed = 127.0.0.1,192.168.0.0-192.168.255.255
+.RE
+.PP
+\fBhttpdyndns\fP = \fBhostname\fP
+.RS 3n
+http web interface connections allowed, default:none
+ example: httpdyndns = my.dynexample.com
 .RE
 .SS "The [camd33] section"
 .PP
