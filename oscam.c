@@ -672,13 +672,6 @@ int cs_fork(in_addr_t ip, in_port_t port)
                      }
                      cdiff=i;
                      break;
-            case 98: client[i].typ='n';   // resolver
-                     client[i].ip=client[0].ip;
-                     strcpy(client[i].usr, client[0].usr);
-                     cs_log("resolver started (pid=%d, delay=%d sec)",
-                             pid, cfg->resolvedelay);
-                     cdiff=i;
-                     break;
             case 97: client[i].typ='l';   // logger
                      client[i].ip=client[0].ip;
                      strcpy(client[i].usr, client[0].usr);
@@ -965,42 +958,52 @@ static int start_listener(struct s_module *ph, int port_idx)
 
 static void cs_client_resolve()
 {
-	while (1)
-	{
-		struct hostent *rht;
-		struct s_auth *account;
-		struct sockaddr_in udp_sa;
+  while (1)
+  {
+    struct hostent *rht;
+    struct s_auth *account;
+    struct sockaddr_in udp_sa;
 
-		for (account=cfg->account; account; account=account->next)
-			if (account->dyndns[0])
-			{
-				rht=gethostbyname((const char *)account->dyndns);
-				if (rht)
-				{
-					memcpy(&udp_sa.sin_addr, rht->h_addr, sizeof(udp_sa.sin_addr));
-					account->dynip=cs_inet_order(udp_sa.sin_addr.s_addr);
-				}
-				else
-					cs_log("can't resolve hostname %s (user: %s)", account->dyndns, account->usr);
-				client[cs_idx].last=time((time_t)0);
-			}
-		sleep(cfg->resolvedelay);
-	}
+    for (account=cfg->account; account; account=account->next)
+      if (account->dyndns[0])
+      {
+        rht=gethostbyname((const char *)account->dyndns);
+        if (rht)
+        {
+          memcpy(&udp_sa.sin_addr, rht->h_addr, sizeof(udp_sa.sin_addr));
+          account->dynip=cs_inet_order(udp_sa.sin_addr.s_addr);
+        }
+        else
+          cs_log("can't resolve hostname %s (user: %s)", account->dyndns, account->usr);
+        client[cs_idx].last=time((time_t)0);
+      }
+    sleep(cfg->resolvedelay);
+  }
 }
 
-static void start_client_resolver()
+static void loop_resolver()
 {
-	int i;
-	pthread_t tid;
+  cs_sleepms(1000); // wait for reader
+  while(1)
+  {
+    cs_resolve();
+    cs_sleepms(1000*cfg->resolvedelay);
+  }
+}
 
-	i=pthread_create(&tid, (pthread_attr_t *)0, (void *)&cs_client_resolve, (void *) 0);
-	if (i)
-		cs_log("ERROR: can't create resolver-thread (err=%d)", i);
-	else
-	{
-		cs_log("resolver thread started");
-		pthread_detach(tid);
-	}
+static void start_thread(void * startroutine, char * nameroutine)
+{
+  int i;
+  pthread_t tid;
+
+  i=pthread_create(&tid, (pthread_attr_t *)0, startroutine, (void *) 0);
+  if (i)
+    cs_log("ERROR: can't create %s thread (err=%d)", i, nameroutine);
+  else
+  {
+    cs_log("%s thread started", nameroutine);
+    pthread_detach(tid);
+  }
 }
 
 void cs_resolve()
@@ -1055,25 +1058,6 @@ static void cs_logger(void)
       }
     }
   }
-}
-
-static void start_resolver()
-{
-	int i;
-
-	cs_sleepms(1000); // wait for reader
-	while(1)
-	{
-		if (master_pid!=getppid())
-			cs_exit(0);
-		cs_resolve();
-		for (i=0; i<cfg->resolvedelay; i++)
-			if (master_pid!=getppid())
-				cs_exit(0);
-			else
-				cs_sleepms(1000);
-		//        sleep(cfg->resolvedelay);
-	}
 }
 
 #ifdef CS_ANTICASC
@@ -1142,7 +1126,6 @@ static void init_service(int srv)
 		case 96: start_anticascader();
 #endif
 		case 97: cs_logger();
-		case 98: start_resolver();
 #ifdef WEBIF
 		case 95: cs_http();
 #endif
@@ -2249,8 +2232,6 @@ void do_emm(EMM_PACKET *ep)
 	ep->cidx = cs_idx;
 	cs_debug_mask(D_EMM, "emm is being sent to reader %s.", reader[au].label);
 	write_to_pipe(reader[au].fd, PIP_ID_EMM, (uchar *) ep, sizeof(EMM_PACKET));
-	if (reader[au].typ & R_IS_NETWORK)
-		cs_log("emm written to %s type=%s len=%d", reader[au].label, typtext[ep->type], ep->l);
 }
 
 static int comp_timeb(struct timeb *tpa, struct timeb *tpb)
@@ -2638,10 +2619,10 @@ int main (int argc, char *argv[])
 	client[0].last=time((time_t *)0);
 
 	if(cfg->clientdyndns)
-		start_client_resolver();
+		start_thread((void *) &cs_client_resolve, "client resolver");
 
   init_service(97); // logger
-  init_service(98); // resolver
+  start_thread((void *) &loop_resolver, "resolver");
 #ifdef WEBIF
   init_service(95); // http
 #endif

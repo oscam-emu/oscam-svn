@@ -58,7 +58,6 @@ int reader_cmd2icc(struct s_reader * reader, uchar *buf, int l, uchar * cta_res,
 
 #endif
 
-	cs_ddump(buf, l, "write to cardreader %s:",reader->label);
 	*p_cta_lr=CTA_RES_LEN-1; //FIXME not sure whether this one is necessary 
 	cs_ptyp_orig=cs_ptyp;
 	cs_ptyp=D_DEVICE;
@@ -67,13 +66,14 @@ int reader_cmd2icc(struct s_reader * reader, uchar *buf, int l, uchar * cta_res,
 		cs_debug("SC8in1: locked for CardWrite of slot %i", reader->slot);
 		Sc8in1_Selectslot(reader, reader->slot);
 	}
+	cs_ddump(buf, l, "write to cardreader %s:",reader->label);
 	rc=ICC_Async_CardWrite(reader, buf, (unsigned short)l, cta_res, p_cta_lr);
+	cs_ddump(cta_res, *p_cta_lr, "answer from cardreader %s:", reader->label);
 	if (reader->typ == R_SC8in1) {
 		cs_debug("SC8in1: unlocked for CardWrite of slot %i", reader->slot);
 		pthread_mutex_unlock(&sc8in1);
 	}
 	cs_ptyp=cs_ptyp_orig;
-	cs_ddump(cta_res, *p_cta_lr, "answer from cardreader %s:", reader->label);
 	return rc;
 }
 
@@ -381,23 +381,15 @@ int get_cardsystem(ushort caid) {
 	return 0;
 }
 
-uchar *get_emm_filter(struct s_reader * rdr, int type) {
-
-	static uint8_t filter[32];
-	memset(filter, 0xFF, 32); // should deliver a filter which not produce a flood if cardsystem is not yet implemented.
+void get_emm_filter(struct s_reader * rdr, uchar *filter) {
+	filter[0]=0xFF;
+	filter[1]=0;
 
 	if (cardsystem[rdr->card_system-1].get_emm_filter) {
-		uchar *filter1 = cardsystem[rdr->card_system-1].get_emm_filter(rdr, type);
-		memcpy(filter,filter1,32);
-	} else {
-		if (type==GLOBAL) {
-			memset(filter,0,32);
-			filter[0]=0x80;
-			filter[0+16]=0xF0;
-		}
+		cardsystem[rdr->card_system-1].get_emm_filter(rdr, filter);
 	}
 
-	return filter;
+	return;
 }
 
 int reader_emm(struct s_reader * reader, EMM_PACKET *ep)

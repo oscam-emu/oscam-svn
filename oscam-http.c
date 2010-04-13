@@ -164,10 +164,10 @@ void send_oscam_config_camd35(struct templatevars *vars, FILE *f, struct uripara
 	}
 	tpl_printf(vars, 0, "PORT", "%d", cfg->c35_port);
 	if (cfg->c35_tcp_srvip != 0)
-	tpl_addVar(vars, 1, "SERVERIP", inet_ntoa(*(struct in_addr *)&cfg->c35_tcp_srvip));
+		tpl_addVar(vars, 1, "SERVERIP", inet_ntoa(*(struct in_addr *)&cfg->c35_tcp_srvip));
 
 	if (cfg->c35_suppresscmd08)
-	tpl_addVar(vars, 0, "SUPPRESSCMD08", "checked");
+		tpl_addVar(vars, 0, "SUPPRESSCMD08", "checked");
 
 	fputs(tpl_getTpl(vars, "CONFIGCAMD35"), f);
 }
@@ -207,6 +207,10 @@ void send_oscam_config_camd35tcp(struct templatevars *vars, FILE *f, struct urip
 	}
 	if (cfg->c35_tcp_srvip != 0)
 	tpl_addVar(vars, 1, "SERVERIP", inet_ntoa(*(struct in_addr *)&cfg->c35_tcp_srvip));
+
+	//SUPPRESSCMD08
+	if (cfg->c35_suppresscmd08)
+		tpl_addVar(vars, 0, "SUPPRESSCMD08", "checked");
 
 	fputs(tpl_getTpl(vars, "CONFIGCAMD35TCP"), f);
 }
@@ -678,7 +682,8 @@ void send_oscam_reader_config(struct templatevars *vars, FILE *f, struct uripara
 
 	tpl_addVar(vars, 0, "READERNAME", reader[ridx].label);
 	tpl_printf(vars, 0, "DEVICE", "%s", reader[ridx].device);
-	tpl_addVar(vars, 0, "NCD_KEY", (char *)reader[ridx].ncd_key);
+	for (i=0;i<14;i++) tpl_printf(vars, 1, "NCD_KEY", "%02X", reader[ridx].ncd_key[i]);
+	tpl_addVar(vars, 0, "NCD_KEY", key_btoa(NULL, reader[ridx].ncd_key));
 	tpl_addVar(vars, 0, "PINCODE", reader[ridx].pincode);
 	//tpl_addVar(vars, 0, "EMMFILE", (char *)reader[ridx].emmfile);
 	tpl_printf(vars, 0, "INACTIVITYTIMEOUT", "%d", reader[ridx].tcp_ito);

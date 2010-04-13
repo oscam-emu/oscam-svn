@@ -1,15 +1,6 @@
 #include "globals.h"
 #include "reader-common.h"
 
-struct geo_cache
-{
-  ulong provid;
-  uchar geo[256];
-  uchar geo_len;
-};
-
-static struct geo_cache last_geo;
-
 struct via_date {
   ushort day_s   : 5;
   ushort month_s : 4;
@@ -221,7 +212,7 @@ cs_log("[viaccess-reader] name: %s", cta_res);
   }
 
   cs_log("[viaccess-reader] ready for requests");
-  memset(&last_geo, 0, sizeof(last_geo));
+  memset(&reader->last_geo, 0, sizeof(reader->last_geo));
   return OK;
 }
 
@@ -278,11 +269,11 @@ int viaccess_do_ecm(struct s_reader * reader, ECM_REQUEST *er)
     }
     //
 
-    if( last_geo.provid != provid ) 
+    if( reader->last_geo.provid != provid ) 
     {
-      last_geo.provid = provid;
-      last_geo.geo_len = 0;
-      last_geo.geo[0]  = 0;
+      reader->last_geo.provid = provid;
+      reader->last_geo.geo_len = 0;
+      reader->last_geo.geo[0]  = 0;
       write_cmd(insa4, ident); // set provider
     }
 
@@ -297,11 +288,11 @@ int viaccess_do_ecm(struct s_reader * reader, ECM_REQUEST *er)
     }
     if(ecmf8Len)
     {
-      if( last_geo.geo_len!=ecmf8Len || 
-         memcmp(last_geo.geo, ecmf8Data, last_geo.geo_len))
+      if( reader->last_geo.geo_len!=ecmf8Len || 
+         memcmp(reader->last_geo.geo, ecmf8Data, reader->last_geo.geo_len))
       {
-        memcpy(last_geo.geo, ecmf8Data, ecmf8Len);
-        last_geo.geo_len= ecmf8Len;
+        memcpy(reader->last_geo.geo, ecmf8Data, ecmf8Len);
+        reader->last_geo.geo_len= ecmf8Len;
         insf8[3]=keynr;
         insf8[4]=ecmf8Len;
         write_cmd(insf8, ecmf8Data);
@@ -347,9 +338,52 @@ int viaccess_do_ecm(struct s_reader * reader, ECM_REQUEST *er)
 
 int viaccess_get_emm_type(EMM_PACKET *ep, struct s_reader * rdr) //returns TRUE if shared emm matches SA, unique emm matches serial, or global or unknown
 {
-        rdr=rdr;
+       switch (ep->emm[0]) {
+		case 0x8E:
+			memcpy(ep->hexserial, ep->emm+3, 3);
+			if (!memcmp (rdr->hexserial+1, ep->hexserial, 3)) {
+				ep->type=UNIQUE; //?
+				return TRUE;
+			}
+			break;
+		case 0x8C:
+		case 0x8D:
+			ep->type=GLOBAL;
+			return TRUE;
+	}	
+
 	ep->type=UNKNOWN; //FIXME not sure how this maps onto global, unique and shared!
 	return TRUE; //FIXME let it all pass without checking serial or SA, without filling ep->hexserial
+}
+
+void viaccess_get_emm_filter(struct s_reader * rdr, uchar *filter)
+{
+	filter[0]=0xFF;
+	filter[1]=3;
+
+	filter[2]=GLOBAL;
+	filter[3]=0;
+
+	filter[4+0]    = 0x8D;
+	filter[4+0+16] = 0xFF;
+
+
+	filter[36]=SHARED;
+	filter[37]=0;
+
+	filter[38+0]    = 0x8C;
+	filter[38+0+16] = 0xFF;
+
+
+	filter[70]=UNIQUE;
+	filter[71]=0;
+
+	filter[72+0]    = 0x8E;
+	filter[72+0+16] = 0xFF;
+	memcpy(filter+72+1, rdr->hexserial+1, 3);
+	memset(filter+72+1+16, 0xFF, 3);
+
+	return;
 }
 
 int viaccess_do_emm(struct s_reader * reader, EMM_PACKET *ep)
@@ -537,7 +571,7 @@ int viaccess_do_emm(struct s_reader * reader, EMM_PACKET *ep)
     }
   }
 
-  memset(&last_geo, 0, sizeof(last_geo));
+  memset(&reader->last_geo, 0, sizeof(reader->last_geo));
 
   /*
   Sub Main()
@@ -576,7 +610,7 @@ int viaccess_card_info(struct s_reader * reader)
   static uchar pin[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04};
 
   show_cls=reader->show_cls;
-  memset(&last_geo, 0, sizeof(last_geo));
+  memset(&reader->last_geo, 0, sizeof(reader->last_geo));
 
   cs_log("[viaccess-reader] card detected"); 
   
