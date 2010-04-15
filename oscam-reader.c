@@ -21,23 +21,42 @@ void cs_ri_brk(struct s_reader * reader, int flag)
 
 void cs_ri_log(struct s_reader * reader, char *fmt,...)
 {
-  char txt[256];
+	char txt[256];
 
-  va_list params;
-  va_start(params, fmt);
-  vsprintf(txt, fmt, params);
-  va_end(params);
-  cs_log("%s", txt);
+	va_list params;
+	va_start(params, fmt);
+	vsprintf(txt, fmt, params);
+	va_end(params);
+	cs_log("%s", txt);
 #ifdef CS_RDR_INIT_HIST
-  int val;
-  val=sizeof(reader->init_history)-reader->init_history_pos-1;
-  if (val>0)
-    snprintf((char *) reader->init_history+reader->init_history_pos, val, "%s", txt);
-  reader->init_history_pos+=strlen(txt)+1;
+	int val;
+	val=sizeof(reader->init_history)-reader->init_history_pos-1;
+	if (val>0)
+		snprintf((char *) reader->init_history+reader->init_history_pos, val, "%s", txt);
+#ifdef CS_RDR_INIT_HIST_FILE
+	FILE *fp;
+	char filename[32];
+	mkdir("/tmp/.oscam", S_IRWXU);
+	sprintf(filename, "/tmp/.oscam/reader%d", reader->ridx);
+
+	if (reader->init_history_pos==0)
+		unlink(filename);
+
+	fp=fopen(filename, "a");
+
+	if(fp != NULL) {
+		fseek(fp, reader->init_history_pos, SEEK_SET);
+		fprintf(fp, "%s\n", txt);
+		fclose(fp);
+	}
+
+	truncate(filename, reader->init_history_pos+strlen(txt)+1);
+#endif
+	reader->init_history_pos+=strlen(txt)+1;
 #endif
 }
 
-static void casc_check_dcw(int idx, int rc, uchar *cw)
+static void casc_check_dcw(struct s_reader * reader, int idx, int rc, uchar *cw)
 {
   int i;
   for (i=1; i<CS_MAXPENDING; i++)
@@ -55,7 +74,7 @@ static void casc_check_dcw(int idx, int rc, uchar *cw)
       }
       else
         ecmtask[i].rc=0;    
-      write_ecm_answer(fd_c2m, &ecmtask[i]);
+      write_ecm_answer(reader, fd_c2m, &ecmtask[i]);
       ecmtask[i].idx=0;
     }
   }
@@ -223,7 +242,7 @@ static void casc_do_sock_log(struct s_reader * reader)
        && (ecmtask[i].prid==provid)
        && (ecmtask[i].srvid==srvid))
     {
-      casc_check_dcw(i, 0, ecmtask[i].cw);  // send "not found"
+      casc_check_dcw(reader, i, 0, ecmtask[i].cw);  // send "not found"
       break;
     }
   }
@@ -257,7 +276,7 @@ static void casc_do_sock(struct s_reader * reader, int w)
 
    if (ecmtask[i].idx==idx)
     {
-      casc_check_dcw(i, rc, dcw);
+      casc_check_dcw(reader, i, rc, dcw);
       j=1;
       break;
     }
@@ -282,7 +301,7 @@ static void casc_get_dcw(struct s_reader * reader, int n)
     cs_ftime(&tps);
   }
   if (ecmtask[n].rc>=10)
-    casc_check_dcw(n, 0, ecmtask[n].cw);  // simulate "not found"
+    casc_check_dcw(reader, n, 0, ecmtask[n].cw);  // simulate "not found"
 }
 
 
@@ -341,7 +360,7 @@ int casc_process_ecm(struct s_reader * reader, ECM_REQUEST *er)
       cs_resolve();
 
     if ((rc=reader->ph.c_send_ecm(&ecmtask[n], buf)))
-      casc_check_dcw(n, 0, ecmtask[n].cw);  // simulate "not found"
+      casc_check_dcw(reader, n, 0, ecmtask[n].cw);  // simulate "not found"
     else
       last_idx = ecmtask[n].idx;
     reader->last_s = t;   // used for inactive_timeout and reconnect_timeout in TCP reader
@@ -383,14 +402,14 @@ static void reader_get_ecm(struct s_reader * reader, ECM_REQUEST *er)
     cs_debug("caid %04X filtered", er->caid);
     er->rcEx=E2_CAID;
     er->rc=0;
-    write_ecm_answer(fd_c2m, er);
+    write_ecm_answer(reader, fd_c2m, er);
     return;
   }
   // cache2
   if (check_ecmcache(er, client[er->cidx].grp))
   {
     er->rc=2;
-    write_ecm_answer(fd_c2m, er);
+    write_ecm_answer(reader, fd_c2m, er);
     return;
   }
   if (proxy)
@@ -403,7 +422,7 @@ static void reader_get_ecm(struct s_reader * reader, ECM_REQUEST *er)
 #ifdef WITH_CARDREADER
   cs_ddump_mask(D_ATR, er->ecm, er->l, "ecm:");
   er->rc=reader_ecm(reader, er);
-  write_ecm_answer(fd_c2m, er);
+  write_ecm_answer(reader, fd_c2m, er);
   reader_post_process(reader);
 #endif
   //if(reader->typ=='r') reader->qlen--;
@@ -421,7 +440,7 @@ static void reader_send_DCW(ECM_REQUEST *er)
 static int reader_do_emm(struct s_reader * reader, EMM_PACKET *ep)
 {
   int i, no, rc, ecs;
-  char *rtxt[] = { "error", "written", "skipped", "blocked" };
+  char *rtxt[] = { "error", proxy ? "sent" : "written", "skipped", "blocked" };
   char *typedesc[]= { "unknown", "unique", "shared", "global" };
   struct timeb tps, tpe;
 
@@ -592,7 +611,7 @@ static int reader_listen(struct s_reader * reader, int fd1, int fd2)
 static void reader_do_pipe(struct s_reader * reader)
 {
   uchar *ptr;
-  switch(read_from_pipe(fd_m2c, &ptr, 0))
+  switch(read_from_pipe(client[reader->cs_idx].fd_m2c_c, &ptr, 0))
   {
     case PIP_ID_ECM:
       reader_get_ecm(reader, (ECM_REQUEST *)ptr);
@@ -615,7 +634,7 @@ static void reader_main(struct s_reader * reader)
 {
   while (1)
   {
-    switch(reader_listen(reader, fd_m2c, pfd))
+    switch(reader_listen(reader, client[reader->cs_idx].fd_m2c_c, pfd))
     {
       case 1: reader_do_pipe(reader)  ; break;
       case 2: casc_do_sock(reader, 0)   ; break;

@@ -404,7 +404,8 @@ struct s_client
   int		tosleep;
   char		usr[32];
   int		udp_fd;
-  int		fd_m2c;
+  int		fd_m2c; //master writes to this fd 
+  int		fd_m2c_c; //client reads from this fd 
   struct	sockaddr_in udp_sa;
   int		log;
   int		logcounter;
@@ -415,9 +416,9 @@ struct s_client
   int		cwignored;   // count ignored  ECMs per client
   int		cwtout;      // count timeouted ECMs per client
   int		cwlastresptime; //last Responsetime (ms)
+  int		emmok;       // count EMM ok
+  int		emmnok;	     // count EMM nok
 #ifdef WEBIF
-  int		emmok;		// count EMM ok
-  int		emmnok;		// count EMM nok
   int		wihidden;	// hidden in webinterface status
 #endif
   uchar		ucrc[4];    // needed by monitor and used by camd35
@@ -879,7 +880,7 @@ extern void cs_strncpy(char * destination, const char * source, size_t num);
 extern char *get_servicename(int srvid, int caid);
 
 // oscam variables
-extern int pfd, rfd, fd_c2m, fd_m2c, cs_idx, *c_start, cs_ptyp, cs_dblevel, cs_hw;
+extern int pfd, rfd, fd_c2m, cs_idx, *c_start, cs_ptyp, cs_dblevel, cs_hw;
 extern int *logidx, *loghistidx, *log_fd;
 extern int is_server, *mcl;
 extern uchar mbuf[1024];
@@ -929,7 +930,7 @@ extern void store_logentry(char *);
 extern int write_to_pipe(int, int, uchar *, int);
 extern int read_from_pipe(int, uchar **, int);
 extern int write_ecm_request(int, ECM_REQUEST *);
-extern int write_ecm_answer(int, ECM_REQUEST *);
+extern int write_ecm_answer(struct s_reader *, int, ECM_REQUEST *);
 extern void log_emm_request(int);
 extern ulong chk_provid(uchar *, ushort);
 extern void guess_cardsystem(ECM_REQUEST *);

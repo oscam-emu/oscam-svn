@@ -320,13 +320,15 @@ static char *monitor_client_info(char id, int i){
 				if ((now-client[i].lastemm) /60 > cfg->mon_aulow)
 					cau=-cau;
 			lt = localtime(&client[i].login);
-			sprintf(ldate, "%2d.%02d.%02d", lt->tm_mday, lt->tm_mon+1, lt->tm_year % 100);
-			sprintf(ltime, "%2d:%02d:%02d", lt->tm_hour, lt->tm_min, lt->tm_sec);
-			sprintf(sbuf, "[%c--CCC]%d|%c|%d|%s|%d|%d|%s|%d|%s|%s|%s|%d|%04X:%04X|%s|%d|%d\n",
+			sprintf(ldate, "%02d.%02d.%02d", lt->tm_mday, lt->tm_mon+1, lt->tm_year % 100);
+			sprintf(ltime, "%02d:%02d:%02d", lt->tm_hour, lt->tm_min, lt->tm_sec);
+                        sprintf(sbuf, "[%c--CCC]%d|%c|%d|%s|%d|%d|%s|%d|%s|%s|%s|%d|%04X:%04X|%s|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d\n",    
 					id, client[i].pid, client[i].typ, cnr, usr, cau, client[i].crypted,
 					cs_inet_ntoa(client[i].ip), client[i].port, monitor_get_proto(i),
 					ldate, ltime, lsec, client[i].last_caid, client[i].last_srvid,
-					get_servicename(client[i].last_srvid, client[i].last_caid), isec, con);
+					get_servicename(client[i].last_srvid, client[i].last_caid), isec, con,
+                                        client[i].cwfound, client[i].cwnot, client[i].cwcache, client[i].cwignored,
+                                        client[i].cwtout, client[i].emmok, client[i].emmnok, client[i].cwlastresptime);
 		}
 	}
 	return(sbuf);
@@ -366,25 +368,60 @@ static void monitor_send_details_version(){
 	monitor_send_info(buf, 1);
 }
 
+static void monitor_send_keepalive_ack(){
+	char buf[32];
+	sprintf(buf, "[K-0000]keepalive_ack\n");
+	monitor_send_info(buf, 1);
+}
+
 static void monitor_process_details_master(char *buf, int pid){
-	if (cfg->nice != 99)
-		sprintf(buf + 200, ", nice=%d", cfg->nice);
-	else
-		buf[200] = '\0';
-	sprintf(buf, "version=%s#%s, system=%s%s", CS_VERSION_X, CS_SVN_VERSION, cs_platform(buf + 100), buf + 200);
+	sprintf(buf, "Version=%s#%s", CS_VERSION_X, CS_SVN_VERSION);
 	monitor_send_details(buf, pid);
-
-	sprintf(buf, "max. clients=%d, client max. idle=%ld sec", CS_MAXPID - 2, cfg->cmaxidle);
+	sprintf(buf, "System=%s%s", cs_platform(buf + 100), buf + 200);
 	monitor_send_details(buf, pid);
-
+	sprintf(buf, "DebugLevel=%d", cfg->debuglvl);
+	monitor_send_details(buf, pid);
+	sprintf(buf, "MaxClients=%d", CS_MAXPID - 2);
+	monitor_send_details(buf, pid);
+	sprintf(buf, "ClientMaxIdle=%ld sec", cfg->cmaxidle);
+	monitor_send_details(buf, pid);
 	if( cfg->max_log_size )
 		sprintf(buf + 200, "%d Kb", cfg->max_log_size);
 	else
 		strcpy(buf + 200, "unlimited");
-	sprintf(buf, "max. logsize=%s", buf + 200);
+	sprintf(buf, "MaxLogsize=%s", buf + 200);
 	monitor_send_details(buf, pid);
-
-	sprintf(buf, "client timeout=%lu ms, cache delay=%ld ms", cfg->ctimeout, cfg->delay);
+	sprintf(buf, "ClientTimeout=%lu ms", cfg->ctimeout);
+	monitor_send_details(buf, pid);
+	sprintf(buf, "CacheDelay=%ld ms", cfg->delay);
+	monitor_send_details(buf, pid);
+	if( cfg->cwlogdir ) {
+                sprintf(buf, "CwlogDir=%s", cfg->cwlogdir);
+	        monitor_send_details(buf, pid);
+        }
+	if( cfg->preferlocalcards ) {
+	        sprintf(buf, "PreferlocalCards=%d", cfg->preferlocalcards);
+	        monitor_send_details(buf, pid);
+        }
+	if( cfg->waitforcards ) {
+	        sprintf(buf, "WaitforCards=%d", cfg->waitforcards);
+	        monitor_send_details(buf, pid);
+        }
+	sprintf(buf, "LogFile=%s", cfg->logfile);
+	monitor_send_details(buf, pid);
+	sprintf(buf, "PidFile=%s", cfg->pidfile);
+	monitor_send_details(buf, pid);
+	if( cfg->usrfile ) {
+	        sprintf(buf, "UsrFile=%s", cfg->usrfile);
+	        monitor_send_details(buf, pid);
+        }
+	sprintf(buf, "ResolveDelay=%d", cfg->resolvedelay);
+	monitor_send_details(buf, pid);
+	sprintf(buf, "Sleep=%d", cfg->tosleep);
+	monitor_send_details(buf, pid);
+	sprintf(buf, "Monitorport=%d", cfg->mon_port);
+	monitor_send_details(buf, pid);
+	sprintf(buf, "Nice=%d", cfg->nice);
 	monitor_send_details(buf, pid);
 
 	//#ifdef CS_NOSHM
@@ -557,7 +594,7 @@ static void monitor_set_account(char *args){
 	}
 
 	if (!found){
-		sprintf(buf, "[S-0000]setuser: %s failed - parameter %s not exist",tmp , argarray[1]);
+		sprintf(buf, "[S-0000]setuser: %s failed - parameter %s not exist\n",tmp , argarray[1]);
 		monitor_send_info(buf, 0);
 		sprintf(buf, "[S-0000]setuser: %s end\n", tmp);
 		monitor_send_info(buf, 1);
@@ -612,24 +649,24 @@ static void monitor_set_server(char *args){
 		sprintf(buf, "[S-0000]setserver done - param %s set to %s\n", argarray[0], argarray[1]);
 		monitor_send_info(buf, 1);
 	} else {
-		sprintf(buf, "[S-0000]setserver failed - parameter %s not exist", argarray[0]);
+		sprintf(buf, "[S-0000]setserver failed - parameter %s not exist\n", argarray[0]);
 		monitor_send_info(buf, 1);
 		return;
 	}
 
 	if (cfg->ftimeout>=cfg->ctimeout) {
 		cfg->ftimeout = cfg->ctimeout - 100;
-		sprintf(buf, "[S-0000]setserver WARNING: fallbacktimeout adjusted to %lu ms", cfg->ftimeout);
+		sprintf(buf, "[S-0000]setserver WARNING: fallbacktimeout adjusted to %lu ms\n", cfg->ftimeout);
 		monitor_send_info(buf, 1);
 	}
 	if(cfg->ftimeout < cfg->srtimeout) {
 		cfg->ftimeout = cfg->srtimeout + 100;
-		sprintf(buf, "[S-0000]setserver WARNING: fallbacktimeout adjusted to %lu ms", cfg->ftimeout);
+		sprintf(buf, "[S-0000]setserver WARNING: fallbacktimeout adjusted to %lu ms\n", cfg->ftimeout);
 		monitor_send_info(buf, 1);
 	}
 	if(cfg->ctimeout < cfg->srtimeout) {
 		cfg->ctimeout = cfg->srtimeout + 100;
-		sprintf(buf, "[S-0000]setserver WARNING: clienttimeout adjusted to %lu ms", cfg->ctimeout);
+		sprintf(buf, "[S-0000]setserver WARNING: clienttimeout adjusted to %lu ms\n", cfg->ctimeout);
 		monitor_send_info(buf, 1);
 	}
 	//kill(client[0].pid, SIGUSR1);
@@ -639,7 +676,7 @@ static void monitor_list_commands(char *args[], int cmdcnt){
 	int i;
 	for (i = 0; i < cmdcnt; i++) {
 		char buf[64];
-		sprintf(buf, "[S-0000]commands: %s", args[i]);
+		sprintf(buf, "[S-0000]commands: %s\n", args[i]);
 		if(i < cmdcnt-1)
 			monitor_send_info(buf, 0);
 		else
@@ -650,7 +687,7 @@ static void monitor_list_commands(char *args[], int cmdcnt){
 static int monitor_process_request(char *req)
 {
 	int i, rc;
-	char *cmd[] = {"login", "exit", "log", "status", "shutdown", "reload", "details", "version", "debug", "setuser", "setserver", "commands"};
+	char *cmd[] = {"login", "exit", "log", "status", "shutdown", "reload", "details", "version", "debug", "setuser", "setserver", "commands", "keepalive"};
 	int cmdcnt = sizeof(cmd)/sizeof(char *);  // Calculate the amount of items in array
 	char *arg;
 
@@ -673,6 +710,7 @@ static int monitor_process_request(char *req)
 			case  9:	if (client[cs_idx].monlvl > 3) monitor_set_account(arg); break;	// setuser
 			case 10:	if (client[cs_idx].monlvl > 3) monitor_set_server(arg); break;	// setserver
 			case 11:	if (client[cs_idx].monlvl > 3) monitor_list_commands(cmd, cmdcnt); break;	// list commands
+			case 12:	if (client[cs_idx].monlvl > 3) monitor_send_keepalive_ack(); break;	// keepalive
 			default:	continue;
 			}
 			break;

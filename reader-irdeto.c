@@ -291,7 +291,7 @@ int irdeto_do_ecm(struct s_reader * reader, ECM_REQUEST *er)
 
 int irdeto_get_emm_type(EMM_PACKET *ep, struct s_reader * rdr) {
 
-	int l = (ep->emm[3]&0x07);
+	int i, l = (ep->emm[3]&0x07);
 	int base = (ep->emm[3]>>3);
 	char dumprdrserial[l*3];
 
@@ -310,8 +310,20 @@ int irdeto_get_emm_type(EMM_PACKET *ep, struct s_reader * rdr) {
 			memset(ep->hexserial, 0, 8);
 			memcpy(ep->hexserial, ep->emm + 4, l);
 			strcpy(dumprdrserial, cs_hexdump(1, rdr->hexserial, l));
-			cs_debug_mask(D_EMM, "IRDETO EMM: SHARED l = %d ep = %s rdr = %s", l, cs_hexdump(1, ep->hexserial, l), dumprdrserial);
-			return (!l || !memcmp(ep->emm + 4, rdr->hexserial, l));
+			cs_debug_mask(D_EMM, "IRDETO EMM: SHARED l = %d ep = %s rdr = %s base = %02x", l, 
+                                      cs_hexdump(1, ep->hexserial, l), dumprdrserial, base);
+
+			if (base & 0x10) {
+				// hex addressed
+				return (base == rdr->hexserial[3] && !memcmp(ep->emm + 4, rdr->hexserial, l));
+			}
+			else {
+				// provider addressed
+				for(i = 0; i < rdr->nprov; i++)
+					if (base == rdr->prid[i][0] && !memcmp(ep->emm + 4, &rdr->prid[i][1], l))
+						return TRUE;
+			}
+
 			
 		case 3:
 			// unique emm, 3 bytes addressed
@@ -319,8 +331,10 @@ int irdeto_get_emm_type(EMM_PACKET *ep, struct s_reader * rdr) {
 			memset(ep->hexserial, 0, 8);
 			memcpy(ep->hexserial, ep->emm + 4, l);
 			strcpy(dumprdrserial, cs_hexdump(1, rdr->hexserial, l));
-			cs_debug_mask(D_EMM, "IRDETO EMM: UNIQUE l = %d ep = %s rdr = %s", l, cs_hexdump(1, ep->hexserial, l), dumprdrserial);
-			return (base == rdr->hexserial[3] && (!l || !memcmp(ep->emm + 4, rdr->hexserial, l)));
+			cs_debug_mask(D_EMM, "IRDETO EMM: UNIQUE l = %d ep = %s rdr = %s", l, 
+                                      cs_hexdump(1, ep->hexserial, l), dumprdrserial);
+
+			return (base == rdr->hexserial[3] && !memcmp(ep->emm + 4, rdr->hexserial, l));
 
 		default:
 			ep->type = UNKNOWN;
@@ -343,13 +357,10 @@ void irdeto_get_emm_filter(struct s_reader * rdr, uchar *filter)
 	filter[2]=GLOBAL;
 	filter[3]=0;
 	
-	// hex addressed
 	filter[4+0]    = 0x82;
 	filter[4+0+16] = 0xFF;
 	filter[4+1]    = emm_g;
-	// FIXME: more restrictive filter for provider addressed EMM's
 	filter[4+1+16] = 0x0F;
-
 
 	filter[36]=SHARED;
 	filter[37]=0;
@@ -359,7 +370,6 @@ void irdeto_get_emm_filter(struct s_reader * rdr, uchar *filter)
 	filter[38+1+16] = 0xFF;
 	memcpy(filter+38+2, rdr->hexserial, 2);
 	memset(filter+38+2+16, 0xFF, 2);
-
 
 	filter[70]=UNIQUE;
 	filter[71]=0;
