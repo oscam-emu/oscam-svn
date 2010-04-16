@@ -40,13 +40,18 @@
 #  define GCC_PACK
 #endif
 
+#include "oscam-config.h"
+
+#ifdef WITH_DEBUG
 #define call(arg) \
 	if (arg) { \
 		cs_debug_mask(D_TRACE, "ERROR, function call %s returns error.",#arg); \
 		return ERROR; \
 	}
+#else
+#define call(arg) arg
+#endif
 
-#include "oscam-config.h"
 #ifndef USE_CMAKE
 #  include "oscam-ostype.h"
 #endif
@@ -1038,11 +1043,19 @@ extern void network_tcp_connection_close(struct s_reader * reader, int);
 extern int  cs_init_log(char *);
 extern void cs_write_log(char *);
 extern void cs_log(char *,...);
+#ifdef WITH_DEBUG
 extern void cs_debug(char *,...);
 extern void cs_debug_nolf(char *,...);
 extern void cs_debug_mask(unsigned short, char *,...);
 extern void cs_ddump(uchar *, int, char *, ...);
 extern void cs_ddump_mask(unsigned short, uchar *, int, char *, ...);
+#else
+#define cs_debug(...)
+#define cs_debug_mask(...)
+#define cs_debug_nolf(...)
+#define cs_ddump(...)
+#define cs_ddump_mask(...)
+#endif
 extern void cs_close_log(void);
 extern int  cs_init_statistics(char *);
 extern void cs_statistics(int);

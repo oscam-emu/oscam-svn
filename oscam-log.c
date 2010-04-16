@@ -225,9 +225,10 @@ void cs_close_log(void)
 	fclose(fp);
 	fp=(FILE *)0;
 }
-
+#ifdef WITH_DEBUG
 void cs_debug(char *fmt,...)
 {
+
 	char txt[256];
 
 	//  cs_log("cs_debug called, cs_ptyp=%d, cs_dblevel=%d, %d", cs_ptyp, client[cs_idx].dbglvl ,cs_ptyp & client[cs_idx].dbglvl);
@@ -240,10 +241,12 @@ void cs_debug(char *fmt,...)
 		va_end(params);
 		write_to_log(-1, txt);
 	}
+
 }
 
 void cs_debug_mask(unsigned short mask, char *fmt,...)
 {
+
 	char txt[256];
 	if (client[cs_idx].dbglvl & mask)
 	{
@@ -254,6 +257,7 @@ void cs_debug_mask(unsigned short mask, char *fmt,...)
 		va_end(params);
 		write_to_log(-1, txt);
 	}
+
 }
 
 void cs_debug_nolf(char *fmt,...)
@@ -274,7 +278,7 @@ void cs_debug_nolf(char *fmt,...)
 		write_to_log(number_of_chars_printed, txt);
 	}
 }
-
+#endif
 void cs_dump(uchar *buf, int n, char *fmt, ...)
 {
 	int i;
@@ -298,7 +302,7 @@ void cs_dump(uchar *buf, int n, char *fmt, ...)
 		write_to_log(-1, txt);
 	}
 }
-
+#ifdef WITH_DEBUG
 void cs_ddump(uchar *buf, int n, char *fmt, ...)
 {
 	int i;
@@ -354,7 +358,7 @@ void cs_ddump_mask(unsigned short mask, uchar *buf, int n, char *fmt, ...)
 		}
 	}
 }
-
+#endif
 int cs_init_statistics(char *file) 
 {
 	if ((!fps) && (file != NULL))

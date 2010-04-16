@@ -10,6 +10,10 @@
 //#define IRDETO_GUESSING
 #endif
 
+#ifndef WITH_DEBUG
+#define WITH_DEBUG
+#endif
+
 #ifndef MODULE_MONITOR
 #define MODULE_MONITOR
 #endif
@@ -51,7 +55,7 @@
 
 #ifdef WITH_CARDREADER
 #ifndef READER_NAGRA
-//#define READER_NAGRA
+#define READER_NAGRA
 #endif
 
 #ifndef READER_IRDETO
