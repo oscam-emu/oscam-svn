@@ -228,7 +228,6 @@ void cs_close_log(void)
 #ifdef WITH_DEBUG
 void cs_debug(char *fmt,...)
 {
-
 	char txt[256];
 
 	//  cs_log("cs_debug called, cs_ptyp=%d, cs_dblevel=%d, %d", cs_ptyp, client[cs_idx].dbglvl ,cs_ptyp & client[cs_idx].dbglvl);
@@ -241,12 +240,10 @@ void cs_debug(char *fmt,...)
 		va_end(params);
 		write_to_log(-1, txt);
 	}
-
 }
 
 void cs_debug_mask(unsigned short mask, char *fmt,...)
 {
-
 	char txt[256];
 	if (client[cs_idx].dbglvl & mask)
 	{
@@ -257,7 +254,6 @@ void cs_debug_mask(unsigned short mask, char *fmt,...)
 		va_end(params);
 		write_to_log(-1, txt);
 	}
-
 }
 
 void cs_debug_nolf(char *fmt,...)

@@ -634,6 +634,7 @@ void module_camd35(struct s_module *ph)
   ph->c_send_emm=camd35_send_emm;
   ph->c_init_log=camd35_client_init_log;
   ph->c_recv_log=camd35_recv_log;
+  ph->num=R_CAMD35;
 }
 
 void module_camd35_tcp(struct s_module *ph)
@@ -656,4 +657,5 @@ void module_camd35_tcp(struct s_module *ph)
   ph->c_send_emm=camd35_send_emm;
   ph->c_init_log=camd35_client_init_log;
   ph->c_recv_log=camd35_recv_log;
+  ph->num=R_CS378X;
 }

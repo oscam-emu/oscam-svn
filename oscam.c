@@ -1093,9 +1093,30 @@ static void cs_http()
 
 static void init_cardreader()
 {
+	int n,i;
 	for (ridx=0; ridx<CS_MAXREADER; ridx++) {
 		reader[ridx].ridx = ridx; //FIXME
 		if ((reader[ridx].device[0]) && (reader[ridx].enable == 1)) {
+
+			if ((reader[ridx].typ & R_IS_CASCADING)) {
+				n=0;
+				for (i=0; i<CS_MAX_MOD; i++) {
+					if (ph[i].num) {
+						if (reader[ridx].typ==ph[i].num) {
+							cs_log("reader %s protocol: %s", reader[ridx].label, ph[i].desc);
+							reader[ridx].ph=ph[i];
+							n=1;
+							break;
+						}
+					}
+				}
+
+				if (!n) {
+					cs_log("Protocol Support missing.");
+					continue;
+				}
+			}
+
 			switch(cs_fork(0, 99)) {
 				case -1:
 					cs_exit(1);

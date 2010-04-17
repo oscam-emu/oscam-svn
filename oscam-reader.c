@@ -653,34 +653,7 @@ void * start_cardreader(void * rdr)
     client[cs_idx].typ='p';
     client[cs_idx].port=reader->r_port;
     strcpy(client[cs_idx].usr, reader->r_usr);
-    switch(reader->typ)
-    {
-#ifdef MODULE_CAMD33
-      case R_CAMD33  : module_camd33(&reader->ph); break;
-#endif
-#ifdef MODULE_CAMD35
-      case R_CAMD35  : module_camd35(&reader->ph); break;
-#endif
-#ifdef MODULE_NEWCAMD
-      case R_NEWCAMD : module_newcamd(&reader->ph); break;
-#endif
-#ifdef MODULE_RADEGAST
-      case R_RADEGAST: module_radegast(&reader->ph); break;
-#endif
-#ifdef MODULE_SERIAL
-      case R_SERIAL  : module_oscam_ser(&reader->ph); break;
-#endif
-#ifdef MODULE_CAMD35_TCP
-      case R_CS378X  : module_camd35_tcp(&reader->ph); break;
-#endif
-#ifdef MODULE_CCCAM
-      case R_CCCAM  : module_cccam(&reader->ph); break;
-#endif
-#ifdef CS_WITH_GBOX
-      case R_GBOX    : module_gbox(&reader->ph);strcpy(client[cs_idx].usr, reader->label); break;
-#endif
-	default: cs_log("Protocol Support missing.");
-    }
+
     if (!(reader->ph.c_init))
     {
       cs_log("FATAL: %s-protocol not supporting cascading", reader->ph.desc);

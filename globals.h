@@ -153,11 +153,13 @@
 #define R_IS_CASCADING  0xF0
 
 
-#define CS_MAX_MOD 12
+#define CS_MAX_MOD 20
 #define MOD_CONN_TCP    1
 #define MOD_CONN_UDP    2
 #define MOD_CONN_NET    3
 #define MOD_CONN_SERIAL 4
+#define MOD_CARDSYSTEM  8
+#define MOD_ADDON       16
 
 #ifdef CS_CORE
 char *PIP_ID_TXT[] = { "ECM", "EMM", "LOG", "CIN", "HUP", NULL };
@@ -349,6 +351,7 @@ struct s_module
   int  (*c_recv_log)();
   int  c_port;
   PTAB *ptab;
+  int num;
 };
 
 struct s_cardsystem
