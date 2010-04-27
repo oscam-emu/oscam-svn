@@ -107,7 +107,6 @@ KbCcDR6PF36/H6IowuFwwG63g2XZNEfV1dUhGAz6Ozo6jtE0bS6UpAFV1a08x9p4nuNTc3EAcYqi\
 CIB5iqLmOI6bbGpqGjUrioJwOJwVCAT6AOTouu5iLCaLrms2WZZJSmADIAPQkDq9oiiReDyOP4iW\
 /fvrVslmAAAAAElFTkSuQmCC"
 
-#ifdef CS_RDR_INIT_HIST
 #define ICENT "data:image/png;base64,\
 iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJ\
 bWFnZVJlYWR5ccllPAAAAjlJREFUeNqUU99LFFEU/u7MnXHujtouJWKwbbD9MIhyoexJGXwoIhR6\
@@ -121,7 +120,6 @@ g8452s5fhEYkz/0Oj3bKDb36//fyZhwtjgNDGPg1n4dhkmnPx5eZWeQXCg9ZXff9MRapby9SUHWg\
 VrmuZuvZyDZdQjzVhmjiEBZnc8hmnv4RHip2POm7ce+yauAAYVdl5Uzv3oljqaOIxZNwf6zi/dgQ\
 nHT+RFmK++Fua44l+obLLoqGlUBgwr6ATz/t5yZbdlR8jTeMnOl51zN+6/gbgy6MSV2PypM4a09W\
 vTtJQrT0rEb/ebukDQEGABzNvVc4pYJ1AAAAAElFTkSuQmCC"
-#endif
 
 #define ICREF "data:image/png;base64,\
 iVBORw0KGgoAAAANSUhEUgAAAA4AAAAQCAYAAAAmlE46AAAABHNCSVQICAgIfAhkiAAAABl0RVh0\
@@ -963,6 +961,7 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 	<input name=\"unlockparental\" type=\"hidden\" value=\"0\">\n\
 	<input name=\"waitforcards\" type=\"hidden\" value=\"0\">\n\
 	<input name=\"preferlocalcards\" type=\"hidden\" value=\"0\">\n\
+	<input name=\"saveinithistory\" type=\"hidden\" value=\"0\">\n\
 	<TABLE class=\"config\" cellspacing=\"0\">\n\
 		<TR><TH>&nbsp;</TH><TH>Edit Global Config</TH></TR>\n\
 		<TR><TD>Serverip:</TD><TD><input name=\"serverip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##SERVERIP##\"></TD></TR>\n\
@@ -988,6 +987,7 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 		<TR><TD>Maxlogsize:</TD><TD><input name=\"maxlogsize\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##MAXLOGSIZE##\"> kB</TD></TR>\n\
 		<TR><TD>Waitforcards:</TD><TD><input name=\"waitforcards\" type=\"checkbox\" value=\"1\" ##WAITFORCARDS##></TD></TR>\n\
 		<TR><TD>Preferlocalcards:</TD><TD><input name=\"preferlocalcards\" type=\"checkbox\" value=\"1\" ##PREFERLOCALCARDS##></TD></TR>\n\
+		<TR><TD>Saveinithistory:</TD><TD><input name=\"saveinithistory\" type=\"checkbox\" value=\"1\" ##SAVEINITHISTORY##></TD></TR>\n\
 		<TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\" ##BTNDISABLED##>\n</TD></TR>\n\
 	</TABLE>\n\
 </form>\n\
@@ -1092,8 +1092,11 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 		<TR><TH>&nbsp;</TH><TH>Edit DVB Api Config</TH></TR>\n\
 		<TR><TD>Enabled:</TD><TD><input name=\"enabled\" type=\"checkbox\" value=\"1\" ##ENABLEDCHECKED##>\n\
 		<TR><TD>AU:</TD><TD><input name=\"au\" type=\"checkbox\" value=\"1\" ##AUCHECKED##>\n\
-		<TR><TD>Boxtype:</TD><TD><input name=\"boxtype\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"##BOXTYPE##\"></TD></TR>\n\
+		<TR><TD>Boxtype:</TD><TD><SELECT name=\"boxtype\">##BOXTYPE##</select></TD></TR>\n\
 		<TR><TD>User:</TD><TD><input name=\"user\" type=\"text\" size=\"20\" maxlength=\"20\" value=\"##USER##\"></TD></TR>\n\
+		<TR><TD>Priority:</TD><TD><input name=\"priority\" type=\"text\" size=\"100\" maxlength=\"200\" value=\"##PRIORITY##\"></TD></TR>\n\
+		<TR><TD>Ignore:</TD><TD><input name=\"ignore\" type=\"text\" size=\"100\" maxlength=\"200\" value=\"##IGNORE##\"></TD></TR>\n\
+		<TR><TD>Cw_delay:</TD><TD><input name=\"cw_delay\" type=\"text\" size=\"100\" maxlength=\"200\" value=\"##CWDELAY##\"></TD></TR>\n\
     <TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\" ##BTNDISABLED##>\n</TD></TR>\n\
 	</TABLE>\n\
 </form>\n\

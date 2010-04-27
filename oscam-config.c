@@ -17,6 +17,9 @@ static char *cs_sidt="oscam.services";
 static char *cs_ac="oscam.ac";
 #endif
 
+//Todo #ifdef CCCAM
+static char *cs_provid="oscam.provid";
+
 #ifdef IRDETO_GUESSING
 static char *cs_ird="oscam.ird";
 #endif
@@ -512,6 +515,16 @@ void chk_t_global(char *token, char *value)
 		}
 	}
 
+	if( !strcmp(token, "saveinithistory")) {
+		if (strlen(value) == 0) {
+			cfg->saveinithistory = 0;
+			return;
+		} else {
+			cfg->saveinithistory = atoi(value);
+			return;
+		}
+	}
+
 	if (token[0] != '#')
 		fprintf(stderr, "Warning: keyword '%s' in global section not recognized\n", token);
 }
@@ -789,6 +802,10 @@ void chk_t_camd33(char *token, char *value)
 	}
 
 	if (!strcmp(token, "key")) {
+		if(strlen(value) == 0) {
+			cfg->c33_crypted = 0;
+			return;
+		}
 		if (key_atob(value, cfg->c33_key)) {
 			fprintf(stderr, "Configuration camd3.3x: Error in Key\n");
 			exit(1);
@@ -906,6 +923,8 @@ void chk_t_newcamd(char *token, char *value)
 	}
 
 	if (!strcmp(token, "key")) {
+		if(strlen(value) == 0)
+			return;
 		if (key_atob14(value, cfg->ncd_key)) {
 			fprintf(stderr, "Configuration newcamd: Error in Key\n");
 			exit(1);
@@ -1099,7 +1118,15 @@ void chk_t_dvbapi(char *token, char *value)
 	}
 
 	if (!strcmp(token, "boxtype")) {
-		cs_strncpy(cfg->dvbapi_boxtype, value, sizeof(cfg->dvbapi_boxtype));
+		int i;
+		for (i=1;i<=BOXTYPES;i++) {
+			if (strcmp(value, boxdesc[i])==0) {
+				cfg->dvbapi_boxtype=i;
+				return;
+			}
+		}
+
+		cfg->dvbapi_boxtype=0;
 		return;
 	}
 
@@ -1595,10 +1622,10 @@ int write_config()
 	snprintf(bakfile, 255,"%s%s.bak", cs_confdir, cs_conf);
 
 	if (!(f=fopen(tmpfile, "w"))){
-    cs_log("Cannot open file \"%s\" (errno=%d)", tmpfile, errno);
-    return(1);
-  }
-  fprintf(f,"#oscam.config generated automatically\n\n");
+		cs_log("Cannot open file \"%s\" (errno=%d)", tmpfile, errno);
+		return(1);
+	}
+	fprintf(f,"#oscam.config generated automatically\n\n");
 
 	/*global settings*/
 	fprintf(f,"[global]\n");
@@ -1626,27 +1653,30 @@ int write_config()
 	fprintf_conf(f, CONFVARWIDTH, "maxlogsize", "%d\n", cfg->max_log_size);
 	fprintf_conf(f, CONFVARWIDTH, "waitforcards", "%d\n", cfg->waitforcards);
 	fprintf_conf(f, CONFVARWIDTH, "preferlocalcards", "%d\n", cfg->preferlocalcards);
+	fprintf_conf(f, CONFVARWIDTH, "saveinithistory", "%d\n", cfg->saveinithistory);
 	fputc((int)'\n', f);
 
 	/*monitor settings*/
-	fprintf(f,"[monitor]\n");
-	fprintf_conf(f, CONFVARWIDTH, "port", "%d\n", cfg->mon_port);
-	if (cfg->mon_srvip != 0)
-		fprintf_conf(f, CONFVARWIDTH, "serverip", "%s\n", inet_ntoa(*(struct in_addr *)&cfg->mon_srvip));
+	if(cfg->mon_port) {
+		fprintf(f,"[monitor]\n");
+		fprintf_conf(f, CONFVARWIDTH, "port", "%d\n", cfg->mon_port);
+		if (cfg->mon_srvip != 0)
+			fprintf_conf(f, CONFVARWIDTH, "serverip", "%s\n", inet_ntoa(*(struct in_addr *)&cfg->mon_srvip));
 
-	fprintf_conf(f, CONFVARWIDTH, "nocrypt", "");
-	struct s_ip *cip;
-	for (cip = cfg->mon_allowed; cip; cip = cip->next){
-		fprintf(f,"%s%s", dot, cs_inet_ntoa(cip->ip[0]));
-  	if (cip->ip[0] != cip->ip[1])	fprintf(f,"-%s", cs_inet_ntoa(cip->ip[1]));
-  	dot=",";
+		fprintf_conf(f, CONFVARWIDTH, "nocrypt", "");
+		struct s_ip *cip;
+		for (cip = cfg->mon_allowed; cip; cip = cip->next){
+			fprintf(f,"%s%s", dot, cs_inet_ntoa(cip->ip[0]));
+			if (cip->ip[0] != cip->ip[1])	fprintf(f,"-%s", cs_inet_ntoa(cip->ip[1]));
+			dot=",";
+		}
+		fputc((int)'\n', f);
+		fprintf_conf(f, CONFVARWIDTH, "aulow", "%d\n", cfg->mon_aulow);
+		fprintf_conf(f, CONFVARWIDTH, "hideclient_to", "%d\n", cfg->mon_hideclient_to);
+		fprintf_conf(f, CONFVARWIDTH, "monlevel", "%d\n", cfg->mon_level);
+		fprintf_conf(f, CONFVARWIDTH, "appendchaninfo", "%d\n", cfg->mon_appendchaninfo);
+		fputc((int)'\n', f);
 	}
-	fputc((int)'\n', f);
-	fprintf_conf(f, CONFVARWIDTH, "aulow", "%d\n", cfg->mon_aulow);
-	fprintf_conf(f, CONFVARWIDTH, "hideclient_to", "%d\n", cfg->mon_hideclient_to);
-	fprintf_conf(f, CONFVARWIDTH, "monlevel", "%d\n", cfg->mon_level);
-	fprintf_conf(f, CONFVARWIDTH, "appendchaninfo", "%d\n", cfg->mon_appendchaninfo);
-	fputc((int)'\n', f);
 
 	/*newcamd*/
 	if ((cfg->ncd_ptab.nports > 0) && (cfg->ncd_ptab.ports[0].s_port > 0)){
@@ -1695,6 +1725,7 @@ int write_config()
 		fprintf_conf(f, CONFVARWIDTH, "passive", "%d\n", cfg->c33_passive);
 		fprintf_conf(f, CONFVARWIDTH, "key", ""); for (i = 0; i < (int) sizeof(cfg->c33_key); ++i) fprintf(f,"%02X", cfg->c33_key[i]); fputc((int)'\n', f);
 		fprintf_conf(f, CONFVARWIDTH, "nocrypt", "");
+		struct s_ip *cip;
 		dot="";
 		for (cip = cfg->c33_plain; cip; cip = cip->next){
 			fprintf(f,"%s%s", dot, cs_inet_ntoa(cip->ip[0]));
@@ -1807,8 +1838,42 @@ int write_config()
 		fprintf(f,"[dvbapi]\n");
 		fprintf_conf(f, CONFVARWIDTH, "enabled", "%d\n", cfg->dvbapi_enabled);
 		fprintf_conf(f, CONFVARWIDTH, "au", "%d\n", cfg->dvbapi_au);
-		fprintf_conf(f, CONFVARWIDTH, "boxtype", "%s\n", cfg->dvbapi_boxtype);
+		fprintf_conf(f, CONFVARWIDTH, "boxtype", "%s\n", boxdesc[cfg->dvbapi_boxtype]);
 		fprintf_conf(f, CONFVARWIDTH, "user", "%s\n", cfg->dvbapi_usr);
+
+		fprintf_conf(f, CONFVARWIDTH, "priority", "");
+		i = 0;
+		dot = "";
+		while(cfg->dvbapi_prioritytab.caid[i]) {
+			fprintf(f, "%s%04X", dot, cfg->dvbapi_prioritytab.caid[i]);
+			if(cfg->dvbapi_prioritytab.mask[i])
+				fprintf(f, ":%06X", cfg->dvbapi_prioritytab.mask[i]);
+			dot = ",";
+			i++;
+		}
+		fprintf(f,"\n");
+
+		fprintf_conf(f, CONFVARWIDTH, "ignore", "");
+		i = 0;
+		dot = "";
+		while(cfg->dvbapi_ignoretab.caid[i]) {
+			fprintf(f, "%s%04X", dot, cfg->dvbapi_ignoretab.caid[i]);
+			dot = ",";
+			i++;
+		}
+		fprintf(f,"\n");
+
+		fprintf_conf(f, CONFVARWIDTH, "cw_delay", "");
+		i = 0;
+		dot = "";
+		while(cfg->dvbapi_delaytab.caid[i]) {
+			fprintf(f, "%s%04X", dot, cfg->dvbapi_delaytab.caid[i]);
+			fprintf(f, ":%d", cfg->dvbapi_delaytab.mask[i]);
+			dot = ",";
+			i++;
+		}
+		fprintf(f,"\n");
+
 		fputc((int)'\n', f);
 	}
 #endif
@@ -1825,6 +1890,7 @@ int write_config()
 		fprintf_conf(f, CONFVARWIDTH, "httpscript", "%s\n", cfg->http_script);
 		fprintf_conf(f, CONFVARWIDTH, "httprefresh", "%d\n", cfg->http_refresh);
 		fprintf_conf(f, CONFVARWIDTH, "httpallowed", "");
+		struct s_ip *cip;
 		dot = "";
 		for (cip = cfg->http_allowed; cip; cip = cip->next){
 			fprintf(f,"%s%s", dot, cs_inet_ntoa(cip->ip[0]));
@@ -1840,16 +1906,18 @@ int write_config()
 #endif
 
 #ifdef CS_ANTICASC
-	fprintf(f,"[anticasc]\n");
-	fprintf_conf(f, CONFVARWIDTH, "enabled", "%d\n", cfg->ac_enabled);
-	fprintf_conf(f, CONFVARWIDTH, "numusers", "%d\n", cfg->ac_users);
-	fprintf_conf(f, CONFVARWIDTH, "sampletime", "%d\n", cfg->ac_stime);
-	fprintf_conf(f, CONFVARWIDTH, "samples", "%d\n", cfg->ac_samples);
-	fprintf_conf(f, CONFVARWIDTH, "penalty", "%d\n", cfg->ac_penalty);
-	fprintf_conf(f, CONFVARWIDTH, "aclogfile", "%s\n", cfg->ac_logfile);
-	fprintf_conf(f, CONFVARWIDTH, "denysamples", "%d\n", cfg->ac_denysamples);
-	fprintf_conf(f, CONFVARWIDTH, "fakedelay", "%d\n", cfg->ac_fakedelay);
-	fputc((int)'\n', f);
+	if(cfg->ac_enabled) {
+		fprintf(f,"[anticasc]\n");
+		fprintf_conf(f, CONFVARWIDTH, "enabled", "%d\n", cfg->ac_enabled);
+		fprintf_conf(f, CONFVARWIDTH, "numusers", "%d\n", cfg->ac_users);
+		fprintf_conf(f, CONFVARWIDTH, "sampletime", "%d\n", cfg->ac_stime);
+		fprintf_conf(f, CONFVARWIDTH, "samples", "%d\n", cfg->ac_samples);
+		fprintf_conf(f, CONFVARWIDTH, "penalty", "%d\n", cfg->ac_penalty);
+		fprintf_conf(f, CONFVARWIDTH, "aclogfile", "%s\n", cfg->ac_logfile);
+		fprintf_conf(f, CONFVARWIDTH, "denysamples", "%d\n", cfg->ac_denysamples);
+		fprintf_conf(f, CONFVARWIDTH, "fakedelay", "%d\n", cfg->ac_fakedelay);
+		fputc((int)'\n', f);
+	}
 #endif
 
 	fclose(f);
@@ -2403,6 +2471,76 @@ int init_sidtab()
 #endif
   cs_log("services reloaded: %d services freed, %d services loaded", nro, nr);
   return(0);
+}
+
+//Todo #ifdef CCCAM
+int init_provid() {
+	int nr;
+	FILE *fp;
+	char *payload;
+	static struct s_provid *provid=(struct s_provid *)0;
+	sprintf(token, "%s%s", cs_confdir, cs_provid);
+
+	if (!(fp=fopen(token, "r"))) {
+		cs_log("can't open file \"%s\" (err=%d), no provids's loaded", token, errno);
+		return(0);
+	}
+	nr=0;
+	while (fgets(token, sizeof(token), fp)) {
+
+		int l;
+		void *ptr;
+		char *tmp;
+		tmp = trim(token);
+
+		if (tmp[0] == '#') continue;
+		if ((l = strlen(tmp)) < 11) continue;
+		if (!(payload = strchr(token, '|'))) continue;
+		*payload++ = '\0';
+
+		if (!(ptr = malloc(sizeof(struct s_provid)))) {
+			cs_log("Error allocating memory (errno=%d)", errno);
+			return(1);
+		}
+
+		if (provid)
+			provid->next = ptr;
+		else
+			cfg->provid = ptr;
+
+		provid = ptr;
+		memset(provid, 0, sizeof(struct s_provid));
+
+		int i;
+		char *ptr1;
+		for (i = 0, ptr1 = strtok(payload, "|"); ptr1; ptr1 = strtok(NULL, "|"), i++){
+			switch(i){
+			case 0:
+				cs_strncpy(provid->prov, trim(ptr1), sizeof(provid->prov));
+				break;
+			case 1:
+				cs_strncpy(provid->sat, trim(ptr1), sizeof(provid->sat));
+				break;
+			case 2:
+				cs_strncpy(provid->lang, trim(ptr1), sizeof(provid->lang));
+				break;
+			}
+		}
+
+		char *providasc = strchr(token, ':');
+		*providasc++ = '\0';
+		provid->provid = a2i(providasc, 3);
+		provid->caid = a2i(token, 3);
+		nr++;
+	}
+
+	fclose(fp);
+	if (nr>0)
+		cs_log("%d provid's loaded", nr);
+	else{
+		cs_log("oscam.provid loading failed, wrong format?");
+	}
+	return(0);
 }
 
 int init_srvid()

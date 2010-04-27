@@ -10,13 +10,11 @@ static ushort idx=1;
 
 void cs_ri_brk(struct s_reader * reader, int flag)
 {
-#ifdef CS_RDR_INIT_HIST
   static int brk_pos=0;
   if (flag)
     brk_pos=reader->init_history_pos;
   else
     reader->init_history_pos=brk_pos;
-#endif
 }
 
 void cs_ri_log(struct s_reader * reader, char *fmt,...)
@@ -33,27 +31,40 @@ void cs_ri_log(struct s_reader * reader, char *fmt,...)
 	val=sizeof(reader->init_history)-reader->init_history_pos-1;
 	if (val>0)
 		snprintf((char *) reader->init_history+reader->init_history_pos, val, "%s", txt);
-#ifdef CS_RDR_INIT_HIST_FILE
-	FILE *fp;
-	char filename[32];
-	mkdir("/tmp/.oscam", S_IRWXU);
-	sprintf(filename, "/tmp/.oscam/reader%d", reader->ridx);
+#endif
+#ifdef OS_LINUX
+	if (cfg->saveinithistory) {
+		FILE *fp;
+		char filename[32];
+		char *buffer;
+		mkdir("/tmp/.oscam", S_IRWXU);
+		sprintf(filename, "/tmp/.oscam/reader%d", reader->ridx);
 
-	if (reader->init_history_pos==0)
-		unlink(filename);
+		int size=reader->init_history_pos+strlen(txt)+1;
+		buffer=malloc(size+1);
 
-	fp=fopen(filename, "a");
+		if (buffer==NULL)
+			return;
 
-	if(fp != NULL) {
-		fseek(fp, reader->init_history_pos, SEEK_SET);
-		fprintf(fp, "%s\n", txt);
+		memset(buffer, 32, size);
+
+		fp=fopen(filename, "r");
+
+		if (fp) {
+			fread(buffer, 1, reader->init_history_pos, fp);
+			fclose(fp);
+		}
+
+		sprintf(buffer+reader->init_history_pos, "%s\n", txt);
+
+		fp=fopen(filename, "w");
+		fwrite(buffer, 1, reader->init_history_pos+strlen(txt)+1, fp);
 		fclose(fp);
-	}
 
-	truncate(filename, reader->init_history_pos+strlen(txt)+1);
+		free(buffer);
+	}
 #endif
 	reader->init_history_pos+=strlen(txt)+1;
-#endif
 }
 
 static void casc_check_dcw(struct s_reader * reader, int idx, int rc, uchar *cw)
@@ -180,7 +191,7 @@ int network_tcp_connection_open()
   int flags;
   if( connect_nonb(client[cs_idx].udp_fd, 
       (struct sockaddr *)&client[cs_idx].udp_sa, 
-      sizeof(client[cs_idx].udp_sa), 5) < 0) 
+      sizeof(client[cs_idx].udp_sa), 5) < 0)
   { 
     cs_log("connect(fd=%d) failed: (errno=%d)", client[cs_idx].udp_fd, errno); 
     return -1; 
@@ -409,6 +420,8 @@ static void reader_get_ecm(struct s_reader * reader, ECM_REQUEST *er)
   if (check_ecmcache(er, client[er->cidx].grp))
   {
     er->rc=2;
+    if(cfg->delay)
+      cs_sleepms(cfg->delay);
     write_ecm_answer(reader, fd_c2m, er);
     return;
   }

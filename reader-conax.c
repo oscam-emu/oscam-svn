@@ -42,7 +42,7 @@ int conax_card_init(struct s_reader * reader, ATR newatr)
 
   reader->caid[0]=0xB00;
 
-  if ((n=read_record(reader, ins26, ins26+5, cta_res))<0) return ERROR;   // read caid, card-version
+  if ((n=read_record(reader, ins26, ins26+5, cta_res))<=0) return ERROR;   // read caid, card-version
 
   for (i=0; i<n; i+=cta_res[i+1]+2)
     switch(cta_res[i])
@@ -55,7 +55,7 @@ int conax_card_init(struct s_reader * reader, ATR newatr)
   ins82[17]=(reader->caid[0]>>8)&0xFF;
   ins82[18]=(reader->caid[1])&0xFF;
 
-  if ((n=read_record(reader, ins82, ins82+5, cta_res))<0) return ERROR; // read serial
+  if ((n=read_record(reader, ins82, ins82+5, cta_res))<=0) return ERROR; // read serial
 
   for (j=0, i=2; i<n; i+=cta_res[i+1]+2)
     switch(cta_res[i])
@@ -70,12 +70,6 @@ int conax_card_init(struct s_reader * reader, ATR newatr)
         }
         break;
     }
-
-  // check if hexserial is not "zero"
-  if (reader->hexserial[2] == 0x00 && reader->hexserial[3] == 0x00 &&
-      reader->hexserial[4] == 0x00 && reader->hexserial[5] == 0x00)
-    return ERROR;
-
 
   // we have one provider, 0x0000
   reader->nprov = 1;
@@ -229,14 +223,10 @@ void conax_get_emm_filter(struct s_reader * rdr, uchar *filter)
 	filter[1]=3;		//filter count
 
 	filter[2]=GLOBAL;
-	filter[3]=1; //not active
+	filter[3]=1; // FIXME: dont see any conax global EMM yet
 
 	filter[4+0]    = 0x82;
 	filter[4+0+16] = 0xFF;
-	// FIXME: dont see any conax global EMM yet
-	filter[4+1]    = 0xFF;
-	filter[4+1+16] = 0xFF;
-	// END
 	filter[4+8]    = 0x70;
 	filter[4+8+16] = 0xFF;
 

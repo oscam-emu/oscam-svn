@@ -16,6 +16,7 @@
 #include <time.h>
 #include <sys/timeb.h>
 #include <limits.h>
+#include <pwd.h>
 
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -161,8 +162,18 @@
 #define MOD_CARDSYSTEM  8
 #define MOD_ADDON       16
 
+#ifdef HAVE_DVBAPI
+#define BOXTYPE_DREAMBOX	1
+#define BOXTYPE_DUCKBOX	2
+#define BOXTYPE_UFS910	3
+#define BOXTYPE_DBOX2	4
+#define BOXTYPE_IPBOX	5
+#define BOXTYPES		5
+extern char *boxdesc[];
+#endif
+
 #ifdef CS_CORE
-char *PIP_ID_TXT[] = { "ECM", "EMM", "LOG", "CIN", "HUP", NULL };
+char *PIP_ID_TXT[] = { "ECM", "EMM", "LOG", "CIN", "HUP", "RST", NULL  };
 char *RDR_CD_TXT[] = { "cd", "dsr", "cts", "ring", "none",
 #ifdef USE_GPIO
                        "gpio1", "gpio2", "gpio3", "gpio4", "gpio5", "gpio6", "gpio7", //felix: changed so that gpio can be used 
@@ -178,8 +189,10 @@ extern char *RDR_CD_TXT[];
 #define PIP_ID_LOG    2
 #define PIP_ID_CIN    3  // CARD_INFO
 #define PIP_ID_HUP    4
-#define PIP_ID_MAX    PIP_ID_HUP
-#define PIP_ID_DCW    5
+#define PIP_ID_RST    5  // SS:Restart Reader, CCcam for example
+#define PIP_ID_DCW    6
+#define PIP_ID_MAX    PIP_ID_RST
+
 
 #define PIP_ID_ERR    (-1)
 #define PIP_ID_DIR    (-2)
@@ -521,6 +534,7 @@ struct s_reader  //contains device info, reader info and card info
   char      cc_version[7];  // cccam version
   char      cc_build[5];    // cccam build number
   int       cc_maxhop;      // cccam max distance
+  uint32    cc_max_ecms;    // SS:cccam max ecms
   int		cc_currenthops; // number of hops for CCCam
   void      *cc;            // ptr to cccam internal data struct
   uchar     cc_id;
@@ -547,8 +561,8 @@ struct s_reader  //contains device info, reader info and card info
   int       loadbalanced;
 #ifdef CS_RDR_INIT_HIST
   uchar     init_history[4096];
-  int       init_history_pos;
 #endif
+  int       init_history_pos;
   int       msg_idx;
 #ifdef WEBIF
   int		emmwritten[4]; //count written EMM
@@ -663,6 +677,17 @@ struct s_srvid
   struct  s_srvid *next;
 };
 
+//Todo #ifdef CCCAM
+struct s_provid
+{
+	int		caid;
+	ulong	provid;
+	char	prov[33];
+	char	sat[33];
+	char	lang[33];
+	struct	s_provid *next;
+};
+
 struct s_ip
 {
   in_addr_t ip[2];
@@ -693,6 +718,8 @@ struct s_config
 	int		usrfileflag;
 	struct s_auth 	*account;
 	struct s_srvid 	*srvid;
+	//Todo #ifdef CCCAM
+	struct s_provid *provid;
 	struct s_sidtab *sidtab;
 	int		mon_port;
 	in_addr_t	mon_srvip;
@@ -747,6 +774,7 @@ struct s_config
 	int		max_log_size;
 	int		waitforcards;
 	int		preferlocalcards;
+	int		saveinithistory;
 
 #ifdef CS_WITH_GBOX
 	uchar		gbox_pwd[8];
@@ -766,7 +794,7 @@ struct s_config
 	int		dvbapi_enabled;
 	int		dvbapi_au;
 	char		dvbapi_usr[33];
-	char		dvbapi_boxtype[20];
+	int		dvbapi_boxtype;
 	CAIDTAB	dvbapi_prioritytab;
 	CAIDTAB	dvbapi_ignoretab;
 	CAIDTAB	dvbapi_delaytab;
@@ -886,9 +914,10 @@ extern int safe_overwrite_with_bak(char *destfile, char *tmpfile, char *bakfile,
 extern void fprintf_conf(FILE *f, int varnameWidth, const char *varname, const char *fmtstring, ...);
 extern void cs_strncpy(char * destination, const char * source, size_t num);
 extern char *get_servicename(int srvid, int caid);
+extern char *get_provider(int caid, ulong provid);
 
 // oscam variables
-extern int pfd, rfd, fd_c2m, cs_idx, *c_start, cs_ptyp, cs_dblevel, cs_hw;
+extern int pfd, fd_c2m, cs_idx, *c_start, cs_ptyp, cs_dblevel;
 extern int *logidx, *loghistidx, *log_fd;
 extern int is_server, *mcl;
 extern uchar mbuf[1024];
@@ -923,7 +952,6 @@ void reader_videoguard();
 void reader_dre();
 
 // oscam
-extern char *cs_platform(char *);
 extern int recv_from_udpipe(uchar *);
 extern char* username(int);
 extern int idx_from_pid(pid_t);
@@ -1030,6 +1058,8 @@ extern char *mk_t_caidtab(CAIDTAB *ctab);
 extern char *mk_t_tuntab(TUNTAB *ttab);
 extern char *mk_t_group(ulong *grp);
 extern char *mk_t_ftab(FTAB *ftab);
+//Todo #ifdef CCCAM
+extern int init_provid();
 
 // oscam-reader
 extern int ridx, logfd;

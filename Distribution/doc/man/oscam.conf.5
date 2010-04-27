@@ -138,6 +138,11 @@ max log file size, default:10
 .RS 3n
 1 = try decoding on local cards first, default:0
 .RE
+.PP
+\fBsaveinithistory\fP = \fB0\fP|\fB1\fP
+.RS 3n
+1 = save SC init history to /tmp/.oscam/reader<number>, default:0
+.RE
 .SS "The [monitor] section"
 .PP
 \fBport\fP = \fB0\fP|\fBport\fP
@@ -685,4 +690,4 @@ be a workaround, but also a small security risk.
  [cs378x]
  port         = 50000@0300:600000
 .SH "SEE ALSO"
-\fBlist_smargo\fR(1), \fBoscam\fR(1), \fBoscam.user\fR(5), \fBoscam.server\fR(5), \fBoscam.srvid\fR(5), \fBoscam.guess\fR(5), \fBoscam.cert\fR(5), \fBoscam.services\fR(5), \fBoscam.ird\fR(5), \fBoscam.ac\fR(5)
+\fBlist_smargo\fR(1), \fBoscam\fR(1), \fBoscam.ac\fR(5), \fBoscam.cert\fR(5), \fBoscam.guess\fR(5), \fBoscam.ird\fR(5), \fBoscam.provid\fR(5), \fBoscam.server\fR(5), \fBoscam.services\fR(5), \fBoscam.srvid\fR(5), \fBoscam.user\fR(5)

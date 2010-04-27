@@ -1,3 +1,4 @@
+#include <sys/time.h>
 #include "globals.h"
 
 static AES_KEY	aeskey;
@@ -603,5 +604,18 @@ char *get_servicename(int srvid, int caid){
 
 	if (!name[0]) sprintf(name, "%04X:%04X unknown", caid, srvid);
 	if (!srvid) name[0] = '\0';
+	return(name);
+}
+
+char *get_provider(int caid, ulong provid){
+	struct s_provid *this = cfg->provid;
+	static char name[83];
+
+	for (name[0] = 0; this && (!name[0]); this = this->next)
+		if (this->caid == caid && this->provid == provid)
+			snprintf(name, 83, "%s / %s / %s", this->prov, this->sat, this->lang);
+
+	if (!name[0]) snprintf(name, 83, "%04X:%06lX unknown", caid, provid);
+	if (!caid) name[0] = '\0';
 	return(name);
 }

@@ -3,13 +3,15 @@
 //
 // OSCam HTTP server module
 //
-#include "oscam-http-helpers.c"
+
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
 #include <sys/stat.h>
 #include <dirent.h>
 #include <sys/socket.h>
+#include "oscam-http-helpers.c"
+#include "module-cccam.h"
 
 extern struct s_reader *reader;
 
@@ -31,10 +33,8 @@ void refresh_oscam(enum refreshtypes refreshtype, struct in_addr in) {
 		break;
 
 		case REFR_READERS:
-#ifdef CS_RDR_INIT_HIST
 		kill(client[0].pid, SIGUSR2);
 		cs_log("Refresh Reader/Tiers requested by WebIF from %s", inet_ntoa(*(struct in_addr *)&in));
-#endif
 		break;
 
 		case REFR_SERVER:
@@ -108,6 +108,8 @@ void send_oscam_config_global(struct templatevars *vars, FILE *f, struct uripara
 		tpl_addVar(vars, 0, "WAITFORCARDS", "checked");
 	if (cfg->preferlocalcards == 1)
 		tpl_addVar(vars, 0, "PREFERLOCALCARDS", "checked");
+	if (cfg->saveinithistory == 1)
+		tpl_addVar(vars, 0, "SAVEINITHISTORY", "checked");
 
 	fputs(tpl_getTpl(vars, "CONFIGGLOBAL"), f);
 }
@@ -130,19 +132,22 @@ void send_oscam_config_camd33(struct templatevars *vars, FILE *f, struct uripara
 		if(write_config()==0) refresh_oscam(REFR_SERVER, in);
 		else tpl_addVar(vars, 1, "MESSAGE", "<B>Write Config failed</B><BR><BR>");
 	}
-	tpl_printf(vars, 0, "PORT", "%d", cfg->c33_port);
-	if (cfg->c33_srvip != 0)
-	tpl_addVar(vars, 0, "SERVERIP", inet_ntoa(*(struct in_addr *)&cfg->c33_srvip));
-	if (cfg->c33_passive == 1)
-		tpl_addVar(vars, 0, "PASSIVE", "checked");
 
-	for (i = 0; i < (int) sizeof(cfg->c33_key); ++i) tpl_printf(vars, 1, "KEY", "%02X",cfg->c33_key[i]);
-	struct s_ip *cip;
-	char *dot="";
-	for (cip = cfg->c33_plain; cip; cip = cip->next) {
-		tpl_printf(vars, 1, "NOCRYPT", "%s%s", dot, cs_inet_ntoa(cip->ip[0]));
-		if (cip->ip[0] != cip->ip[1]) tpl_printf(vars, 1, "NOCRYPT", "-%s", cs_inet_ntoa(cip->ip[1]));
-		dot=",";
+	if (cfg->c33_port) {
+		tpl_printf(vars, 0, "PORT", "%d", cfg->c33_port);
+		if (cfg->c33_srvip != 0)
+			tpl_addVar(vars, 0, "SERVERIP", inet_ntoa(*(struct in_addr *)&cfg->c33_srvip));
+		if (cfg->c33_passive == 1)
+			tpl_addVar(vars, 0, "PASSIVE", "checked");
+
+		for (i = 0; i < (int) sizeof(cfg->c33_key); ++i) tpl_printf(vars, 1, "KEY", "%02X",cfg->c33_key[i]);
+		struct s_ip *cip;
+		char *dot="";
+		for (cip = cfg->c33_plain; cip; cip = cip->next) {
+			tpl_printf(vars, 1, "NOCRYPT", "%s%s", dot, cs_inet_ntoa(cip->ip[0]));
+			if (cip->ip[0] != cip->ip[1]) tpl_printf(vars, 1, "NOCRYPT", "-%s", cs_inet_ntoa(cip->ip[1]));
+			dot=",";
+		}
 	}
 
 	fputs(tpl_getTpl(vars, "CONFIGCAMD33"), f);
@@ -162,13 +167,15 @@ void send_oscam_config_camd35(struct templatevars *vars, FILE *f, struct uripara
 		if(write_config()==0) refresh_oscam(REFR_SERVER, in);
 		else tpl_addVar(vars, 1, "MESSAGE", "<B>Write Config failed</B><BR><BR>");
 	}
-	tpl_printf(vars, 0, "PORT", "%d", cfg->c35_port);
-	if (cfg->c35_tcp_srvip != 0)
-		tpl_addVar(vars, 1, "SERVERIP", inet_ntoa(*(struct in_addr *)&cfg->c35_tcp_srvip));
 
-	if (cfg->c35_suppresscmd08)
-		tpl_addVar(vars, 0, "SUPPRESSCMD08", "checked");
+	if (cfg->c35_port) {
+		tpl_printf(vars, 0, "PORT", "%d", cfg->c35_port);
+		if (cfg->c35_tcp_srvip != 0)
+			tpl_addVar(vars, 1, "SERVERIP", inet_ntoa(*(struct in_addr *)&cfg->c35_tcp_srvip));
 
+		if (cfg->c35_suppresscmd08)
+			tpl_addVar(vars, 0, "SUPPRESSCMD08", "checked");
+	}
 	fputs(tpl_getTpl(vars, "CONFIGCAMD35"), f);
 }
 
@@ -204,14 +211,14 @@ void send_oscam_config_camd35tcp(struct templatevars *vars, FILE *f, struct urip
 			}
 			dot1=";";
 		}
+
+		if (cfg->c35_tcp_srvip != 0)
+			tpl_addVar(vars, 1, "SERVERIP", inet_ntoa(*(struct in_addr *)&cfg->c35_tcp_srvip));
+
+		//SUPPRESSCMD08
+		if (cfg->c35_suppresscmd08)
+			tpl_addVar(vars, 0, "SUPPRESSCMD08", "checked");
 	}
-	if (cfg->c35_tcp_srvip != 0)
-	tpl_addVar(vars, 1, "SERVERIP", inet_ntoa(*(struct in_addr *)&cfg->c35_tcp_srvip));
-
-	//SUPPRESSCMD08
-	if (cfg->c35_suppresscmd08)
-		tpl_addVar(vars, 0, "SUPPRESSCMD08", "checked");
-
 	fputs(tpl_getTpl(vars, "CONFIGCAMD35TCP"), f);
 }
 
@@ -249,25 +256,26 @@ void send_oscam_config_newcamd(struct templatevars *vars, FILE *f, struct uripar
 			}
 			dot1=";";
 		}
+
+
+		if (cfg->ncd_srvip != 0)
+			tpl_addVar(vars, 0, "SERVERIP", inet_ntoa(*(struct in_addr *)&cfg->ncd_srvip));
+
+		for (i=0;i<14;i++) tpl_printf(vars, 1, "KEY", "%02X", cfg->ncd_key[i]);
+
+		struct s_ip *cip;
+		char *dot="";
+		for (cip = cfg->ncd_allowed; cip; cip = cip->next) {
+			tpl_printf(vars, 1, "ALLOWED", "%s%s", dot, cs_inet_ntoa(cip->ip[0]));
+			if (cip->ip[0] != cip->ip[1]) tpl_printf(vars, 1, "ALLOWED", "-%s", cs_inet_ntoa(cip->ip[1]));
+			dot=",";
+		}
+
+		if (cfg->ncd_keepalive)
+			tpl_addVar(vars, 0, "KEEPALIVE", "checked");
+		if (cfg->ncd_mgclient)
+			tpl_addVar(vars, 0, "MGCLIENTCHK", "checked");
 	}
-
-	if (cfg->ncd_srvip != 0)
-	tpl_addVar(vars, 0, "SERVERIP", inet_ntoa(*(struct in_addr *)&cfg->ncd_srvip));
-	for (i=0;i<14;i++) tpl_printf(vars, 1, "KEY", "%02X", cfg->ncd_key[i]);
-
-	struct s_ip *cip;
-	char *dot="";
-	for (cip = cfg->ncd_allowed; cip; cip = cip->next) {
-		tpl_printf(vars, 1, "ALLOWED", "%s%s", dot, cs_inet_ntoa(cip->ip[0]));
-		if (cip->ip[0] != cip->ip[1]) tpl_printf(vars, 1, "ALLOWED", "-%s", cs_inet_ntoa(cip->ip[1]));
-		dot=",";
-	}
-
-	if (cfg->ncd_keepalive)
-		tpl_addVar(vars, 0, "KEEPALIVE", "checked");
-	if (cfg->ncd_mgclient)
-		tpl_addVar(vars, 0, "MGCLIENTCHK", "checked");
-
 	fputs(tpl_getTpl(vars, "CONFIGNEWCAMD"), f);
 }
 
@@ -482,6 +490,10 @@ void send_oscam_config_serial(struct templatevars *vars, FILE *f, struct uripara
 void send_oscam_config_dvbapi(struct templatevars *vars, FILE *f, struct uriparams *params, struct in_addr in) {
 	int i;
 	if (strcmp(getParam(params, "action"),"execute") == 0) {
+		//clear tables
+		clear_caidtab(&cfg->dvbapi_prioritytab);
+		clear_caidtab(&cfg->dvbapi_ignoretab);
+		clear_caidtab(&cfg->dvbapi_delaytab);
 		for(i = 0; i < (*params).paramcount; ++i) {
 			if ((strcmp((*params).params[i], "part")) && (strcmp((*params).params[i], "action"))) {
 				tpl_printf(vars, 1, "MESSAGE", "Parameter: %s set to Value: %s<BR>\n", (*params).params[i], (*params).values[i]);
@@ -496,8 +508,40 @@ void send_oscam_config_dvbapi(struct templatevars *vars, FILE *f, struct uripara
 
 	if (cfg->dvbapi_enabled > 0) tpl_addVar(vars, 0, "ENABLEDCHECKED", "checked");
 	if (cfg->dvbapi_au > 0) tpl_addVar(vars, 0, "AUCHECKED", "checked");
-	tpl_addVar(vars, 0, "BOXTYPE", cfg->dvbapi_boxtype);
+
+	tpl_printf(vars, 0, "BOXTYPE", "<option value=\"\"%s>None</option>\n", cfg->dvbapi_boxtype == 0 ? " selected" : "");
+	for (i=1; i<=BOXTYPES; i++) {
+		tpl_printf(vars, 1, "BOXTYPE", "<option%s>%s</option>\n", cfg->dvbapi_boxtype == i ? " selected" : "", boxdesc[i]);
+	}
+
 	tpl_addVar(vars, 0, "USER", cfg->dvbapi_usr);
+
+	i = 0;
+	char *dot = "";
+	while(cfg->dvbapi_prioritytab.caid[i]) {
+		tpl_printf(vars, 1, "PRIORITY", "%s%04X", dot, cfg->dvbapi_prioritytab.caid[i]);
+		if(cfg->dvbapi_prioritytab.mask[i])
+			tpl_printf(vars, 1, "PRIORITY", ":%06X", cfg->dvbapi_prioritytab.mask[i]);
+		dot = ",";
+		i++;
+	}
+
+	i = 0;
+	dot = "";
+	while(cfg->dvbapi_ignoretab.caid[i]) {
+		tpl_printf(vars, 1, "IGNORE", "%s%04X", dot, cfg->dvbapi_ignoretab.caid[i]);
+		dot = ",";
+		i++;
+	}
+
+	i = 0;
+	dot = "";
+	while(cfg->dvbapi_delaytab.caid[i]) {
+		tpl_printf(vars, 1, "CWDELAY", "%s%04X", dot, cfg->dvbapi_delaytab.caid[i]);
+		tpl_printf(vars, 1, "CWDELAY", ":%d", cfg->dvbapi_delaytab.mask[i]);
+		dot = ",";
+		i++;
+	}
 
 	fputs(tpl_getTpl(vars, "CONFIGDVBAPI"), f);
 }
@@ -648,16 +692,20 @@ void send_oscam_reader(struct templatevars *vars, FILE *f, struct uriparams *par
 			tpl_printf(vars, 0, "RIDX", "%d", readeridx);
 			tpl_addVar(vars, 0, "REFRICO", ICREF);
 			tpl_addVar(vars, 0, "READERREFRESH", tpl_getTpl(vars, "READERREFRESHBIT"));
-#ifdef CS_RDR_INIT_HIST
+
 			tpl_addVar(vars, 0, "ENTICO", ICENT);
 			tpl_addVar(vars, 0, "ENTITLEMENT", tpl_getTpl(vars, "READERENTITLEBIT"));
-#endif
+
 		} else {
 			tpl_printf(vars, 0, "RIDX", "");
 			tpl_addVar(vars, 0, "READERREFRESH","");
-#ifdef CS_RDR_INIT_HIST
-			tpl_addVar(vars, 0, "ENTITLEMENT","");
-#endif
+			if (reader[readeridx].typ == R_CCCAM) {
+				tpl_addVar(vars, 0, "ENTICO", ICENT);
+				tpl_addVar(vars, 0, "ENTITLEMENT", tpl_getTpl(vars, "READERENTITLEBIT"));
+			} else {
+				tpl_addVar(vars, 0, "ENTITLEMENT","");
+			}
+
 		}
 
 		tpl_addVar(vars, 0, "CTYP", ctyp);
@@ -1218,24 +1266,144 @@ void send_oscam_user_config(struct templatevars *vars, FILE *f, struct uriparams
 
 void send_oscam_entitlement(struct templatevars *vars, FILE *f, struct uriparams *params) {
 	/* build entitlements from reader init history */
-#ifdef CS_RDR_INIT_HIST
 	int ridx;
-	char *p;
 	char *reader_ = getParam(params, "reader");
+#ifdef CS_RDR_INIT_HIST	
+	char *p;
 	if(strlen(reader_) > 0) {
 		for (ridx=0; ridx<CS_MAXREADER && strcmp(reader_, reader[ridx].label) != 0; ridx++);
 		if(ridx<CS_MAXREADER) {
-			for (p=(char *)reader[ridx].init_history; *p; p+=strlen(p)+1) {
-				tpl_printf(vars, 1, "LOGHISTORY", "%s<BR>\n", p);
+
+			if (reader[ridx].typ == R_CCCAM) {
+
+				struct cc_data *ctest = reader[ridx].cc;
+
+				tpl_printf(vars, 1, "LOGHISTORY", "peer node id: %s<BR>\n", cs_hexdump(0, ctest->peer_node_id, 8));
+				tpl_printf(vars, 1, "LOGHISTORY", "node id: %s<BR>\n", cs_hexdump(0, ctest->node_id, 8));
+				tpl_printf(vars, 1, "LOGHISTORY", "card cnt: %d<BR><BR>\n", ctest->card_count);
+
+				char fname[40];
+				sprintf(fname, "/tmp/.oscam/caidinfos.%d", ridx);
+				FILE *file = fopen(fname, "r");
+				if (file) {
+					uint16 caid = 0;
+					uint8 hop = 0;
+					char ascprovid[6];
+					char *provider="";
+					do {
+						if (fread(&caid, 1, sizeof(caid), file) <= 1)
+							break;
+						if (fread(&hop, 1, sizeof(hop), file) <= 1){
+							//break;
+						}
+						tpl_printf(vars, 1, "LOGHISTORY", "caid: %04X hop: %d<BR>\n", caid, hop);
+						int count = 0;
+						if (fread(&count, 1, sizeof(count), file) <= 1)
+							break;
+						uint8 prov1 ,prov2, prov3;
+						int revcount = count;
+						while (count > 0) {
+							if (fread(&prov1, 1, 1, file) <= 0)
+								break;
+							if (fread(&prov2, 1, 1, file) <= 0)
+								break;
+							if (fread(&prov3, 1, 1, file) <= 0)
+								break;
+
+							sprintf(ascprovid, "%02X%02X%02X", prov1, prov2, prov3);
+							provider = get_provider(caid, a2i(ascprovid, 3));
+
+							tpl_printf(vars, 1, "LOGHISTORY", "&nbsp;&nbsp;-- Provider %d: %s -- %s<BR>\n",
+									revcount - count, ascprovid, provider);
+							count--;
+						}
+						tpl_addVar(vars, 1, "LOGHISTORY", "<BR>\n");
+					} while (1);
+					fclose(file);
+					tpl_printf(vars, 1, "LOGHISTORY", "cardfile end<BR>\n");
+				} else {
+					tpl_printf(vars, 1, "LOGHISTORY", "no cardfile found<BR>\n");
+				}
+
+			} else {
+				for (p=(char *)reader[ridx].init_history; *p; p+=strlen(p)+1) {
+					tpl_printf(vars, 1, "LOGHISTORY", "%s<BR>\n", p);
+				}
 			}
 		}
 		tpl_addVar(vars, 0, "READERNAME", reader_);
 	}
 #else
-	tpl_addVar(vars, 0, "LOGHISTORY", "Your binary has not been compiled with the \
-																		CS_RDR_INIT_HIST flag (some architectures disable this \
-																		per default to save ressources). Please recompile if you \
-																		need this feature! This is not a bug!<BR>\n");
+	if (cfg->saveinithistory && strlen(reader_) > 0) {
+		for (ridx=0; ridx<CS_MAXREADER && strcmp(reader_, reader[ridx].label) != 0; ridx++);
+		printf("we are right %d\n", reader[ridx].typ);
+		if (reader[ridx].typ == R_CCCAM) {
+
+			struct cc_data *ctest = reader[ridx].cc;
+
+			tpl_printf(vars, 1, "LOGHISTORY", "peer node id: %s<BR>\n", cs_hexdump(0, ctest->peer_node_id, 8));
+			tpl_printf(vars, 1, "LOGHISTORY", "node id: %s<BR>\n", cs_hexdump(0, ctest->node_id, 8));
+			tpl_printf(vars, 1, "LOGHISTORY", "card cnt: %d<BR><BR>\n", ctest->card_count);
+
+			char fname[40];
+			sprintf(fname, "/tmp/.oscam/caidinfos.%d", ridx);
+			FILE *file = fopen(fname, "r");
+			if (file) {
+				uint16 caid = 0;
+				uint8 hop = 0;
+				char ascprovid[6];
+				char *provider="";
+				do {
+					if (fread(&caid, 1, sizeof(caid), file) <= 1)
+						break;
+					if (fread(&hop, 1, sizeof(hop), file) <= 1)
+						//break;
+					tpl_printf(vars, 1, "LOGHISTORY", "caid: %04X hop: %d<BR>\n", caid, hop);
+					int count = 0;
+					if (fread(&count, 1, sizeof(count), file) <= 1)
+						break;
+					uint8 prov1 ,prov2, prov3;
+					int revcount = count;
+					while (count > 0) {
+						if (fread(&prov1, 1, 1, file) <= 0)
+							break;
+						if (fread(&prov2, 1, 1, file) <= 0)
+							break;
+						if (fread(&prov3, 1, 1, file) <= 0)
+							break;
+
+						sprintf(ascprovid, "%02X%02X%02X", prov1, prov2, prov3);
+						provider = get_provider(caid, a2i(ascprovid, 3));
+
+						tpl_printf(vars, 1, "LOGHISTORY", "&nbsp;&nbsp;-- Provider %d: %s -- %s<BR>\n",
+								revcount - count, ascprovid, provider);
+						count--;
+					}
+					tpl_addVar(vars, 1, "LOGHISTORY", "<BR>\n");
+				} while (1);
+				fclose(file);
+			} else {
+				tpl_printf(vars, 1, "LOGHISTORY", "no cardfile found<BR>\n");
+			}
+
+		} else {
+			FILE *fp;
+			char filename[32];
+			char buffer[128];
+			sprintf(filename, "/tmp/.oscam/reader%d", reader[ridx].ridx);
+			fp = fopen(filename, "r");
+
+			if (fp) {
+				while(fgets(buffer, 128, fp) != NULL) {
+					tpl_printf(vars, 1, "LOGHISTORY", "%s<BR>\n", buffer);
+				}
+				fclose(fp);
+			}
+			tpl_addVar(vars, 0, "READERNAME", reader_);
+		}
+	} else {
+		tpl_addVar(vars, 0, "LOGHISTORY", "You have to set saveinithistory=1 in your config to see Entitlements!<BR>\n");
+	}
 #endif
 	fputs(tpl_getTpl(vars, "ENTITLEMENTS"), f);
 }
@@ -1304,7 +1472,7 @@ void send_oscam_status(struct templatevars *vars, FILE *f, struct uriparams *par
 
 			tpl_printf(vars, 0, "HIDEIDX", "%d", i);
 			tpl_addVar(vars, 0, "HIDEICON", ICHID);
-			if(client[i].typ == 'c' && !cfg->http_readonly) {
+			if((client[i].typ == 'c' || client[i].typ == 'r' || client[i].typ == 'p') && !cfg->http_readonly) {
 				tpl_printf(vars, 0, "CLIENTPID", "%d&nbsp;", client[i].pid);
 				tpl_printf(vars, 1, "CLIENTPID", "<A HREF=\"status.html?action=kill&pid=%d\" TITLE=\"Kill this client\"><IMG SRC=\"%s\" ALT=\"Kill\" STYLE=\"float:right\"></A>", client[i].pid, ICKIL);
 			} else {

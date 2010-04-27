@@ -8,7 +8,8 @@
 static int cs_ptyp_orig; //reinit=1, 
 
 
-#ifdef TUXBOX
+#if defined(TUXBOX) && defined(PPC) //dbox2 only
+#include "csctapi/mc_global.h"
 static int reader_device_type(struct s_reader * reader)
 {
   int rc=reader->typ;
@@ -22,7 +23,7 @@ static int reader_device_type(struct s_reader * reader)
           int dev_major, dev_minor;
           dev_major=major(sb.st_rdev);
           dev_minor=minor(sb.st_rdev);
-          if ((cs_hw==CS_HW_DBOX2) && ((dev_major==4) || (dev_major==5)))
+          if (((dev_major==4) || (dev_major==5)))
             switch(dev_minor & 0x3F)
             {
               case 0: rc=R_DB2COM1; break;
@@ -148,8 +149,8 @@ static int reader_activate_card(struct s_reader * reader, ATR * atr, unsigned sh
 	cs_ptyp=cs_ptyp_orig;
   if (i<100) return(0);
 
-#ifdef CS_RDR_INIT_HIST
   reader->init_history_pos=0;
+#ifdef CS_RDR_INIT_HIST
   memset(reader->init_history, 0, sizeof(reader->init_history));
 #endif
 //  cs_ri_log("ATR: %s", cs_hexdump(1, atr, atr_size));//FIXME
@@ -253,11 +254,13 @@ int reader_device_init(struct s_reader * reader)
 	}
 #endif
  
-  int rc = -1; //FIXME
-  cs_ptyp_orig=cs_ptyp;
-  cs_ptyp=D_DEVICE;
-#ifdef TUXBOX
-	reader->typ = reader_device_type(reader);
+	int rc = -1; //FIXME
+	cs_ptyp_orig=cs_ptyp;
+	cs_ptyp=D_DEVICE;
+#if defined(TUXBOX) && defined(PPC)
+	struct stat st;
+	if (!stat(DEV_MULTICAM, &st))
+		reader->typ = reader_device_type(reader);
 #endif
 	if (ICC_Async_Device_Init(reader))
 		cs_log("Cannot open device: %s", reader->device);

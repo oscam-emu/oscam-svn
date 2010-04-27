@@ -19,6 +19,7 @@ static  int is_udp=1;
 static int stopped;
 static int lastcaid;
 static int lastsrvid;
+static int lastpid;
 
 static int camd35_send(uchar *buf)
 {
@@ -463,7 +464,7 @@ static int camd35_send_ecm(ECM_REQUEST *er, uchar *buf)
 	char *typtext[]={"ok", "invalid", "sleeping"};
 
 	if (stopped) {
-		if (er->srvid == lastsrvid && er->caid == lastcaid){
+		if (er->srvid == lastsrvid && er->caid == lastcaid && er->pid == lastpid){
 			cs_log("%s is stopped - requested by server (%s)",
 					reader[ridx].label, typtext[stopped]);
 			return(-1);
@@ -475,6 +476,7 @@ static int camd35_send_ecm(ECM_REQUEST *er, uchar *buf)
 
 	lastsrvid = er->srvid;
 	lastcaid = er->caid;
+	lastpid = er->pid;
 
 	if (!client[cs_idx].udp_sa.sin_addr.s_addr)	// once resolved at least
 		return(-1);

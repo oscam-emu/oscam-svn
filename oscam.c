@@ -19,8 +19,6 @@ int cs_idx=0;   // client index (0=master, ...)
 int cs_ptyp=0; // process-type
 struct s_module ph[CS_MAX_MOD]; // Protocols
 struct s_cardsystem cardsystem[CS_MAX_MOD]; // Protocols
-int maxph=0;    // Protocols used
-int cs_hw=0;    // hardware autodetect
 int is_server=0;    // used in modules to specify function
 pid_t master_pid=0;   // master pid OUTSIDE shm
 ushort  len4caid[256];    // table for guessing caid (by len)
@@ -95,33 +93,6 @@ static void cs_set_mloc(int ato, char *txt)
     strcpy(mloc, txt);
 }
 
-char *cs_platform(char *buf)
-{
-  static char *hw=NULL;
-  if (!hw)
-  {
-#ifdef TUXBOX
-    struct stat st;
-    cs_hw=CS_HW_DBOX2;          // dbox2, default for now
-    if (!stat("/dev/sci0", &st)) cs_hw=CS_HW_DREAM; // dreambox
-#ifdef TRIPLEDRAGON
-    if (!stat("/dev/stb/tdsc0", &st)) cs_hw=CS_HW_DRAGON; // tripledragon
-#endif
-    switch(cs_hw)
-    {
-#ifdef PPC
-      case CS_HW_DBOX2: hw="dbox2"   ; break;
-#endif
-      case CS_HW_DREAM: hw="dreambox"; break;
-      case CS_HW_DRAGON: hw="tripledragon"; break;
-    }
-#endif
-    if (!hw) hw=CS_OS_HW;
-  }
-  sprintf(buf, "%s-%s-%s", CS_OS_CPU, hw, CS_OS_SYS);
-  return(buf);
-}
-
 static void usage()
 {
   fprintf(stderr, "%s\n\n", logo);
@@ -151,10 +122,11 @@ static void usage()
   fprintf(stderr, "irdeto-guessing ");
 #endif
   fprintf(stderr, "\n\n");
-  fprintf(stderr, "oscam [-b] [-c config-dir] [-d] [-h]");
+  fprintf(stderr, "oscam [-b] [-c config-dir] [-d]");
 #ifdef CS_NOSHM
   fprintf(stderr, " [-m memory-file]");
 #endif
+  fprintf(stderr, " [-h]");
   fprintf(stderr, "\n\n\t-b         : start in background\n");
   fprintf(stderr, "\t-c <dir>   : read configuration from <dir>\n");
   fprintf(stderr, "\t             default = %s\n", CS_CONFDIR);
@@ -323,8 +295,6 @@ static void cs_sigpipe()
 
 void cs_exit(int sig)
 {
-  int i;
-
   set_signal_handler(SIGCHLD, 1, SIG_IGN);
   set_signal_handler(SIGHUP , 1, SIG_IGN);
   if (sig && (sig!=SIGQUIT))
@@ -340,6 +310,7 @@ void cs_exit(int sig)
     case 'n': *log_fd=0;
               break;
     case 's': *log_fd=0;
+              int i;
               for (i=1; i<CS_MAXPID; i++)
                 if (client[i].pid)
                   kill(client[i].pid, SIGQUIT);
@@ -473,6 +444,25 @@ static void cs_card_info(int i)
       //kill(client[i].pid, SIGUSR2);
 }
 
+//SS: restart cardreader after 5 seconds:
+static void restart_cardreader(int pridx)
+{
+  ridx = pridx;
+  reader[ridx].ridx = ridx; //FIXME
+  if ((reader[ridx].device[0]) && (reader[ridx].enable == 1)) {
+    switch(cs_fork(0, 99)) {
+      case -1:
+	    cs_exit(1);
+      case  0:
+        break;
+      default:
+	    wait4master();
+	    start_cardreader(&reader[ridx]);
+    }
+  }
+}
+
+
 static void cs_child_chk(int i)
 {
   while (waitpid(0, NULL, WNOHANG)>0);
@@ -497,7 +487,32 @@ static void cs_child_chk(int i)
 #endif
           }
           cs_log("PANIC: %s lost !! (pid=%d)", txt, client[i].pid);
-          cs_exit(1);
+          if (client[i].typ == 'r' || client[i].typ == 'p') 
+          {
+            int old_pid = client[i].pid;
+            client[i].pid = 0;
+            for (ridx = 0; ridx < CS_MAXREADER; ridx++) 
+            {
+              if (reader[ridx].pid == old_pid)
+              {
+                reader[ridx].pid = 0;
+                reader[ridx].cc = NULL;
+                reader[ridx].tcp_connected = 0;
+
+                cs_log("RESTARTING READER %s in 5 seconds (index=%d)", txt, ridx);
+                cs_sleepms(5*1000); // SS: 5 sek wait
+                cs_log("RESTARTING READER: %s (index=%d)", txt, ridx);
+
+                uchar u[2];
+                u[0] = ridx;
+                u[1] = 0;
+                write_to_pipe(fd_c2m, PIP_ID_RST, u, sizeof(u));
+                break;
+              }
+            }
+          }
+          else
+            cs_exit(1);
         }
         else
         {
@@ -617,7 +632,7 @@ int cs_fork(in_addr_t ip, in_port_t port)
         set_signal_handler(SIGINT , 1, SIG_IGN);
         set_signal_handler(SIGUSR1, 1, cs_debug_level);
         is_server=((ip) || (port<90)) ? 1 : 0;
-	client[i].fd_m2c_c=fdp[0];
+	    client[i].fd_m2c_c=fdp[0];
         close(fdp[1]);
         close(mfdr);
         if( port!=97 ) cs_close_log();
@@ -829,7 +844,14 @@ static void init_shm()
   client[0].typ='s';
   client[0].au=(-1);
   client[0].dbglvl=cs_dblevel;
-  strcpy(client[0].usr, "root");
+
+  // get username master running under
+  struct passwd *pwd;
+  if ((pwd = getpwuid(getuid())) != NULL)
+    strcpy(client[0].usr, pwd->pw_name);
+  else
+    strcpy(client[0].usr, "root");
+
 #ifdef CS_LOGHISTORY
   *loghistidx=0;
   memset(loghist, 0, CS_MAXLOGHIST*CS_LOGHISTSIZE);
@@ -1091,6 +1113,7 @@ static void cs_http()
 }
 #endif
 
+
 static void init_cardreader()
 {
 	int n,i;
@@ -1220,9 +1243,11 @@ int cs_auth_client(struct s_auth *account, char *e_txt)
 	client[cs_idx].au=(-1);
 	switch((long)account)
 	{
+#ifdef CS_WITH_GBOX
 	case -2:            // gbx-dummy
 	client[cs_idx].dup=0;
 	break;
+#endif
 	case 0:           // reject access
 		rc=1;
 		cs_log("%s %s-client %s%s (%s)",
@@ -2416,18 +2441,21 @@ static void process_master_pipe()
     case PIP_ID_HUP:
       cs_accounts_chk();
       break;
+    case PIP_ID_RST:
+      restart_cardreader(ptr[0]);
+      break;
   }
 }
 
 void cs_log_config()
 {
-  uchar buf[2048];
+  uchar buf[20];
 
   if (cfg->nice!=99)
     sprintf((char *)buf, ", nice=%d", cfg->nice);
   else
     buf[0]='\0';
-  cs_log("version=%s, build #%s, system=%s%s", CS_VERSION_X, CS_SVN_VERSION, cs_platform((char *)buf+64), buf);
+  cs_log("version=%s, build #%s, system=%s-%s-%s%s", CS_VERSION_X, CS_SVN_VERSION, CS_OS_CPU, CS_OS_HW, CS_OS_SYS, buf);
   cs_log("max. clients=%d, client max. idle=%d sec",
 #ifdef CS_ANTICASC
          CS_MAXPID-3, cfg->cmaxidle);
@@ -2585,6 +2613,9 @@ int main (int argc, char *argv[])
   init_signal();
   cs_set_mloc(30, "init");
   init_srvid();
+  //Todo #ifdef CCCAM
+  init_provid();
+
   init_len4caid();
 #ifdef IRDETO_GUESSING
   init_irdeto_guess_tab(); 
