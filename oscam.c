@@ -498,6 +498,15 @@ static void cs_child_chk(int i)
                 reader[ridx].pid = 0;
                 reader[ridx].cc = NULL;
                 reader[ridx].tcp_connected = 0;
+    			reader[ridx].fd=0;
+    			reader[ridx].cs_idx=0;
+    			reader[ridx].last_s = 0;
+    			reader[ridx].last_g = 0;
+    			cs_log("closing fd_m2c=%d, ufd=%d", client[i].fd_m2c, client[i].ufd);
+                if (client[i].fd_m2c) close(client[i].fd_m2c);
+                if (client[i].ufd) close(client[i].ufd);
+                memset(&client[i], 0, sizeof(struct s_client));
+                client[i].au=(-1);
 
                 cs_log("RESTARTING READER %s in 5 seconds (index=%d)", txt, ridx);
                 cs_sleepms(5*1000); // SS: 5 sek wait
@@ -635,6 +644,7 @@ int cs_fork(in_addr_t ip, in_port_t port)
 	    client[i].fd_m2c_c=fdp[0];
         close(fdp[1]);
         close(mfdr);
+        //cs_log("FORK-CLIENT: fd_m2c_c=%d", client[i].fd_m2c_c);
         if( port!=97 ) cs_close_log();
         mfdr=0;
         cs_ptyp=D_CLIENT;
@@ -647,6 +657,7 @@ int cs_fork(in_addr_t ip, in_port_t port)
         client[i].fd_m2c=fdp[1];
         client[i].dbglvl=cs_dblevel;
         close(fdp[0]);
+        //cs_log("FORK-MASTER: fd_m2c=%d", client[i].fd_m2c);
         if (ip)
         {
           client[i].typ='c';      // dynamic client
@@ -2006,20 +2017,26 @@ void request_cw(ECM_REQUEST *er, int flag, int reader_types)
           default:
           case 0:
               if (er->reader[i]&flag){
+                  //cs_log("request_cw1 ridx=%d fd=%d", i, reader[i].fd);
                   write_ecm_request(reader[i].fd, er);
               }
               break;
               // only local cards
           case 1:
               if (!(reader[i].typ & R_IS_NETWORK))
-                  if (er->reader[i]&flag)
+                  if (er->reader[i]&flag) {
+                      //cs_log("request_cw1 ridx=%d fd=%d", i, reader[i].fd);
                       write_ecm_request(reader[i].fd, er);
+                  }
               break;
               // only network
           case 2:
+        	  //cs_log("request_cw3 ridx=%d fd=%d", i, reader[i].fd);
               if ((reader[i].typ & R_IS_NETWORK))
-                  if (er->reader[i]&flag)
+                  if (er->reader[i]&flag) {
+                      //cs_log("request_cw1 ridx=%d fd=%d", i, reader[i].fd);
                       write_ecm_request(reader[i].fd, er);
+                  }
               break;
       }
   }
@@ -2694,7 +2711,7 @@ int main (int argc, char *argv[])
       if (ph[i].s_handler)
         ph[i].s_handler(i);
 
-  cs_close_log();
+  //cs_close_log();
   *mcl=1;
   while (1)
   {
