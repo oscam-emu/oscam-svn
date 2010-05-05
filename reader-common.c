@@ -219,7 +219,7 @@ static int reader_get_cardsystem(struct s_reader * reader, ATR atr)
 	for (i=0; i<CS_MAX_MOD; i++) {
 		if (cardsystem[i].card_init) {
 			if (cardsystem[i].card_init(reader, atr)) {
-				reader[ridx].card_system=i+1;
+				reader->card_system=i+1;
 				cs_log("found cardsystem");
 				break;
 			}
