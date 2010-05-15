@@ -226,11 +226,11 @@ void network_tcp_connection_close(struct s_reader * reader, int fd)
 
     if (reader->ph.c_init())
     {
-      cs_debug("network_tcp_connection_close() exit(1);");
-      cs_exit(1);
+         cs_debug("network_tcp_connection_close() exit(1);");
+         if (reader->ph.cleanup) reader->ph.cleanup();
+         cs_exit(1);
     }
-
-    cs_resolve();
+    //cs_resolve_reader(reader->ridx);
 //  cs_log("last_s=%d, last_g=%d", reader->last_s, reader->last_g);
   }
 }
@@ -368,7 +368,7 @@ int casc_process_ecm(struct s_reader * reader, ECM_REQUEST *er)
   if (sflag)
   {
     if (!client[cs_idx].udp_sa.sin_addr.s_addr) // once resolved at least
-      cs_resolve();
+      cs_resolve_reader(ridx);
 
     if ((rc=reader->ph.c_send_ecm(&ecmtask[n], buf)))
       casc_check_dcw(reader, n, 0, ecmtask[n].cw);  // simulate "not found"
@@ -500,6 +500,10 @@ static int reader_do_emm(struct s_reader * reader, EMM_PACKET *ep)
   }
 
   if (rc) client[cs_idx].lastemm=time((time_t)0);
+
+#ifdef CS_LED
+  if (rc) cs_switch_led(LED3, LED_BLINK_ON);
+#endif
 
   if (reader->logemm & (1 << rc))
   {
@@ -673,8 +677,10 @@ void * start_cardreader(void * rdr)
       cs_sleepms(1000);
       cs_exit(1);
     }
-    if (reader->ph.c_init())
-      cs_exit(1);
+    if (reader->ph.c_init()) {
+          if (reader->ph.cleanup) reader->ph.cleanup();
+          cs_exit(1);
+     }
     if ((reader->log_port) && (reader->ph.c_init_log))
       reader->ph.c_init_log();
   }

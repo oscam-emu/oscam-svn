@@ -24,6 +24,7 @@ pid_t master_pid=0;   // master pid OUTSIDE shm
 ushort  len4caid[256];    // table for guessing caid (by len)
 char  cs_confdir[128]=CS_CONFDIR;
 uchar mbuf[1024];   // global buffer
+pthread_mutex_t gethostbyname_lock; //gethostbyname ist NOT threadsafe! So we need a mutex-lock!
 ECM_REQUEST *ecmtask;
 #ifdef CS_ANTICASC
 struct s_acasc ac_stat[CS_MAXPID];
@@ -120,6 +121,9 @@ static void usage()
 #endif
 #ifdef IRDETO_GUESSING
   fprintf(stderr, "irdeto-guessing ");
+#endif
+#ifdef CS_LED
+  fprintf(stderr, "led-trigger ");
 #endif
   fprintf(stderr, "\n\n");
   fprintf(stderr, "oscam [-b] [-c config-dir] [-d]");
@@ -314,6 +318,12 @@ void cs_exit(int sig)
               for (i=1; i<CS_MAXPID; i++)
                 if (client[i].pid)
                   kill(client[i].pid, SIGQUIT);
+#ifdef CS_LED
+              cs_switch_led(LED1B, LED_OFF);
+              cs_switch_led(LED1A, LED_ON);
+              cs_switch_led(LED2, LED_OFF);
+              cs_switch_led(LED3, LED_OFF);
+#endif
               cs_log("cardserver down");
 #ifndef CS_NOSHM
               if (ecmcache) shmdt((void *)ecmcache);
@@ -445,21 +455,24 @@ static void cs_card_info(int i)
 }
 
 //SS: restart cardreader after 5 seconds:
-static void restart_cardreader(int pridx)
-{
-  ridx = pridx;
-  reader[ridx].ridx = ridx; //FIXME
-  if ((reader[ridx].device[0]) && (reader[ridx].enable == 1)) {
-    switch(cs_fork(0, 99)) {
-      case -1:
-	    cs_exit(1);
-      case  0:
-        break;
-      default:
-	    wait4master();
-	    start_cardreader(&reader[ridx]);
-    }
-  }
+static void restart_cardreader(int pridx) {
+	ridx = pridx;
+	reader[ridx].ridx = ridx; //FIXME
+	if ((reader[ridx].device[0]) && (reader[ridx].enable == 1) && (!reader[ridx].deleted)) {
+		switch (cs_fork(0, 99)) {
+		case -1:
+			cs_exit(1);
+		case 0:
+			break;
+		default:
+			cs_sleepms(cfg->reader_restart_seconds * 1000); // SS: wait
+			cs_log("restarting reader %s (index=%d)", reader[ridx].label, ridx);
+			wait4master();
+			uchar dummy[1]={0x00};
+            write_to_pipe(fd_c2m, PIP_ID_KCL, dummy, 1);
+			start_cardreader(&reader[ridx]);
+		}
+	}
 }
 
 
@@ -472,7 +485,6 @@ static void cs_child_chk(int i)
         if ((client[i].typ!='c') && (client[i].typ!='m'))
         {
           char *txt="";
-          *log_fd=0;
           switch(client[i].typ)
           {
 #ifdef CS_ANTICASC
@@ -487,7 +499,7 @@ static void cs_child_chk(int i)
 #endif
           }
           cs_log("PANIC: %s lost !! (pid=%d)", txt, client[i].pid);
-          if (client[i].typ == 'r' || client[i].typ == 'p') 
+          if (cfg->reader_restart_seconds && (client[i].typ == 'r' || client[i].typ == 'p'))
           {
             int old_pid = client[i].pid;
             client[i].pid = 0;
@@ -502,16 +514,15 @@ static void cs_child_chk(int i)
     			reader[ridx].cs_idx=0;
     			reader[ridx].last_s = 0;
     			reader[ridx].last_g = 0;
-    			cs_log("closing fd_m2c=%d, ufd=%d", client[i].fd_m2c, client[i].ufd);
-                if (client[i].fd_m2c) close(client[i].fd_m2c);
+    			cs_debug_mask(D_TRACE, "%s %s closed (index=%d)", txt, reader[ridx].label, ridx);
+                //if (client[i].fd_m2c) close(client[i].fd_m2c);
                 if (client[i].ufd) close(client[i].ufd);
+                if (client[i].fd_m2c_c) close(client[i].fd_m2c_c);
                 memset(&client[i], 0, sizeof(struct s_client));
                 client[i].au=(-1);
 
-                cs_log("RESTARTING READER %s in 5 seconds (index=%d)", txt, ridx);
-                cs_sleepms(5*1000); // SS: 5 sek wait
-                cs_log("RESTARTING READER: %s (index=%d)", txt, ridx);
-
+                cs_log("restarting %s %s in %d seconds (index=%d)", reader[ridx].label, txt,
+                		cfg->reader_restart_seconds, ridx);
                 uchar u[2];
                 u[0] = ridx;
                 u[1] = 0;
@@ -520,8 +531,10 @@ static void cs_child_chk(int i)
               }
             }
           }
-          else
-            cs_exit(1);
+          else {
+              *log_fd=0;
+              cs_exit(1);
+          }
         }
         else
         {
@@ -645,7 +658,7 @@ int cs_fork(in_addr_t ip, in_port_t port)
         close(fdp[1]);
         close(mfdr);
         //cs_log("FORK-CLIENT: fd_m2c_c=%d", client[i].fd_m2c_c);
-        if( port!=97 ) cs_close_log();
+        //SS:if( port!=97 ) cs_close_log();
         mfdr=0;
         cs_ptyp=D_CLIENT;
         cs_idx=i;
@@ -863,6 +876,8 @@ static void init_shm()
   else
     strcpy(client[0].usr, "root");
 
+  pthread_mutex_init(&gethostbyname_lock, NULL); //gethostbyname ist NOT threadsafe! So we need a mutex-lock!
+
 #ifdef CS_LOGHISTORY
   *loghistidx=0;
   memset(loghist, 0, CS_MAXLOGHIST*CS_LOGHISTSIZE);
@@ -999,6 +1014,7 @@ static void cs_client_resolve()
     for (account=cfg->account; account; account=account->next)
       if (account->dyndns[0])
       {
+    	pthread_mutex_lock(&gethostbyname_lock); //gethostbyname ist NOT threadsafe! So we need a mutex-lock!
         rht=gethostbyname((const char *)account->dyndns);
         if (rht)
         {
@@ -1008,6 +1024,7 @@ static void cs_client_resolve()
         else
           cs_log("can't resolve hostname %s (user: %s)", account->dyndns, account->usr);
         client[cs_idx].last=time((time_t)0);
+        pthread_mutex_unlock(&gethostbyname_lock); //gethostbyname ist NOT threadsafe! So we need a mutex-lock!
       }
     sleep(cfg->resolvedelay);
   }
@@ -1038,25 +1055,39 @@ static void start_thread(void * startroutine, char * nameroutine)
   }
 }
 
-void cs_resolve()
+/**
+ * only for readers
+ * resolve ip for reader i=ridx
+ */
+void cs_resolve_reader(int i)
 {
-	int i, idx;
 	struct hostent *rht;
 	struct s_auth;
+	pthread_mutex_lock(&gethostbyname_lock); //gethostbyname ist NOT threadsafe! So we need a mutex-lock!
+
+	int idx = reader[i].cs_idx;
+	client[idx].last=time((time_t)0);
+	rht = gethostbyname(reader[i].device);
+	if (rht)
+	{
+		memcpy(&client[idx].udp_sa.sin_addr, rht->h_addr,
+				sizeof(client[idx].udp_sa.sin_addr));
+		client[idx].ip=cs_inet_order(client[idx].udp_sa.sin_addr.s_addr);
+	}
+	else
+		cs_log("can't resolve %s", reader[i].device);
+	client[idx].last=time((time_t)0);
+
+	pthread_mutex_unlock(&gethostbyname_lock); //gethostbyname ist NOT threadsafe! So we need a mutex-lock!
+}
+
+void cs_resolve()
+{
+	int i;
 	for (i=0; i<CS_MAXREADER; i++)
-		if ((idx=reader[i].cs_idx) && (reader[i].typ & R_IS_NETWORK))
+		if ((reader[i].cs_idx) && (reader[i].typ & R_IS_NETWORK))
 		{
-			client[cs_idx].last=time((time_t)0);
-			rht = gethostbyname(reader[i].device);
-			if (rht)
-			{
-				memcpy(&client[idx].udp_sa.sin_addr, rht->h_addr,
-						sizeof(client[idx].udp_sa.sin_addr));
-				client[idx].ip=cs_inet_order(client[idx].udp_sa.sin_addr.s_addr);
-			}
-			else
-				cs_log("can't resolve %s", reader[i].device);
-			client[cs_idx].last=time((time_t)0);
+			cs_resolve_reader(i);
 		}
 }
 
@@ -1749,6 +1780,10 @@ int send_dcw(ECM_REQUEST *er)
 
 	client[cs_idx].cwlastresptime = 1000*(tpe.time-er->tps.time)+tpe.millitm-er->tps.millitm;
 
+#ifdef CS_LED
+	if(!er->rc) cs_switch_led(LED2, LED_BLINK_OFF);
+#endif
+
 	if(cfg->mon_appendchaninfo)
 		cs_log("%s (%04X&%06X/%04X/%02X:%04X): %s (%d ms)%s - %s",
 				uname, er->caid, er->prid, er->srvid, er->l, lc,
@@ -2017,7 +2052,7 @@ void request_cw(ECM_REQUEST *er, int flag, int reader_types)
           default:
           case 0:
               if (er->reader[i]&flag){
-                  //cs_log("request_cw1 ridx=%d fd=%d", i, reader[i].fd);
+                  //cs_debug_mask(D_TRACE, "request_cw1 ridx=%d fd=%d", i, reader[i].fd);
                   write_ecm_request(reader[i].fd, er);
               }
               break;
@@ -2025,7 +2060,7 @@ void request_cw(ECM_REQUEST *er, int flag, int reader_types)
           case 1:
               if (!(reader[i].typ & R_IS_NETWORK))
                   if (er->reader[i]&flag) {
-                      //cs_log("request_cw1 ridx=%d fd=%d", i, reader[i].fd);
+                	  //cs_debug_mask(D_TRACE, "request_cw1 ridx=%d fd=%d", i, reader[i].fd);
                       write_ecm_request(reader[i].fd, er);
                   }
               break;
@@ -2034,7 +2069,7 @@ void request_cw(ECM_REQUEST *er, int flag, int reader_types)
         	  //cs_log("request_cw3 ridx=%d fd=%d", i, reader[i].fd);
               if ((reader[i].typ & R_IS_NETWORK))
                   if (er->reader[i]&flag) {
-                      //cs_log("request_cw1 ridx=%d fd=%d", i, reader[i].fd);
+                	  //cs_debug_mask(D_TRACE, "request_cw1 ridx=%d fd=%d", i, reader[i].fd);
                       write_ecm_request(reader[i].fd, er);
                   }
               break;
@@ -2254,7 +2289,6 @@ void do_emm(EMM_PACKET *ep)
 	else
 		return;
 
-	cs_ddump_mask(D_EMM, ep->hexserial, 8, "emm UA/SA:");
 	cs_debug_mask(D_EMM, "emmtype %s. Reader %s has serial %s.", typtext[ep->type], reader[au].label, cs_hexdump(0, reader[au].hexserial, 8)); 
 
 	switch (ep->type) {
@@ -2277,6 +2311,7 @@ void do_emm(EMM_PACKET *ep)
 			break;
 	}
 
+	cs_ddump_mask(D_EMM, ep->hexserial, 8, "emm UA/SA:");
 	client[cs_idx].lastemm = time((time_t)0);
 	cs_ddump_mask(D_EMM, ep->emm, ep->l, "emm:");
 
@@ -2445,6 +2480,19 @@ int process_input(uchar *buf, int l, int timeout)
   return(rc);
 }
 
+static void restart_clients()
+{
+	int i;
+	cs_log("restarting clients");
+	for (i=0; i<CS_MAXPID; i++) {
+		if (client[i].pid && client[i].typ=='c' && ph[client[i].ctyp].type & MOD_CONN_NET) {
+			kill(client[i].pid, SIGKILL);
+			cs_log("killing client c%02d pid %d", i, client[i].pid);
+		}
+	}
+}
+
+
 static void process_master_pipe()
 {
   int n;
@@ -2458,8 +2506,12 @@ static void process_master_pipe()
     case PIP_ID_HUP:
       cs_accounts_chk();
       break;
-    case PIP_ID_RST:
+    case PIP_ID_RST: //Restart Cardreader with ridx=prt[0]
       restart_cardreader(ptr[0]);
+      break;
+    case PIP_ID_KCL: //Kill all clients
+      cs_waitforcardinit();
+      restart_clients();
       break;
   }
 }
@@ -2497,6 +2549,7 @@ void cs_waitforcardinit()
 {
 	if (cfg->waitforcards)
 	{
+  		cs_log("waiting for local card init");
 		int card_init_done, i;
 		cs_sleepms(3000);  // short sleep for card detect to work proberly
 		do {
@@ -2510,11 +2563,18 @@ void cs_waitforcardinit()
 			cs_sleepms(300); // wait a little bit
 			alarm(cfg->cmaxidle + cfg->ctimeout / 1000 + 1); 
 		} while (!card_init_done);
+  		cs_log("init for all local cards done");
 	}
 }
 
 int main (int argc, char *argv[])
 {
+
+#ifdef CS_LED
+  cs_switch_led(LED1A, LED_DEFAULT);
+  cs_switch_led(LED1A, LED_ON);
+#endif
+
   struct   sockaddr_in cad;     /* structure to hold client's address */
   int      scad;                /* length of address */
   //int      fd;                  /* socket descriptors */
@@ -2692,9 +2752,11 @@ int main (int argc, char *argv[])
 #endif
   init_cardreader();
 
-  cs_log("waiting for local card init");
   cs_waitforcardinit();
-  cs_log("init for all local cards done");
+#ifdef CS_LED
+  cs_switch_led(LED1A, LED_OFF);
+  cs_switch_led(LED1B, LED_ON);
+#endif
 
 #ifdef CS_ANTICASC
   if( !cfg->ac_enabled )
@@ -2824,3 +2886,51 @@ int main (int argc, char *argv[])
   }
   cs_exit(1);
 }
+
+#ifdef CS_LED
+void cs_switch_led(int led, int action) {
+
+	if(action < 2) { // only LED_ON and LED_OFF
+		char ledfile[256];
+		FILE *f;
+
+		switch(led){
+		case LED1A:snprintf(ledfile, 255, "/sys/class/leds/nslu2:red:status/brightness");
+		break;
+		case LED1B:snprintf(ledfile, 255, "/sys/class/leds/nslu2:green:ready/brightness");
+		break;
+		case LED2:snprintf(ledfile, 255, "/sys/class/leds/nslu2:green:disk-1/brightness");
+		break;
+		case LED3:snprintf(ledfile, 255, "/sys/class/leds/nslu2:green:disk-2/brightness");
+		break;
+		}
+
+		if (!(f=fopen(ledfile, "w"))){
+			// FIXME: sometimes cs_log was not available when calling cs_switch_led -> signal 11
+			//cs_log("Cannot open file \"%s\" (errno=%d)", ledfile, errno);
+			return;
+		}
+		fprintf(f,"%d", action);
+		fclose(f);
+	} else { // LED Macros
+		switch(action){
+		case LED_DEFAULT:
+			cs_switch_led(LED1A, LED_OFF);
+			cs_switch_led(LED1B, LED_OFF);
+			cs_switch_led(LED2, LED_ON);
+			cs_switch_led(LED3, LED_OFF);
+			break;
+		case LED_BLINK_OFF:
+			cs_switch_led(led, LED_OFF);
+			cs_sleepms(100);
+			cs_switch_led(led, LED_ON);
+			break;
+		case LED_BLINK_ON:
+			cs_switch_led(led, LED_ON);
+			cs_sleepms(300);
+			cs_switch_led(led, LED_OFF);
+			break;
+		}
+	}
+}
+#endif

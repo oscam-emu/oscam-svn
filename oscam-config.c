@@ -525,6 +525,16 @@ void chk_t_global(char *token, char *value)
 		}
 	}
 
+	if (!strcmp(token, "readerrestartseconds")) {
+		if (strlen(value) == 0) {
+			cfg->reader_restart_seconds = 0;
+			return;
+		} else {
+			cfg->reader_restart_seconds = atoi(value);
+			return;
+		}
+	}
+
 	if (token[0] != '#')
 		fprintf(stderr, "Warning: keyword '%s' in global section not recognized\n", token);
 }
@@ -1366,6 +1376,7 @@ int init_config()
 		cs_log("WARNING: DenySamples adjusted to %d", cfg->ac_denysamples);
 	}
 #endif
+	cfg->reader_restart_seconds = 5;
 	return 0;
 }
 
@@ -1579,7 +1590,8 @@ int write_services()
 		cs_log("Cannot open file \"%s\" (errno=%d)", tmpfile, errno);
 		return(1);
 	}
-	fprintf(f,"#oscam.services generated automatically\n\n");
+	fprintf(f,"# oscam.services generated automatically by Streamboard OSCAM %s build #%s\n", CS_VERSION, CS_SVN_VERSION);
+	fprintf(f,"# Read more: http://streamboard.gmc.to/oscam/browser/trunk/Distribution/doc/txt/oscam.services.txt\n\n");
 
 	while(sidtab != NULL){
 		fprintf(f,"[%s]\n", sidtab->label);
@@ -1625,7 +1637,8 @@ int write_config()
 		cs_log("Cannot open file \"%s\" (errno=%d)", tmpfile, errno);
 		return(1);
 	}
-	fprintf(f,"#oscam.config generated automatically\n\n");
+	fprintf(f,"# oscam.conf generated automatically by Streamboard OSCAM %s build #%s\n", CS_VERSION, CS_SVN_VERSION);
+	fprintf(f,"# Read more: http://streamboard.gmc.to/oscam/browser/trunk/Distribution/doc/txt/oscam.conf.txt\n\n");
 
 	/*global settings*/
 	fprintf(f,"[global]\n");
@@ -1654,6 +1667,7 @@ int write_config()
 	fprintf_conf(f, CONFVARWIDTH, "waitforcards", "%d\n", cfg->waitforcards);
 	fprintf_conf(f, CONFVARWIDTH, "preferlocalcards", "%d\n", cfg->preferlocalcards);
 	fprintf_conf(f, CONFVARWIDTH, "saveinithistory", "%d\n", cfg->saveinithistory);
+	fprintf_conf(f, CONFVARWIDTH, "readerrestartseconds", "%d\n", cfg->reader_restart_seconds);
 	fputc((int)'\n', f);
 
 	/*monitor settings*/
@@ -1943,7 +1957,8 @@ int write_userdb()
     cs_log("Cannot open file \"%s\" (errno=%d)", tmpfile, errno);
     return(1);
   }
-  fprintf(f,"#oscam.user generated automatically\n\n");
+  fprintf(f,"# oscam.user generated automatically by Streamboard OSCAM %s build #%s\n", CS_VERSION, CS_SVN_VERSION);
+  fprintf(f,"# Read more: http://streamboard.gmc.to/oscam/browser/trunk/Distribution/doc/txt/oscam.user.txt\n\n");
 
   //each account
 	for (account=cfg->account; (account) ; account=account->next){
@@ -2023,6 +2038,7 @@ int write_userdb()
 int write_server()
 {
 	int i,j;
+	int isphysical = 0;
 	char *value;
 	FILE *f;
 
@@ -2039,20 +2055,35 @@ int write_server()
 		cs_log("Cannot open file \"%s\" (errno=%d)", tmpfile, errno);
 		return(1);
 	}
-	fprintf(f,"#oscam.user generated automatically\n\n");
+	fprintf(f,"# oscam.server generated automatically by Streamboard OSCAM %s build #%s\n", CS_VERSION, CS_SVN_VERSION);
+	fprintf(f,"# Read more: http://streamboard.gmc.to/oscam/browser/trunk/Distribution/doc/txt/oscam.server.txt\n\n");
 
 	for (i = 0; i < CS_MAXREADER; i++) {
-		if ( reader[i].label[0] ) {
+		if ( reader[i].label[0] && !reader[i].deleted) {
+			isphysical = 0;
 			fprintf(f,"[reader]\n");
 
 			fprintf_conf(f, CONFVARWIDTH, "label", "%s\n", reader[i].label);
+			fprintf_conf(f, CONFVARWIDTH, "enable", "%d\n", reader[i].enable);
 
 			char *ctyp ="";
 			switch(reader[i].typ) {	/* TODO like ph*/
-				case R_MOUSE	: ctyp = "mouse";		break;
-				case R_INTERNAL	: ctyp = "internal";		break;
-				case R_SC8in1	: ctyp = "sc8in1";	break;
-				case R_SMART	: ctyp = "smartreader";	break;
+				case R_MOUSE	:
+					ctyp = "mouse";
+					isphysical = 1;
+					break;
+				case R_INTERNAL	:
+					ctyp = "internal";
+					isphysical = 1;
+					break;
+				case R_SC8in1	:
+					ctyp = "sc8in1";
+					isphysical = 1;
+					break;
+				case R_SMART	:
+					ctyp = "smartreader";
+					isphysical = 1;
+					break;
 				case R_CAMD35	: ctyp = "camd35";	break;
 				case R_CAMD33	: ctyp = "camd33";	break;
 				case R_NEWCAMD	:
@@ -2075,7 +2106,7 @@ int write_server()
 				case R_DB2COM2	: ctyp = "internal";   break;
 
 			}
-			fprintf_conf(f, CONFVARWIDTH, "protocol", "%s", ctyp);
+			fprintf_conf(f, CONFVARWIDTH, "protocol", "%s\n", ctyp);
 
 			fprintf_conf(f, CONFVARWIDTH, "device", "%s", reader[i].device);
 			if (reader[i].r_port)
@@ -2099,20 +2130,14 @@ int write_server()
 			}
 #endif
 
-			if (reader[i].r_usr[0]) {
-				fprintf_conf(f, CONFVARWIDTH, "account", "");
-				fprintf(f, "%s", reader[i].r_usr);
-				fprintf(f, ",%s", reader[i].r_pwd);
-				fprintf(f, "\n");
-			}
+			if (reader[i].r_usr[0] && !isphysical)
+				fprintf_conf(f, CONFVARWIDTH, "account", "%s,%s\n", reader[i].r_usr, reader[i].r_pwd);
 
-			if (reader[i].pincode[0])
+			if(strcmp(reader[i].pincode, "none"))
 				fprintf_conf(f, CONFVARWIDTH, "pincode", "%s\n", reader[i].pincode);
 
-			if (reader[i].emmfile)
+			if (reader[i].emmfile && isphysical)
 				fprintf_conf(f, CONFVARWIDTH, "readnano", "%s\n", reader[i].emmfile);
-
-			fprintf_conf(f, CONFVARWIDTH, "enable", "%d\n", reader[i].enable);
 
 			fprintf_conf(f, CONFVARWIDTH, "services", "");
 			char sidok[33]; long2bitchar(reader[i].sidtabok, sidok);
@@ -2126,16 +2151,16 @@ int write_server()
 			}
 			fputc((int)'\n', f);
 
-			if (reader[i].tcp_ito)
+			if (reader[i].tcp_ito && !isphysical)
 				fprintf_conf(f, CONFVARWIDTH, "inactivitytimeout", "%d\n", reader[i].tcp_ito);
 
-			if (reader[i].tcp_rto)
+			if (reader[i].tcp_rto && !isphysical && !reader[i].tcp_rto == 30)
 				fprintf_conf(f, CONFVARWIDTH, "reconnecttimeout", "%d\n", reader[i].tcp_rto);
 
-			if (reader[i].ncd_disable_server_filt)
+			if (reader[i].ncd_disable_server_filt && !isphysical)
 				fprintf_conf(f, CONFVARWIDTH, "disableserverfilter", "%d\n", reader[i].ncd_disable_server_filt);
 
-			if (reader[i].smargopatch)
+			if (reader[i].smargopatch && isphysical)
 				fprintf_conf(f, CONFVARWIDTH, "smargopatch", "%d\n", reader[i].smargopatch);
 
 			if (reader[i].fallback)
@@ -2148,21 +2173,21 @@ int write_server()
 			fprintf_conf(f, CONFVARWIDTH, "caid", "%s\n", value);
 			free(value);
 
-			if (reader[i].boxid)
+			if (reader[i].boxid && isphysical)
 				fprintf_conf(f, CONFVARWIDTH, "boxid", "%08X\n", reader[i].boxid);
 
-			if (reader[i].aes_key[0])
+			if (reader[i].aes_key[0] && isphysical)
 				fprintf_conf(f, CONFVARWIDTH, "aeskey", "%s\n", key_btoa(NULL, reader[i].aes_key));
 
 			//n3_rsakey
-			if (reader[i].rsa_mod[0]) {
-				if (reader[i].is_pure_nagra) {
-					fprintf_conf(f, CONFVARWIDTH, "n3_rsakey", "");
-					for (j=0;j<128;j++) {
+			if (reader[i].has_rsa && isphysical) {
+				//if (reader[i].is_pure_nagra) {
+					fprintf_conf(f, CONFVARWIDTH, "rsakey", "");
+					for (j=0;j<64;j++) {
 						fprintf(f, "%02X", reader[i].rsa_mod[j]);
 					}
 					fprintf(f, "\n");
-				}
+				/*}
 				else if (reader[i].is_tiger) {
 					//tiger_rsakey
 					fprintf_conf(f, CONFVARWIDTH, "tiger_rsakey", "");
@@ -2170,36 +2195,36 @@ int write_server()
 						fprintf(f, "%02X", reader[i].rsa_mod[j]);
 					}
 					fprintf(f, "\n");
-				}
+				}*/
 			}
 
-			if (reader[i].nagra_boxkey[0]) {
+			if (reader[i].nagra_boxkey[0] && isphysical) {
 				fprintf_conf(f, CONFVARWIDTH, "boxkey", "");
-				for (j=0;j<16;j++) {
+				for (j=0;j<8;j++) {
 					fprintf(f, "%02X", reader[i].nagra_boxkey[j]);
 				}
 				fprintf(f, "\n");
 			}
 
-			if ( reader[i].atr[0]) {
+			if ( reader[i].atr[0] && isphysical) {
 				fprintf_conf(f, CONFVARWIDTH, "atr", "");
-				for (j=0;j<128;j++) {
+				for (j=0;j<64;j++) {
 					fprintf(f, "%02X", reader[i].atr[j]);
 				}
 				fprintf(f, "\n");
 			}
 
-			if (reader[i].detect) {
+			if (isphysical) {
 				if (reader[i].detect&0x80)
 					fprintf_conf(f, CONFVARWIDTH, "detect", "!%s\n", RDR_CD_TXT[reader[i].detect&0x7f]);
 				else
 					fprintf_conf(f, CONFVARWIDTH, "detect", "%s\n", RDR_CD_TXT[reader[i].detect&0x7f]);
 			}
 
-			if (reader[i].mhz)
+			if (reader[i].mhz && isphysical)
 				fprintf_conf(f, CONFVARWIDTH, "mhz", "%d\n", reader[i].mhz);
 
-			if (reader[i].cardmhz)
+			if (reader[i].cardmhz && isphysical)
 				fprintf_conf(f, CONFVARWIDTH, "cardmhz", "%d\n", reader[i].cardmhz);
 
 			if (reader[i].loadbalanced)
@@ -2212,13 +2237,14 @@ int write_server()
 			//Todo: write reader class
 
 			value = mk_t_ftab(&reader[i].fchid);
-			fprintf_conf(f, CONFVARWIDTH, "chid", "%s\n", value);
+			if(value[0])
+				fprintf_conf(f, CONFVARWIDTH, "chid", "%s\n", value);
 			free(value);
 
-			if (reader[i].show_cls)
+			if (reader[i].show_cls && !reader[i].show_cls == 10)
 				fprintf_conf(f, CONFVARWIDTH, "showcls", "%d\n", reader[i].show_cls);
 
-			if (reader[i].maxqlen)
+			if (reader[i].maxqlen && !reader[i].maxqlen == CS_MAXQLEN)
 				fprintf_conf(f, CONFVARWIDTH, "maxqlen", "%d\n", reader[i].maxqlen);
 
 			value = mk_t_group((ulong*)reader[i].grp);
@@ -2256,10 +2282,18 @@ int write_server()
 
 				if (reader[i].cc_maxhop)
 					fprintf_conf(f, CONFVARWIDTH, "cccmaxhop", "%d\n", reader[i].cc_maxhop);
+
+				if (reader[i].cc_disable_retry_ecm)
+					fprintf_conf(f, CONFVARWIDTH, "cccdisableretryecm", "%d\n", reader[i].cc_disable_retry_ecm);
+
+				if (reader[i].cc_disable_auto_block)
+					fprintf_conf(f, CONFVARWIDTH, "cccdisableautoblock", "%d\n", reader[i].cc_disable_auto_block);
 			}
 
-			if (reader[i].deprecated)
+			if (reader[i].deprecated && isphysical)
 				fprintf_conf(f, CONFVARWIDTH, "deprecated", "%d\n", reader[i].deprecated);
+
+			fprintf(f, "\n\n");
 		}
 	}
 	fclose(f);
@@ -2623,7 +2657,7 @@ int init_srvid()
 	return(0);
 }
 
-static void chk_reader(char *token, char *value, struct s_reader *rdr)
+void chk_reader(char *token, char *value, struct s_reader *rdr)
 {
 	int i;
 	char *ptr;
@@ -2821,33 +2855,54 @@ static void chk_reader(char *token, char *value, struct s_reader *rdr)
 	}
 
 	if ((!strcmp(token, "n3_rsakey")) || (!strcmp(token, "rsakey"))) {
-		rdr->has_rsa = 1;
-		if (key_atob_l(value, rdr->rsa_mod, 128)) {
-			fprintf(stderr, "Configuration reader: Error in rsakey\n");
-			exit(1);
+		if(strlen(value) == 0) {
+			memset(rdr->rsa_mod, 0, 120);
+			rdr->has_rsa = 0;
+			return;
+		} else {
+			rdr->has_rsa = 1;
+			if (key_atob_l(value, rdr->rsa_mod, 128)) {
+				fprintf(stderr, "Configuration reader: Error in rsakey\n");
+				exit(1);
+			}
+			return;
 		}
-		return;
 	}
 
 	if (!strcmp(token, "tiger_rsakey")) {
-		if (key_atob_l(value, rdr->rsa_mod, 240)) {
-			fprintf(stderr, "Configuration reader: Error in tiger_rsakey\n");
-			exit(1);
+		if(strlen(value) == 0) {
+			memset(rdr->rsa_mod, 0, 120);
+			return;
+		} else {
+			if (key_atob_l(value, rdr->rsa_mod, 240)) {
+				fprintf(stderr, "Configuration reader: Error in tiger_rsakey\n");
+				exit(1);
+			}
+			return;
 		}
-		return;
 	}
 
 	if ((!strcmp(token, "n3_boxkey")) || (!strcmp(token, "boxkey"))) {
-		if (key_atob_l(value, rdr->nagra_boxkey, 16)) {
-			fprintf(stderr, "Configuration reader: Error in boxkey\n");
-			exit(1);
+		if(strlen(value) == 0) {
+			memset(rdr->nagra_boxkey, 0, 16);
+			return;
+		} else {
+			if (key_atob_l(value, rdr->nagra_boxkey, 16)) {
+				fprintf(stderr, "Configuration reader: Error in boxkey\n");
+				exit(1);
+			}
+			return;
 		}
-		return;
 	}
 
 	if ((!strcmp(token, "atr"))) {
-		key_atob_l(value, rdr->atr, 128);
-		return;
+		if(strlen(value) == 0) {
+			memset(rdr->atr, 0, 64);
+			return;
+		} else {
+			key_atob_l(value, rdr->atr, 128);
+			return;
+		}
 	}
 
 	if (!strcmp(token, "detect")) {
@@ -3181,9 +3236,35 @@ static void chk_reader(char *token, char *value, struct s_reader *rdr)
 		return;
 	}
 
+	if (!strcmp(token, "cccdisableretryecm")) {
+		if (strlen(value) == 0) {
+			rdr->cc_disable_retry_ecm = 0;
+			return;
+		} else {
+			rdr->cc_disable_retry_ecm = atoi(value);
+			return;
+		}
+	}
+
+	if (!strcmp(token, "cccdisableautoblock")) {
+		if (strlen(value) == 0) {
+			rdr->cc_disable_auto_block = 0;
+			return;
+		} else {
+			rdr->cc_disable_auto_block = atoi(value);
+			return;
+		}
+	}
+
+
 	if (!strcmp(token, "deprecated")) {
-		rdr->deprecated = atoi(value);
-		return;
+		if (strlen(value) == 0) {
+			rdr->deprecated = 0;
+			return;
+		} else {
+			rdr->deprecated = atoi(value);
+			return;
+		}
 	}
 
 	if (token[0] != '#')

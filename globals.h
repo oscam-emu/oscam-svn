@@ -174,7 +174,7 @@ extern char *boxdesc[];
 #endif
 
 #ifdef CS_CORE
-char *PIP_ID_TXT[] = { "ECM", "EMM", "LOG", "CIN", "HUP", "RST", NULL  };
+char *PIP_ID_TXT[] = { "ECM", "EMM", "LOG", "CIN", "HUP", "RST", "KCL", NULL  };
 char *RDR_CD_TXT[] = { "cd", "dsr", "cts", "ring", "none",
 #ifdef USE_GPIO
                        "gpio1", "gpio2", "gpio3", "gpio4", "gpio5", "gpio6", "gpio7", //felix: changed so that gpio can be used 
@@ -190,9 +190,11 @@ extern char *RDR_CD_TXT[];
 #define PIP_ID_LOG    2
 #define PIP_ID_CIN    3  // CARD_INFO
 #define PIP_ID_HUP    4
-#define PIP_ID_RST    5  // SS:Restart Reader, CCcam for example
-#define PIP_ID_DCW    6
-#define PIP_ID_MAX    PIP_ID_RST
+#define PIP_ID_RST    5  // Schlocke: Restart Reader, CCcam for example
+#define PIP_ID_KCL    6  // Schlocke: Kill all Clients
+
+#define PIP_ID_DCW    7
+#define PIP_ID_MAX    PIP_ID_KCL
 
 
 #define PIP_ID_ERR    (-1)
@@ -227,6 +229,19 @@ typedef unsigned long long uint64;
 
 // constants
 #define CTA_RES_LEN 512
+
+#ifdef CS_LED
+#define  LED1A 		0
+#define  LED1B 		1
+#define  LED2 		2
+#define  LED3 		3
+#define  LED_OFF	0
+#define  LED_ON		1
+#define  LED_BLINK_ON 	2
+#define  LED_BLINK_OFF 	3
+#define  LED_DEFAULT 	10
+extern void cs_switch_led(int led, int action);
+#endif
 
 typedef struct s_classtab
 {
@@ -471,6 +486,7 @@ struct geo_cache
 
 struct s_reader  //contains device info, reader info and card info
 {
+  int 		deleted; // if this flag is set the reader is not shown in webif and becomes not writte to oscam.server
   int		smargopatch;
   int		pid;
   int       cs_idx;
@@ -537,6 +553,8 @@ struct s_reader  //contains device info, reader info and card info
   int       cc_maxhop;      // cccam max distance
   int		cc_currenthops; // number of hops for CCCam
   void      *cc;            // ptr to cccam internal data struct
+  int       cc_disable_retry_ecm; //Schlocke
+  int       cc_disable_auto_block; //Schlocke
   uchar     cc_id;
   uchar     tcp_connected;
   int       tcp_ito;      // inactivity timeout
@@ -775,6 +793,7 @@ struct s_config
 	int		waitforcards;
 	int		preferlocalcards;
 	int		saveinithistory;
+	int     reader_restart_seconds; //Schlocke Reader restart auf x seconds, disable = 0
 
 #ifdef CS_WITH_GBOX
 	uchar		gbox_pwd[8];
@@ -940,6 +959,7 @@ extern struct s_acasc_shm *acasc;
 extern FILE *fpa;
 extern int use_ac_log;
 #endif
+extern pthread_mutex_t gethostbyname_lock; //gethostbyname ist NOT threadsafe! So we need a mutex-lock!
 
 //reader
 void reader_nagra();
@@ -991,6 +1011,7 @@ extern void cs_log_config(void);
 extern void cs_waitforcardinit(void);
 extern void cs_reinit_clients(void);
 extern void cs_resolve(void);
+extern void cs_resolve_reader(int i);
 extern void chk_dcw(int fd);
 
 #ifdef CS_ANTICASC
@@ -1039,6 +1060,7 @@ extern void chk_t_gbox(char *token, char *value);
 extern void chk_t_cccam(char *token, char *value);
 extern void chk_t_global(char *token, char *value);
 extern void chk_t_monitor(char *token, char *value);
+extern void chk_reader(char *token, char *value, struct s_reader *rdr);
 
 #ifdef HAVE_DVBAPI
 extern void chk_t_dvbapi(char *token, char *value);
@@ -1054,6 +1076,7 @@ extern void chk_sidtab(char *token, char *value, struct s_sidtab *sidtab);
 extern int write_services();
 extern int write_userdb();
 extern int write_config();
+extern int write_server();
 extern char *mk_t_caidtab(CAIDTAB *ctab);
 extern char *mk_t_tuntab(TUNTAB *ttab);
 extern char *mk_t_group(ulong *grp);

@@ -561,6 +561,7 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
   <TABLE CLASS=\"configmenu\"><TR><TD CLASS=\"configmenu\"><A HREF=\"scanusb.html\">Scan USB</A></TD></TR></TABLE><BR>\
   <TABLE cellspacing=\"0\" cellpadding=\"10\">\n\
     <TR>\n\
+	  <TH>Delete</TH>\n\
       <TH>Reader</TH>\n\
       <TH>Protocol</TH>\n\
       <TH>EERR UK / G / S / UQ</TH>\n\
@@ -570,11 +571,33 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
       <TH COLSPAN=\"3\">Action</TH>\n\
     </TR>\n\
     ##READERLIST##\
+    <TR>\
+		<form action=\"readerconfig.html\" method=\"get\">\n\
+		<TD>&nbsp;</TD>\
+		<TD COLSPAN=\"2\" align=\"center\">New Reader</TD>\
+		<TD COLSPAN=\"2\" align=\"center\">Label:&nbsp;&nbsp;<input type=\"text\" name=\"label\" value=\"##NEXTREADER##\"></TD>\
+		<TD COLSPAN=\"2\" align=\"center\">Protocol:&nbsp;&nbsp;<select name=\"protocol\">\
+			<option>mouse</option>\
+			<option>smartreader</option>\
+			<option>internal</option>\
+			<option>serial</option>\
+			<option>camd35</option>\
+			<option>cs378x</option>\
+			<option>radegast</option>\
+			<option>newcamd525</option>\
+			<option>newcamd524</option>\
+			<option>cccam</option>\
+			<option>gbox</option>\
+			<option>pcsc</option>\
+		</select></TD>\
+		<TD COLSPAN=\"3\" align=\"center\"><input type=\"submit\" name=\"action\" value=\"Add\" ##BTNDISABLED##></TD></TR>\
+		</form>\
   </TABLE>\n\
 ##TPLFOOTER##"
 
 #define TPLREADERSBIT "\
     <TR>\n\
+	<TD align=\"center\"><A HREF=\"readers.html?reader=##READERIDX##&action=delete\" TITLE=\"Delete this Reader\"><IMG SRC=\"##DELICO##\" BORDER=\"0\" ALT=\"Delete Reader\"/></A></TD>\n\
       <TD>##READERNAME##</TD>\n\
       <TD>##CTYP##</TD>\n\
       <TD align=\"center\">##EMMERRORUK## / ##EMMERRORG## / ##EMMERRORS## / ##EMMERRORUQ##</TD>\n\
@@ -616,13 +639,35 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 ##TPLMENU##\n\
 <BR><BR>\n\
 ##MESSAGE##\
-  <form action=\"readerconfig.html?action=execute\" method=\"get\"><input name=\"reader\" type=\"hidden\" value=\"##READERNAME##\">\n\
+  <form action=\"readerconfig.html?action=execute\" method=\"get\">\n\
+  <input name=\"reader\" type=\"hidden\" value=\"##READERNAME##\">\n\
+  <input name=\"protocol\" type=\"hidden\" value=\"##PROTOCOL##\">\n\
+  <input name=\"enable\" type=\"hidden\" value=\"0\">\n\
+  <input name=\"fallback\" type=\"hidden\" value=\"0\">\n\
   <TABLE cellspacing=\"0\">\n\
-    <TR><TH>&nbsp;</TH><TH>Edit Reader ##READERNAME##</TH></TR>\n\
+    <TR><TH COLSPAN=\"2\">Edit Reader ##READERNAME##</TH></TR>\n\
+    <TR><TH>&nbsp;</TH><TH>Reader general settings</TH></TR>\n\
+    <TR><TD>Enable:</TD><TD><input name=\"enable\" type=\"checkbox\" value=\"1\" ##ENABLED##></TD></TR>\n\
+    <TR><TD>Fallback:</TD><TD><input name=\"fallback\" type=\"checkbox\" value=\"1\" ##FALLBACKCHECKED##></TD></TR>\n\
+    <TR><TD>Group:</TD><TD><input name=\"group\" type=\"text\" size=\"10\" maxlength=\"10\" value=\"##GRP##\"></TD></TR>\n\
+    <TR><TD>Device:</TD><TD><input name=\"device\" type=\"text\" size=\"50\" maxlength=\"150\" value=\"##DEVICE##\"></TD></TR>\n\
+    <TR><TD>Caid:</TD><TD><input name=\"caid\" type=\"text\" size=\"50\" maxlength=\"100\" value=\"##CAIDS##\"></TD></TR>\n\
+    <TR><TD>Ident:</TD><TD><input name=\"ident\" type=\"text\" size=\"50\" maxlength=\"100\" value=\"##IDENTS##\"></TD></TR>\n\
+    <TR><TD>Emmcache:</TD><TD><input name=\"emmcache\" type=\"text\" size=\"10\" maxlength=\"10\" value=\"##EMMCACHE##\"></TD></TR>\n\
+    <TR><TD>Blockemm:</TD><TD>\n<TABLE cellspacing=\"0\" class=\"invisible\">\
+		<TR><TD align=\"center\">unknown</TD><TD align=\"center\">unique</TD><TD align=\"center\">shared</TD><TD align=\"center\">global</TD></TR>\
+		<TR><TD align=\"center\"><input name=\"blockemm-unknown\" type=\"hidden\" value=\"0\"><input name=\"blockemm-unknown\" type=\"checkbox\" value=\"1\" ##BLOCKEMMUNKNOWNCHK##></TD>\n\
+			<TD align=\"center\"><input name=\"blockemm-u\" type=\"hidden\" value=\"0\"><input name=\"blockemm-u\" type=\"checkbox\" value=\"1\" ##BLOCKEMMUNIQCHK##></TD>\n\
+			<TD align=\"center\"><input name=\"blockemm-s\" type=\"hidden\" value=\"0\"><input name=\"blockemm-s\" type=\"checkbox\" value=\"1\" ##BLOCKEMMSHAREDCHK##></TD>\n\
+			<TD align=\"center\"><input name=\"blockemm-g\" type=\"hidden\" value=\"0\"><input name=\"blockemm-g\" type=\"checkbox\" value=\"1\" ##BLOCKEMMGLOBALCHK##></TD></TR>\n\
+    </TD>\n</TR>\n</TABLE>\n\
+    <TR><TD>Ecmcache:<input name=\"ecmcache\" type=\"hidden\" value=\"0\"></TD><TD><input name=\"ecmcache\" type=\"checkbox\" value=\"1\" ##ECMCACHECHECKED##></TD></TR>\n\
+    <TR><TD>Services:</TD><TD>\n<TABLE cellspacing=\"0\" class=\"invisible\">##SIDS##</TD>\n</TR>\n</TABLE>\n\
+    <TR><TH>&nbsp;</TH><TH>Reader specific settings for protocol ##PROTOCOL##</TH></TR>\n\
     ##READERDEPENDINGCONFIG##\
-    <TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\" ##BTNDISABLED##>\n</TD></TR>\n\
+    <TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" name=\"action\" value=\"Save\" ##BTNDISABLED##>\n</TD></TR>\n\
   </TABLE>\n\
-<BR><BR>Saving not yet implemented - Nothing changes on click<BR><BR>\n\
+	<BR><BR>\n\
 ##TPLFOOTER##"
 #define TPLSAVETEMPLATES "##TPLHEADER##\
 ##TPLMENU##\n\
@@ -636,159 +681,64 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
             <TD><INPUT NAME=\"services\" TYPE=\"CHECKBOX\" VALUE=\"!##SIDLABEL##\" ##CHECKED##> !##SIDLABEL##</TD>\n\
           </TR>\n"
 
-#define TPLREADERCONFIGMOUSEBIT "\
-		<TR><TD>Device:</TD><TD><input name=\"device\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##DEVICE####R_PORT####L_PORT##\"></TD></TR>\n\
-    <TR><TD>Group:</TD><TD><input name=\"grp\" type=\"text\" size=\"10\" maxlength=\"10\" value=\"##GRP##\"></TD></TR>\n\
-    <TR><TD>Key:</TD><TD><input name=\"key\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##NCD_KEY##\"></TD></TR>\n\
+#define TPLREADERCONFIGSTDHWREADERBIT "\
+	<TR><TD>Smargopatch:<input name=\"smargopatch\" type=\"hidden\" value=\"0\"></TD><TD><input name=\"smargopatch\" type=\"checkbox\" value=\"1\" ##SMARGOPATCHCHECKED##></TD></TR>\n\
     <TR><TD>Pincode:</TD><TD><input name=\"pincode\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##PINCODE##\"></TD></TR>\n\
-    <TR><TD>Readnano:</TD><TD><input name=\"readnano\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##EMMFILE##\"></TD></TR>\n\
-    <TR><TD>Services:</TD><TD>\n<TABLE cellspacing=\"0\" class=\"invisible\">##SIDS##</TD>\n</TR>\n</TABLE>\n\
-    <TR><TD>Inactivitytimeout:</TD><TD><input name=\"inactivitytimeout\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##INACTIVITYTIMEOUT##\"></TD></TR>\n\
-    <TR><TD>Reconnecttimeout:</TD><TD><input name=\"reconnecttimeout\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##RECEIVETIMEOUT##\"></TD></TR>\n\
     <TR><TD>Disableserverfilter:</TD><TD><input name=\"disableserverfilter\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##DISABLESERVERFILTER##\"></TD></TR>\n\
-    <TR><TD>Fallback:</TD><TD><input name=\"fallback\" type=\"text\" size=\"3\" maxlength=\"3\" value=\"##FALLBACK##\"></TD></TR>\n\
-    <TR><TD>CAID:</TD><TD><input name=\"caid\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"##CAIDS##\"></TD></TR>\n\
     <TR><TD>Boxid:</TD><TD><input name=\"boxid\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##BOXID##\"></TD></TR>\n\
+    <TR><TD>Rsakey:</TD><TD><input name=\"rsakey\" type=\"text\" size=\"140\" maxlength=\"128\" value=\"##RSAKEY##\"></TD></TR>\n\
+    <TR><TD>Boxkey:</TD><TD><input name=\"boxkey\" type=\"text\" size=\"20\" maxlength=\"16\" value=\"##BOXKEY##\"></TD></TR>\n\
+    <TR><TD>ATR:</TD><TD><input name=\"atr\" type=\"text\" size=\"50\" maxlength=\"20\" value=\"##ATR##\"></TD></TR>\n\
     <TR><TD>Detect:</TD><TD><input name=\"detect\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##DETECT##\"></TD></TR>\n\
     <TR><TD>Mhz:</TD><TD><input name=\"mhz\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##MHZ##\"></TD></TR>\n\
     <TR><TD>Cardmhz:</TD><TD><input name=\"cardmhz\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##CARDMHZ##\"></TD></TR>\n\
+    <TR><TD>Deprecated:<input name=\"deprecated\" type=\"hidden\" value=\"0\"></TD><TD><input name=\"deprecated\" type=\"checkbox\" value=\"1\" ##DEPRECATEDCHCHECKED##></TD></TR>\n\
+    <TR><TD>Readnano:</TD><TD><input name=\"readnano\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##EMMFILE##\"></TD></TR>\n\
     <TR><TD>Blocknano:</TD><TD><input name=\"blocknano\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"##BLOCKNANO##\"></TD></TR>\n\
     <TR><TD>Savenano:</TD><TD><input name=\"savenano\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"##SAVENANO##\"></TD></TR>\n"
-#define TPLREADERCONFIGSMARTBIT "\
-		<TR><TD>Device:</TD><TD><input name=\"device\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##DEVICE####R_PORT####L_PORT##\"></TD></TR>\n\
-    <TR><TD>Group:</TD><TD><input name=\"grp\" type=\"text\" size=\"10\" maxlength=\"10\" value=\"##GRP##\"></TD></TR>\n\
-    <TR><TD>Key:</TD><TD><input name=\"key\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##NCD_KEY##\"></TD></TR>\n\
-    <TR><TD>Pincode:</TD><TD><input name=\"pincode\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##PINCODE##\"></TD></TR>\n\
-    <TR><TD>Readnano:</TD><TD><input name=\"readnano\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##EMMFILE##\"></TD></TR>\n\
-    <TR><TD>Services:</TD><TD>\n<TABLE cellspacing=\"0\" class=\"invisible\">##SIDS##</TD>\n</TR>\n</TABLE>\n\
-    <TR><TD>Inactivitytimeout:</TD><TD><input name=\"inactivitytimeout\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##INACTIVITYTIMEOUT##\"></TD></TR>\n\
-    <TR><TD>Reconnecttimeout:</TD><TD><input name=\"reconnecttimeout\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##RECEIVETIMEOUT##\"></TD></TR>\n\
-    <TR><TD>Disableserverfilter:</TD><TD><input name=\"disableserverfilter\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##DISABLESERVERFILTER##\"></TD></TR>\n\
-    <TR><TD>Fallback:</TD><TD><input name=\"fallback\" type=\"text\" size=\"3\" maxlength=\"3\" value=\"##FALLBACK##\"></TD></TR>\n\
-    <TR><TD>CAID:</TD><TD><input name=\"caid\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"##CAIDS##\"></TD></TR>\n\
-    <TR><TD>Boxid:</TD><TD><input name=\"boxid\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##BOXID##\"></TD></TR>\n"
-#define TPLREADERCONFIGINTERNALBIT "\
-		<TR><TD>Device:</TD><TD><input name=\"device\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##DEVICE####R_PORT####L_PORT##\"></TD></TR>\n\
-    <TR><TD>Group:</TD><TD><input name=\"grp\" type=\"text\" size=\"10\" maxlength=\"10\" value=\"##GRP##\"></TD></TR>\n\
-    <TR><TD>Key:</TD><TD><input name=\"key\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##NCD_KEY##\"></TD></TR>\n\
-    <TR><TD>Pincode:</TD><TD><input name=\"pincode\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##PINCODE##\"></TD></TR>\n\
-    <TR><TD>Readnano:</TD><TD><input name=\"readnano\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##EMMFILE##\"></TD></TR>\n\
-    <TR><TD>Services:</TD><TD>\n<TABLE cellspacing=\"0\" class=\"invisible\">##SIDS##</TD>\n</TR>\n</TABLE>\n\
-    <TR><TD>Inactivitytimeout:</TD><TD><input name=\"inactivitytimeout\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##INACTIVITYTIMEOUT##\"></TD></TR>\n\
-    <TR><TD>Reconnecttimeout:</TD><TD><input name=\"reconnecttimeout\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##RECEIVETIMEOUT##\"></TD></TR>\n\
-    <TR><TD>Disableserverfilter:</TD><TD><input name=\"disableserverfilter\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##DISABLESERVERFILTER##\"></TD></TR>\n\
-    <TR><TD>Fallback:</TD><TD><input name=\"fallback\" type=\"text\" size=\"3\" maxlength=\"3\" value=\"##FALLBACK##\"></TD></TR>\n\
-    <TR><TD>CAID:</TD><TD><input name=\"caid\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"##CAIDS##\"></TD></TR>\n\
-    <TR><TD>Boxid:</TD><TD><input name=\"boxid\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##BOXID##\"></TD></TR>\n"
-#define TPLREADERCONFIGSERIALBIT "\
-		<TR><TD>Device:</TD><TD><input name=\"device\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##DEVICE####R_PORT####L_PORT##\"></TD></TR>\n\
-    <TR><TD>Group:</TD><TD><input name=\"grp\" type=\"text\" size=\"10\" maxlength=\"10\" value=\"##GRP##\"></TD></TR>\n\
-    <TR><TD>Key:</TD><TD><input name=\"key\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##NCD_KEY##\"></TD></TR>\n\
-    <TR><TD>Pincode:</TD><TD><input name=\"pincode\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##PINCODE##\"></TD></TR>\n\
-    <TR><TD>Readnano:</TD><TD><input name=\"readnano\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##EMMFILE##\"></TD></TR>\n\
-    <TR><TD>Services:</TD><TD>\n<TABLE cellspacing=\"0\" class=\"invisible\">##SIDS##</TD>\n</TR>\n</TABLE>\n\
-    <TR><TD>Inactivitytimeout:</TD><TD><input name=\"inactivitytimeout\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##INACTIVITYTIMEOUT##\"></TD></TR>\n\
-    <TR><TD>Reconnecttimeout:</TD><TD><input name=\"reconnecttimeout\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##RECEIVETIMEOUT##\"></TD></TR>\n\
-    <TR><TD>Disableserverfilter:</TD><TD><input name=\"disableserverfilter\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##DISABLESERVERFILTER##\"></TD></TR>\n\
-    <TR><TD>Fallback:</TD><TD><input name=\"fallback\" type=\"text\" size=\"3\" maxlength=\"3\" value=\"##FALLBACK##\"></TD></TR>\n\
-    <TR><TD>CAID:</TD><TD><input name=\"caid\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"##CAIDS##\"></TD></TR>\n\
-    <TR><TD>Boxid:</TD><TD><input name=\"boxid\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##BOXID##\"></TD></TR>\n"
 #define TPLREADERCONFIGCAMD35BIT "\
-		<TR><TD>Device:</TD><TD><input name=\"device\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##DEVICE####R_PORT####L_PORT##\"></TD></TR>\n\
-    <TR><TD>Account:</TD><TD><input name=\"account\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##USER##,##PASS##\"></TD></TR>\n\
-    <TR><TD>Group:</TD><TD><input name=\"grp\" type=\"text\" size=\"10\" maxlength=\"10\" value=\"##GRP##\"></TD></TR>\n\
-    <TR><TD>Key:</TD><TD><input name=\"key\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##NCD_KEY##\"></TD></TR>\n\
-    <TR><TD>Pincode:</TD><TD><input name=\"pincode\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##PINCODE##\"></TD></TR>\n\
-    <TR><TD>Readnano:</TD><TD><input name=\"readnano\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##EMMFILE##\"></TD></TR>\n\
-    <TR><TD>Services:</TD><TD>\n<TABLE cellspacing=\"0\" class=\"invisible\">##SIDS##</TD>\n</TR>\n</TABLE>\n\
-    <TR><TD>Inactivitytimeout:</TD><TD><input name=\"inactivitytimeout\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##INACTIVITYTIMEOUT##\"></TD></TR>\n\
-    <TR><TD>Reconnecttimeout:</TD><TD><input name=\"reconnecttimeout\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##RECEIVETIMEOUT##\"></TD></TR>\n\
-    <TR><TD>Disableserverfilter:</TD><TD><input name=\"disableserverfilter\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##DISABLESERVERFILTER##\"></TD></TR>\n\
-    <TR><TD>Fallback:</TD><TD><input name=\"fallback\" type=\"text\" size=\"3\" maxlength=\"3\" value=\"##FALLBACK##\"></TD></TR>\n\
-    <TR><TD>CAID:</TD><TD><input name=\"caid\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"##CAIDS##\"></TD></TR>\n\
-    <TR><TD>Boxid:</TD><TD><input name=\"boxid\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##BOXID##\"></TD></TR>\n"
+    <TR><TD>Account:</TD><TD><input name=\"account\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##ACCOUNT##\"></TD></TR>\n\
+    <TR><TD>Reconnect timeout:</TD><TD><input name=\"reconnecttimeout\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##RECEIVETIMEOUT##\"></TD></TR>\n\
+    <TR><TD>Disable server filter:</TD><TD><input name=\"disableserverfilter\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##DISABLESERVERFILTER##\"></TD></TR>\n"
 #define TPLREADERCONFIGCS378XBIT "\
-		<TR><TD>Device:</TD><TD><input name=\"device\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##DEVICE####R_PORT####L_PORT##\"></TD></TR>\n\
-    <TR><TD>Group:</TD><TD><input name=\"grp\" type=\"text\" size=\"10\" maxlength=\"10\" value=\"##GRP##\"></TD></TR>\n\
+    <TR><TD>Account:</TD><TD><input name=\"account\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##ACCOUNT##\"></TD></TR>\n\
     <TR><TD>Key:</TD><TD><input name=\"key\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##NCD_KEY##\"></TD></TR>\n\
-    <TR><TD>Pincode:</TD><TD><input name=\"pincode\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##PINCODE##\"></TD></TR>\n\
-    <TR><TD>Readnano:</TD><TD><input name=\"readnano\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##EMMFILE##\"></TD></TR>\n\
-    <TR><TD>Services:</TD><TD>\n<TABLE cellspacing=\"0\" class=\"invisible\">##SIDS##</TD>\n</TR>\n</TABLE>\n\
-    <TR><TD>Inactivitytimeout:</TD><TD><input name=\"inactivitytimeout\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##INACTIVITYTIMEOUT##\"></TD></TR>\n\
-    <TR><TD>Reconnecttimeout:</TD><TD><input name=\"reconnecttimeout\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##RECEIVETIMEOUT##\"></TD></TR>\n\
-    <TR><TD>Disableserverfilter:</TD><TD><input name=\"disableserverfilter\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##DISABLESERVERFILTER##\"></TD></TR>\n\
-    <TR><TD>Fallback:</TD><TD><input name=\"fallback\" type=\"text\" size=\"3\" maxlength=\"3\" value=\"##FALLBACK##\"></TD></TR>\n\
-    <TR><TD>CAID:</TD><TD><input name=\"caid\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"##CAIDS##\"></TD></TR>\n\
-    <TR><TD>Boxid:</TD><TD><input name=\"boxid\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##BOXID##\"></TD></TR>\n"
+    <TR><TD>Reconnect timeout:</TD><TD><input name=\"reconnecttimeout\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##RECEIVETIMEOUT##\"></TD></TR>\n\
+    <TR><TD>Disable server filter:</TD><TD><input name=\"disableserverfilter\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##DISABLESERVERFILTER##\"></TD></TR>\n"
 #define TPLREADERCONFIGRADEGASTBIT "\
-		<TR><TD>Device:</TD><TD><input name=\"device\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##DEVICE####R_PORT####L_PORT##\"></TD></TR>\n\
-    <TR><TD>Group:</TD><TD><input name=\"grp\" type=\"text\" size=\"10\" maxlength=\"10\" value=\"##GRP##\"></TD></TR>\n\
-    <TR><TD>Key:</TD><TD><input name=\"key\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##NCD_KEY##\"></TD></TR>\n\
-    <TR><TD>Pincode:</TD><TD><input name=\"pincode\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##PINCODE##\"></TD></TR>\n\
-    <TR><TD>Readnano:</TD><TD><input name=\"readnano\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##EMMFILE##\"></TD></TR>\n\
-    <TR><TD>Services:</TD><TD>\n<TABLE cellspacing=\"0\" class=\"invisible\">##SIDS##</TD>\n</TR>\n</TABLE>\n\
-    <TR><TD>Inactivitytimeout:</TD><TD><input name=\"inactivitytimeout\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##INACTIVITYTIMEOUT##\"></TD></TR>\n\
-    <TR><TD>Reconnecttimeout:</TD><TD><input name=\"reconnecttimeout\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##RECEIVETIMEOUT##\"></TD></TR>\n\
-    <TR><TD>Disableserverfilter:</TD><TD><input name=\"disableserverfilter\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##DISABLESERVERFILTER##\"></TD></TR>\n\
-    <TR><TD>Fallback:</TD><TD><input name=\"fallback\" type=\"text\" size=\"3\" maxlength=\"3\" value=\"##FALLBACK##\"></TD></TR>\n\
-    <TR><TD>CAID:</TD><TD><input name=\"caid\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"##CAIDS##\"></TD></TR>\n\
-    <TR><TD>Boxid:</TD><TD><input name=\"boxid\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##BOXID##\"></TD></TR>\n"
+	<TR><TD>Account:</TD><TD><input name=\"account\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##ACCOUNT##\"></TD></TR>\n\
+    <TR><TD>Inactivity timeout:</TD><TD><input name=\"inactivitytimeout\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##INACTIVITYTIMEOUT##\"></TD></TR>\n\
+    <TR><TD>Reconnect timeout:</TD><TD><input name=\"reconnecttimeout\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##RECEIVETIMEOUT##\"></TD></TR>\n\
+    <TR><TD>Disable server filter:</TD><TD><input name=\"disableserverfilter\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##DISABLESERVERFILTER##\"></TD></TR>\n"
 #define TPLREADERCONFIGNCD525BIT "\
-		<TR><TD>Device:</TD><TD><input name=\"device\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##DEVICE####R_PORT####L_PORT##\"></TD></TR>\n\
-    <TR><TD>Group:</TD><TD><input name=\"grp\" type=\"text\" size=\"10\" maxlength=\"10\" value=\"##GRP##\"></TD></TR>\n\
+	<TR><TD>Account:</TD><TD><input name=\"account\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##ACCOUNT##\"></TD></TR>\n\
     <TR><TD>Key:</TD><TD><input name=\"key\" type=\"text\" size=\"40\" maxlength=\"28\" value=\"##NCD_KEY##\"></TD></TR>\n\
-    <TR><TD>Pincode:</TD><TD><input name=\"pincode\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##PINCODE##\"></TD></TR>\n\
-    <TR><TD>Readnano:</TD><TD><input name=\"readnano\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##EMMFILE##\"></TD></TR>\n\
-    <TR><TD>Services:</TD><TD>\n<TABLE cellspacing=\"0\" class=\"invisible\">##SIDS##</TD>\n</TR>\n</TABLE>\n\
-    <TR><TD>Inactivitytimeout:</TD><TD><input name=\"inactivitytimeout\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##INACTIVITYTIMEOUT##\"></TD></TR>\n\
-    <TR><TD>Reconnecttimeout:</TD><TD><input name=\"reconnecttimeout\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##RECEIVETIMEOUT##\"></TD></TR>\n\
-    <TR><TD>Disableserverfilter:</TD><TD><input name=\"disableserverfilter\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##DISABLESERVERFILTER##\"></TD></TR>\n\
-    <TR><TD>Fallback:</TD><TD><input name=\"fallback\" type=\"text\" size=\"3\" maxlength=\"3\" value=\"##FALLBACK##\"></TD></TR>\n\
-    <TR><TD>CAID:</TD><TD><input name=\"caid\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"##CAIDS##\"></TD></TR>\n\
-    <TR><TD>Boxid:</TD><TD><input name=\"boxid\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##BOXID##\"></TD></TR>\n"
+    <TR><TD>Inactivity timeout:</TD><TD><input name=\"inactivitytimeout\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##INACTIVITYTIMEOUT##\"></TD></TR>\n\
+    <TR><TD>Reconnect timeout:</TD><TD><input name=\"reconnecttimeout\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##RECEIVETIMEOUT##\"></TD></TR>\n\
+    <TR><TD>Disable server filter:</TD><TD><input name=\"disableserverfilter\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##DISABLESERVERFILTER##\"></TD></TR>\n"
 #define TPLREADERCONFIGNCD524BIT "\
-		<TR><TD>Device:</TD><TD><input name=\"device\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##DEVICE####R_PORT####L_PORT##\"></TD></TR>\n\
-    <TR><TD>Group:</TD><TD><input name=\"grp\" type=\"text\" size=\"10\" maxlength=\"10\" value=\"##GRP##\"></TD></TR>\n\
+	<TR><TD>Account:</TD><TD><input name=\"account\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##ACCOUNT##\"></TD></TR>\n\
     <TR><TD>Key:</TD><TD><input name=\"key\" type=\"text\" size=\"40\" maxlength=\"28\" value=\"##NCD_KEY##\"></TD></TR>\n\
-    <TR><TD>Pincode:</TD><TD><input name=\"pincode\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##PINCODE##\"></TD></TR>\n\
-    <TR><TD>Readnano:</TD><TD><input name=\"readnano\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##EMMFILE##\"></TD></TR>\n\
-    <TR><TD>Services:</TD><TD>\n<TABLE cellspacing=\"0\" class=\"invisible\">##SIDS##</TD>\n</TR>\n</TABLE>\n\
-    <TR><TD>Inactivitytimeout:</TD><TD><input name=\"inactivitytimeout\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##INACTIVITYTIMEOUT##\"></TD></TR>\n\
-    <TR><TD>Reconnecttimeout:</TD><TD><input name=\"reconnecttimeout\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##RECEIVETIMEOUT##\"></TD></TR>\n\
-    <TR><TD>Disableserverfilter:</TD><TD><input name=\"disableserverfilter\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##DISABLESERVERFILTER##\"></TD></TR>\n\
-    <TR><TD>Fallback:</TD><TD><input name=\"fallback\" type=\"text\" size=\"3\" maxlength=\"3\" value=\"##FALLBACK##\"></TD></TR>\n\
-    <TR><TD>CAID:</TD><TD><input name=\"caid\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"##CAIDS##\"></TD></TR>\n\
-    <TR><TD>Boxid:</TD><TD><input name=\"boxid\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##BOXID##\"></TD></TR>\n"
+    <TR><TD>Inactivity timeout:</TD><TD><input name=\"inactivitytimeout\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##INACTIVITYTIMEOUT##\"></TD></TR>\n\
+    <TR><TD>Reconnect timeout:</TD><TD><input name=\"reconnecttimeout\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##RECEIVETIMEOUT##\"></TD></TR>\n\
+    <TR><TD>Disable server filter:</TD><TD><input name=\"disableserverfilter\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##DISABLESERVERFILTER##\"></TD></TR>\n"
+#define TPLREADERCONFIGCCCAMBIT "\
+	<TR><TD>Account:</TD><TD><input name=\"account\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"##ACCOUNT##\"></TD></TR>\n\
+    <TR><TD>Version:</TD><TD><input name=\"cccversion\" type=\"text\" size=\"15\" maxlength=\"15\" value=\"##CCCVERSION##\"></TD></TR>\n\
+    <TR><TD>Build:</TD><TD><input name=\"cccbuild\" type=\"text\" size=\"15\" maxlength=\"15\" value=\"##CCCBUILD##\"></TD></TR>\n\
+    <TR><TD>Maxhop:</TD><TD><input name=\"cccmaxhop\" type=\"text\" size=\"3\" maxlength=\"2\" value=\"##CCCMAXHOP##\"></TD></TR>\n\
+    <TR><TD>Disable retry ECM: <input name=\"cccdisableretryecm\" type=\"hidden\" value=\"0\"></TD><TD><input name=\"cccdisableretryecm\" type=\"checkbox\" value=\"1\" ##CCCDISABLERETRYECMCHECKED##></TD></TR>\n\
+    <TR><TD>Disable auto blocking of undecodable channels: <input name=\"cccdisableautoblock\" type=\"hidden\" value=\"0\"></TD><TD><input name=\"cccdisableautoblock\" type=\"checkbox\" value=\"1\" ##CCCDISABLEAUTOBLOCKCHECKED##></TD></TR>\n\
+    <TR><TD>Reconnect-timeout:</TD><TD><input name=\"reconnecttimeout\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##RECEIVETIMEOUT##\"></TD></TR>\n\
+    <TR><TD>Disable server filter:</TD><TD><input name=\"disableserverfilter\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##DISABLESERVERFILTER##\"></TD></TR>\n"
 #ifdef CS_WITH_GBOX
 #define TPLREADERCONFIGGBOXBIT "\
-		<TR><TD>Device:</TD><TD><input name=\"device\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##DEVICE####R_PORT####L_PORT##\"></TD></TR>\n\
-    <TR><TD>Group:</TD><TD><input name=\"grp\" type=\"text\" size=\"10\" maxlength=\"10\" value=\"##GRP##\"></TD></TR>\n\
-    <TR><TD>Key:</TD><TD><input name=\"key\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##NCD_KEY##\"></TD></TR>\n\
-    <TR><TD>Pincode:</TD><TD><input name=\"pincode\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##PINCODE##\"></TD></TR>\n\
-    <TR><TD>Readnano:</TD><TD><input name=\"readnano\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##EMMFILE##\"></TD></TR>\n\
-    <TR><TD>Services:</TD><TD>\n<TABLE cellspacing=\"0\" class=\"invisible\">##SIDS##</TD>\n</TR>\n</TABLE>\n\
-    <TR><TD>Inactivitytimeout:</TD><TD><input name=\"inactivitytimeout\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##INACTIVITYTIMEOUT##\"></TD></TR>\n\
-    <TR><TD>Reconnecttimeout:</TD><TD><input name=\"reconnecttimeout\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##RECEIVETIMEOUT##\"></TD></TR>\n\
-    <TR><TD>Disableserverfilter:</TD><TD><input name=\"disableserverfilter\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##DISABLESERVERFILTER##\"></TD></TR>\n\
-    <TR><TD>Fallback:</TD><TD><input name=\"fallback\" type=\"text\" size=\"3\" maxlength=\"3\" value=\"##FALLBACK##\"></TD></TR>\n\
-    <TR><TD>CAID:</TD><TD><input name=\"caid\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"##CAIDS##\"></TD></TR>\n\
-    <TR><TD>Boxid:</TD><TD><input name=\"boxid\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##BOXID##\"></TD></TR>\n"
+	<TR><TD>Account:</TD><TD><input name=\"account\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##ACCOUNT##\"></TD></TR>\n\
+    <TR><TD>Inactivity timeout:</TD><TD><input name=\"inactivitytimeout\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##INACTIVITYTIMEOUT##\"></TD></TR>\n\
+    <TR><TD>Reconnect timeout:</TD><TD><input name=\"reconnecttimeout\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##RECEIVETIMEOUT##\"></TD></TR>\n\
+    <TR><TD>Disable server filter:</TD><TD><input name=\"disableserverfilter\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##DISABLESERVERFILTER##\"></TD></TR>\n"
 #endif
-#ifdef HAVE_PCSC
-#define TPLREADERCONFIGPCSCBIT "\
-		<TR><TD>Device:</TD><TD><input name=\"device\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##DEVICE####R_PORT####L_PORT##\"></TD></TR>\n\
-    <TR><TD>Group:</TD><TD><input name=\"grp\" type=\"text\" size=\"10\" maxlength=\"10\" value=\"##GRP##\"></TD></TR>\n\
-    <TR><TD>Key:</TD><TD><input name=\"key\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##NCD_KEY##\"></TD></TR>\n\
-    <TR><TD>Pincode:</TD><TD><input name=\"pincode\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##PINCODE##\"></TD></TR>\n\
-    <TR><TD>Readnano:</TD><TD><input name=\"readnano\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##EMMFILE##\"></TD></TR>\n\
-    <TR><TD>Services:</TD><TD>\n<TABLE cellspacing=\"0\" class=\"invisible\">##SIDS##</TD>\n</TR>\n</TABLE>\n\
-    <TR><TD>Inactivitytimeout:</TD><TD><input name=\"inactivitytimeout\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##INACTIVITYTIMEOUT##\"></TD></TR>\n\
-    <TR><TD>Reconnecttimeout:</TD><TD><input name=\"reconnecttimeout\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##RECEIVETIMEOUT##\"></TD></TR>\n\
-    <TR><TD>Disableserverfilter:</TD><TD><input name=\"disableserverfilter\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##DISABLESERVERFILTER##\"></TD></TR>\n\
-    <TR><TD>Fallback:</TD><TD><input name=\"fallback\" type=\"text\" size=\"3\" maxlength=\"3\" value=\"##FALLBACK##\"></TD></TR>\n\
-    <TR><TD>CAID:</TD><TD><input name=\"caid\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"##CAIDS##\"></TD></TR>\n\
-    <TR><TD>Boxid:</TD><TD><input name=\"boxid\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##BOXID##\"></TD></TR>\n"
-#endif
+
 #define TPLCONFIGGBOX "\
 ##TPLHEADER##\
 ##TPLMENU##\n\
@@ -872,8 +822,8 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 		<TR><TH>&nbsp;</TH><TH>Edit Monitor Config</TH></TR>\n\
 		<TR><TD>Port:</TD><TD><input name=\"port\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##MONPORT##\"></TD></TR>\n\
 		<TR><TD>Serverip:</TD><TD><input name=\"serverip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##SERVERIP##\"></TD></TR>\n\
-		<TR><TD>Nocrypt:</TD><TD><input name=\"nocrypt\" type=\"text\" size=\"100\" maxlength=\"200\" value=\"##NOCRYPT##\"></TD></TR>\n\
-		<TR><TD>Aulow:</TD><TD><input name=\"aulow\" type=\"text\" size=\"5\" maxlength=\"1\" value=\"##AULOW##\"> min</TD></TR>\n\
+		<TR><TD>No crypt:</TD><TD><input name=\"nocrypt\" type=\"text\" size=\"100\" maxlength=\"200\" value=\"##NOCRYPT##\"></TD></TR>\n\
+		<TR><TD>Au low:</TD><TD><input name=\"aulow\" type=\"text\" size=\"5\" maxlength=\"1\" value=\"##AULOW##\"> min</TD></TR>\n\
 		<TR>\n\
 			<TD>Monlevel:</TD>\n\
 	    <TD><select name=\"monlevel\">\n\
@@ -884,19 +834,19 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 				<option value=\"4\" ##MONSELECTED4##>4 - complete access</option>\n\
 			</select></TD>\n\
 		</TR>\n\
-		<TR><TD>Hideclientto:</TD><TD><input name=\"hideclient_to\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##HIDECLIENTTO##\"> s</TD></TR>\n\
-		<TR><TD>Appendchaninfo:</TD><TD><input name=\"appendchaninfo\" type=\"checkbox\" value=\"1\" ##APPENDCHANINFO##></TD></TR>\n\
+		<TR><TD>Hide client to:</TD><TD><input name=\"hideclient_to\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##HIDECLIENTTO##\"> s</TD></TR>\n\
+		<TR><TD>Append channel info:</TD><TD><input name=\"appendchaninfo\" type=\"checkbox\" value=\"1\" ##APPENDCHANINFO##></TD></TR>\n\
 		<TR><TH>&nbsp;</TH><TH>Webinterface Config</TH></TR>\n\
-		<TR><TD>Httpport:</TD><TD><input name=\"httpport\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##HTTPPORT##\"></TD></TR>\n\
-		<TR><TD>Httpuser:</TD><TD><input name=\"httpuser\" type=\"text\" size=\"20\" maxlength=\"20\" value=\"##HTTPUSER##\"></TD></TR>\n\
-		<TR><TD>Httppwd:</TD><TD><input name=\"httppwd\" type=\"text\" size=\"20\" maxlength=\"20\" value=\"##HTTPPASSWORD##\"></TD></TR>\n\
-		<TR><TD>Httpcss:</TD><TD><SELECT name=\"httpcss\">##CSSOPTIONS##</select></TD></TR>\n\
-		<TR><TD>Httprefresh:</TD><TD><input name=\"httprefresh\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##HTTPREFRESH##\"> s</TD></TR>\n\
-		<TR><TD>Httptpl:</TD><TD><input name=\"httptpl\" type=\"text\" size=\"50\" maxlength=\"128\" value=\"##HTTPTPL##\"></TD></TR>\n\
-		<TR><TD>Httpscript:</TD><TD><input name=\"httpscript\" type=\"text\" size=\"50\" maxlength=\"128\" value=\"##HTTPSCRIPT##\"></TD></TR>\n\
-		<TR><TD>HttpHideIdleClients:</TD><TD><input name=\"httphideidleclients\" type=\"checkbox\" value=\"1\" ##CHECKED##>\n\
-		<TR><TD>Httpallowed:</TD><TD><input name=\"httpallowed\" type=\"text\" size=\"100\" maxlength=\"200\" value=\"##HTTPALLOW##\"></TD></TR>\n\
-		<TR><TD>Httpdyndns:</TD><TD><input name=\"httpdyndns\" type=\"text\" size=\"100\" maxlength=\"200\" value=\"##HTTPDYNDNS##\"></TD></TR>\n\
+		<TR><TD>Http port:</TD><TD><input name=\"httpport\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##HTTPPORT##\"></TD></TR>\n\
+		<TR><TD>Http user:</TD><TD><input name=\"httpuser\" type=\"text\" size=\"20\" maxlength=\"20\" value=\"##HTTPUSER##\"></TD></TR>\n\
+		<TR><TD>Http pwd:</TD><TD><input name=\"httppwd\" type=\"text\" size=\"20\" maxlength=\"20\" value=\"##HTTPPASSWORD##\"></TD></TR>\n\
+		<TR><TD>Http css:</TD><TD><SELECT name=\"httpcss\">##CSSOPTIONS##</select></TD></TR>\n\
+		<TR><TD>Http refresh:</TD><TD><input name=\"httprefresh\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##HTTPREFRESH##\"> s</TD></TR>\n\
+		<TR><TD>Http tpl:</TD><TD><input name=\"httptpl\" type=\"text\" size=\"50\" maxlength=\"128\" value=\"##HTTPTPL##\"></TD></TR>\n\
+		<TR><TD>Http script:</TD><TD><input name=\"httpscript\" type=\"text\" size=\"50\" maxlength=\"128\" value=\"##HTTPSCRIPT##\"></TD></TR>\n\
+		<TR><TD>Http Hide Idle Clients:</TD><TD><input name=\"httphideidleclients\" type=\"checkbox\" value=\"1\" ##CHECKED##>\n\
+		<TR><TD>Http allowed:</TD><TD><input name=\"httpallowed\" type=\"text\" size=\"100\" maxlength=\"200\" value=\"##HTTPALLOW##\"></TD></TR>\n\
+		<TR><TD>Http dyndns:</TD><TD><input name=\"httpdyndns\" type=\"text\" size=\"100\" maxlength=\"200\" value=\"##HTTPDYNDNS##\"></TD></TR>\n\
     <TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\" ##BTNDISABLED##>\n</TD></TR>\n\
 	</TABLE>\n\
 </form>\n\
@@ -966,28 +916,29 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 		<TR><TH>&nbsp;</TH><TH>Edit Global Config</TH></TR>\n\
 		<TR><TD>Serverip:</TD><TD><input name=\"serverip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##SERVERIP##\"></TD></TR>\n\
 		<TR><TD>PID File:</TD><TD><input name=\"pidfile\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##PIDFILE##\"></TD></TR>\n\
-		<TR><TD>Disableuserfile:</TD><TD><input name=\"disableuserfile\" type=\"checkbox\" value=\"1\" ##CHKDISABLEUSERFILE##></TD></TR>\n\
-		<TR><TD>Usrfile:</TD><TD><input name=\"usrfile\" type=\"text\" size=\"30\" maxlength=\"128\" value=\"##USERFILE##\"></TD></TR>\n\
-		<TR><TD>Disablelog:</TD><TD><input name=\"disablelog\" type=\"checkbox\" value=\"1\" ##CHKDISABLELOG##></TD></TR>\n\
-		<TR><TD>Logfile:</TD><TD><input name=\"logfile\" type=\"text\" size=\"30\" maxlength=\"128\" value=\"##LOGFILE##\"></TD></TR>\n\
-		<TR><TD>Usrfileflag:</TD><TD><input name=\"usrfileflag\" type=\"text\" size=\"5\" maxlength=\"1\" value=\"##USERFILEFLAG##\"></TD></TR>\n\
-		<TR><TD>CWlogdir:</TD><TD><input name=\"cwlogdir\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##CWLOGDIR##\"></TD></TR>\n\
-		<TR><TD>Clienttimeout:</TD><TD><input name=\"clienttimeout\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##CLIENTTIMEOUT##\"> ms</TD></TR>\n\
-		<TR><TD>Fallbacktimeout:</TD><TD><input name=\"fallbacktimeout\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##FALLBACKTIMEOUT##\"> ms</TD></TR>\n\
-		<TR><TD>Clientmaxidle:</TD><TD><input name=\"clientmaxidle\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##CLIENTMAXIDLE##\"> s</TD></TR>\n\
-		<TR><TD>Cachedelay:</TD><TD><input name=\"cachedelay\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##CACHEDELAY##\"> ms</TD></TR>\n\
-		<TR><TD>Bindwait:</TD><TD><input name=\"bindwait\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##BINDWAIT##\"> s</TD></TR>\n\
-		<TR><TD>Netprio:</TD><TD><input name=\"netprio\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##NETPRIO##\"></TD></TR>\n\
-		<TR><TD>Clientdyndns:</TD><TD><input name=\"clientdyndns\" type=\"checkbox\" value=\"1\" ##CHKCLIENTDYNDNS##></TD></TR>\n\
-		<TR><TD>Resolvedelay:</TD><TD><input name=\"resolvedelay\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##RESOLVEDELAY##\"> s</TD></TR>\n\
+		<TR><TD>Disable userfile:</TD><TD><input name=\"disableuserfile\" type=\"checkbox\" value=\"1\" ##CHKDISABLEUSERFILE##></TD></TR>\n\
+		<TR><TD>Usr file:</TD><TD><input name=\"usrfile\" type=\"text\" size=\"30\" maxlength=\"128\" value=\"##USERFILE##\"></TD></TR>\n\
+		<TR><TD>Disable log:</TD><TD><input name=\"disablelog\" type=\"checkbox\" value=\"1\" ##CHKDISABLELOG##></TD></TR>\n\
+		<TR><TD>Log file:</TD><TD><input name=\"logfile\" type=\"text\" size=\"30\" maxlength=\"128\" value=\"##LOGFILE##\"></TD></TR>\n\
+		<TR><TD>Usr file flag:</TD><TD><input name=\"usrfileflag\" type=\"text\" size=\"5\" maxlength=\"1\" value=\"##USERFILEFLAG##\"></TD></TR>\n\
+		<TR><TD>CW log dir:</TD><TD><input name=\"cwlogdir\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##CWLOGDIR##\"></TD></TR>\n\
+		<TR><TD>Client timeout:</TD><TD><input name=\"clienttimeout\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##CLIENTTIMEOUT##\"> ms</TD></TR>\n\
+		<TR><TD>Fallback timeout:</TD><TD><input name=\"fallbacktimeout\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##FALLBACKTIMEOUT##\"> ms</TD></TR>\n\
+		<TR><TD>Client max idle:</TD><TD><input name=\"clientmaxidle\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##CLIENTMAXIDLE##\"> s</TD></TR>\n\
+		<TR><TD>Cache delay:</TD><TD><input name=\"cachedelay\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##CACHEDELAY##\"> ms</TD></TR>\n\
+		<TR><TD>Bind wait:</TD><TD><input name=\"bindwait\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##BINDWAIT##\"> s</TD></TR>\n\
+		<TR><TD>Net prio:</TD><TD><input name=\"netprio\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##NETPRIO##\"></TD></TR>\n\
+		<TR><TD>Client dyndns:</TD><TD><input name=\"clientdyndns\" type=\"checkbox\" value=\"1\" ##CHKCLIENTDYNDNS##></TD></TR>\n\
+		<TR><TD>Resolve delay:</TD><TD><input name=\"resolvedelay\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##RESOLVEDELAY##\"> s</TD></TR>\n\
 		<TR><TD>Sleep:</TD><TD><input name=\"sleep\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##SLEEP##\"> min</TD></TR>\n\
-		<TR><TD>Unlockparental:</TD><TD><input name=\"unlockparental\" type=\"checkbox\" value=\"1\" ##UNLOCKPARENTAL##></TD></TR>\n\
+		<TR><TD>Unlock parental:</TD><TD><input name=\"unlockparental\" type=\"checkbox\" value=\"1\" ##UNLOCKPARENTAL##></TD></TR>\n\
 		<TR><TD>Nice:</TD><TD><input name=\"nice\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##NICE##\"></TD></TR>\n\
-		<TR><TD>Serialreadertimeout:</TD><TD><input name=\"serialreadertimeout\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##SERIALTIMEOUT##\"> ms</TD></TR>\n\
-		<TR><TD>Maxlogsize:</TD><TD><input name=\"maxlogsize\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##MAXLOGSIZE##\"> kB</TD></TR>\n\
-		<TR><TD>Waitforcards:</TD><TD><input name=\"waitforcards\" type=\"checkbox\" value=\"1\" ##WAITFORCARDS##></TD></TR>\n\
-		<TR><TD>Preferlocalcards:</TD><TD><input name=\"preferlocalcards\" type=\"checkbox\" value=\"1\" ##PREFERLOCALCARDS##></TD></TR>\n\
-		<TR><TD>Saveinithistory:</TD><TD><input name=\"saveinithistory\" type=\"checkbox\" value=\"1\" ##SAVEINITHISTORY##></TD></TR>\n\
+		<TR><TD>Serial reader timeout:</TD><TD><input name=\"serialreadertimeout\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##SERIALTIMEOUT##\"> ms</TD></TR>\n\
+		<TR><TD>Max log size:</TD><TD><input name=\"maxlogsize\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##MAXLOGSIZE##\"> kB</TD></TR>\n\
+		<TR><TD>Wait for cards:</TD><TD><input name=\"waitforcards\" type=\"checkbox\" value=\"1\" ##WAITFORCARDS##></TD></TR>\n\
+		<TR><TD>Prefer local cards:</TD><TD><input name=\"preferlocalcards\" type=\"checkbox\" value=\"1\" ##PREFERLOCALCARDS##></TD></TR>\n\
+		<TR><TD>Save init history:</TD><TD><input name=\"saveinithistory\" type=\"checkbox\" value=\"1\" ##SAVEINITHISTORY##></TD></TR>\n\
+		<TR><TD>Reader restart seconds:</TD><TD><input name=\"readerrestartseconds\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##READERRESTARTSECONDS##\"></TD></TR>\n\
 		<TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\" ##BTNDISABLED##>\n</TD></TR>\n\
 	</TABLE>\n\
 </form>\n\
@@ -1029,7 +980,7 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 		<TR><TH>&nbsp;</TH><TH>Edit Camd35 Config</TH></TR>\n\
 		<TR><TD>Port:</TD><TD><input name=\"port\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##PORT##\"></TD></TR>\n\
 		<TR><TD>Serverip:</TD><TD><input name=\"serverip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##SERVERIP##\"></TD></TR>\n\
-		<TR><TD>Suppresscmd08:</TD><TD><input name=\"suppresscmd08\" type=\"checkbox\" value=\"1\" ##SUPPRESSCMD08##></TD></TR>\n\
+		<TR><TD>Suppress cmd08:</TD><TD><input name=\"suppresscmd08\" type=\"checkbox\" value=\"1\" ##SUPPRESSCMD08##></TD></TR>\n\
 		<TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\" ##BTNDISABLED##>\n</TD></TR>\n\
 	</TABLE>\n\
 </form>\n\
@@ -1049,7 +1000,7 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 		<TR><TH>&nbsp;</TH><TH>Edit Camd35 TCP Config</TH></TR>\n\
 		<TR><TD>Port:</TD><TD><input name=\"port\" type=\"text\" size=\"100\" maxlength=\"200\" value=\"##PORT##\"></TD></TR>\n\
 		<TR><TD>Serverip:</TD><TD><input name=\"serverip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##SERVERIP##\"></TD></TR>\n\
-    	<TR><TD>Suppresscmd08:</TD><TD><input name=\"suppresscmd08\" type=\"checkbox\" value=\"1\" ##SUPPRESSCMD08##></TD></TR>\n\
+    	<TR><TD>Suppress cmd08:</TD><TD><input name=\"suppresscmd08\" type=\"checkbox\" value=\"1\" ##SUPPRESSCMD08##></TD></TR>\n\
     	<TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\" ##BTNDISABLED##>\n</TD></TR>\n\
 	</TABLE>\n\
 </form>\n\
@@ -1211,15 +1162,13 @@ char *tpl[]={
 	"READERCONFIG",
 	"READERCONFIGSIDOKBIT",
 	"READERCONFIGSIDNOBIT",
-	"READERCONFIGMOUSEBIT",
-	"READERCONFIGSMARTBIT",
-	"READERCONFIGINTERNALBIT",
-	"READERCONFIGSERIALBIT",
+	"READERCONFIGSTDHWREADERBIT",
 	"READERCONFIGCAMD35BIT",
 	"READERCONFIGCS378XBIT",
 	"READERCONFIGRADEGASTBIT",
 	"READERCONFIGNCD525BIT",
 	"READERCONFIGNCD524BIT",
+	"READERCONFIGCCCAMBIT",
 	"USEREDIT",
 	"USEREDITRDRSELECTED",
 	"USEREDITSIDOKBIT",
@@ -1260,9 +1209,6 @@ char *tpl[]={
 	,"CONFIGMENUGBOX"
 	,"READERCONFIGGBOXBIT"
 #endif
-#ifdef HAVE_PCSC
-	,"READERCONFIGPCSCBIT"
-#endif
 };
 
 char *tplmap[]={
@@ -1287,15 +1233,13 @@ char *tplmap[]={
 	TPLREADERCONFIG,
 	TPLREADERCONFIGSIDOKBIT,
 	TPLREADERCONFIGSIDNOBIT,
-	TPLREADERCONFIGMOUSEBIT,
-	TPLREADERCONFIGSMARTBIT,
-	TPLREADERCONFIGINTERNALBIT,
-	TPLREADERCONFIGSERIALBIT,
+	TPLREADERCONFIGSTDHWREADERBIT,
 	TPLREADERCONFIGCAMD35BIT,
 	TPLREADERCONFIGCS378XBIT,
 	TPLREADERCONFIGRADEGASTBIT,
 	TPLREADERCONFIGNCD525BIT,
 	TPLREADERCONFIGNCD524BIT,
+	TPLREADERCONFIGCCCAMBIT,
 	TPLUSEREDIT,
 	TPLUSEREDITRDRSELECTED,
 	TPLUSEREDITSIDOKBIT,
@@ -1335,9 +1279,6 @@ char *tplmap[]={
 #ifdef CS_WITH_GBOX
 	,TPLCONFIGMENUGBOX
 	,TPLREADERCONFIGGBOXBIT
-#endif
-#ifdef HAVE_PCSC
-	,TPLREADERCONFIGPCSCBIT
 #endif
 };
 

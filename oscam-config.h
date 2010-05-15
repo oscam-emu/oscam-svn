@@ -104,7 +104,7 @@
 #  endif
 #  define CS_EMBEDDED
 #  ifndef QBOXHD
-#     define CS_NOSHM
+#      define CS_NOSHM
 #  endif
 #  define NO_FTIME
 #  ifndef COOL
@@ -114,7 +114,7 @@
 
 #ifdef UCLIBC
 #  define CS_EMBEDDED
-#  define CS_NOSHM
+#    define CS_NOSHM
 #  define NO_FTIME
 #endif
 
