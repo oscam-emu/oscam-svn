@@ -79,8 +79,8 @@ int cs_init_log(char *file)
 {
 	static char *head = ">> OSCam <<  cardserver started version " CS_VERSION ", build #" CS_SVN_VERSION " (" CS_OSTYPE ")";
 
-	log_txt = malloc(512);
-	log_buf = malloc(700);
+	log_txt = (char*)malloc(512);
+	log_buf = (char*)malloc(700);
 
 	if (!strcmp(file, "stdout")) {
 		use_stdout = 1;

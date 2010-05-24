@@ -79,7 +79,7 @@ void chk_iprange(char *value, struct s_ip **base)
 
 	for (cip=lip=*base; cip; cip=cip->next)
 		lip = cip;
-	if (!(cip=malloc(sizeof(struct s_ip)))) {
+	if (!(cip = (s_ip*)malloc(sizeof(struct s_ip)))) {
 		fprintf(stderr, "Error allocating memory (errno=%d)\n", errno);
 		exit(1);
 	}
@@ -93,7 +93,7 @@ void chk_iprange(char *value, struct s_ip **base)
 			if (i == 0)
 				++i;
 		else {
-			if (!(cip=malloc(sizeof(struct s_ip)))) {
+			if (!(cip = (s_ip*)malloc(sizeof(struct s_ip)))) {
 				fprintf(stderr, "Error allocating memory (errno=%d)\n", errno);
 				exit(1);
 			}
@@ -2336,7 +2336,7 @@ int init_userdb()
 
 	while (fgets(token, sizeof(token), fp)) {
 		int i, l;
-		void *ptr;
+		s_auth *ptr;
 
 		if ((l=strlen(trim(token))) < 3)
 			continue;
@@ -2345,7 +2345,7 @@ int init_userdb()
 			token[l - 1] = 0;
 			tag = (!strcmp("account", strtolower(token + 1)));
 
-			if (!(ptr=malloc(sizeof(struct s_auth)))) {
+			if (!(ptr = (s_auth*)malloc(sizeof(struct s_auth)))) {
 				cs_log("Error allocating memory (errno=%d)", errno);
 				return(1);
 			}
@@ -2418,9 +2418,9 @@ static void chk_entry4sidtab(char *value, struct s_sidtab *sidtab, int what)
   }
   //if (!i) return(0);
   if (b==sizeof(ushort))
-    slist=malloc(i*sizeof(ushort));
+    slist = (ushort*)malloc(i*sizeof(ushort));
   else
-    llist=malloc(i*sizeof(ulong));
+    llist = (ulong*)malloc(i*sizeof(ulong));
   strcpy(value, buf);
   for (i=0, ptr=strtok(value, ","); ptr; ptr=strtok(NULL, ","))
   {
@@ -2483,12 +2483,12 @@ int init_sidtab()
   while (fgets(token, sizeof(token), fp))
   {
     int l;
-    void *ptr;
+    s_sidtab *ptr;
     if ((l=strlen(trim(token)))<3) continue;
     if ((token[0]=='[') && (token[l-1]==']'))
     {
       token[l-1]=0;
-      if (!(ptr=malloc(sizeof(struct s_sidtab))))
+      if (!(ptr = (s_sidtab*)malloc(sizeof(struct s_sidtab))))
       {
         cs_log("Error allocating memory (errno=%d)", errno);
         return(1);
@@ -2533,7 +2533,7 @@ int init_provid() {
 	while (fgets(token, sizeof(token), fp)) {
 
 		int l;
-		void *ptr;
+		s_provid *ptr;
 		char *tmp;
 		tmp = trim(token);
 
@@ -2542,7 +2542,7 @@ int init_provid() {
 		if (!(payload = strchr(token, '|'))) continue;
 		*payload++ = '\0';
 
-		if (!(ptr = malloc(sizeof(struct s_provid)))) {
+		if (!(ptr = (s_provid*)malloc(sizeof(struct s_provid)))) {
 			cs_log("Error allocating memory (errno=%d)", errno);
 			return(1);
 		}
@@ -2604,7 +2604,7 @@ int init_srvid()
 	while (fgets(token, sizeof(token), fp)) {
 
 		int l;
-		void *ptr;
+		s_srvid *ptr;
 		char *tmp;
 		tmp = trim(token);
 
@@ -2613,7 +2613,7 @@ int init_srvid()
 		if (!(payload=strchr(token, '|'))) continue;
 		*payload++ = '\0';
 
-		if (!(ptr = malloc(sizeof(struct s_srvid)))) {
+		if (!(ptr = (s_srvid*)malloc(sizeof(struct s_srvid)))) {
 			cs_log("Error allocating memory (errno=%d)", errno);
 			return(1);
 		}

@@ -31,8 +31,7 @@ char *remote_txt(void)
     return("remote server");
 }
 
-char *trim(txt)
-char *txt;
+char *trim(char *txt)
 {
   register int l;
   register char *p1, *p2;
@@ -455,8 +454,8 @@ void create_rand_str(char *dst, int size){
 
 /* Converts a long value to a char array in bitwise representation.
    Note that the result array MUST be at least 33 bit large and that
-   this function assumes long values to hold only values up to 32bits and to be positive!
-   the result of e.g. long 7 is 11100000000000000000000000000000 this means the array
+   current function assumes long values to hold only values up to 32bits and to be positive!
+   the result of e.g. long 7 is 11100000000000000000000000000000 current means the array
    is reversed */
 void long2bitchar(long value, char *result){
 	int pos;
@@ -551,7 +550,7 @@ int safe_overwrite_with_bak(char *destfile, char *tmpfile, char *bakfile, int fo
 		}
 	}
 	if(rename(tmpfile, destfile) < 0){
-		cs_log("Error renaming new conf file %s to %s (errno=%d). The config will be missing upon next startup as this is non-recoverable!", tmpfile, destfile, errno);
+		cs_log("Error renaming new conf file %s to %s (errno=%d). The config will be missing upon next startup as current is non-recoverable!", tmpfile, destfile, errno);
 		return(1);
 	}
 	return(0);
@@ -581,8 +580,8 @@ void fprintf_conf(FILE *f, int varnameWidth, const char *varname, const char *fm
 	}
 }
 
-/* Ordinary strncpy does not terminate the string if the source is exactly as long or longer as the specified size. This can raise security issues.
-   This function is a replacement which makes sure that a \0 is always added. num should be the real size of char array (do not subtract -1). */
+/* Ordinary strncpy does not terminate the string if the source is exactly as long or longer as the specified size. current can raise security issues.
+   current function is a replacement which makes sure that a \0 is always added. num should be the real size of char array (do not subtract -1). */
 void cs_strncpy(char * destination, const char * source, size_t num){
 	uint32 l, size = strlen(source);
 	if(size > num - 1) l = num - 1;
@@ -593,14 +592,14 @@ void cs_strncpy(char * destination, const char * source, size_t num){
 
 char *get_servicename(int srvid, int caid){
 	int i;
-	struct s_srvid *this = cfg->srvid;
+	struct s_srvid *current = cfg->srvid;
 	static char name[83];
 
-	for (name[0] = 0; this && (!name[0]); this = this->next)
-		if (this->srvid == srvid)
-			for (i=0; i<this->ncaid; i++)
-				if (this->caid[i] == caid)
-					cs_strncpy(name, this->name, 32);
+	for (name[0] = 0; current && (!name[0]); current = current->next)
+		if (current->srvid == srvid)
+			for (i=0; i<current->ncaid; i++)
+				if (current->caid[i] == caid)
+					cs_strncpy(name, current->name, 32);
 
 	if (!name[0]) sprintf(name, "%04X:%04X unknown", caid, srvid);
 	if (!srvid) name[0] = '\0';
@@ -608,12 +607,12 @@ char *get_servicename(int srvid, int caid){
 }
 
 char *get_provider(int caid, ulong provid){
-	struct s_provid *this = cfg->provid;
+	struct s_provid *current = cfg->provid;
 	static char name[83];
 
-	for (name[0] = 0; this && (!name[0]); this = this->next)
-		if (this->caid == caid && this->provid == provid)
-			snprintf(name, 83, "%s / %s / %s", this->prov, this->sat, this->lang);
+	for (name[0] = 0; current && (!name[0]); current = current->next)
+		if (current->caid == caid && current->provid == provid)
+			snprintf(name, 83, "%s / %s / %s", current->prov, current->sat, current->lang);
 
 	if (!name[0]) snprintf(name, 83, "%04X:%06lX unknown", caid, provid);
 	if (!caid) name[0] = '\0';

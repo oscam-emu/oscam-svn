@@ -1563,15 +1563,15 @@ void logCWtoFile(ECM_REQUEST *er)
 	unsigned char  i, parity, writeheader = 0;
 	time_t t;
 	struct tm *timeinfo;
-	struct s_srvid *this;
+	struct s_srvid *current;
 
 	/* 
 	* search service name for that id and change characters
 	* causing problems in file name 
 	*/
 	srvname[0] = 0;
-	for (this=cfg->srvid; this; this = this->next) {
-		if (this->srvid == er->srvid) {
+	for (current=cfg->srvid; current; current = current->next) {
+		if (current->srvid == er->srvid) {
 			cs_strncpy(srvname, this->name, sizeof(srvname));
 			srvname[sizeof(srvname)-1] = 0;
 			for (i = 0; srvname[i]; i++)

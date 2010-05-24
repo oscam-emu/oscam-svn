@@ -77,11 +77,12 @@ int ICC_Async_Device_Init (struct s_reader *reader)
 	cs_debug_mask (D_IFD, "IFD: Opening device %s\n", reader->device);
 
 	reader->written = 0;
-
+  
+  int pos = 0;
 	switch(reader->typ) {
 		case R_SC8in1:
 			pthread_mutex_init(&sc8in1, NULL);
-			int pos = strlen(reader->device)-2; //this is where : should be located; is also valid length of physical device name
+			pos = strlen(reader->device)-2; //this is where : should be located; is also valid length of physical device name
 			if (reader->device[pos] != 0x3a) //0x3a = ":"
 				cs_log("ERROR: '%c' detected instead of slot separator `:` at second to last position of device %s", reader->device[pos], reader->device);
 			reader->slot=(int)reader->device[pos+1] - 0x30;//FIXME test boundaries
@@ -285,16 +286,16 @@ int ICC_Async_CardWrite (struct s_reader *reader, unsigned char *command, unsign
 			break;
 		case ATR_PROTOCOL_TYPE_T1:
 		 {
-			int try = 1;
+			int rtry = 1;
 			do {
 				if (Protocol_T1_Command (reader, command, command_len, rsp, lr) == OK)
 					break;
-				try++;
+				rtry++;
 				//try to resync
 				unsigned char resync[] = { 0x21, 0xC0, 0x00, 0xE1 };
 				Protocol_T1_Command (reader, resync, sizeof(resync), rsp, lr);
 				ifsc = DEFAULT_IFSC;
-			} while (try <= 3);
+			} while (rtry <= 3);
 			break;
 		 }
 		case ATR_PROTOCOL_TYPE_T14:
@@ -638,7 +639,7 @@ static unsigned int ETU_to_ms(struct s_reader * reader, unsigned long WWT)
 	else
 		WWT = 0;
 	double work_etu = 1000 / (double)reader->current_baudrate;//FIXME sometimes work_etu should be used, sometimes initial etu
-	return (unsigned int) WWT * work_etu * reader->cardmhz / reader->mhz;
+	return (unsigned int) (WWT * work_etu * reader->cardmhz / reader->mhz);
 }
 
 static int ICC_Async_SetParity (struct s_reader * reader, unsigned short parity)
@@ -694,9 +695,9 @@ static int InitCard (struct s_reader * reader, ATR * atr, BYTE FI, double d, dou
 {
 	double P,I;
 	double F;
-    	unsigned long BGT, edc, EGT, CGT, WWT = 0;
-    	unsigned int GT;
-    	unsigned long gt_ms;
+ 	unsigned long BGT, edc, EGT, CGT, WWT = 0;
+ 	unsigned int GT;
+  unsigned long gt_ms;
     
 	//set the amps and the volts according to ATR
 	if (ATR_GetParameter(atr, ATR_PARAMETER_P, &P) != ATR_OK)
@@ -717,7 +718,7 @@ static int InitCard (struct s_reader * reader, ATR * atr, BYTE FI, double d, dou
 
 	if (deprecated == 0) {
 		if (reader->protocol_type != ATR_PROTOCOL_TYPE_T14) { //dont switch for T14
-			unsigned long baud_temp = d * ICC_Async_GetClockRate (reader->cardmhz) / F;
+			unsigned long baud_temp = (unsigned long)(d * ICC_Async_GetClockRate (reader->cardmhz) / F);
 			if (reader->typ <= R_MOUSE)
 				call (Phoenix_SetBaudrate (reader, baud_temp));
 			cs_debug_mask(D_IFD, "Setting baudrate to %lu", baud_temp);
@@ -733,7 +734,7 @@ static int InitCard (struct s_reader * reader, ATR * atr, BYTE FI, double d, dou
 	if (n == 255) //Extra Guard Time
 		EGT = 0;
 	else
-		EGT = n;
+		EGT = (unsigned long) n;
 	GT = EGT + 12; //Guard Time in ETU
 	gt_ms = ETU_to_ms(reader, GT);
 
@@ -841,7 +842,7 @@ static int InitCard (struct s_reader * reader, ATR * atr, BYTE FI, double d, dou
 		unsigned long ETU = 0;
 		//for Irdeto T14 cards, do not set ETU
 		if (!(atr->hbn >= 6 && !memcmp(atr->hb, "IRDETO", 6) && reader->protocol_type == ATR_PROTOCOL_TYPE_T14))
-			ETU = F / d;
+			ETU = (unsigned long)(F / d);
 		call (Sci_WriteSettings (reader, reader->protocol_type, reader->mhz / 100, ETU, WWT, reader->BWT, reader->CWT, EGT, (unsigned char)P, (unsigned char)I));
 #elif COOL
 		call (Cool_SetClockrate(reader->mhz));

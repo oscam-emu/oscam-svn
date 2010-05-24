@@ -71,7 +71,7 @@ i386-pc-linux:
 		DS_CFLAGS="-c" \
 		DS_LDFLAGS="" \
 		DS_ARFLAGS="-rvsl" \
-		DS_CC=gcc \
+		DS_CC=g++ \
 		DS_AR=ar \
 		DS_LD=ld \
 		DS_RL=ranlib \
@@ -92,7 +92,7 @@ i386-pc-linux-libusb:
 		DS_CFLAGS="-c" \
 		DS_LDFLAGS="" \
 		DS_ARFLAGS="-rvsl" \
-		DS_CC=gcc \
+		DS_CC=g++ \
 		DS_AR=ar \
 		DS_LD=ld \
 		DS_RL=ranlib \
@@ -113,7 +113,7 @@ i386-pc-linux-pcsc:
 		DS_CFLAGS="-c" \
 		DS_LDFLAGS="" \
 		DS_ARFLAGS="-rvsl" \
-		DS_CC=gcc \
+		DS_CC=g++ \
 		DS_AR=ar \
 		DS_LD=ld \
 		DS_RL=ranlib \
@@ -135,7 +135,7 @@ i386-pc-linux-pcsc-libusb:
 		DS_CFLAGS="-c" \
 		DS_LDFLAGS="" \
 		DS_ARFLAGS="-rvsl" \
-		DS_CC=gcc \
+		DS_CC=g++ \
 		DS_AR=ar \
 		DS_LD=ld \
 		DS_RL=ranlib \
@@ -156,7 +156,7 @@ macosx-native:
 		DS_CFLAGS="-c" \
 		DS_LDFLAGS="-framework PCSC" \
 		DS_ARFLAGS="-rvsl" \
-		DS_CC=gcc \
+		DS_CC=g++ \
 		DS_AR=ar \
 		DS_LD=ld \
 		DS_RL=ranlib \
@@ -178,7 +178,7 @@ macosx-libusb:
 		DS_CFLAGS="-c" \
 		DS_LDFLAGS="-framework PCSC -Wl,-framework -Wl,IOKit -Wl,-framework -Wl,CoreFoundation -Wl,-prebind -no-undefined" \
 		DS_ARFLAGS="-rvsl" \
-		DS_CC=gcc \
+		DS_CC=g++ \
 		DS_AR=ar \
 		DS_LD=ld \
 		DS_RL=ranlib \
@@ -200,7 +200,7 @@ i386-pc-freebsd:
 		DS_CFLAGS="-c" \
 		DS_LDFLAGS="" \
 		DS_ARFLAGS="-rvsl" \
-		DS_CC=gcc \
+		DS_CC=g++ \
 		DS_AR=ar \
 		DS_LD=ld \
 		DS_RL=ranlib \
@@ -221,7 +221,7 @@ cross-i386-pc-freebsd:
 		DS_CFLAGS="-c" \
 		DS_LDFLAGS="" \
 		DS_ARFLAGS="-rvsl" \
-		DS_CC=i386-pc-freebsd5.4-gcc \
+		DS_CC=i386-pc-freebsd5.4-g++ \
 		DS_AR=i386-pc-freebsd5.4-ar \
 		DS_LD=i386-pc-freebsd5.4-ld \
 		DS_RL=i386-pc-freebsd5.4-ranlib \
@@ -242,7 +242,7 @@ cross-powerpc-tuxbox-linux:
 		DS_CFLAGS="-c" \
 		DS_LDFLAGS="" \
 		DS_ARFLAGS="-rvsl" \
-		DS_CC=powerpc-tuxbox-linux-gnu-gcc \
+		DS_CC=powerpc-tuxbox-linux-gnu-g++ \
 		DS_AR=powerpc-tuxbox-linux-gnu-ar \
 		DS_LD=powerpc-tuxbox-linux-gnu-ld \
 		DS_RL=powerpc-tuxbox-linux-gnu-ranlib \
@@ -258,7 +258,7 @@ cross-powerpc-tuxbox-linux-uclibc:
 		DS_CFLAGS="-c" \
 		DS_LDFLAGS="" \
 		DS_ARFLAGS="-rvsl" \
-		DS_CC=powerpc-tuxbox-linux-uclibc-gcc \
+		DS_CC=powerpc-tuxbox-linux-uclibc-g++ \
 		DS_AR=powerpc-tuxbox-linux-uclibc-ar \
 		DS_LD=powerpc-tuxbox-linux-uclibc-ld \
 		DS_RL=powerpc-tuxbox-linux-uclibc-ranlib \
@@ -279,7 +279,7 @@ cross-powerpc-405-linux:
 		DS_CFLAGS="-c" \
 		DS_LDFLAGS="" \
 		DS_ARFLAGS="-rvsl" \
-		DS_CC=powerpc-405-linux-gnu-gcc \
+		DS_CC=powerpc-405-linux-gnu-g++ \
 		DS_AR=powerpc-405-linux-gnu-ar \
 		DS_LD=powerpc-405-linux-gnu-ld \
 		DS_RL=powerpc-405-linux-gnu-ranlib \
@@ -300,11 +300,11 @@ cross-sh4-linux:
 		DS_CFLAGS="-c" \
 		DS_LDFLAGS="" \
 		DS_ARFLAGS="-rvsl" \
-		DS_CC=/opt/STM/STLinux-2.0/devkit/sh4/bin/sh4-linux-gcc \
-		DS_AR=/opt/STM/STLinux-2.0/devkit/sh4/bin/sh4-linux-ar \
-		DS_LD=/opt/STM/STLinux-2.0/devkit/sh4/bin/sh4-linux-ld \
-		DS_RL=/opt/STM/STLinux-2.0/devkit/sh4/bin/sh4-linux-ranlib \
-		DS_ST=/opt/STM/STLinux-2.0/devkit/sh4/bin/sh4-linux-strip
+		DS_CC=/opt/STM/STLinux-2.2/devkit/sh4/bin/sh4-linux-g++ \
+		DS_AR=/opt/STM/STLinux-2.2/devkit/sh4/bin/sh4-linux-ar \
+		DS_LD=/opt/STM/STLinux-2.2/devkit/sh4/bin/sh4-linux-ld \
+		DS_RL=/opt/STM/STLinux-2.2/devkit/sh4/bin/sh4-linux-ranlib \
+		DS_ST=/opt/STM/STLinux-2.2/devkit/sh4/bin/sh4-linux-strip
 
 ######################################################################
 #
@@ -321,7 +321,7 @@ cross-i386-pc-cygwin:
 		DS_CFLAGS="-c" \
 		DS_LDFLAGS="" \
 		DS_ARFLAGS="-rvsl" \
-		DS_CC=i686-pc-cygwin-gcc \
+		DS_CC=i686-pc-cygwin-g++ \
 		DS_AR=i686-pc-cygwin-ar \
 		DS_LD=i686-pc-cygwin-ld \
 		DS_RL=i686-pc-cygwin-ranlib \
@@ -342,7 +342,7 @@ i386-pc-cygwin:
 		DS_CFLAGS="-c" \
 		DS_LDFLAGS="" \
 		DS_ARFLAGS="-rvsl" \
-		DS_CC=gcc \
+		DS_CC=g++ \
 		DS_AR=ar \
 		DS_LD=ld \
 		DS_RL=ranlib \
@@ -363,7 +363,7 @@ cross-sparc-sun-solaris2.7:
 		DS_CFLAGS="-c" \
 		DS_LDFLAGS="-lsocket" \
 		DS_ARFLAGS="-rvsl" \
-		DS_CC=sparc-sun-solaris2.7-gcc \
+		DS_CC=sparc-sun-solaris2.7-g++ \
 		DS_AR=sparc-sun-solaris2.7-ar \
 		DS_LD=sparc-sun-solaris2.7-ld \
 		DS_RL=sparc-sun-solaris2.7-ranlib \
@@ -384,7 +384,7 @@ opensolaris:
 		DS_CFLAGS="-c" \
 		DS_LDFLAGS="-lsocket" \
 		DS_ARFLAGS="-rvsl" \
-		DS_CC=gcc \
+		DS_CC=g++ \
 		DS_AR=ar \
 		DS_LD=ld \
 		DS_RL=ranlib \
@@ -405,7 +405,7 @@ cross-rs6000-ibm-aix4.2:
 		DS_CFLAGS="-c" \
 		DS_LDFLAGS="" \
 		DS_ARFLAGS="-rvsl" \
-		DS_CC=rs6000-ibm-aix4.2-gcc \
+		DS_CC=rs6000-ibm-aix4.2-g++ \
 		DS_AR=rs6000-ibm-aix4.2-ar \
 		DS_LD=rs6000-ibm-aix4.2-ld \
 		DS_RL=rs6000-ibm-aix4.2-ranlib \
@@ -426,7 +426,7 @@ cross-mips-sgi-irix6.5:
 		DS_CFLAGS="-c" \
 		DS_LDFLAGS="" \
 		DS_ARFLAGS="-rvsl" \
-		DS_CC=mips-sgi-irix6.5-gcc \
+		DS_CC=mips-sgi-irix6.5-g++ \
 		DS_AR=mips-sgi-irix6.5-ar \
 		DS_LD=mips-sgi-irix6.5-ld \
 		DS_RL=mips-sgi-irix6.5-ranlib \
@@ -448,7 +448,7 @@ cross-mipsel-router-linux-uclibc927:
 		DS_CFLAGS="-c" \
 		DS_LDFLAGS="" \
 		DS_ARFLAGS="-rvsl" \
-		DS_CC=mipsel-linux-uclibc-gcc \
+		DS_CC=mipsel-linux-uclibc-g++ \
 		DS_AR=mipsel-linux-uclibc-ar \
 		DS_LD=mipsel-linux-uclibc-ld \
 		DS_RL=mipsel-linux-uclibc-ranlib \
@@ -470,7 +470,7 @@ cross-mipsel-router-linux-uclibc928:
 		DS_CFLAGS="-c" \
 		DS_LDFLAGS="" \
 		DS_ARFLAGS="-rvsl" \
-		DS_CC=mipsel-linux-uclibc-gcc \
+		DS_CC=mipsel-linux-uclibc-g++ \
 		DS_AR=mipsel-linux-uclibc-ar \
 		DS_LD=mipsel-linux-uclibc-ld \
 		DS_RL=mipsel-linux-uclibc-ranlib \
@@ -492,7 +492,7 @@ cross-mipsel-router-linux-uclibc929:
 		DS_CFLAGS="-c" \
 		DS_LDFLAGS="" \
 		DS_ARFLAGS="-rvsl" \
-		DS_CC=mipsel-linux-uclibc-gcc \
+		DS_CC=mipsel-linux-uclibc-g++ \
 		DS_AR=mipsel-linux-uclibc-ar \
 		DS_LD=mipsel-linux-uclibc-ld \
 		DS_RL=mipsel-linux-uclibc-ranlib \
@@ -514,7 +514,7 @@ cross-mipsel-router-linux-uclibc929-static:
 		DS_CFLAGS="-c" \
 		DS_LDFLAGS="-static" \
 		DS_ARFLAGS="-rvsl" \
-		DS_CC=mipsel-linux-uclibc-gcc \
+		DS_CC=mipsel-linux-uclibc-g++ \
 		DS_AR=mipsel-linux-uclibc-ar \
 		DS_LD=mipsel-linux-uclibc-ld \
 		DS_RL=mipsel-linux-uclibc-ranlib \
@@ -535,7 +535,7 @@ cross-mipsel-fonera2:
 		DS_CFLAGS="-c" \
 		DS_LDFLAGS="" \
 		DS_ARFLAGS="-rvsl" \
-		DS_CC=mips-linux-gcc \
+		DS_CC=mips-linux-g++ \
 		DS_AR=mips-linux-ar \
 		DS_LD=mips-linux-ld \
 		DS_RL=mips-linux-ranlib \
@@ -556,7 +556,7 @@ cross-mipsel-tuxbox-linux-glibc:
 		DS_CFLAGS="-c" \
 		DS_LDFLAGS="" \
 		DS_ARFLAGS="-rvsl" \
-		DS_CC=mipsel-linux-glibc-gcc \
+		DS_CC=mipsel-linux-glibc-g++ \
 		DS_AR=mipsel-linux-glibc-ar \
 		DS_LD=mipsel-linux-glibc-ld \
 		DS_RL=mipsel-linux-glibc-ranlib \
@@ -572,7 +572,7 @@ cross-mipsel-tuxbox-linux:
 		DS_CFLAGS="-c" \
 		DS_LDFLAGS="" \
 		DS_ARFLAGS="-rvsl" \
-		DS_CC=mipsel-linux-gcc \
+		DS_CC=mipsel-linux-g++ \
 		DS_AR=mipsel-linux-ar \
 		DS_LD=mipsel-linux-ld \
 		DS_RL=mipsel-linux-ranlib \
@@ -593,7 +593,7 @@ hppa1.1-hp-hpux10.20:
 		DS_CFLAGS="-c" \
 		DS_LDFLAGS="" \
 		DS_ARFLAGS="-rvsl" \
-		DS_CC=gcc \
+		DS_CC=g++ \
 		DS_AR=ar \
 		DS_LD=ld \
 		DS_RL=ranlib \
@@ -637,7 +637,7 @@ cross-arm-nslu2-linux:
 		DS_LDFLAGS="" \
 		DS_ARFLAGS="-rvsl" \
 		DS_AWK="awk" \
-		DS_CC="armv5b-softfloat-linux-gcc" \
+		DS_CC="armv5b-softfloat-linux-g++" \
 		DS_AR="armv5b-softfloat-linux-ar" \
 		DS_LD="armv5b-softfloat-linux-ld" \
 		DS_RL="armv5b-softfloat-linux-ranlib" \
@@ -659,7 +659,7 @@ cross-armBE-unkown-linux:
 		DS_LDFLAGS="" \
 		DS_ARFLAGS="-rvsl" \
 		DS_AWK="awk" \
-		DS_CC="arm-linux-gcc -mbig-endian" \
+		DS_CC="arm-linux-g++ -mbig-endian" \
 		DS_AR="arm-linux-ar" \
 		DS_LD="arm-linux-ld -EB" \
 		DS_RL="arm-linux-ranlib" \
@@ -681,7 +681,7 @@ cross-armLE-unkown-linux:
 		DS_LDFLAGS="" \
 		DS_ARFLAGS="-rvsl" \
 		DS_AWK="awk" \
-		DS_CC="arm-linux-gcc -mlittle-endian" \
+		DS_CC="arm-linux-g++ -mlittle-endian" \
 		DS_AR="arm-linux-ar" \
 		DS_LD="arm-linux-ld -EL" \
 		DS_RL="arm-linux-ranlib" \

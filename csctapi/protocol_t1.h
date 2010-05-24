@@ -31,8 +31,8 @@
  * Exported datatypes definition
  */
 
-unsigned short ifsc;  /* Information field size for the ICC */
-BYTE ns;              /* Send sequence number */
+extern unsigned short ifsc;  /* Information field size for the ICC */
+extern BYTE ns;              /* Send sequence number */
 /*
  * Exported functions declaration
  */
