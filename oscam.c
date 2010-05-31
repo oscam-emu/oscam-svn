@@ -102,7 +102,11 @@ static void usage()
   fprintf(stderr, "\tbased on streamboard mp-cardserver v0.9d - (w) 2004-2007 by dukat\n");
   fprintf(stderr, "\tinbuilt modules: ");
 #ifdef HAVE_DVBAPI
+#ifdef WITH_STAPI
+  fprintf(stderr, "dvbapi with stapi");
+#else
   fprintf(stderr, "dvbapi ");
+#endif
 #endif
 #ifdef WEBIF
   fprintf(stderr, "webinterface ");
@@ -278,7 +282,7 @@ void set_signal_handler(int sig, int flags, void (*sighandler)(int))
 static void cs_alarm()
 {
   cs_debug("Got alarm signal");
-  cs_log("disconnect from %s (deadlock!)", cs_inet_ntoa(client[cs_idx].ip));
+  cs_log("disconnect from %s by watchdog", cs_inet_ntoa(client[cs_idx].ip));
   cs_exit(0);
 }
 
@@ -299,6 +303,12 @@ static void cs_sigpipe()
 
 void cs_exit(int sig)
 {
+	
+//#ifdef ST_LINUX
+//  Fortis_STSMART_Close();
+//  Fortis_STPTI_Close();
+//#endif
+
   set_signal_handler(SIGCHLD, 1, SIG_IGN);
   set_signal_handler(SIGHUP , 1, SIG_IGN);
   if (sig && (sig!=SIGQUIT))
@@ -396,7 +406,7 @@ static void cs_sighup()
 
 static void cs_accounts_chk()
 {
-  init_userdb();
+  init_userdb(&cfg->account);
   cs_reinit_clients();
 #ifdef CS_ANTICASC
   int i;
@@ -454,7 +464,7 @@ static void cs_card_info(int i)
       //kill(client[i].pid, SIGUSR2);
 }
 
-//SS: restart cardreader after 5 seconds:
+//Schlocke: restart cardreader after 5 seconds:
 static void restart_cardreader(int pridx) {
 	ridx = pridx;
 	reader[ridx].ridx = ridx; //FIXME
@@ -467,9 +477,8 @@ static void restart_cardreader(int pridx) {
 		default:
 			cs_sleepms(cfg->reader_restart_seconds * 1000); // SS: wait
 			cs_log("restarting reader %s (index=%d)", reader[ridx].label, ridx);
+
 			wait4master();
-			uchar dummy[1]={0x00};
-            write_to_pipe(fd_c2m, PIP_ID_KCL, dummy, 1);
 			start_cardreader(&reader[ridx]);
 		}
 	}
@@ -523,10 +532,7 @@ static void cs_child_chk(int i)
 
                 cs_log("restarting %s %s in %d seconds (index=%d)", reader[ridx].label, txt,
                 		cfg->reader_restart_seconds, ridx);
-                uchar u[2];
-                u[0] = ridx;
-                u[1] = 0;
-                write_to_pipe(fd_c2m, PIP_ID_RST, u, sizeof(u));
+                write_to_pipe(fd_c2m, PIP_ID_RST, (uchar*)&ridx, sizeof(ridx));
                 break;
               }
             }
@@ -564,6 +570,15 @@ static void cs_child_chk(int i)
           }
 #endif
           client[i].au=(-1);
+
+#ifdef HAVE_DVBAPI
+          int phi = client[i].ctyp;
+          if (client[i].typ == 'c' && ph[phi].type & MOD_CONN_SERIAL) //Schlocke: dvbapi killed? restart
+          {
+              if (ph[phi].s_handler)
+                ph[phi].s_handler(phi);
+          }
+#endif
         }
       }
   return;
@@ -1055,40 +1070,28 @@ static void start_thread(void * startroutine, char * nameroutine)
   }
 }
 
-/**
- * only for readers
- * resolve ip for reader i=ridx
- */
-void cs_resolve_reader(int i)
-{
-	struct hostent *rht;
-	struct s_auth;
-	pthread_mutex_lock(&gethostbyname_lock); //gethostbyname ist NOT threadsafe! So we need a mutex-lock!
-
-	int idx = reader[i].cs_idx;
-	client[idx].last=time((time_t)0);
-	rht = gethostbyname(reader[i].device);
-	if (rht)
-	{
-		memcpy(&client[idx].udp_sa.sin_addr, rht->h_addr,
-				sizeof(client[idx].udp_sa.sin_addr));
-		client[idx].ip=cs_inet_order(client[idx].udp_sa.sin_addr.s_addr);
-	}
-	else
-		cs_log("can't resolve %s", reader[i].device);
-	client[idx].last=time((time_t)0);
-
-	pthread_mutex_unlock(&gethostbyname_lock); //gethostbyname ist NOT threadsafe! So we need a mutex-lock!
-}
-
 void cs_resolve()
 {
-	int i;
+	int i, idx;
+	struct hostent *rht;
+	struct s_auth;
 	for (i=0; i<CS_MAXREADER; i++)
-		if ((reader[i].cs_idx) && (reader[i].typ & R_IS_NETWORK))
+		if ((idx=reader[i].cs_idx) && (reader[i].typ & R_IS_NETWORK))
 		{
-			cs_resolve_reader(i);
+			//client[idx].last=time((time_t)0);
+			pthread_mutex_lock(&gethostbyname_lock); //gethostbyname ist NOT threadsafe! So we need a mutex-lock!
+			rht = gethostbyname(reader[i].device);
+			if (rht)
+			{
+				memcpy(&client[idx].udp_sa.sin_addr, rht->h_addr,
+						sizeof(client[idx].udp_sa.sin_addr));
+				client[idx].ip=cs_inet_order(client[idx].udp_sa.sin_addr.s_addr);
+			}
+			else
+				cs_log("can't resolve %s", reader[i].device);
+			pthread_mutex_unlock(&gethostbyname_lock); //gethostbyname ist NOT threadsafe! So we need a mutex-lock!			client[cs_idx].last=time((time_t)0);
 		}
+
 }
 
 static void cs_logger(void)
@@ -1409,7 +1412,7 @@ void cs_disconnect_client(void)
 	char buf[32]={0};
 	if (client[cs_idx].ip)
 		sprintf(buf, " from %s", cs_inet_ntoa(client[cs_idx].ip));
-	cs_log("%s disconnected%s", username(cs_idx), buf);
+	cs_log("%s disconnected %s", username(cs_idx), buf);
 	cs_exit(0);
 }
 
@@ -1738,6 +1741,23 @@ ECM_REQUEST *get_ecmtask()
 	return(er);
 }
 
+void send_reader_stat(ECM_REQUEST *er)
+{
+	struct timeb tpe;
+	cs_ftime(&tpe);
+	int time = 1000*(tpe.time-er->tps.time)+tpe.millitm-er->tps.millitm;
+
+	ADD_READER_STAT add_stat;
+	memset(&add_stat, 0, sizeof(ADD_READER_STAT));
+	add_stat.ridx = er->reader[0];
+	add_stat.time = time;
+	add_stat.rc   = er->rc;
+	add_stat.caid = er->caid;
+	add_stat.prid = er->prid;
+	add_stat.srvid = er->srvid;
+	write_to_pipe(fd_c2m, PIP_ID_STA, (uchar*)&add_stat, sizeof(ADD_READER_STAT));
+}
+
 int send_dcw(ECM_REQUEST *er)
 {
 	static char *stxt[]={"found", "cache1", "cache2", "emu",
@@ -1784,6 +1804,8 @@ int send_dcw(ECM_REQUEST *er)
 	if(!er->rc) cs_switch_led(LED2, LED_BLINK_OFF);
 #endif
 
+	send_reader_stat(er);
+	
 	if(cfg->mon_appendchaninfo)
 		cs_log("%s (%04X&%06X/%04X/%02X:%04X): %s (%d ms)%s - %s",
 				uname, er->caid, er->prid, er->srvid, er->l, lc,
@@ -1799,10 +1821,10 @@ int send_dcw(ECM_REQUEST *er)
 		{
 			client[cs_idx].au=(-1);
 		}
-
-		client[cs_idx].au=er->reader[0];
-		if(client[cs_idx].au<0)
-		{
+		//martin
+		//client[cs_idx].au=er->reader[0];
+		//if(client[cs_idx].au<0)
+		//{
 			int r=0;
 			for(r=0;r<CS_MAXREADER;r++)
 			{
@@ -1816,7 +1838,7 @@ int send_dcw(ECM_REQUEST *er)
 			{
 				client[cs_idx].au=(-1);
 			}
-		}
+		//}
 	}
 
 	er->caid = er->ocaid;
@@ -1869,12 +1891,14 @@ int send_dcw(ECM_REQUEST *er)
 void chk_dcw(int fd)
 {
   ECM_REQUEST *er, *ert;
-  if (read_from_pipe(fd, (uchar **)&er, 0)!=PIP_ID_ECM)
-    return;
+  if (read_from_pipe(fd, (uchar **)(void *)&er, 0) != PIP_ID_ECM)
+	  return;
   //cs_log("dcw check from reader %d for idx %d (rc=%d)", er->reader[0], er->cpti, er->rc);
   ert=&ecmtask[er->cpti];
-  if (ert->rc<100)
-    return; // already done
+  if (ert->rc<100) {
+	send_reader_stat(ert);
+	return; // already done
+  }
   if( (er->caid!=ert->caid) || memcmp(er->ecm , ert->ecm , sizeof(er->ecm)) )
     return; // obsolete
   ert->rcEx=er->rcEx;
@@ -1903,8 +1927,10 @@ void chk_dcw(int fd)
     int i;
     ert->reader[er->reader[0]]=0;
     for (i=0; (ert) && (i<CS_MAXREADER); i++)
-      if (ert->reader[i]) // we have still another chance
+      if (ert->reader[i]) {// we have still another chance
+    	send_reader_stat(ert);
         ert=(ECM_REQUEST *)0;
+      }
     if (ert) ert->rc=4;
   }
   if (ert) send_dcw(ert);
@@ -2046,13 +2072,16 @@ void request_cw(ECM_REQUEST *er, int flag, int reader_types)
   flag=(flag)?3:1;    // flag specifies with/without fallback-readers
   for (i=0; i<CS_MAXREADER; i++)
   {
+	  //if (reader[i].pid)
+	  //	  cs_log("active reader: %d pid %d fd %d", i, reader[i].pid, reader[i].fd);
+
       switch (reader_types)
       {
           // network and local cards
           default:
           case 0:
               if (er->reader[i]&flag){
-                  //cs_debug_mask(D_TRACE, "request_cw1 ridx=%d fd=%d", i, reader[i].fd);
+                  //cs_debug_mask(D_TRACE, "request_cw1 to reader %s ridx=%d fd=%d", reader[i].label, i, reader[i].fd);
                   write_ecm_request(reader[i].fd, er);
               }
               break;
@@ -2060,7 +2089,7 @@ void request_cw(ECM_REQUEST *er, int flag, int reader_types)
           case 1:
               if (!(reader[i].typ & R_IS_NETWORK))
                   if (er->reader[i]&flag) {
-                	  //cs_debug_mask(D_TRACE, "request_cw1 ridx=%d fd=%d", i, reader[i].fd);
+                	  //cs_debug_mask(D_TRACE, "request_cw2 to reader %s ridx=%d fd=%d", reader[i].label, i, reader[i].fd);
                       write_ecm_request(reader[i].fd, er);
                   }
               break;
@@ -2069,12 +2098,43 @@ void request_cw(ECM_REQUEST *er, int flag, int reader_types)
         	  //cs_log("request_cw3 ridx=%d fd=%d", i, reader[i].fd);
               if ((reader[i].typ & R_IS_NETWORK))
                   if (er->reader[i]&flag) {
-                	  //cs_debug_mask(D_TRACE, "request_cw1 ridx=%d fd=%d", i, reader[i].fd);
+                	  //cs_debug_mask(D_TRACE, "request_cw3 to reader %s ridx=%d fd=%d", reader[i].label, i, reader[i].fd);
                       write_ecm_request(reader[i].fd, er);
                   }
               break;
       }
   }
+}
+
+//receive best reader from master process. Call this function from client!
+int recv_best_reader(ECM_REQUEST *er)
+{
+	if (!cfg->reader_auto_loadbalance)
+		return -1;
+
+	GET_READER_STAT grs;
+	grs.caid = er->caid;
+	grs.prid = er->prid;
+	grs.srvid = er->srvid;
+	grs.cidx = cs_idx;
+	cs_debug_mask(D_TRACE, "requesting client best reader for %04X/%04X/%04X", grs.caid, grs.prid, grs.srvid);
+	write_to_pipe(fd_c2m, PIP_ID_BES, (uchar*)&grs, sizeof(GET_READER_STAT));
+	uchar *ptr;
+	
+	fd_set fds;
+	FD_ZERO(&fds);
+	FD_SET(client[cs_idx].fd_m2c_c, &fds);
+	select(client[cs_idx].fd_m2c_c+1, &fds, 0, 0, 0);
+	if (master_pid!=getppid())
+		cs_exit(0);
+	if (FD_ISSET(client[cs_idx].fd_m2c_c, &fds))
+	{
+		int n = read_from_pipe(client[cs_idx].fd_m2c_c, &ptr, 1);
+		cs_debug_mask(D_TRACE, "got best reader: %d", *(int*)ptr);
+		if (n == PIP_ID_BES)
+			return *(int*)ptr;
+	}
+	return -1;
 }
 
 void get_cw(ECM_REQUEST *er)
@@ -2229,19 +2289,32 @@ void get_cw(ECM_REQUEST *er)
 
 	if(er->rc > 99 && er->rc != 1) {
 
-		for (i = m = 0; i < CS_MAXREADER; i++)
+		int best_ridx = recv_best_reader(er);
+
+		int min;
+		int max;
+		if (best_ridx < 0) { //No reader found, doing old way to all readers:
+			min = 0;
+			max = CS_MAXREADER;
+		}
+		else
+		{
+			min = best_ridx;
+			max = best_ridx+1;
+		}
+		
+		for (i = m = min; i < max; i++)
 			if (matching_reader(er, &reader[i]))
 				m|=er->reader[i] = (reader[i].fallback)? 2: 1;
 
 		switch(m) {
-
 			// no reader -> not found
 			case 0:
 				er->rc = 4;
 				if (!er->rcEx)
 					er->rcEx = E2_GROUP;
 				break;
-
+				
 			// fallbacks only, switch them
 			case 2:
 				for (i = 0; i < CS_MAXREADER; i++)
@@ -2493,6 +2566,15 @@ static void restart_clients()
 }
 
 
+// gets and send the best reader to the client. Called from master-process
+void send_best_reader(GET_READER_STAT *grs)
+{
+	cs_debug_mask(D_TRACE, "got request for best reader for %04X/%04X/%04X", grs->caid, grs->prid, grs->srvid);
+	int ridx = get_best_reader(reader, grs->caid, grs->prid, grs->srvid);
+	cs_debug_mask(D_TRACE, "sending best reader %d", ridx);
+	write_to_pipe(client[grs->cidx].fd_m2c, PIP_ID_BES, (uchar*)&ridx, sizeof(ridx));
+}
+
 static void process_master_pipe()
 {
   int n;
@@ -2501,18 +2583,23 @@ static void process_master_pipe()
   switch(n=read_from_pipe(mfdr, &ptr, 1))
   {
     case PIP_ID_LOG:
-      cs_write_log((char *)ptr);
-      break;
+    	cs_write_log((char *)ptr);
+    	break;
     case PIP_ID_HUP:
-      cs_accounts_chk();
-      break;
+    	cs_accounts_chk();
+    	break;
     case PIP_ID_RST: //Restart Cardreader with ridx=prt[0]
-      restart_cardreader(ptr[0]);
-      break;
+    	restart_cardreader(*(int*)ptr);
+    	break;
     case PIP_ID_KCL: //Kill all clients
-      cs_waitforcardinit();
-      restart_clients();
-      break;
+    	restart_clients();
+    	break;
+    case PIP_ID_STA: //Add reader statistics
+    	add_reader_stat((ADD_READER_STAT *)ptr);
+    	break;
+    case PIP_ID_BES: //Get best reader
+        send_best_reader((GET_READER_STAT *)ptr);
+        break;
   }
 }
 
@@ -2686,7 +2773,7 @@ int main (int argc, char *argv[])
 
   init_sidtab();
   init_readerdb();
-  init_userdb();
+  init_userdb(&cfg->account);
   init_signal();
   cs_set_mloc(30, "init");
   init_srvid();

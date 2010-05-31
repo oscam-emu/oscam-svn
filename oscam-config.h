@@ -107,7 +107,7 @@
 #      define CS_NOSHM
 #  endif
 #  define NO_FTIME
-#  ifndef COOL
+#  if !defined(COOL) && !defined(ST_LINUX)
 #    define SCI_DEV 1
 #  endif
 #endif

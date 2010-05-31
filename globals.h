@@ -174,7 +174,7 @@ extern char *boxdesc[];
 #endif
 
 #ifdef CS_CORE
-char *PIP_ID_TXT[] = { "ECM", "EMM", "LOG", "CIN", "HUP", "RST", "KCL", NULL  };
+char *PIP_ID_TXT[] = { "ECM", "EMM", "LOG", "CIN", "HUP", "RST", "KCL", "STA", "BES", NULL  };
 char *RDR_CD_TXT[] = { "cd", "dsr", "cts", "ring", "none",
 #ifdef USE_GPIO
                        "gpio1", "gpio2", "gpio3", "gpio4", "gpio5", "gpio6", "gpio7", //felix: changed so that gpio can be used 
@@ -190,11 +190,13 @@ extern char *RDR_CD_TXT[];
 #define PIP_ID_LOG    2
 #define PIP_ID_CIN    3  // CARD_INFO
 #define PIP_ID_HUP    4
-#define PIP_ID_RST    5  // Schlocke: Restart Reader, CCcam for example
-#define PIP_ID_KCL    6  // Schlocke: Kill all Clients
+#define PIP_ID_RST    5  // Schlocke: Restart Reader, CCcam for example (param: ridx)
+#define PIP_ID_KCL    6  // Schlocke: Kill all Clients (no param)
+#define PIP_ID_STA    7  // Schlocke: Add statistic (param: ADD_READER_STAT)
+#define PIP_ID_BES    8  // Schlocke: Get best reader (param ECM_REQUEST, return to client with data int ridx)
 
-#define PIP_ID_DCW    7
-#define PIP_ID_MAX    PIP_ID_KCL
+#define PIP_ID_DCW    9
+#define PIP_ID_MAX    PIP_ID_BES
 
 
 #define PIP_ID_ERR    (-1)
@@ -378,6 +380,7 @@ struct s_module
   int  (*c_send_emm)();
   int  (*c_init_log)();
   int  (*c_recv_log)();
+  int  (*c_available)(); //Schlocke: available check for load-balancing
   int  c_port;
   PTAB *ptab;
   int num;
@@ -501,6 +504,9 @@ struct s_reader  //contains device info, reader info and card info
   char      device[128];
   ushort    slot;   //in case of multiple slots like sc8in1; first slot = 1
   int       handle;   //device handle
+#ifdef ST_LINUX
+  unsigned int stsmart_handle; //device handle for stsmart driver
+#endif
   char      pcsc_name[128];
   int       pcsc_has_card;
   int       detect;
@@ -576,7 +582,6 @@ struct s_reader  //contains device info, reader info and card info
   int       gbox_fd;
   struct timeb  gbox_lasthello;   // incoming time stamp
 #endif
-  int       loadbalanced;
 #ifdef CS_RDR_INIT_HIST
   uchar     init_history[4096];
 #endif
@@ -793,7 +798,8 @@ struct s_config
 	int		waitforcards;
 	int		preferlocalcards;
 	int		saveinithistory;
-	int     reader_restart_seconds; //Schlocke Reader restart auf x seconds, disable = 0
+	int     reader_restart_seconds; //schlocke: reader restart auf x seconds, disable = 0
+	int     reader_auto_loadbalance; //schlocke: reader loadbalancing disable = 0 enable = 1
 
 #ifdef CS_WITH_GBOX
 	uchar		gbox_pwd[8];
@@ -868,6 +874,41 @@ typedef struct ecm_request_t
 #endif
 
 } GCC_PACK      ECM_REQUEST;
+
+#define MAX_STAT_TIME 20
+#define MIN_ECM_COUNT 5
+ 
+typedef struct add_reader_stat_t
+{
+  int           ridx;
+  int           time;
+  int           rc;
+  
+  ushort        caid;
+  ulong         prid;
+  ushort        srvid;
+} GCC_PACK      ADD_READER_STAT;
+
+typedef struct reader_stat_t
+{
+  int           rc;
+  ushort        caid;
+  ulong         prid;
+  ushort        srvid;
+
+  int           ecm_count;  
+  int           time_avg;
+  int           time_stat[MAX_STAT_TIME];
+  int           time_idx;
+} GCC_PACK      READER_STAT;
+
+typedef struct get_reader_stat_t 
+{
+  ushort        caid;
+  ulong         prid;
+  ushort        srvid;
+  int           cidx;
+} GCC_PACK      GET_READER_STAT;
 
 typedef struct emm_packet_t
 {
@@ -1011,8 +1052,9 @@ extern void cs_log_config(void);
 extern void cs_waitforcardinit(void);
 extern void cs_reinit_clients(void);
 extern void cs_resolve(void);
-extern void cs_resolve_reader(int i);
+extern void cs_resolve_reader(int ridx);
 extern void chk_dcw(int fd);
+extern void update_reader_config(uchar *ptr);
 
 #ifdef CS_ANTICASC
 //extern void start_anticascader(void);
@@ -1029,7 +1071,7 @@ extern int chk_class(ECM_REQUEST *, CLASSTAB*, const char*, const char*);
 
 // oscam-config
 extern int  init_config(void);
-extern int  init_userdb(void);
+extern int  init_userdb(struct s_auth **authptr_org);
 extern int  init_readerdb(void);
 extern int  init_sidtab(void);
 extern int  init_srvid(void);
@@ -1074,7 +1116,7 @@ extern void chk_t_webif(char *token, char *value);
 extern void chk_account(char *token, char *value, struct s_auth *account);
 extern void chk_sidtab(char *token, char *value, struct s_sidtab *sidtab);
 extern int write_services();
-extern int write_userdb();
+extern int write_userdb(struct s_auth *authptr);
 extern int write_config();
 extern int write_server();
 extern char *mk_t_caidtab(CAIDTAB *ctab);
@@ -1133,6 +1175,10 @@ int reader_get_emm_type(EMM_PACKET *ep, struct s_reader * reader);
 int get_cardsystem(ushort caid);
 void get_emm_filter(struct s_reader * rdr, uchar *filter);
 
+//module-stat
+extern void add_reader_stat(ADD_READER_STAT *add_stat);
+extern int get_best_reader(struct s_reader *reader, ushort caid, ulong prid, ushort srvid);
+
 #ifdef HAVE_PCSC
 // reader-pcsc
 extern int pcsc_reader_do_api(struct s_reader *pcsc_reader, uchar *buf, uchar *cta_res, ushort *cta_lr,int l);
@@ -1158,7 +1204,6 @@ extern void module_gbox(struct s_module *);
 #ifdef HAVE_DVBAPI
 extern void module_dvbapi(struct s_module *);
 #endif
-
 
 // module-monitor
 extern char *monitor_get_proto(int idx);

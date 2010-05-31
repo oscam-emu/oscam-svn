@@ -607,18 +607,21 @@ int videoguard_card_init(struct s_reader * reader, ATR newatr)
   unsigned char atr_directv[] = { 0x3F, 0x78, 0x13, 0x25, 0x03, 0x40, 0xB0, 0x20, 0xFF, 0xFF, 0x4A, 0x50, 0x00 };
   unsigned char atr_yes[] = { 0x3F, 0xFF, 0x13, 0x25, 0x03, 0x10, 0x80, 0x33, 0xB0, 0x11, 0x69, 0xFF, 0x4A, 0x50, 0x50, 0x00, 0x00, 0x47, 0x54, 0x01, 0x00, 0x00 };
   unsigned char atr_viasat_new[] = { 0x3F, 0x7D, 0x11, 0x25, 0x02, 0x41, 0xB0, 0x03, 0x69, 0xFF, 0x4A, 0x50, 0xF0, 0x80, 0x00, 0x56, 0x54, 0x03};
+  unsigned char atr_dsmart[] = { 0x3F, 0xFF, 0x14, 0x25, 0x03, 0x10, 0x80, 0x41, 0xB0, 0x01, 0x69, 0xFF, 0x4A, 0x50, 0x70, 0x00, 0x00, 0x5A, 0x48, 0x01, 0x00, 0x00 };
   unsigned char atr_viasat_scandinavia[] = { 0x3F, 0x7F, 0x11, 0x25, 0x03, 0x33, 0xB0, 0x09, 0x69, 0xFF, 0x4A, 0x50, 0x70, 0x00, 0x00, 0x56, 0x54, 0x01, 0x00, 0x00 };
   unsigned char atr_premiere[] = { 0x3F, 0xFF, 0x11, 0x25, 0x03, 0x10, 0x80, 0x41, 0xB0, 0x07, 0x69, 0xFF, 0x4A, 0x50, 0x70, 0x00, 0x00, 0x50, 0x31, 0x01, 0x00, 0x11 };
   unsigned char atr_kbw[] = { 0x3F, 0xFF, 0x14, 0x25, 0x03, 0x10, 0x80, 0x54, 0xB0, 0x01, 0x69, 0xFF, 0x4A, 0x50, 0x70, 0x00, 0x00, 0x4B, 0x57, 0x01, 0x00, 0x00};
   unsigned char atr_get[] = { 0x3F, 0xFF, 0x14, 0x25, 0x03, 0x10, 0x80, 0x33, 0xB0, 0x10, 0x69, 0xFF, 0x4A, 0x50, 0x70, 0x00, 0x00, 0x5A, 0x45, 0x01, 0x00, 0x00};
   unsigned char atr_foxtel_90b[] = { 0x3F, 0x7F, 0x11, 0x25, 0x03, 0x33, 0xB0, 0x09, 0x69, 0xFF, 0x4A, 0x50, 0x70, 0x00, 0x00, 0x46, 0x44, 0x01, 0x00, 0x00};
+  unsigned char atr_china_988[] = { 0x3F, 0x7F, 0x13, 0x25, 0x04, 0x33, 0xB0, 0x02, 0x69, 0xFF, 0x4A, 0x50, 0xE0, 0x00, 0x00, 0x54, 0x42, 0x00, 0x00, 0x00};
+  unsigned char atr_toptv_9b8[] = { 0x3F, 0xFF, 0x14, 0x25, 0x03, 0x10, 0x80, 0x41, 0xB0, 0x02, 0x69, 0xFF, 0x4A, 0x50, 0x70, 0x80, 0x00, 0x58, 0x38, 0x01, 0x00, 0x14};
 
     if ((atr_size == sizeof (atr_bskyb)) && (memcmp (atr, atr_bskyb, atr_size) == 0))
     {
         cs_ri_log(reader, "[videoguard2-reader] type: VideoGuard BSkyB");
+	BASEYEAR = 2000;
         /* BSkyB seems to need one additionnal byte in the serial communication... */
         io_serial_need_dummy_char = 1;
-				BASEYEAR = 2000;
     }
     else if ((atr_size == sizeof (atr_bskyb_new)) && (memcmp (atr, atr_bskyb_new, atr_size) == 0))
     {
@@ -639,12 +642,12 @@ int videoguard_card_init(struct s_reader * reader, ATR newatr)
     else if ((atr_size == sizeof (atr_viasat_new)) && (memcmp (atr, atr_viasat_new, atr_size) == 0))
     {
         cs_ri_log(reader, "[videoguard2-reader] type: VideoGuard Viasat new (093E)");
-				BASEYEAR = 2000;
+	BASEYEAR = 2000;
     }
     else if ((atr_size == sizeof (atr_viasat_scandinavia)) && (memcmp (atr, atr_viasat_scandinavia, atr_size) == 0))
     {
         cs_ri_log(reader, "[videoguard2-reader] type: VideoGuard Viasat Scandinavia");
-				BASEYEAR = 2000;
+	BASEYEAR = 2000;
     }
     else if ((atr_size == sizeof (atr_skyitalia93b)) && (memcmp (atr, atr_skyitalia93b, atr_size) == 0))
     {
@@ -654,6 +657,11 @@ int videoguard_card_init(struct s_reader * reader, ATR newatr)
     {
         cs_ri_log(reader, "[videoguard2-reader] type: VideoGuard Sky Germany");
     }
+    else if ((atr_size == sizeof (atr_dsmart)) && (memcmp (atr, atr_dsmart, atr_size) == 0))
+    {
+        cs_ri_log(reader, "[videoguard2-reader] type: VideoGuard DSMART Turkey");
+	BASEYEAR = 2004;
+    }
     else if ((atr_size == sizeof (atr_kbw)) && (memcmp (atr, atr_kbw, atr_size) == 0))
     {
         cs_ri_log(reader, "[videoguard2-reader] type: VideoGuard Kabel BW");
@@ -661,13 +669,21 @@ int videoguard_card_init(struct s_reader * reader, ATR newatr)
     else if ((atr_size == sizeof (atr_get)) && (memcmp (atr, atr_get, atr_size) == 0))
     {
         cs_ri_log(reader, "[videoguard2-reader] type: VideoGuard Get Kabel Norway");
-        			BASEYEAR = 2004;
+    	BASEYEAR = 2004;
     }
     else if ((atr_size == sizeof (atr_foxtel_90b)) && (memcmp (atr, atr_foxtel_90b, atr_size) == 0))
     {
 	cs_ri_log(reader, "[videoguard2-reader] type: VideoGuard Foxtel Australia (090b)");
 				BASEYEAR = 2000;
     }
+    else if ((atr_size == sizeof (atr_china_988)) && (memcmp (atr, atr_china_988, atr_size) == 0)) 
+    { 
+	cs_ri_log(reader, "[videoguard2-reader] type: VideoGuard China (0988)"); 
+    } 
+    else if ((atr_size == sizeof (atr_toptv_9b8)) && (memcmp (atr, atr_toptv_9b8, atr_size) == 0)) 
+    { 
+	cs_ri_log(reader, "[videoguard2-reader] type: VideoGuard TopTV (09B8)"); 
+    } 
 
   //a non videoguard2/NDS card will fail on read_cmd_len(ins7401)
   //this way also unknown videoguard2/NDS cards will work
@@ -979,27 +995,19 @@ static int num_addr(const unsigned char *data)
   return ((data[3]&0x30)>>4)+1;
 }
 
-static int addr_mode(const unsigned char *data)
-{
-  switch(data[3]&0xC0) {
-    case 0x40: return 3;
-    case 0x80: return 2;
-    default:   return 0;
-    }
-}
-
-static const unsigned char * payload_addr(const unsigned char *data, const unsigned char *a)
+static const unsigned char * payload_addr(uchar emmtype, const unsigned char *data, const unsigned char *a)
 {
   int s;
   int l;
   const unsigned char *ptr = NULL;
   int position=-1;
 
-  switch(addr_mode(data)) {
-    case 2: s=3; break;
-    case 3: case 0: s=4; break;
-    default: return NULL;
+  switch(emmtype) {
+    case VG2_EMMTYPE_S: s=3; break;
+    case VG2_EMMTYPE_U: s=4; break;
+    default: s=0;
   }
+
 
   for(l=0;l<num_addr(data);l++) {
     if(!memcmp(&data[l*4+4],a+2,s)) {
@@ -1008,23 +1016,29 @@ static const unsigned char * payload_addr(const unsigned char *data, const unsig
     }
   }
 
-  /* skip EMM-G but not EMM from cccam */
-  if (position == -1 && data[1] != 0x00) return NULL;
+  if(s>0) {
+    for(l=0;l<num_addr(data);l++) {
+      if(!memcmp(&data[l*4+4],a+2,s)) {
+        position=l;
+        break;
+      }
+    }
+  }
 
-  int num_ua = (position == -1) ? 0 : num_addr(data);
+  int num_filter = (position == -1) ? 0 : num_addr(data);
 
-  /* skip header and the list of addresses */
-  ptr = data+4+4*num_ua;
+  /* skip header and the filter list */
+  ptr = data+4+4*num_filter;
 
-  if (*ptr != 0x02)          // some clients omit 00 00 separator */
+  if (*ptr != 0x02 &&  *ptr != 0x07) // some clients omit 00 00 separator */
   {
     ptr += 2;                // skip 00 00 separator
     if (*ptr == 0x00) ptr++; // skip optional 00
     ptr++;                   // skip the 1st bitmap len
   }
 
-  /* check */
-  if (*ptr != 0x02 &&  *ptr != 0x07&&  *ptr != 0x08) return NULL;
+  /* check for IRD-EMM */
+  if (*ptr != 0x02 &&  *ptr != 0x07) return NULL;
 
   /* skip IRD-EMM part, 02 00 or 02 06 xx aabbccdd yy */ 
   ptr += 2 + ptr[1];
@@ -1040,84 +1054,66 @@ static const unsigned char * payload_addr(const unsigned char *data, const unsig
     /* skip the bitmap len */
     ptr++;
 
-    /* check */
-    if (*ptr != 0x02) return NULL;
+    /* check for IRD-EMM */
+    if (*ptr != 0x02 &&  *ptr != 0x07) return NULL;
 
     /* skip IRD-EMM part, 02 00 or 02 06 xx aabbccdd yy */
     ptr += 2 + ptr[1];
-    }
+  }
 
   return ptr;
 }
 
-int videoguard_get_emm_type(EMM_PACKET *ep, struct s_reader * rdr) //returns TRUE if shared emm matches SA, unique emm matches serial, or global or unknown
+int videoguard_get_emm_type(EMM_PACKET *ep, struct s_reader * rdr)
 {
 
-//82 30 ad 70 00 XX XX XX 00 XX XX XX 00 XX XX XX 00 XX XX XX 00 00 
-//d3 02 00 22 90 20 44 02 4a 50 1d 88 ab 02 ac 79 16 6c df a1 b1 b7 77 00 ba eb 63 b5 c9 a9 30 2b 43 e9 16 a9 d5 14 00 
-//d3 02 00 22 90 20 44 02 13 e3 40 bd 29 e4 90 97 c3 aa 93 db 8d f5 6b e4 92 dd 00 9b 51 03 c9 3d d0 e2 37 44 d3 bf 00
-//d3 02 00 22 90 20 44 02 97 79 5d 18 96 5f 3a 67 70 55 bb b9 d2 49 31 bd 18 17 2a e9 6f eb d8 76 ec c3 c9 cc 53 39 00 
-//d2 02 00 21 90 1f 44 02 99 6d df 36 54 9c 7c 78 1b 21 54 d9 d4 9f c1 80 3c 46 10 76 aa 75 ef d6 82 27 2e 44 7b 00
+/*
+82 30 ad 70 00 XX XX XX 00 XX XX XX 00 XX XX XX 00 XX XX XX 00 00 
+d3 02 00 22 90 20 44 02 4a 50 1d 88 ab 02 ac 79 16 6c df a1 b1 b7 77 00 ba eb 63 b5 c9 a9 30 2b 43 e9 16 a9 d5 14 00 
+d3 02 00 22 90 20 44 02 13 e3 40 bd 29 e4 90 97 c3 aa 93 db 8d f5 6b e4 92 dd 00 9b 51 03 c9 3d d0 e2 37 44 d3 bf 00
+d3 02 00 22 90 20 44 02 97 79 5d 18 96 5f 3a 67 70 55 bb b9 d2 49 31 bd 18 17 2a e9 6f eb d8 76 ec c3 c9 cc 53 39 00 
+d2 02 00 21 90 1f 44 02 99 6d df 36 54 9c 7c 78 1b 21 54 d9 d4 9f c1 80 3c 46 10 76 aa 75 ef d6 82 27 2e 44 7b 00
+*/
 
+	int i, pos;
 	int serial_count = ((ep->emm[3] >> 4) & 3) + 1;
-	//uchar emm[256];
-	int i,pos;
 	int serial_len = (ep->emm[3] & 0x80) ? 3 : 4;
+	uchar emmtype = (ep->emm[3] & VG2_EMMTYPE_MASK) >> 6;
 
-	//memcpy(emm, ep->emm, 4);
-	pos=4+(serial_len*serial_count)+2;
-
-	if ( ep->emm[pos-2] != 0x00 && ep->emm[pos-1] != 0x00 && ep->emm[pos-1] != 0x01 ) {	
-		//remote emm without serial
-		ep->type=UNKNOWN;
-		return TRUE;
-	}
-
-	for (i=1;i<=serial_count;i++) {
-		if (!memcmp (rdr->hexserial+2, ep->emm+(serial_len*i), serial_len)) {
-			memcpy(ep->hexserial, ep->emm+(serial_len*i), serial_len);
-			//memcpy(emm+4, ep->emm+pos+1, ep->emm[pos+5]+4);
-			//memcpy(ep->emm, emm, ep->emm[pos+5]+4+4);
-			//ep->l=ep->emm[pos+5]+4+4;
-			ep->type=UNIQUE;
-			return TRUE;
-		}
-		pos = pos + ep->emm[pos+5] + 5;
-	}
-
-	return FALSE;
-}
-
-/* FIXME: get_emm_type routine from lattjo@UMP, i have no NDS card here so please check this ...
-int videoguard_get_emm_type(EMM_PACKET *ep, struct s_reader * rdr) {
-
-	uchar emmtype;
-	emmtype=(ep->emm[3]&VG2_EMMTYPE_MASK)>>6;
-	rdr = rdr;
+	pos = 4 + (serial_len * serial_count) + 2;
 
 	switch(emmtype) {
 		case VG2_EMMTYPE_G:
 			ep->type=GLOBAL;
 			cs_debug_mask(D_EMM, "VIDEOGUARD2 EMM: GLOBAL");
-			break;
+			return TRUE;
 		
 		case VG2_EMMTYPE_U:
-			ep->type=UNIQUE;
 			cs_debug_mask(D_EMM, "VIDEOGUARD2 EMM: UNIQUE");
-			break;
+			ep->type=UNIQUE;
+			for (i = 1;i <= serial_count;i++) {
+				if (!memcmp (rdr->hexserial + 2, ep->emm + (serial_len * i), serial_len)) {
+					memcpy(ep->hexserial, ep->emm + (serial_len * i), serial_len);
+					return TRUE;
+				}
+
+				pos = pos + ep->emm[pos+5] + 5;
+			}
 
 		case VG2_EMMTYPE_S:
 			ep->type=SHARED;
 			cs_debug_mask(D_EMM, "VIDEOGUARD2 EMM: SHARED");
-			break;
+			return TRUE; // FIXME: no check for SA
 
 		default:
-			ep->type=UNKNOWN;
-			break;
+			if (ep->emm[pos-2] != 0x00 && ep->emm[pos-1] != 0x00 && ep->emm[pos-1] != 0x01) {	
+				//remote emm without serial
+				ep->type=UNKNOWN;
+				return TRUE;
+			}
+			return FALSE;
 	}
 }
-
-*/
 
 void videoguard_get_emm_filter(struct s_reader * rdr, uchar *filter)
 {
@@ -1174,7 +1170,7 @@ int videoguard_do_emm(struct s_reader * reader, EMM_PACKET *ep)
   unsigned char ins42[5] = { 0xD1,0x42,0x00,0x00,0xFF };
   int rc=ERROR;
 
-  const unsigned char *payload = payload_addr(ep->emm, reader->hexserial);
+  const unsigned char *payload = payload_addr(ep->type, ep->emm, reader->hexserial);
   while (payload) {
     ins42[4]=*payload;
     int l = do_cmd(reader, ins42,payload+1,NULL,cta_res);

@@ -312,8 +312,10 @@ void chk_t_global(char *token, char *value)
 			free(cfg->logfile);
 			cfg->logfile = NULL;
 		}
-		if (strlen(value) > 0)
-			asprintf(&(cfg->logfile), "%s", value);
+		if (strlen(value) > 0) {
+			if(asprintf(&(cfg->logfile), "%s", value) < 0)
+				fprintf(stderr, "Error allocating string for cfg->logfile\n");
+		}
 		return;
 	}
 
@@ -322,8 +324,10 @@ void chk_t_global(char *token, char *value)
 			free(cfg->pidfile);
 			cfg->pidfile = NULL;
 		}
-		if (strlen(value) > 0)
-			asprintf(&(cfg->pidfile), "%s", value);
+		if (strlen(value) > 0) {
+			if(asprintf(&(cfg->pidfile), "%s", value) < 0)
+				fprintf(stderr, "Error allocating string for cfg->pidfile\n");
+		}
 		return;
 	}
 
@@ -332,8 +336,10 @@ void chk_t_global(char *token, char *value)
 			free(cfg->usrfile);
 			cfg->usrfile = NULL;
 		}
-		if (strlen(value) > 0)
-			asprintf(&(cfg->usrfile), "%s", value);
+		if (strlen(value) > 0) {
+			if(asprintf(&(cfg->usrfile), "%s", value) < 0)
+				fprintf(stderr, "Error allocating string for cfg->usrfile\n");
+		}
 		return;
 	}
 
@@ -342,8 +348,10 @@ void chk_t_global(char *token, char *value)
 			free(cfg->cwlogdir);
 			cfg->cwlogdir = NULL;
 		}
-		if (strlen(value) > 0)
-			asprintf(&(cfg->cwlogdir), "%s", value);
+		if (strlen(value) > 0) {
+			if(asprintf(&(cfg->cwlogdir), "%s", value) < 0)
+				fprintf(stderr, "Error allocating string for cfg->cwlogdir\n");
+		}
 		return;
 	}
 
@@ -531,6 +539,16 @@ void chk_t_global(char *token, char *value)
 			return;
 		} else {
 			cfg->reader_restart_seconds = atoi(value);
+			return;
+		}
+	}
+
+	if (!strcmp(token, "readerautoloadbalance")) {
+		if (strlen(value) == 0) {
+			cfg->reader_auto_loadbalance = 0;
+			return;
+		} else {
+			cfg->reader_auto_loadbalance = atoi(value);
 			return;
 		}
 	}
@@ -1069,7 +1087,7 @@ void chk_t_serial(char *token, char *value)
 }
 
 #ifdef CS_WITH_GBOX
-static void chk_t_gbox(char *token, char *value)
+void chk_t_gbox(char *token, char *value)
 {
 	//if (!strcmp(token, "password")) strncpy(cfg->gbox_pwd, i2b(4, a2i(value, 4)), 4);
 	if (!strcmp(token, "password")) {
@@ -1182,28 +1200,28 @@ static void chk_token(char *token, char *value, int tag)
 #ifdef CS_WITH_GBOX
 		case TAG_GBOX    : chk_t_gbox(token, value); break;
 #else
-		case TAG_GBOX    : fprintf(stderr, "Warning: OSCam compiled without gbox support.\n"); break;
+		case TAG_GBOX    : fprintf(stderr, "OSCam compiled without gbox support. Parameter %s ignored\n", token); break;
 #endif
 
 
 #ifdef HAVE_DVBAPI
 		case TAG_DVBAPI  : chk_t_dvbapi(token, value); break;
 #else
-		case TAG_DVBAPI  : fprintf(stderr, "Warning: OSCam compiled without DVB API support.\n"); break;
+		case TAG_DVBAPI  : fprintf(stderr, "OSCam compiled without DVB API support. Parameter %s ignored\n", token); break;
 #endif
 
 
 #ifdef WEBIF
 		case TAG_WEBIF   : chk_t_webif(token, value); break;
 #else
-		case TAG_WEBIF   : fprintf(stderr, "Warning: OSCam compiled without Webinterface support.\n"); break;
+		case TAG_WEBIF   : fprintf(stderr, "OSCam compiled without Webinterface support. Parameter %s ignored\n", token); break;
 #endif
 
 
 #ifdef CS_ANTICASC
 		case TAG_ANTICASC: chk_t_ac(token, value); break;
 #else
-		case TAG_ANTICASC: fprintf(stderr, "Warning: OSCam compiled without anticascading support.\n"); break;
+		case TAG_ANTICASC: fprintf(stderr, "OSCam compiled without Anticascading support. Parameter %s ignored\n", token); break;
 #endif
 
 	}
@@ -1312,6 +1330,7 @@ int init_config()
 	cfg->pidfile = NULL;
 	cfg->usrfile = NULL;
 	cfg->cwlogdir = NULL;
+	cfg->reader_restart_seconds = 5;
 #ifdef WEBIF
 	strcpy(cfg->http_user, "");
 	strcpy(cfg->http_pwd, "");
@@ -1353,8 +1372,10 @@ int init_config()
 	}
 	fclose(fp);
 #ifdef CS_LOGFILE
-	if (cfg->logfile == NULL)
-		asprintf(&(cfg->logfile), "%s", CS_LOGFILE);
+	if (cfg->logfile == NULL) {
+		if(asprintf(&(cfg->logfile), "%s", CS_LOGFILE) < 0)
+			fprintf(stderr, "Error allocating string for cfg->logfile\n");
+	}
 #endif
 	cs_init_statistics(cfg->usrfile);
 	cs_init_log(cfg->logfile);
@@ -1376,7 +1397,6 @@ int init_config()
 		cs_log("WARNING: DenySamples adjusted to %d", cfg->ac_denysamples);
 	}
 #endif
-	cfg->reader_restart_seconds = 5;
 	return 0;
 }
 
@@ -1668,10 +1688,11 @@ int write_config()
 	fprintf_conf(f, CONFVARWIDTH, "preferlocalcards", "%d\n", cfg->preferlocalcards);
 	fprintf_conf(f, CONFVARWIDTH, "saveinithistory", "%d\n", cfg->saveinithistory);
 	fprintf_conf(f, CONFVARWIDTH, "readerrestartseconds", "%d\n", cfg->reader_restart_seconds);
+	fprintf_conf(f, CONFVARWIDTH, "readerautoloadbalance", "%d\n", cfg->reader_auto_loadbalance);
 	fputc((int)'\n', f);
 
 	/*monitor settings*/
-	if(cfg->mon_port) {
+	if(cfg->mon_port || cfg->mon_appendchaninfo) {
 		fprintf(f,"[monitor]\n");
 		fprintf_conf(f, CONFVARWIDTH, "port", "%d\n", cfg->mon_port);
 		if (cfg->mon_srvip != 0)
@@ -1939,7 +1960,7 @@ int write_config()
 	return(safe_overwrite_with_bak(destfile, tmpfile, bakfile, 0));
 }
 
-int write_userdb()
+int write_userdb(struct s_auth *authptr)
 {
 	int i;
 	FILE *f;
@@ -1961,7 +1982,7 @@ int write_userdb()
   fprintf(f,"# Read more: http://streamboard.gmc.to/oscam/browser/trunk/Distribution/doc/txt/oscam.user.txt\n\n");
 
   //each account
-	for (account=cfg->account; (account) ; account=account->next){
+	for (account=authptr; (account) ; account=account->next){
 		fprintf(f,"[account]\n");
 		fprintf_conf(f, CONFVARWIDTH, "user", "%s\n", account->usr);
 		fprintf_conf(f, CONFVARWIDTH, "pwd", "%s\n", account->pwd);
@@ -2227,9 +2248,6 @@ int write_server()
 			if (reader[i].cardmhz && isphysical)
 				fprintf_conf(f, CONFVARWIDTH, "cardmhz", "%d\n", reader[i].cardmhz);
 
-			if (reader[i].loadbalanced)
-				fprintf_conf(f, CONFVARWIDTH, "loadbalanced", "%d\n", reader[i].loadbalanced);
-
 			value = mk_t_ftab(&reader[i].ftab);
 			fprintf_conf(f, CONFVARWIDTH, "ident", "%s\n", value);
 			free(value);
@@ -2301,8 +2319,9 @@ int write_server()
 	return(safe_overwrite_with_bak(destfile, tmpfile, bakfile, 0));
 }
 
-int init_userdb()
+int init_userdb(struct s_auth **authptr_org)
 {
+	struct s_auth *authptr = *authptr_org;
 	int tag = 0, nr, nro, expired, disabled;
 	//int first=1;
 	FILE *fp;
@@ -2316,7 +2335,7 @@ int init_userdb()
 		return(1);
 	}
 
-	for (nro = 0, ptr = cfg->account; ptr; nro++) {
+	for (nro = 0, ptr = authptr; ptr; nro++) {
 		struct s_auth *ptr_next;
 		ptr_next = ptr->next;
 		free(ptr);
@@ -2343,7 +2362,7 @@ int init_userdb()
 			if (account)
 				account->next = ptr;
 			else
-				cfg->account = ptr;
+				authptr = ptr;
 
 			account = ptr;
 			memset(account, 0, sizeof(struct s_auth));
@@ -2376,7 +2395,7 @@ int init_userdb()
 
 	fclose(fp);
 
-	for (expired = 0, disabled = 0, ptr = cfg->account; ptr;) {
+	for (expired = 0, disabled = 0, ptr = authptr; ptr;) {
 
 		if(ptr->expirationdate && ptr->expirationdate < time(NULL))
 			expired++;
@@ -2386,6 +2405,8 @@ int init_userdb()
 
 		ptr = ptr->next;
 	}
+
+	*authptr_org = authptr;
 
 	cs_log("userdb reloaded: %d accounts freed, %d accounts loaded, %d expired, %d disabled", nro, nr, expired, disabled);
 	return(0);
@@ -2729,8 +2750,10 @@ void chk_reader(char *token, char *value, struct s_reader *rdr)
 			free(rdr->emmfile);
 			rdr->emmfile = NULL;
 		}
-		if (strlen(value) > 0)
-			asprintf(&(rdr->emmfile), "%s", value);
+		if (strlen(value) > 0) {
+			if(asprintf(&(rdr->emmfile), "%s", value) < 0)
+				fprintf(stderr, "Error allocating string for rdr->emmfile\n");
+		}
 		return;
 	}
 
@@ -3022,16 +3045,6 @@ void chk_reader(char *token, char *value, struct s_reader *rdr)
 		fprintf(stderr, "WARNING: value '%s' in protocol-line not recognized, assuming MOUSE\n",value);
 		rdr->typ = R_MOUSE;
 		return;
-	}
-
-	if (!strcmp(token, "loadbalanced")) {
-		if(strlen(value) == 0) {
-			rdr->loadbalanced = 0;
-			return;
-		} else {
-			rdr->loadbalanced = atoi(value);
-			return;
-		}
 	}
 
 	if (!strcmp(token, "ident")) {

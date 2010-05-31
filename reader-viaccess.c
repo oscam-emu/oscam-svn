@@ -229,103 +229,145 @@ int viaccess_do_ecm(struct s_reader * reader, ECM_REQUEST *er)
   ulong provid;
   int rc=0;
   int hasD2 = 0;
+  int curEcm88len=0;
+  int nanoLen=0;
+  const uchar *nextEcm;
+  uchar keyToUse=0;
   uchar DE04[256];
+  memset(DE04, 0, sizeof(DE04)); //fix dorcel de04 bug
 
-  memset(DE04, 0, sizeof(DE04));
-
-  if(ecm88Data[0]==0xd2)
-  {
-      // FIXME: use the d2 arguments
-      int len = ecm88Data[1] + 2;
-      ecm88Data += len;
-      ecm88Len -= len;
-      hasD2 = 1;
-  }
-
-  if ((ecm88Data[0]==0x90 || ecm88Data[0]==0x40) && ecm88Data[1]==0x03)
-  {
-    uchar ident[3], keynr;
-    //uchar buff[256]; // MAX_LEN
-    uchar *ecmf8Data=0;
-    int ecmf8Len=0;
-
-    memcpy (ident, &ecm88Data[2], sizeof(ident));
-    provid = b2i(3, ident);
-    ident[2]&=0xF0;
-    keynr=ecm88Data[4]&0x0F;
-    if (!chk_prov(reader, ident, keynr))
-    {
-      cs_debug("[viaccess-reader] EMM: provider or key not found on card");
-      return ERROR;
-    }
-    ecm88Data+=5;
-    ecm88Len-=5;
-
-    // DE04
-    if (ecm88Data[0]==0xDE && ecm88Data[1]==0x04)
-    {
-        memcpy (DE04, &ecm88Data[0], 6);
-        ecm88Data+=6;
-    }
-    //
-
-    if( reader->last_geo.provid != provid ) 
-    {
-      reader->last_geo.provid = provid;
-      reader->last_geo.geo_len = 0;
-      reader->last_geo.geo[0]  = 0;
-      write_cmd(insa4, ident); // set provider
+  nextEcm=ecm88Data;
+  
+  while (ecm88Len && !rc) {
+    
+    // 80 33 nano 80 (ecm) + len (33)
+    if(ecm88Data[0]==0x80) { // nano 80, give ecm len
+        curEcm88len=ecm88Data[1];
+        nextEcm=ecm88Data+curEcm88len+2;
+        ecm88Data += 2;
+        ecm88Len -= 2;
     }
 
-    while(ecm88Len>0 && ecm88Data[0]<0xA0)
-    {
-      int nanoLen=ecm88Data[1]+2;
-      if (!ecmf8Data)
-        ecmf8Data=(uchar *)ecm88Data;
-      ecmf8Len+=nanoLen;
-      ecm88Len-=nanoLen;
-      ecm88Data+=nanoLen;
+    if(!curEcm88len) { //there was no nano 80 -> simple ecm
+        curEcm88len=ecm88Len;
     }
-    if(ecmf8Len)
-    {
-      if( reader->last_geo.geo_len!=ecmf8Len || 
-         memcmp(reader->last_geo.geo, ecmf8Data, reader->last_geo.geo_len))
-      {
-        memcpy(reader->last_geo.geo, ecmf8Data, ecmf8Len);
-        reader->last_geo.geo_len= ecmf8Len;
-        insf8[3]=keynr;
-        insf8[4]=ecmf8Len;
-        write_cmd(insf8, ecmf8Data);
-      }
-    }
-    ins88[2]=ecmf8Len?1:0;
-    ins88[3]=keynr;
-    ins88[4]=ecm88Len;
-
-    // DE04
-    if (DE04[0]==0xDE)
-    {
-        memcpy(DE04+6, (uchar *)ecm88Data, ecm88Len-6);
-        write_cmd(ins88, DE04); // request dcw
+    
+    // d2 02 0d 02 -> D2 nano, len 2,  select the AES key to be used
+    if(ecm88Data[0]==0xd2) {
+        // FIXME: use the d2 arguments
+        int len = ecm88Data[1] + 2;
+        ecm88Data += len;
+        ecm88Len -= len;
+        curEcm88len -=len;
+        hasD2 = 1;
     }
     else
+        hasD2 = 0;
+
+    // 40 07 03 0b 00  -> nano 40, len =7  ident 030B00 (tntsat), key #0  <== we're pointing here
+    // 09 -> use key #9 
+    // 05 67 00
+    if ((ecm88Data[0]==0x90 || ecm88Data[0]==0x40) && (ecm88Data[1]==0x03 || ecm88Data[1]==0x07 ) )
     {
-        write_cmd(ins88, (uchar *)ecm88Data); // request dcw
-    }
-    //
-    
-    write_cmd(insc0, NULL);	// read dcw
-    switch(cta_res[0])
-    {
-      case 0xe8: // even
-        if(cta_res[1]==8) { memcpy(er->cw,cta_res+2,8); rc=1; }
-        break;
-      case 0xe9: // odd
-        if(cta_res[1]==8) { memcpy(er->cw+8,cta_res+2,8); rc=1; }
-        break;
-      case 0xea: // complete
-        if(cta_res[1]==16) { memcpy(er->cw,cta_res+2,16); rc=1; }
-        break;
+        uchar ident[3], keynr;
+        //uchar buff[256]; // MAX_LEN
+        uchar *ecmf8Data=0;
+        int ecmf8Len=0;
+
+        nanoLen=ecm88Data[1] + 2;
+        
+        memcpy (ident, &ecm88Data[2], sizeof(ident));
+        provid = b2i(3, ident);
+        ident[2]&=0xF0;
+        keynr=ecm88Data[4]&0x0F;
+        // 40 07 03 0b 00  -> nano 40, len =7  ident 030B00 (tntsat), key #0  <== we're pointing here
+        // 09 -> use key #9 
+        if(nanoLen>5) {
+            keyToUse=ecm88Data[5];
+            keynr=keyToUse;
+            cs_debug("keyToUse = %d",keyToUse);
+        }
+
+        if (!chk_prov(reader, ident, keynr))
+        {
+          cs_debug("[viaccess-reader] ECM: provider or key not found on card");
+          return ERROR;
+        }
+        
+        ecm88Data+=nanoLen;
+        ecm88Len-=nanoLen;
+        curEcm88len-=nanoLen;
+
+        // DE04
+        if (ecm88Data[0]==0xDE && ecm88Data[1]==0x04)
+        {
+            memcpy (DE04, &ecm88Data[0], 6);
+            ecm88Data+=6;
+        }
+        //
+
+        if( reader->last_geo.provid != provid ) 
+        {
+          reader->last_geo.provid = provid;
+          reader->last_geo.geo_len = 0;
+          reader->last_geo.geo[0]  = 0;
+          write_cmd(insa4, ident); // set provider
+        }
+
+        while(ecm88Len>0 && ecm88Data[0]<0xA0)
+        {
+          int nanoLen=ecm88Data[1]+2;
+          if (!ecmf8Data)
+            ecmf8Data=(uchar *)ecm88Data;
+          ecmf8Len+=nanoLen;
+          ecm88Len-=nanoLen;
+          curEcm88len-=nanoLen;
+          ecm88Data+=nanoLen;
+        }
+        if(ecmf8Len)
+        {
+          if( reader->last_geo.geo_len!=ecmf8Len || 
+             memcmp(reader->last_geo.geo, ecmf8Data, reader->last_geo.geo_len))
+          {
+            memcpy(reader->last_geo.geo, ecmf8Data, ecmf8Len);
+            reader->last_geo.geo_len= ecmf8Len;
+            insf8[3]=keynr;
+            insf8[4]=ecmf8Len;
+            write_cmd(insf8, ecmf8Data);
+          }
+        }
+        ins88[2]=ecmf8Len?1:0;
+        ins88[3]=keynr;
+        ins88[4]= curEcm88len;
+
+        // DE04
+        if (DE04[0]==0xDE)
+        {
+            memcpy(DE04+6, (uchar *)ecm88Data, curEcm88len-6);
+            write_cmd(ins88, DE04); // request dcw
+        }
+        else
+        {
+            write_cmd(ins88, (uchar *)ecm88Data); // request dcw
+        }
+        //
+        write_cmd(insc0, NULL);	// read dcw
+        switch(cta_res[0])
+        {
+          case 0xe8: // even
+            if(cta_res[1]==8) { memcpy(er->cw,cta_res+2,8); rc=1; }
+            break;
+          case 0xe9: // odd
+            if(cta_res[1]==8) { memcpy(er->cw+8,cta_res+2,8); rc=1; }
+            break;
+          case 0xea: // complete
+            if(cta_res[1]==16) { memcpy(er->cw,cta_res+2,16); rc=1; }
+            break;
+          default :
+            ecm88Data=nextEcm;
+            ecm88Len-=curEcm88len;
+            cs_debug("[viaccess-reader] ECM: key to use is not the current one, trying next ECM");
+        }
     }
   }
 
@@ -450,7 +492,7 @@ int viaccess_do_emm(struct s_reader * reader, EMM_PACKET *ep)
         return ERROR;
       }
 
-      // as we are maybe changing the used provider, clear the cache, so the next ecm will re-select the correct one 
+      // as we are maybe changing the used provider, clear the cache, so the next ecm will re-select the correct one
       memset(&reader->last_geo, 0, sizeof(reader->last_geo));
 
       // set provider

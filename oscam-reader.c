@@ -40,15 +40,15 @@ void cs_ri_log(struct s_reader * reader, char *fmt,...)
 		mkdir("/tmp/.oscam", S_IRWXU);
 		sprintf(filename, "/tmp/.oscam/reader%d", reader->ridx);
 
-		int size=reader->init_history_pos+strlen(txt)+1;
-		buffer=malloc(size+1);
+		int size = reader->init_history_pos+strlen(txt)+1;
+		buffer = malloc(size+1);
 
-		if (buffer==NULL)
+		if (buffer == NULL)
 			return;
 
 		memset(buffer, 32, size);
 
-		fp=fopen(filename, "r");
+		fp = fopen(filename, "r");
 
 		if (fp) {
 			fread(buffer, 1, reader->init_history_pos, fp);
@@ -57,7 +57,7 @@ void cs_ri_log(struct s_reader * reader, char *fmt,...)
 
 		sprintf(buffer+reader->init_history_pos, "%s\n", txt);
 
-		fp=fopen(filename, "w");
+		fp = fopen(filename, "w");
 		fwrite(buffer, 1, reader->init_history_pos+strlen(txt)+1, fp);
 		fclose(fp);
 
@@ -212,26 +212,34 @@ void network_tcp_connection_close(struct s_reader * reader, int fd)
   if (!is_server)
   {
     int i;
-    pfd=0;
+    pfd = 0;
     reader->tcp_connected = 0;
 
-    for (i=0; i<CS_MAXPENDING; i++)
-    {
-      ecmtask[i].idx=0;
-      ecmtask[i].rc=0;
+    if (ecmtask) {
+			for (i = 0; i < CS_MAXPENDING; i++) {
+				ecmtask[i].idx = 0;
+				ecmtask[i].rc = 0;
+			}
     }
 
     reader->ncd_msgid=0;
     reader->last_s=reader->last_g=0;
 
-    if (reader->ph.c_init())
-    {
+    /* FIXME: this changes from r2318 only for CCcam */
+    if (reader->typ == R_CCCAM) {
+      if (reader->ph.cleanup) reader->ph.cleanup();
+      if (client[cs_idx].typ == 'p') return;
+    } 
+    /* END */
+
+    if (reader->ph.c_init()) {
          cs_debug("network_tcp_connection_close() exit(1);");
-         if (reader->ph.cleanup) reader->ph.cleanup();
+
+       if (reader->ph.cleanup)
+         reader->ph.cleanup();
+
          cs_exit(1);
     }
-    //cs_resolve_reader(reader->ridx);
-//  cs_log("last_s=%d, last_g=%d", reader->last_s, reader->last_g);
   }
 }
 
@@ -368,7 +376,7 @@ int casc_process_ecm(struct s_reader * reader, ECM_REQUEST *er)
   if (sflag)
   {
     if (!client[cs_idx].udp_sa.sin_addr.s_addr) // once resolved at least
-      cs_resolve_reader(ridx);
+      cs_resolve();
 
     if ((rc=reader->ph.c_send_ecm(&ecmtask[n], buf)))
       casc_check_dcw(reader, n, 0, ecmtask[n].cw);  // simulate "not found"
@@ -420,8 +428,6 @@ static void reader_get_ecm(struct s_reader * reader, ECM_REQUEST *er)
   if (check_ecmcache(er, client[er->cidx].grp))
   {
     er->rc=2;
-    if(cfg->delay)
-      cs_sleepms(cfg->delay);
     write_ecm_answer(reader, fd_c2m, er);
     return;
   }
@@ -628,7 +634,13 @@ static int reader_listen(struct s_reader * reader, int fd1, int fd2)
 static void reader_do_pipe(struct s_reader * reader)
 {
   uchar *ptr;
-  switch(read_from_pipe(client[reader->cs_idx].fd_m2c_c, &ptr, 0))
+  int pipeCmd = read_from_pipe(client[reader->cs_idx].fd_m2c_c, &ptr, 0);
+
+  /* FIXME: this breaks camd35/newcamd cascading as this modules does not set tcp_connected = 2 */
+  if (reader->typ == R_CCCAM && reader->tcp_connected != 2 && client[cs_idx].typ == 'p')
+    return;
+ 
+  switch(pipeCmd)
   {
     case PIP_ID_ECM:
       reader_get_ecm(reader, (ECM_REQUEST *)ptr);
@@ -651,6 +663,16 @@ static void reader_main(struct s_reader * reader)
 {
   while (1)
   {
+    /* FIXME: this breaks newcamd/camd3 cascading as newcamd/camd35 only connects if server sends ecm/emm to client */
+    if (reader->typ == R_CCCAM && !reader->tcp_connected && client[cs_idx].typ == 'p') {
+    	 if (!cfg->reader_restart_seconds)
+    	 	  cs_exit(1);
+       cs_log("%s not connected! Reconection in %d sec", reader->label, cfg->reader_restart_seconds);
+       cs_sleepms(1000 * cfg->reader_restart_seconds);
+       if (reader->ph.c_init() && reader->ph.cleanup)
+    	    reader->ph.cleanup();
+       continue;
+    }    
     switch(reader_listen(reader, client[reader->cs_idx].fd_m2c_c, pfd))
     {
       case 1: reader_do_pipe(reader)  ; break;
@@ -671,16 +693,20 @@ void * start_cardreader(void * rdr)
     client[cs_idx].port=reader->r_port;
     strcpy(client[cs_idx].usr, reader->r_usr);
 
-    if (!(reader->ph.c_init))
-    {
+    
+    if (!(reader->ph.c_init)) {
       cs_log("FATAL: %s-protocol not supporting cascading", reader->ph.desc);
       cs_sleepms(1000);
       cs_exit(1);
     }
+    
     if (reader->ph.c_init()) {
-          if (reader->ph.cleanup) reader->ph.cleanup();
+    	 if (reader->ph.cleanup) 
+    	 	  reader->ph.cleanup();
+    	 if (client[cs_idx].typ != 'p')
           cs_exit(1);
      }
+    
     if ((reader->log_port) && (reader->ph.c_init_log))
       reader->ph.c_init_log();
   }
