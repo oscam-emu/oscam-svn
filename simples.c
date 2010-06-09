@@ -17,6 +17,18 @@ t_simples::~t_simples()
 }
 
 //---------------------------------------------------------------------------
+int t_simples::cs_atob(uchar *buf, char *asc, int n)
+{
+  int i, rc;
+  for (i = 0; i < n; i++) {
+    if ((rc = (gethexval(asc[i << 1]) << 4) | gethexval(asc[(i << 1) + 1])) & 0x100)
+       return(-1);
+    buf[i] = rc;
+  }
+  return(n);
+}
+
+//---------------------------------------------------------------------------
 int t_simples::key_atob14(char *asc, uchar *bin)
 {
   int i, n1, n2, rc;

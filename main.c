@@ -4,10 +4,7 @@
  *      Author: aston
  */
 
-
-
 #include "main.h"
-#include "config.h"
 
 //---------------------------------------------------------------------------
 t_main::t_main()
@@ -16,6 +13,7 @@ t_main::t_main()
 	 reader[i] = NULL;
    for(int i = 0; i < MAXCLIENT; i++)
 	 client[i] = NULL;
+   config = NULL;
 }
 
 //---------------------------------------------------------------------------
@@ -25,10 +23,10 @@ t_main::~t_main()
 	 if (reader[i]) delete reader[i];
    for(int i = 0; i < MAXCLIENT; i++)
 	 if (client[i]) delete client[i];
+   if (config) delete config;
 }
 
 //---------------------------------------------------------------------------
-//t_main *mainClass = NULL;
 /* Signal handler for SIGQUIT and SIGINT. */
 void t_main::exitSignalHandler(int)
 {
@@ -43,14 +41,23 @@ void t_main::run()
 	if (signal(SIGQUIT, exitSignalHandler) == SIG_ERR)
 	   throw StandardException("Error setting up signal SIGQUIT handler!");
 
-	confingDir = "E:\\Linux\\Virtual-Machines\\Work\\eclipse\\oscam++\\";
-	t_config *config = new t_config();
-	config->init_config();
-	delete config;
+	confingDir = "E:\\Linux\\Virtual-Machines\\Work\\eclipse\\oscam++\\"; // for test
 
-    terminated = false;
-    while(!terminated) {
-       kill(getpid(), SIGQUIT);
-    }
+	config = new t_config();
+	config->load_oscamConf();
+	// start logger here ?!?
+	// switch to background
+	try {
+	   config->load_oscamUser();
+	   config->load_oscamServer();
+
+	   terminated = false;
+       while(!terminated) {
+          kill(getpid(), SIGQUIT);
+       }
+	}
+	catch (StandardException& e) {
+	   cerr << e.descrptChar() << endl; // this should go into log
+	}
 }
 //---------------------------------------------------------------------------

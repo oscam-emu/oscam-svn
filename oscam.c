@@ -15,7 +15,6 @@ int main (int argc, char *argv[])
 {
    mainClass = new t_main();
    try {
-
 	   mainClass->run();
 	   cout << "oscam exit -> normal" << endl;
    }

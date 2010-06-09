@@ -27,6 +27,7 @@ public:
 	 in_addr_t cs_inet_order(in_addr_t n);
 	 ulong a2i(char *asc, int bytes);
 	 int   key_atob14(char *asc, uchar *bin);
+	 int   cs_atob(uchar *buf, char *asc, int n);
 };
 //---------------------------------------------------------------------------
 

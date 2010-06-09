@@ -6,10 +6,7 @@
 #ifndef CONFIG_H_
 #define CONFIG_H_
 
-#include "main.h"
-#include "cthread.h"
-
-#include <fstream>
+#include "global.h"
 
 //---------------------------------------------------------------------------
 #define CS_CONF 	"oscam.conf";
@@ -20,19 +17,49 @@
 #define cs_CERT     "oscam.cert";
 #define cs_SERVICES "oscam.services";
 
-#ifdef CS_ANTICASC
-static char *cs_ac="oscam.ac";
-#endif
-
 #define CS_CLIENT_TIMEOUT 5000
 #define CS_CLIENT_MAXIDLE 120
 #define CS_DELAY          0
 #define CS_BIND_TIMEOUT   120
 #define CS_RESOLVE_DELAY  30
-#define CS_MAXPROV    32
-#define CS_MAXPORTS   32  // max server ports
+#define CS_MAXPROV    	32
+#define CS_MAXPORTS   	32  // max server ports
 #define CS_MAXFILTERS   16
-#define CS_MAXCAIDTAB 32  // max. caid-defs/user
+#define CS_MAXCAIDTAB 	32  // max. caid-defs/user
+#define CS_MAXLOCALS    16
+
+
+//------------------------------------------
+#ifdef CS_ANTICASC
+struct s_acasc_shm {
+  ushort ac_count : 15;
+  ushort ac_deny  : 1;
+};
+
+struct s_acasc {
+  ushort stat[10];
+  uchar  idx;    // current active index in stat[]
+};
+
+struct s_cpmap
+{
+  ushort caid;
+  ulong  provid;
+  ushort sid;
+  ushort chid;
+  ushort dwtime;
+  struct s_cpmap *next;
+};
+#endif
+
+
+//------------------------------------------
+typedef struct s_caidtab
+{
+  ushort caid[CS_MAXCAIDTAB];
+  ushort mask[CS_MAXCAIDTAB];
+  ushort cmap[CS_MAXCAIDTAB];
+} CAIDTAB;
 
 //------------------------------------------
 struct s_ip
@@ -173,28 +200,28 @@ struct s_config
 	struct s_sidtab *sidtab;
 
 #ifdef WEBIF
-	int			http_port;
-	char		http_user[65];
-	char		http_pwd[65];
-	char		http_css[128];
-	char		http_tpl[128];
-	char		http_script[128];
-	int			http_refresh;
-	int			http_hide_idle_clients;
+	int			  http_port;
+	string		  http_user;
+	string		  http_pwd;
+	string		  http_css;
+	string		  http_tpl;
+	string		  http_script;
+	bool		  http_refresh;
+	bool		  http_hide_idle_clients;
 	struct 	s_ip *http_allowed;
-	int			http_readonly;
-	in_addr_t	http_dynip;
-	uchar		http_dyndns[64];
+	bool		  http_readonly;
+	in_addr_t	  http_dynip;
+	string		  http_dyndns;
 #endif
 
 #ifdef CS_WITH_GBOX
-	uchar	gbox_pwd[8];
-	uchar	ignorefile[128];
-	uchar	cardfile[128];
-	uchar	gbxShareOnl[128];
-	int		maxdist;
-	int		num_locals;
-	unsigned long 	locals[CS_MAXLOCALS];
+	string	gbox_pwd;
+	string	gbox_ignorefile;
+	string	gbox_cardfile;
+	string	gbox_gbxShareOnl;
+	int		gbox_maxdist;
+	int		gbox_num_locals;
+	ulong 	gbox_locals[CS_MAXLOCALS];
 #endif
 
 #ifdef IRDETO_GUESSING
@@ -202,24 +229,26 @@ struct s_config
 #endif
 
 #ifdef HAVE_DVBAPI
-	int		dvbapi_enabled;
+	bool	dvbapi_enabled;
 	int		dvbapi_au;
-	char	dvbapi_usr[33];
+	string	dvbapi_usr;
 	int		dvbapi_boxtype;
 	CAIDTAB	dvbapi_prioritytab;
 	CAIDTAB	dvbapi_ignoretab;
 	CAIDTAB	dvbapi_delaytab;
+	string  dvbapi_boxdesc;
 #endif
 
 #ifdef CS_ANTICASC
-	char	ac_enabled;
+	bool	ac_enabled;
 	int		ac_users;       // num of users for account (0 - default)
 	int		ac_stime;       // time to collect AC statistics (3 min - default)
 	int		ac_samples;     // qty of samples
 	int		ac_penalty;     // 0 - write to log
 	int		ac_fakedelay;   // 100-1000 ms
 	int		ac_denysamples;
-	char	ac_logfile[128];
+	string	ac_logfile;
+	string  ac_cs;
 	struct	s_cpmap *cpmap;
 #endif
 };
@@ -261,11 +290,23 @@ private:
 	void chk_t_serial(string* token, string* value);
 	void chk_t_camd35_tcp(string* token, string* value);
 	void chk_t_cccam(string* token, string* value);
+	void chk_t_gbox(string* token, string* value);
+	void chk_t_dvbapi(string* token, string* value);
+	void dvbapi_chk_caidtab(char *caidasc, CAIDTAB *ctab);
+	void chk_t_webif(string *token, string *value);
+	void chk_t_ac(string *token, string *value);
+
 public:
 	 t_config();
 	~t_config();
 	s_config *oscamConf;
-	void init_config();
+	void load_oscamConf();
+	void load_oscamUser();
+	void load_oscamServer();
+	void load_oscamSrvid();
+	void load_oscamGuess();
+	void load_oscamCert();
+	void load_oscamServices();
 };
 //---------------------------------------------------------------------------
 

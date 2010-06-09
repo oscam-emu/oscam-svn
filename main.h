@@ -11,8 +11,7 @@
 #include "simples.h"
 #include "reader.h"
 #include "client.h"
-
-
+#include "config.h"
 
 //---------------------------------------------------------------------------
 class t_main : public t_simples
@@ -31,8 +30,9 @@ public:
 
 	t_reader *reader[MAXREADER];
 	t_client *client[MAXCLIENT];
+	t_config *config;
 };
-extern t_main *mainClass;
 //---------------------------------------------------------------------------
+extern t_main *mainClass;
 
 #endif /* MAIN_H_ */
