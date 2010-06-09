@@ -18,15 +18,19 @@ class t_main : public t_simples
 {
 private:
 	string confingDir;
+	int    csDblevel;
 	bool terminated;
-
+    bool runINbg;
 	static void exitSignalHandler(int);
+	void oscamUsage();
 public:
 	 t_main();
 	~t_main();
-	void run();
+	void run(int argc, char *argv[]);
 	void terminate() { terminated = true; }
+	//void setRunInBG() { run_inbg = true; }
 	string GetConfingDir() { return confingDir; }
+	int    GetCsDblevel()  { return csDblevel; }
 
 	t_reader *reader[MAXREADER];
 	t_client *client[MAXCLIENT];

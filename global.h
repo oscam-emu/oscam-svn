@@ -37,6 +37,16 @@ using namespace std;
 
 //---------------------------------------------------------------------------
 
+#define CS_VERSION     "1.00.0svn"
+#define CS_SVN_VERSION "1"
+#define CS_VERSION_X   "1"
+#define CS_OSTYPE      "sh4"
+
+#ifndef CS_CONFDIR
+#define CS_CONFDIR    "/usr/local/etc"
+#endif
+
+
 #ifndef CS_LOGFILE
 #define CS_LOGFILE    "/var/log/oscam.log"
 #endif
