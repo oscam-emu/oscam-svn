@@ -20,28 +20,29 @@ typedef unsigned char  uchar;
 typedef unsigned long  ulong;
 typedef unsigned short ushort;
 
+#include <sys/resource.h>
 #include <pthread.h>
 #include <stdlib.h>
 #include <arpa/inet.h>
 #include <signal.h>
 #include <syslog.h>
 #include <stdlib.h>
-#include <string>
 #include <string.h>
-#include <typeinfo>
 #include <stdarg.h>
-#include <iostream>
 #include <errno.h>
 #include <fstream>
+#include <iostream>
 
 using namespace std;
-
 //---------------------------------------------------------------------------
 
 #define CS_VERSION     "1.00.0svn"
 #define CS_SVN_VERSION "1"
 #define CS_VERSION_X   "1"
 #define CS_OSTYPE      "sh4"
+#define CS_OS_SYS      "linux"
+#define CS_OS_CPU      "st40"
+#define CS_OS_HW       "ipbox"
 
 #ifndef CS_CONFDIR
 #define CS_CONFDIR    "/usr/local/etc"
@@ -72,7 +73,7 @@ private:
 public:
 	StandardException ( std::string msg, ... )
 	{
-	   formated_msg.resize(512);
+	   formated_msg.reserve(512);
 
        va_list params;
 	   va_start(params, msg);

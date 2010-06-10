@@ -9,7 +9,9 @@
 
 #include "global.h"
 
-//---------------------------------------------------------------------------
+//--------------------------------------------------------------------
+// CLASS --- simples ---
+//--------------------------------------------------------------------
 class t_simples
 {
 private:
@@ -28,6 +30,8 @@ public:
 	 ulong a2i(char *asc, int bytes);
 	 int   key_atob14(char *asc, uchar *bin);
 	 int   cs_atob(uchar *buf, char *asc, int n);
+	 string itoa(int value, int base);
+	 string cs_hexdump(int m, uchar *buf, int n);
 };
 //---------------------------------------------------------------------------
 

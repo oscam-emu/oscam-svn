@@ -26,20 +26,27 @@ t_main::~t_main()
 	 if (reader[i]) delete reader[i];
    for(int i = 0; i < MAXCLIENT; i++)
 	 if (client[i]) delete client[i];
+
    if (config) delete config;
+
+   if (logger) {
+	  logger->writeLogNormal("Card server is down!");
+	  delete logger;
+   }
 }
 
 //---------------------------------------------------------------------------
 /* Signal handler for SIGQUIT and SIGINT. */
 void t_main::exitSignalHandler(int)
 {
+   mainClass->logger->writeLogNormal("%s signal quit received!", "s  ");
    mainClass->terminate();
 }
 
 //---------------------------------------------------------------------------
 void t_main::run(int argc, char *argv[])
 {
-    int i;
+	int i;
 	while ((i = getopt(argc, argv, "bc:d:hm:")) != EOF) {
 	   switch(i) {
 		   case 'b': runINbg = true;
@@ -62,8 +69,16 @@ void t_main::run(int argc, char *argv[])
 	config = new t_config();
 	config->load_oscamConf();
 
+	logger = new t_logger();
+    logger->openLogFile();
+
     try {
-	   // start logger here
+       // tests ....
+       logger->writeLogNormal("%s log testing %d ......!", "c01", 10);
+       logger->writeLogNormal("%s log testing %d ......!", "p01", 11);
+       logger->writeLogNormal("%s log testing %d ......!", "p02", 12);
+       logger->writeLogDump((uchar*)this, 64, "ECM:"); // mem dump test
+
 #ifdef OS_MACOSX
        if (runINbg && daemon_compat(1, 0))
 #else
@@ -75,17 +90,22 @@ void t_main::run(int argc, char *argv[])
        config->load_oscamUser();
 	   config->load_oscamServer();
 
-	   terminated = false;
+	   logger->writeLogNormal("%s Main loop started.", "s  ");
+	   terminated = false; int a = 0;
        while(!terminated) {
-          sleep(1);
-    	  kill(getpid(), SIGQUIT);
+    	  logger->writeLogNormal("%s Main looping ...", "s  ");
+    	  sleep(1);
+    	  if (++a > 2)
+    	     kill(getpid(), SIGQUIT);
        }
+       logger->writeLogNormal("%s Main loop exit.", "s  ");
 	}
 	catch (StandardException& e) {
-	   cerr << e.descrptChar() << endl; // this should go into log
+	   logger->writeLogNormal("Fatal error: %s!", e.descrptChar());
 	}
 }
 
+//---------------------------------------------------------------------------
 void t_main::oscamUsage()
 {
   char logo[] = "  ___  ____   ___                \n / _ \\/ ___| / __|__ _ _ __ ___  \n| | | \\___ \\| |  / _` | '_ ` _ \\ \n| |_| |___) | |_| (_| | | | | | |\n \\___/|____/ \\___\\__,_|_| |_| |_|\n";
@@ -141,10 +161,6 @@ void t_main::oscamUsage()
   fprintf(stderr, "\t              32 = traffic to the reader-device on I/O layer\n");
   fprintf(stderr, "\t              64 = EMM logging\n");
   fprintf(stderr, "\t             255 = debug all\n");
-#ifdef CS_NOSHM
-  fprintf(stderr, "\t-m <file>  : use <file> as mmaped memory file\n");
-  fprintf(stderr, "\t             default = %s\n", CS_MMAPFILE);
-#endif
   fprintf(stderr, "\t-h         : show this help\n");
   fprintf(stderr, "\n");
 }

@@ -2,15 +2,7 @@
 #ifndef CTHREAD_H_
 #define CTHREAD_H_
 
-#include <pthread.h>
-#include <stdlib.h>
-#include <string>
-#include <typeinfo>
-#include <cstdarg>
-#include <sys/resource.h>
-
-using namespace std;
-
+#include "global.h"
 
 //--------------------------------------------------------------------
 // CLASS --- cMutex ---
@@ -53,5 +45,5 @@ public:
 	  void Stop(int waitSeconds = 0);
 	  void Start(void);
 };
-
+//--------------------------------------------------------------------
 #endif /* CTHREAD_H_ */

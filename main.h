@@ -12,8 +12,11 @@
 #include "reader.h"
 #include "client.h"
 #include "config.h"
+#include "logger.h"
 
-//---------------------------------------------------------------------------
+//--------------------------------------------------------------------
+// CLASS --- main ---
+//--------------------------------------------------------------------
 class t_main : public t_simples
 {
 private:
@@ -28,13 +31,14 @@ public:
 	~t_main();
 	void run(int argc, char *argv[]);
 	void terminate() { terminated = true; }
-	//void setRunInBG() { run_inbg = true; }
+
 	string GetConfingDir() { return confingDir; }
 	int    GetCsDblevel()  { return csDblevel; }
 
 	t_reader *reader[MAXREADER];
 	t_client *client[MAXCLIENT];
 	t_config *config;
+	t_logger *logger;
 };
 //---------------------------------------------------------------------------
 extern t_main *mainClass;

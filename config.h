@@ -271,11 +271,12 @@ typedef enum cs_proto_type
 	TAG_ANTICASC	// anti-cascading
 } cs_proto_type_t;
 
-//---------------------------------------------------------------------------
+//--------------------------------------------------------------------
+// CLASS --- config ---
+//--------------------------------------------------------------------
 class t_config
 {
 private:
-	fstream *oscamConfFile;
 	void delete_s_ip(s_ip *current);
 	void chk_iprange(char *value, struct s_ip **base);
 	void chk_port_tab(char *portasc, PTAB *ptab);

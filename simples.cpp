@@ -165,7 +165,48 @@ int t_simples::key_atob(char *asc, uchar *bin)
 }
 
 //---------------------------------------------------------------------------
+string t_simples::itoa(int value, int base)
+{
+   string buf;
+
+   // check that the base if valid
+   if (base < 2 || base > 16) return buf;
+
+   enum { kMaxDigits = 35 };
+   buf.reserve( kMaxDigits ); // Pre-allocate enough space.
+
+   int quotient = value;
+
+   // Translating number to string with base:
+   do {
+	  buf += "0123456789abcdef"[ std::abs( quotient % base ) ];
+	  quotient /= base;
+   } while ( quotient );
+
+   // Append the negative sign
+   if ( value < 0) buf += '-';
+
+   reverse( buf.begin(), buf.end() );
+   return buf;
+}
+
 //---------------------------------------------------------------------------
+string t_simples::cs_hexdump(int m, uchar *buf, int n)
+{
+#define DUMP_SIZE 520
+
+   string dump;
+   dump.reserve(DUMP_SIZE);
+
+   m = (m) ? 3 : 2;
+   if (m * n >= (int)DUMP_SIZE)
+	  n = (DUMP_SIZE / m) - 1;
+
+   int i = 0;
+   while(i < n)
+     sprintf(&dump[m * i++], "%02X%s", *buf++, (m > 2) ? " " : "");
+   return  dump;
+}
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 

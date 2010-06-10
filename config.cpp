@@ -11,7 +11,6 @@
 t_config::t_config()
 {
    oscamConf = new s_config;
-   oscamConfFile = NULL;
 
 #ifdef CS_ANTICASC
    oscamConf->ac_cs = "oscam.ac";
@@ -21,7 +20,6 @@ t_config::t_config()
 //---------------------------------------------------------------------------
 t_config::~t_config()
 {
-   if (oscamConfFile) delete oscamConfFile;
    delete_s_ip(oscamConf->mon_allowed);
    delete_s_ip(oscamConf->c33_plain);
    delete_s_ip(oscamConf->ncd_allowed);
@@ -833,37 +831,43 @@ void t_config::load_oscamConf()
 			          "cs357x", "cs378x", "gbox", "cccam", "dvbapi", "webif", "anticasc", NULL };
 
    string fileName = mainClass->GetConfingDir() + CS_CONF;
-   oscamConfFile = new fstream();
-   oscamConfFile->open(fileName.c_str(), ios::out | ios::in);
+   fstream *oscamConfFile = new fstream();
+   oscamConfFile->open(fileName.c_str(), ios::in); //ios::out
    if (!oscamConfFile->is_open())
       throw StandardException("Cant open config file %s", fileName.c_str());
 
    int tag = TAG_GLOBAL;
-   while(!oscamConfFile->eof()) {
-	  string line;
-	  getline(*oscamConfFile, line);
-	  mainClass->trim(&line); mainClass->strToLower(&line);
-	  int len = line.length();
-	  if (len < 3)
-		 continue;
-	  if (line[0] == '[' && line[len-1] == ']') {
-	     for (int i = 0; cctag[i]; i++) {
-		    string token = "[]";
-	        token.insert(1, cctag[i]);
-	        if (line.compare(token) == 0)
-	          { tag = i; break; }
+   try {
+	  while(!oscamConfFile->eof()) {
+	     string line;
+	     getline(*oscamConfFile, line);
+	     mainClass->trim(&line); mainClass->strToLower(&line);
+	     int len = line.length();
+	     if (len < 3)
+		    continue;
+	     if (line[0] == '[' && line[len-1] == ']') {
+		    for (int i = 0; cctag[i]; i++) {
+			   string token = "[]";
+			   token.insert(1, cctag[i]);
+			   if (line.compare(token) == 0)
+			    { tag = i; break; }
+		    }
+		    continue;
 	     }
-	     continue;
+	     size_t pos;
+	     if ((pos = line.find('=', 0)) == string::npos)
+		    continue;
+	     string value = line.substr(pos + 1, len - pos);
+	     line.erase(pos - 1);
+	     mainClass->trim(&value); mainClass->trim(&line);
+	     chk_token(&line, &value, tag);
 	  }
-	  size_t pos;
-	  if ((pos = line.find('=', 0)) == string::npos)
-		 continue;
-	  string value = line.substr(pos + 1, len - pos);
-	  line.erase(pos - 1);
-	  mainClass->trim(&value); mainClass->trim(&line);
-	  chk_token(&line, &value, tag);
+	  oscamConfFile->close();
    }
-   oscamConfFile->close();
+   catch (StandardException& e) {
+	  oscamConfFile->close();
+	  throw StandardException(e.descrptChar());
+   }
 
 #ifndef CS_LOGFILE
 	if (!oscamConf->logfile.length()) {
@@ -871,24 +875,24 @@ void t_config::load_oscamConf()
 	}
 #endif
 	if (oscamConf->ftimeout >= oscamConf->ctimeout) {
-		oscamConf->ftimeout = oscamConf->ctimeout - 100;
-		fprintf(stderr, "WARNING: fallbacktimeout adjusted to %lu ms (must be smaller than clienttimeout (%lu ms))\n",
+	   oscamConf->ftimeout = oscamConf->ctimeout - 100;
+	   fprintf(stderr, "WARNING: fallbacktimeout adjusted to %lu ms (must be smaller than clienttimeout (%lu ms))\n",
 				        oscamConf->ftimeout, oscamConf->ctimeout);
 	}
-	if(oscamConf->ftimeout < oscamConf->srtimeout) {
-		oscamConf->ftimeout = oscamConf->srtimeout + 100;
-		fprintf(stderr, "WARNING: fallbacktimeout adjusted to %lu ms (must be greater than serialreadertimeout (%lu ms))\n",
+	if (oscamConf->ftimeout < oscamConf->srtimeout) {
+	   oscamConf->ftimeout = oscamConf->srtimeout + 100;
+	   fprintf(stderr, "WARNING: fallbacktimeout adjusted to %lu ms (must be greater than serialreadertimeout (%lu ms))\n",
 				        oscamConf->ftimeout, oscamConf->srtimeout);
 	}
-	if(oscamConf->ctimeout < oscamConf->srtimeout) {
-		oscamConf->ctimeout = oscamConf->srtimeout + 100;
-		fprintf(stderr, "WARNING: clienttimeout adjusted to %lu ms (must be greater than serialreadertimeout (%lu ms))\n",
-				         oscamConf->ctimeout, oscamConf->srtimeout);
+	if (oscamConf->ctimeout < oscamConf->srtimeout) {
+	   oscamConf->ctimeout = oscamConf->srtimeout + 100;
+	   fprintf(stderr, "WARNING: clienttimeout adjusted to %lu ms (must be greater than serialreadertimeout (%lu ms))\n",
+				        oscamConf->ctimeout, oscamConf->srtimeout);
 	}
 #ifdef CS_ANTICASC
-	if( oscamConf->ac_denysamples + 1 > oscamConf->ac_samples ) {
-		oscamConf->ac_denysamples = oscamConf->ac_samples - 1;
-		fprintf(stderr, "WARNING: DenySamples adjusted to %d\n", oscamConf->ac_denysamples);
+	if (oscamConf->ac_denysamples + 1 > oscamConf->ac_samples) {
+	   oscamConf->ac_denysamples = oscamConf->ac_samples - 1;
+	   fprintf(stderr, "WARNING: DenySamples adjusted to %d\n", oscamConf->ac_denysamples);
 	}
 #endif
 }
@@ -896,7 +900,7 @@ void t_config::load_oscamConf()
 //---------------------------------------------------------------------------
 void t_config::load_oscamUser()
 {
-
+   //throw StandardException("test ....");
 }
 //---------------------------------------------------------------------------
 void t_config::load_oscamServer()
