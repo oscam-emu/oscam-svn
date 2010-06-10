@@ -27,6 +27,7 @@ typedef unsigned short ushort;
 #include <syslog.h>
 #include <stdlib.h>
 #include <string>
+#include <string.h>
 #include <typeinfo>
 #include <stdarg.h>
 #include <iostream>
