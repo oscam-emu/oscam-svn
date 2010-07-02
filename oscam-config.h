@@ -14,6 +14,10 @@
 #define WITH_DEBUG
 #endif
 
+#ifndef CS_LED
+//#define CS_LED
+#endif
+
 #ifndef MODULE_MONITOR
 #define MODULE_MONITOR
 #endif
@@ -44,6 +48,10 @@
 
 #ifndef MODULE_SERIAL
 //#define MODULE_SERIAL
+#endif
+
+#ifndef MODULE_CONSTCW
+//#define MODULE_CONSTCW
 #endif
 
 

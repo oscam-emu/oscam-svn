@@ -152,9 +152,9 @@ macosx-native:
 		OS_LIBS="-lcrypto -lm" \
 		OS_CULI="-lncurses" \
 		OS_PTLI="-lpthread" \
-		DS_OPTS="-O2 -DOS_MACOSX -DNEED_DAEMON -DCS_NOSHM -DHAVE_PTHREAD_H -DCS_CONFDIR=${CS_CONFDIR} -DHAVE_PCSC=1 -m32 -Winline -Wall -Wextra -finline-functions -fomit-frame-pointer -D'CS_SVN_VERSION="\"$(SVN_REV)\""'" \
+		DS_OPTS="-O2 -DOS_MACOSX -DNEED_DAEMON -DCS_NOSHM -DHAVE_PTHREAD_H -DCS_CONFDIR=${CS_CONFDIR} -DHAVE_PCSC=1 -m32 -mmacosx-version-min=10.5 -isysroot /Developer/SDKs/MacOSX10.5.sdk -Winline -Wall -Wextra -finline-functions -fomit-frame-pointer -D'CS_SVN_VERSION="\"$(SVN_REV)\""'" \
 		DS_CFLAGS="-c" \
-		DS_LDFLAGS="-framework PCSC" \
+		DS_LDFLAGS="-framework PCSC -mmacosx-version-min=10.5 -isysroot /Developer/SDKs/MacOSX10.5.sdk" \
 		DS_ARFLAGS="-rvsl" \
 		DS_CC=gcc \
 		DS_AR=ar \
@@ -174,9 +174,9 @@ macosx-libusb:
 		OS_LIBS="-lcrypto -lm " \
 		OS_CULI="-lncurses" \
 		OS_PTLI="-lpthread" \
-		DS_OPTS="-O2 -DOS_MACOSX -DNEED_DAEMON -DCS_NOSHM -DHAVE_PTHREAD_H  -DCS_CONFDIR=${CS_CONFDIR} -DHAVE_PCSC=1 -DLIBUSB -m32 -Winline -Wall -Wextra -finline-functions -fomit-frame-pointer -D'CS_SVN_VERSION="\"$(SVN_REV)\""' -I/usr/local/include" \
+		DS_OPTS="-O2 -DOS_MACOSX -DNEED_DAEMON -DCS_NOSHM -DHAVE_PTHREAD_H  -DCS_CONFDIR=${CS_CONFDIR} -DHAVE_PCSC=1 -DLIBUSB -m32 -mmacosx-version-min=10.5 -isysroot /Developer/SDKs/MacOSX10.5.sdk -Winline -Wall -Wextra -finline-functions -fomit-frame-pointer -D'CS_SVN_VERSION="\"$(SVN_REV)\""' -I/usr/local/include" \
 		DS_CFLAGS="-c" \
-		DS_LDFLAGS="-framework PCSC -Wl,-framework -Wl,IOKit -Wl,-framework -Wl,CoreFoundation -Wl,-prebind -no-undefined" \
+		DS_LDFLAGS="-framework PCSC -mmacosx-version-min=10.5 -isysroot /Developer/SDKs/MacOSX10.5.sdk -Wl,-framework -Wl,IOKit -Wl,-framework -Wl,CoreFoundation -Wl,-prebind -no-undefined" \
 		DS_ARFLAGS="-rvsl" \
 		DS_CC=gcc \
 		DS_AR=ar \
@@ -339,6 +339,30 @@ i386-pc-cygwin:
 		OS_CULI="-lncurses" \
 		OS_PTLI="-lpthread" \
 		DS_OPTS="-O2 -DOS_CYGWIN32 -DCS_CONFDIR=${CS_CONFDIR} -I /tmp/include -D'CS_SVN_VERSION="\"$(SVN_REV)\""'" \
+		DS_CFLAGS="-c" \
+		DS_LDFLAGS="" \
+		DS_ARFLAGS="-rvsl" \
+		DS_CC=gcc \
+		DS_AR=ar \
+		DS_LD=ld \
+		DS_RL=ranlib \
+		DS_ST=strip
+
+
+######################################################################
+#
+#	Cygwin native with PCSC
+#
+# 	requires Visual Studio / Visual C++ for the winscard includes
+######################################################################
+i386-pc-cygwin-pcsc:
+	@-$(MAKE) --no-print-directory \
+		-f Maketype TYP=$(subst cross-,,$@) \
+		LIBPCSC="cygwin/libwinscard.a" \
+		OS_LIBS="-lcrypto -lm" \
+		OS_CULI="-lncurses" \
+		OS_PTLI="-lpthread" \
+		DS_OPTS="-O2 -DOS_CYGWIN32 -DCS_CONFDIR=${CS_CONFDIR} -DHAVE_PCSC=1 -I /tmp/include -I/cygdrive/c/Program\ Files/Microsoft\ Visual\ Studio/VC98/Include -I/cygdrive/c/Program\ Files/Microsoft\ Visual\ Studio\ 8/VC/include -D'CS_SVN_VERSION="\"$(SVN_REV)\""'" \
 		DS_CFLAGS="-c" \
 		DS_LDFLAGS="" \
 		DS_ARFLAGS="-rvsl" \

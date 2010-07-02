@@ -55,6 +55,8 @@ int Cool_Reset (ATR * atr)
 	int timeout = 5000; // Timout in ms?
 	call (cnxt_smc_reset_card (handle, ATR_TIMEOUT, NULL, NULL));
 
+    cs_sleepms(50);
+
 	int n = 40;
 	unsigned char buf[40];
 	call (cnxt_smc_get_atr (handle, buf, &n));
@@ -117,4 +119,20 @@ int Cool_WriteSettings (unsigned long BWT, unsigned long CWT, unsigned long EGT,
 	cs_debug("COOL WriteSettings OK");
 	return OK;
 }
+
+int Cool_FastReset ()
+{
+	int n = 40;
+	unsigned char buf[40];
+
+	//reset card
+	call (cnxt_smc_reset_card (handle, ATR_TIMEOUT, NULL, NULL));
+
+    cs_sleepms(50);
+
+	call (cnxt_smc_get_atr (handle, buf, &n));
+
+    return 0;
+}
+
 #endif

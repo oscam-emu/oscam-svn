@@ -261,13 +261,12 @@ int chk_avail_reader(ECM_REQUEST *er, struct s_reader *rdr)
     if( !er->rcEx ) er->rcEx=(E1_READER<<4)|E2_CHID;
     return 0;
   }
-/*
+//fixme re-activated code for testing
   if( rdr->typ=='r' )
   {
     if( rdr->qlen>=rdr->maxqlen )
     {
-      cs_log("reader '%s' max. queue length(%d) reached, rejected", rdr->label,
-               rdr->qlen);
+      cs_log("reader '%s' max. queue length(%d) reached, rejected", rdr->label, rdr->qlen);
       if( !er->rcEx ) er->rcEx=(E1_READER<<4)|E2_QUEUE;
       return 0;
     }
@@ -276,13 +275,21 @@ int chk_avail_reader(ECM_REQUEST *er, struct s_reader *rdr)
       rdr->qlen++;
     }
   }
-*/
+
   return 1;
 }
 
 int matching_reader(ECM_REQUEST *er, struct s_reader *rdr)
 {
   if (!((rdr->fd) && (rdr->grp&client[cs_idx].grp))) return(0);
+  //Schlocke: These checks are necesary to avoid writing to unavailable readers, because
+  //oscam can stuck if pipe is full
+  if (!rdr->pid || !rdr->enable || rdr->deleted)
+    return 0;
+  if (rdr->ph.type == MOD_CONN_TCP && !rdr->tcp_connected && rdr->card_status != CARD_INSERTED)
+    return 0;
+
+  //srv-checks:  
   if (!chk_srvid(er, rdr->cs_idx))
     return(0);
   if (!chk_rfilter(er, rdr))

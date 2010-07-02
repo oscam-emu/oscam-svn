@@ -334,6 +334,13 @@ void cs_exit(int sig)
               cs_switch_led(LED2, LED_OFF);
               cs_switch_led(LED3, LED_OFF);
 #endif
+              if (cfg->pidfile != NULL) {
+                if (unlink(cfg->pidfile) < 0)
+                  cs_log("cannot remove pid file %s errno=(%d)", cfg->pidfile, errno);
+              }
+              if (unlink("/tmp/oscam.version") < 0)
+            	  cs_log("cannot remove /tmp/oscam.version errno=(%d)", errno);
+
               cs_log("cardserver down");
 #ifndef CS_NOSHM
               if (ecmcache) shmdt((void *)ecmcache);
@@ -892,6 +899,7 @@ static void init_shm()
     strcpy(client[0].usr, "root");
 
   pthread_mutex_init(&gethostbyname_lock, NULL); //gethostbyname ist NOT threadsafe! So we need a mutex-lock!
+  init_stat();
 
 #ifdef CS_LOGHISTORY
   *loghistidx=0;
@@ -1052,6 +1060,30 @@ static void loop_resolver()
   {
     cs_resolve();
     cs_sleepms(1000*cfg->resolvedelay);
+
+    //debug only. checking pipe status:
+    FILE *f = fopen("/tmp/oscamdbg.txt", "w");
+    int i;
+    for (i=0; i<CS_MAXPID; i++) {
+    	if (client[i].pid) {
+    		struct stat buf;
+    		fstat(client[i].udp_fd, &buf);
+    		int s_udp_fd = buf.st_size;
+
+    		fstat(client[i].fd_m2c, &buf);
+    		int s_fd_m2c = buf.st_size;
+
+    		fstat(client[i].fd_m2c_c, &buf);
+    		int s_fd_m2c_c = buf.st_size;
+
+    		fprintf(f, "%d typ %c pid %d: udp_fd=%d fd_m2c=%d fs_m2c_c=%d ", i, client[i].typ,
+    				client[i].pid,
+    				s_udp_fd,
+    				s_fd_m2c,
+    				s_fd_m2c_c);
+    	}
+    }
+    fclose(f);
   }
 }
 
@@ -1076,20 +1108,28 @@ void cs_resolve()
 	struct hostent *rht;
 	struct s_auth;
 	for (i=0; i<CS_MAXREADER; i++)
-		if ((idx=reader[i].cs_idx) && (reader[i].typ & R_IS_NETWORK))
+		if ((idx=reader[i].cs_idx) && (reader[i].typ & R_IS_NETWORK) && (reader[i].typ!=R_CONSTCW))
 		{
 			//client[idx].last=time((time_t)0);
 			pthread_mutex_lock(&gethostbyname_lock); //gethostbyname ist NOT threadsafe! So we need a mutex-lock!
 			rht = gethostbyname(reader[i].device);
 			if (rht)
 			{
+				in_addr_t last_ip = client[idx].ip;
 				memcpy(&client[idx].udp_sa.sin_addr, rht->h_addr,
 						sizeof(client[idx].udp_sa.sin_addr));
 				client[idx].ip=cs_inet_order(client[idx].udp_sa.sin_addr.s_addr);
+				if (client[idx].ip != last_ip)
+				{
+					uint8 *ip = (uint8*)&client[idx].ip;
+					cs_debug_mask(D_TRACE, "resolved %s to %d.%d.%d.%d", reader[i].device,
+							ip[3], ip[2], ip[1], ip[0]);
+				}
 			}
 			else
 				cs_log("can't resolve %s", reader[i].device);
-			pthread_mutex_unlock(&gethostbyname_lock); //gethostbyname ist NOT threadsafe! So we need a mutex-lock!			client[cs_idx].last=time((time_t)0);
+			pthread_mutex_unlock(&gethostbyname_lock); //gethostbyname ist NOT threadsafe! So we need a mutex-lock!			
+			//client[cs_idx].last=time((time_t)0);
 		}
 
 }
@@ -1741,17 +1781,19 @@ ECM_REQUEST *get_ecmtask()
 	return(er);
 }
 
-void send_reader_stat(ECM_REQUEST *er)
+void send_reader_stat(int ridx, ECM_REQUEST *er, int rc)
 {
+	if (!cfg->reader_auto_loadbalance || rc == 100)
+		return;
 	struct timeb tpe;
 	cs_ftime(&tpe);
 	int time = 1000*(tpe.time-er->tps.time)+tpe.millitm-er->tps.millitm;
 
 	ADD_READER_STAT add_stat;
 	memset(&add_stat, 0, sizeof(ADD_READER_STAT));
-	add_stat.ridx = er->reader[0];
+	add_stat.ridx = ridx;
 	add_stat.time = time;
-	add_stat.rc   = er->rc;
+	add_stat.rc   = rc;
 	add_stat.caid = er->caid;
 	add_stat.prid = er->prid;
 	add_stat.srvid = er->srvid;
@@ -1804,7 +1846,7 @@ int send_dcw(ECM_REQUEST *er)
 	if(!er->rc) cs_switch_led(LED2, LED_BLINK_OFF);
 #endif
 
-	send_reader_stat(er);
+	send_reader_stat(er->reader[0], er, er->rc);
 	
 	if(cfg->mon_appendchaninfo)
 		cs_log("%s (%04X&%06X/%04X/%02X:%04X): %s (%d ms)%s - %s",
@@ -1896,7 +1938,7 @@ void chk_dcw(int fd)
   //cs_log("dcw check from reader %d for idx %d (rc=%d)", er->reader[0], er->cpti, er->rc);
   ert=&ecmtask[er->cpti];
   if (ert->rc<100) {
-	send_reader_stat(ert);
+	send_reader_stat(er->reader[0], er, (er->rc==0)?4:-1);
 	return; // already done
   }
   if( (er->caid!=ert->caid) || memcmp(er->ecm , ert->ecm , sizeof(er->ecm)) )
@@ -1924,14 +1966,19 @@ void chk_dcw(int fd)
   }
   else    // not found (from ONE of the readers !)
   {
+    //save reader informations for loadbalance-statistics:
+	ECM_REQUEST *save_ert = ert;
+	int save_ridx = er->reader[0];
+
+	//
     int i;
     ert->reader[er->reader[0]]=0;
     for (i=0; (ert) && (i<CS_MAXREADER); i++)
       if (ert->reader[i]) {// we have still another chance
-    	send_reader_stat(ert);
         ert=(ECM_REQUEST *)0;
       }
     if (ert) ert->rc=4;
+    else send_reader_stat(save_ridx, save_ert, 4);
   }
   if (ert) send_dcw(ert);
   return;
@@ -1939,22 +1986,27 @@ void chk_dcw(int fd)
 
 ulong chk_provid(uchar *ecm, ushort caid)
 {
-  int i;
-  ulong provid=0;
-  switch(caid)
-  {
-    case 0x100:     // seca
-      provid=b2i(2, ecm+3);
-      break;
-    case 0x500:     // viaccess
-      i=(ecm[4]==0xD2) ? ecm[5] + 2 : 0;  // skip d2 nano
-      if ((ecm[5+i]==3) && ((ecm[4+i]==0x90) || (ecm[4+i]==0x40)))
-        provid=(b2i(3, ecm+6+i) & 0xFFFFF0);
-    default:
-      // cryptoworks ?
-      if( caid&0x0d00 && ecm[8]==0x83 && ecm[9]==1 )
-        provid=(ulong)ecm[10];
-  }
+    int i;
+    ulong provid=0;
+    switch(caid) {
+        case 0x100:     // seca
+            provid=b2i(2, ecm+3);
+            break;
+
+        case 0x500:     // viaccess
+            i=(ecm[4]==0xD2) ? ecm[5] + 2 : 0;  // skip d2 nano
+            if ((ecm[5+i]==3) && ((ecm[4+i]==0x90) || (ecm[4+i]==0x40)))
+                provid=(b2i(3, ecm+6+i) & 0xFFFFF0);
+            
+            i=(ecm[6]==0xD2) ? ecm[7] + 2 : 0;  // skip d2 nano long ecm
+            if ((ecm[7+i]==7) && ((ecm[6+i]==0x90) || (ecm[6+i]==0x40)))
+                provid=(b2i(3, ecm+8+i) & 0xFFFFF0);
+
+        default:
+            // cryptoworks ?
+            if( caid&0x0d00 && ecm[8]==0x83 && ecm[9]==1 )
+                provid=(ulong)ecm[10];
+      }
   return(provid);
 }
 
@@ -2117,23 +2169,42 @@ int recv_best_reader(ECM_REQUEST *er)
 	grs.prid = er->prid;
 	grs.srvid = er->srvid;
 	grs.cidx = cs_idx;
-	cs_debug_mask(D_TRACE, "requesting client best reader for %04X/%04X/%04X", grs.caid, grs.prid, grs.srvid);
+	cs_debug_mask(D_TRACE, "requesting client %s best reader for %04X/%04X/%04X", username(cs_idx), grs.caid, grs.prid, grs.srvid);
 	write_to_pipe(fd_c2m, PIP_ID_BES, (uchar*)&grs, sizeof(GET_READER_STAT));
-	uchar *ptr;
 	
+	uchar *ptr;
 	fd_set fds;
-	FD_ZERO(&fds);
-	FD_SET(client[cs_idx].fd_m2c_c, &fds);
-	select(client[cs_idx].fd_m2c_c+1, &fds, 0, 0, 0);
-	if (master_pid!=getppid())
-		cs_exit(0);
-	if (FD_ISSET(client[cs_idx].fd_m2c_c, &fds))
+	struct timeval timeout;
+	timeout.tv_sec = 0;
+	timeout.tv_usec = 500;
+	do
 	{
-		int n = read_from_pipe(client[cs_idx].fd_m2c_c, &ptr, 1);
-		cs_debug_mask(D_TRACE, "got best reader: %d", *(int*)ptr);
-		if (n == PIP_ID_BES)
-			return *(int*)ptr;
-	}
+		FD_ZERO(&fds);
+		FD_SET(client[cs_idx].fd_m2c_c, &fds);
+		if (!select(client[cs_idx].fd_m2c_c+1, &fds, 0, 0, &timeout)) {
+			cs_debug_mask(D_TRACE, "get best reader timeout!");
+			break; //timeout
+		}
+			
+		if (master_pid!=getppid())
+			cs_exit(0);
+		if (FD_ISSET(client[cs_idx].fd_m2c_c, &fds))
+		{
+			int n = read_from_pipe(client[cs_idx].fd_m2c_c, &ptr, 1);
+			if (n == PIP_ID_BES) {
+				int r = *(int*)ptr;
+				cs_debug_mask(D_TRACE, "got best reader: %s (%d)", reader[r].label, r);
+				return r;
+			}
+			else if (n == PIP_ID_DIR)
+				continue;
+			else //should neven happen
+				cs_debug_mask(D_TRACE, "got best reader: illegal paket? n=%d", n);
+			break;
+		} 
+		else //no data
+			break;
+	} while (1);
 	return -1;
 }
 
@@ -2289,23 +2360,20 @@ void get_cw(ECM_REQUEST *er)
 
 	if(er->rc > 99 && er->rc != 1) {
 
-		int best_ridx = recv_best_reader(er);
-
-		int min;
-		int max;
-		if (best_ridx < 0) { //No reader found, doing old way to all readers:
-			min = 0;
-			max = CS_MAXREADER;
+		if (cfg->reader_auto_loadbalance) {
+			int best_ridx = recv_best_reader(er);
+			for (i = m = 0; i < CS_MAXREADER; i++)
+				if (matching_reader(er, &reader[i])) {
+					//When autobalance enabled, all other readers are fallbacks:
+					m|=er->reader[i] = (best_ridx >= 0 && best_ridx != i)? 2: 1;
+				}
 		}
 		else
 		{
-			min = best_ridx;
-			max = best_ridx+1;
+			for (i = m = 0; i < CS_MAXREADER; i++)
+				if (matching_reader(er, &reader[i]))
+					m|=er->reader[i] = (reader[i].fallback)? 2: 1;
 		}
-		
-		for (i = m = min; i < max; i++)
-			if (matching_reader(er, &reader[i]))
-				m|=er->reader[i] = (reader[i].fallback)? 2: 1;
 
 		switch(m) {
 			// no reader -> not found
@@ -2366,21 +2434,41 @@ void do_emm(EMM_PACKET *ep)
 
 	switch (ep->type) {
 		case UNKNOWN:
-			if (reader[au].blockemm_unknown) return;
+			if (reader[au].blockemm_unknown) {
+#ifdef WEBIF
+				reader[au].emmblocked[UNKNOWN]++;
+#endif
+				return;
+			}
 			break;
 
 		case UNIQUE:
-			if (reader[au].blockemm_u) return;
+			if (reader[au].blockemm_u) {
+#ifdef WEBIF
+				reader[au].emmblocked[UNIQUE]++;
+#endif
+				return;
+			}
 			break;
 
 		case SHARED:
-			if (reader[au].blockemm_s) return;
+			if (reader[au].blockemm_s) {
+#ifdef WEBIF
+				reader[au].emmblocked[SHARED]++;
+#endif
+				return;
+			}
 			break;
 
 		// FIXME only camd33 delivers hexserial from the net, newcamd, camd35 copy 
 		// cardreader hexserial in; reader_get_emm_type overwrites this with real SA value if known!
 		case GLOBAL:
-			if (reader[au].blockemm_g) return;
+			if (reader[au].blockemm_g) {
+#ifdef WEBIF
+				reader[au].emmblocked[GLOBAL]++;
+#endif
+				return;
+			}
 			break;
 	}
 
@@ -2389,7 +2477,7 @@ void do_emm(EMM_PACKET *ep)
 	cs_ddump_mask(D_EMM, ep->emm, ep->l, "emm:");
 
 	if (reader[au].card_system > 0) {
-		if ((!reader[au].fd) ||	(reader[au].caid[0] != b2i(2,ep->caid))) {   // wrong caid
+		if (!check_emm_cardsystem(&reader[au], ep)) {   // wrong caid
 			client[cs_idx].emmnok++;
 			return;
 		}
@@ -2569,9 +2657,9 @@ static void restart_clients()
 // gets and send the best reader to the client. Called from master-process
 void send_best_reader(GET_READER_STAT *grs)
 {
-	cs_debug_mask(D_TRACE, "got request for best reader for %04X/%04X/%04X", grs->caid, grs->prid, grs->srvid);
-	int ridx = get_best_reader(reader, grs->caid, grs->prid, grs->srvid);
-	cs_debug_mask(D_TRACE, "sending best reader %d", ridx);
+	//cs_debug_mask(D_TRACE, "got request for best reader for %04X/%04X/%04X", grs->caid, grs->prid, grs->srvid);
+	int ridx = get_best_reader(grs->caid, grs->prid, grs->srvid);
+	//cs_debug_mask(D_TRACE, "sending best reader %d", ridx);
 	write_to_pipe(client[grs->cidx].fd_m2c, PIP_ID_BES, (uchar*)&ridx, sizeof(ridx));
 }
 
@@ -2689,6 +2777,9 @@ int main (int argc, char *argv[])
 #endif
 #ifdef MODULE_CCCAM
            module_cccam,
+#endif
+#ifdef MODULE_CONSTCW
+           module_constcw,
 #endif
 #ifdef CS_WITH_GBOX
            module_gbox,
@@ -2816,6 +2907,44 @@ int main (int argc, char *argv[])
     fprintf(fp, "%d\n", getpid());
     fclose(fp);
   }
+
+#ifndef OS_CYGWIN32
+  // /tmp/oscam.version file (Uptime + Version)
+  FILE *fp;
+  if (!(fp=fopen("/tmp/oscam.version", "w"))) {
+	  cs_log("Cannot open oscam.version (errno=%d)", errno);
+  } else {
+	  time_t now = time((time_t)0);
+	  struct tm *st;
+	  st = localtime(&now);
+	  fprintf(fp, "uxstarttime: %d\n", (int)now);
+	  fprintf(fp, "starttime: %02d.%02d.%02d", st->tm_mday, st->tm_mon+1, st->tm_year%100);
+	  fprintf(fp, " %02d:%02d:%02d\n", st->tm_hour, st->tm_min, st->tm_sec);
+	  fprintf(fp, "version: %s#%s\n", CS_VERSION, CS_SVN_VERSION);
+	  fprintf(fp, "maxpid: %d\n", CS_MAXPID);
+#ifdef WEBIF
+	  fprintf(fp, "webifsupport: yes\n");
+#else
+	  fprintf(fp, "webifsupport: no\n");
+#endif
+#ifdef HAVE_DVBAPI
+	  fprintf(fp, "dvbapisupport: yes\n");
+#else
+	  fprintf(fp, "dvbapisupport: no\n");
+#endif
+#ifdef CS_WITH_GBOX
+	  fprintf(fp, "gboxsupport: yes\n");
+#else
+	  fprintf(fp, "gboxsupport: no\n");
+#endif
+#ifdef CS_ANTICASC
+	  fprintf(fp, "anticascsupport: yes\n");
+#else
+	  fprintf(fp, "anticascsupport: no\n");
+#endif
+	  fclose(fp);
+  }
+#endif
 
   for (i=0; i<CS_MAX_MOD; i++)
     if( (ph[i].type & MOD_CONN_NET) && ph[i].ptab )

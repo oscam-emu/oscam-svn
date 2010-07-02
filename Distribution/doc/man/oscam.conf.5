@@ -9,12 +9,17 @@ section is \fIrequired\fR. All other sections are optional.
 .SH DESCRIPTIONS
 .SS "The [global] section"
 .PP
-\fBserverip\fP = \fBIP address\fP          
+\fBserverip\fP = \fBIP address\fP
 .RS 3n
 bind service to specified IP address, default:all
 .RE
 .PP
-\fBlogfile\fP = \fBfilename\fP|\fB/dev/null\fP|\fB/dev/tty\fP|\fBsyslog\fP              
+\fBcachedelay\fP = \fBmilli-seconds\fP
+.RS 3n
+value to delay cached requests, default:0
+.RE
+.PP
+\fBlogfile\fP = \fBfilename\fP|\fB/dev/null\fP|\fB/dev/tty\fP|\fBsyslog\fP
 .RS 3n
 logging target, default: /var/log/oscam.log
 .RE
@@ -67,7 +72,7 @@ directory for CW logging, default:none
 value for client process to wait for key, default:5
 .RE
 .PP
-\fBfallbacktimeout\fP = \fBseconds\fP
+\fBfallbacktimeout\fP = \fBmilli-seconds\fP
 .RS 3n
 time falling back to fallback reader, default:2
 .RE
@@ -75,11 +80,6 @@ time falling back to fallback reader, default:2
 \fBclientmaxidle\fP = \fBseconds\fP
 .RS 3n
 value for client process being idle before disconnect, default:120
-.RE
-.PP
-\fBcachedelay\fP = \fBmilli-seconds\fP
-.RS 3n
-value to delay cached requests , default:0
 .RE
 .PP
 \fBbindwait\fP = \fBseconds\fP
@@ -105,7 +105,7 @@ be possible for this clients, default:0
 .RE
 .PP
 \fBsleep\fP = \fBminutes\fP
-.RS 3n                
+.RS 3n
 time waiting for inactive users, default:none, can be overwritten per user in \fBoscam.user\fR
 .RE
 .PP
@@ -139,7 +139,7 @@ max log file size, default:10
 1 = try decoding on local cards first, default:0
 .RE
 .PP
-\fBrestartreaderseconds\fP = \fBseconds\fP
+\fBreaderrestartseconds\fP = \fBseconds\fP
 .RS 3n
 seconds beetween restarts, 0 = disable reader restart, default:5
 .RE
@@ -147,6 +147,11 @@ seconds beetween restarts, 0 = disable reader restart, default:5
 \fBsaveinithistory\fP = \fB0\fP|\fB1\fP
 .RS 3n
 1 = save SC init history to /tmp/.oscam/reader<number>, default:0
+.RE
+.PP
+\fBreaderautoloadbalance\fP = \fB0\fP|\fB1\fP 
+.RS 3n
+1 = enable ECM dynamic loadbalance, fallback reader will be disabled, default:0
 .RE
 .SS "The [monitor] section"
 .PP
@@ -483,6 +488,8 @@ backwards sharing of local cards,default:none
 \fBenabled\fP = \fB0\fP|\fB1\fP
 .RS 3n
 1 = DVB API enabled, default:0
+
+Create file /tmp/.pauseoscam to pause DVB API, e.g. if STB goes into standby and OSCam remains as SC server only.
 .RE
 .PP
 \fBuser\fP = \fBusername\fP
@@ -503,6 +510,15 @@ CAIDs and provider IDs to be prioritized, default:CAIDs and provider IDs of loca
 \fBau\fP = \fB0\fP|\fB1\fP
 .RS 3n
 1 = enable AU, default:0
+.RE
+.PP
+\fBpmt_mode\fP = \fB0\fP|\fB1\fP|\fB2\fP|\fB3\fP
+.RS 3n
+PMT mode:
+ 0 = use camd.socket and PMT file, default
+ 1 = disable reading PMT file
+ 2 = disable camd.socket
+ 3 = read PMT file on startup only
 .RE
 .PP
 \fBboxtype\fP = \fBdbox2\fP|\fBdreambox\fP|\fBduckbox\fP|\fBufs910\fP|\fBipbox\fP|\fBipbox-pmt\fP|\fBfortis\fP

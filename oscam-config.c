@@ -1,10 +1,11 @@
+
 #include "globals.h"
 #ifdef CS_WITH_BOXKEYS
 #  include "oscam-boxkeys.np"
 #endif
 extern struct s_reader * reader;
 
-#define CONFVARWIDTH 20
+#define CONFVARWIDTH 30
 
 static char *cs_conf="oscam.conf";
 static char *cs_user="oscam.user";
@@ -39,13 +40,14 @@ typedef enum cs_proto_type
 	TAG_CS378X,		// camd 3.5x TCP
 	TAG_GBOX,		// gbox
 	TAG_CCCAM,		// cccam
+	TAG_CONSTCW,		// constcw
 	TAG_DVBAPI,		// dvbapi
 	TAG_WEBIF,		// webif
 	TAG_ANTICASC		// anti-cascading
 } cs_proto_type_t;
 
 static char *cctag[]={"global", "monitor", "camd33", "camd35", "newcamd", "radegast", "serial",
-		      "cs357x", "cs378x", "gbox", "cccam", "dvbapi", "webif", "anticasc", NULL};
+		      "cs357x", "cs378x", "gbox", "cccam", "constcw", "dvbapi", "webif", "anticasc", NULL};
 
 #ifdef DEBUG_SIDTAB
 static void show_sidtab(struct s_sidtab *sidtab)
@@ -407,6 +409,9 @@ void chk_t_global(char *token, char *value)
 			cfg->delay = atoi(value);
 			return;
 		}
+		/*cfg->delay = CS_DELAY;
+		fprintf(stderr, "Parameter %s is deprecated -> ignored\n", token);
+		return;*/
 	}
 
 	if (!strcmp(token, "bindwait")) {
@@ -549,6 +554,16 @@ void chk_t_global(char *token, char *value)
 			return;
 		} else {
 			cfg->reader_auto_loadbalance = atoi(value);
+			return;
+		}
+	}
+
+	if (!strcmp(token, "readerautoloadbalance_save")) {
+		if (strlen(value) == 0) {
+			cfg->reader_auto_loadbalance_save = 0;
+			return;
+		} else {
+			cfg->reader_auto_loadbalance_save = atoi(value);
 			return;
 		}
 	}
@@ -877,7 +892,7 @@ void chk_t_camd35(char *token, char *value)
 			return;
 		}
 	}
-
+	
 	if (token[0] != '#')
 		fprintf(stderr, "Warning: keyword '%s' in camd35 section not recognized\n", token);
 }
@@ -1016,16 +1031,6 @@ void chk_t_cccam(char *token, char *value)
 		strncpy((char*)cfg->cc_version, value, sizeof(cfg->cc_version) - 1);
 		return;
 	}
-	// cccam build number
-	if (!strcmp(token, "build")) {
-		if (strlen(value) > sizeof(cfg->cc_build) - 1) {
-			fprintf(stderr, "cccam config build number too long\n");
-			exit(1);
-		}
-		memset(cfg->cc_build, 0, sizeof(cfg->cc_build));
-		strncpy((char*)cfg->cc_build, value, sizeof(cfg->cc_build)-1);
-		return;
-	}
 
 	if (token[0] != '#')
 		fprintf(stderr, "Warning: keyword '%s' in cccam section not recognized\n",token);
@@ -1136,12 +1141,31 @@ void chk_t_gbox(char *token, char *value)
 void chk_t_dvbapi(char *token, char *value)
 {
 	if (!strcmp(token, "enabled")) {
-		cfg->dvbapi_enabled = atoi(value);
+		if(strlen(value) == 0) {
+			cfg->dvbapi_enabled = 0;
+		} else {
+			cfg->dvbapi_enabled = atoi(value);
+		}
 		return;
 	}
 
 	if (!strcmp(token, "au")) {
-		cfg->dvbapi_au = atoi(value);
+		if(strlen(value) == 0) {
+			cfg->dvbapi_au = 0;
+		} else {
+			cfg->dvbapi_au = atoi(value);
+		}
+		return;
+	}
+
+	if (!strcmp(token, "pmt_mode")) {
+		if(strlen(value) == 0) {
+			cfg->dvbapi_pmtmode = 0;
+		} else {
+			cfg->dvbapi_pmtmode = atoi(value);
+			if(cfg->dvbapi_pmtmode > 3)
+				cfg->dvbapi_pmtmode = 3;
+		}
 		return;
 	}
 
@@ -1502,6 +1526,26 @@ void chk_account(char *token, char *value, struct s_auth *account)
 		}
 	}
 
+	if (!strcmp(token, "cccmaxhops")) {
+		if (strlen(value) == 0) {
+			account->cccmaxhops = 10;
+			return;
+		} else {
+			account->cccmaxhops = atoi(value);
+			return;
+		}
+	}
+
+	if (!strcmp(token, "cccreshare")) {
+		if (strlen(value) == 0) {
+			account->cccreshare = 10;
+			return;
+		} else {
+			account->cccreshare = atoi(value);
+			return;
+		}
+	}
+
 	if (!strcmp(token, "keepalive")) {
 		if(strlen(value) == 0) {
 			account->ncd_keepalive = 1;
@@ -1674,7 +1718,8 @@ int write_config()
 	fprintf_conf(f, CONFVARWIDTH, "clienttimeout", "%ld\n", cfg->ctimeout);
 	fprintf_conf(f, CONFVARWIDTH, "fallbacktimeout", "%ld\n", cfg->ftimeout);
 	fprintf_conf(f, CONFVARWIDTH, "clientmaxidle", "%d\n", cfg->cmaxidle);
-	fprintf_conf(f, CONFVARWIDTH, "cachedelay", "%ld\n", cfg->delay);
+	if(!cfg->delay == CS_DELAY)
+		fprintf_conf(f, CONFVARWIDTH, "cachedelay", "%ld\n", cfg->delay); //deprecated
 	fprintf_conf(f, CONFVARWIDTH, "bindwait", "%d\n", cfg->bindwait);
 	fprintf_conf(f, CONFVARWIDTH, "netprio", "%ld\n", cfg->netprio);
 	fprintf_conf(f, CONFVARWIDTH, "clientdyndns", "%d\n", cfg->clientdyndns);
@@ -1689,6 +1734,7 @@ int write_config()
 	fprintf_conf(f, CONFVARWIDTH, "saveinithistory", "%d\n", cfg->saveinithistory);
 	fprintf_conf(f, CONFVARWIDTH, "readerrestartseconds", "%d\n", cfg->reader_restart_seconds);
 	fprintf_conf(f, CONFVARWIDTH, "readerautoloadbalance", "%d\n", cfg->reader_auto_loadbalance);
+	fprintf_conf(f, CONFVARWIDTH, "readerautoloadbalance_save", "%d\n", cfg->reader_auto_loadbalance_save);
 	fputc((int)'\n', f);
 
 	/*monitor settings*/
@@ -1788,7 +1834,7 @@ int write_config()
 		dot1 = "";
 		for(i = 0; i < cfg->c35_tcp_ptab.nports; ++i){
 			fprintf(f,"%s%d@%04X", dot1, cfg->c35_tcp_ptab.ports[i].s_port, cfg->c35_tcp_ptab.ports[i].ftab.filts[0].caid);
-			if (cfg->c35_tcp_ptab.ports[i].ftab.filts[0].nprids > 0){
+			if (cfg->c35_tcp_ptab.ports[i].ftab.filts[0].nprids > 1){
 				fprintf(f,":");
 				dot2 = "";
 				for (j = 0; j < cfg->c35_tcp_ptab.ports[i].ftab.filts[0].nprids; ++j){
@@ -1863,7 +1909,6 @@ int write_config()
 		fprintf_conf(f, CONFVARWIDTH, "port", "%d\n", cfg->cc_port);
 		fprintf_conf(f, CONFVARWIDTH, "reshare", "%d\n", cfg->cc_reshare);
 		fprintf_conf(f, CONFVARWIDTH, "version", "%s\n", cfg->cc_version);
-		fprintf_conf(f, CONFVARWIDTH, "build", "%s\n", cfg->cc_build);
 		fprintf(f,"\n");
 	}
 
@@ -1875,7 +1920,7 @@ int write_config()
 		fprintf_conf(f, CONFVARWIDTH, "au", "%d\n", cfg->dvbapi_au);
 		fprintf_conf(f, CONFVARWIDTH, "boxtype", "%s\n", boxdesc[cfg->dvbapi_boxtype]);
 		fprintf_conf(f, CONFVARWIDTH, "user", "%s\n", cfg->dvbapi_usr);
-
+        fprintf_conf(f, CONFVARWIDTH, "pmt_mode", "%d\n", cfg->dvbapi_pmtmode);
 		fprintf_conf(f, CONFVARWIDTH, "priority", "");
 		i = 0;
 		dot = "";
@@ -1893,6 +1938,8 @@ int write_config()
 		dot = "";
 		while(cfg->dvbapi_ignoretab.caid[i]) {
 			fprintf(f, "%s%04X", dot, cfg->dvbapi_ignoretab.caid[i]);
+			if(cfg->dvbapi_ignoretab.mask[i])
+				fprintf(f, ":%06X", cfg->dvbapi_ignoretab.mask[i]);
 			dot = ",";
 			i++;
 		}
@@ -2039,6 +2086,12 @@ int write_userdb(struct s_auth *authptr)
 
 		if (account->c35_suppresscmd08)
 			fprintf_conf(f, CONFVARWIDTH, "suppresscmd08", "%d\n", account->c35_suppresscmd08);
+			
+		if (account->cccmaxhops)
+			fprintf_conf(f, CONFVARWIDTH, "cccmaxhops", "%d\n", account->cccmaxhops);
+
+		if (account->cccreshare)
+			fprintf_conf(f, CONFVARWIDTH, "cccreshare", "%d\n", account->cccreshare);
 
 		if (account->c35_sleepsend)
 			fprintf_conf(f, CONFVARWIDTH, "sleepsend", "%d\n", account->c35_sleepsend);
@@ -2122,6 +2175,7 @@ int write_server()
 				case R_PCSC		: ctyp = "pcsc";		break;
 #endif
 				case R_CCCAM	: ctyp = "cccam";		break;
+				case R_CONSTCW	: ctyp = "constcw";		break;
 				case R_CS378X	: ctyp = "cs378x";		break;
 				case R_DB2COM1	: ctyp = "internal";	break;
 				case R_DB2COM2	: ctyp = "internal";   break;
@@ -2219,6 +2273,10 @@ int write_server()
 				}*/
 			}
 
+			if (reader[i].force_irdeto && isphysical) {
+				fprintf_conf(f, CONFVARWIDTH, "force_irdeto", "%d\n", reader[i].force_irdeto);
+			}
+
 			if (reader[i].nagra_boxkey[0] && isphysical) {
 				fprintf_conf(f, CONFVARWIDTH, "boxkey", "");
 				for (j=0;j<8;j++) {
@@ -2229,7 +2287,7 @@ int write_server()
 
 			if ( reader[i].atr[0] && isphysical) {
 				fprintf_conf(f, CONFVARWIDTH, "atr", "");
-				for (j=0;j<64;j++) {
+				for (j=0; j < reader[i].atrlen/2; j++) {
 					fprintf(f, "%02X", reader[i].atr[j]);
 				}
 				fprintf(f, "\n");
@@ -2289,23 +2347,26 @@ int write_server()
 			if (reader[i].blockemm_g)
 				fprintf_conf(f, CONFVARWIDTH, "blockemm-g", "%d\n", reader[i].blockemm_g);
 
+			if (reader[i].lb_weight)
+				fprintf_conf(f, CONFVARWIDTH, "lb_weight", "%d\n", reader[i].lb_weight);
+
 			//Todo: write savenano
 
 			if (reader[i].typ == R_CCCAM) {
 				if (reader[i].cc_version[0])
 					fprintf_conf(f, CONFVARWIDTH, "cccversion", "%s\n", reader[i].cc_version);
 
-				if (reader[i].cc_build[0])
-					fprintf_conf(f, CONFVARWIDTH, "cccbuild", "%s\n", reader[i].cc_build);
-
 				if (reader[i].cc_maxhop)
-					fprintf_conf(f, CONFVARWIDTH, "cccmaxhop", "%d\n", reader[i].cc_maxhop);
+					fprintf_conf(f, CONFVARWIDTH, "cccmaxhops", "%d\n", reader[i].cc_maxhop);
 
 				if (reader[i].cc_disable_retry_ecm)
 					fprintf_conf(f, CONFVARWIDTH, "cccdisableretryecm", "%d\n", reader[i].cc_disable_retry_ecm);
 
 				if (reader[i].cc_disable_auto_block)
 					fprintf_conf(f, CONFVARWIDTH, "cccdisableautoblock", "%d\n", reader[i].cc_disable_auto_block);
+
+				if (reader[i].cc_want_emu)
+					fprintf_conf(f, CONFVARWIDTH, "cccwantemu", "%d\n", reader[i].cc_want_emu);
 			}
 
 			if (reader[i].deprecated && isphysical)
@@ -2370,6 +2431,8 @@ int init_userdb(struct s_auth **authptr_org)
 			account->monlvl = cfg->mon_level;
 			account->tosleep = cfg->tosleep;
 			account->c35_suppresscmd08 = cfg->c35_suppresscmd08;
+			account->cccmaxhops = 10;
+			account->cccreshare = cfg->cc_reshare;
 			account->ncd_keepalive = cfg->ncd_keepalive;
 			for (i = 1; i < CS_MAXCAIDTAB; account->ctab.mask[i++] = 0xffff);
 			for (i = 1; i < CS_MAXTUNTAB; account->ttab.bt_srvid[i++] = 0x0000);
@@ -2745,7 +2808,7 @@ void chk_reader(char *token, char *value, struct s_reader *rdr)
 		return;
 	}
 
-	if (!strcmp(token, "readnano") && value[0]) {
+	if (!strcmp(token, "readnano")) {
 		if (rdr->emmfile != NULL) {
 			free(rdr->emmfile);
 			rdr->emmfile = NULL;
@@ -2918,12 +2981,24 @@ void chk_reader(char *token, char *value, struct s_reader *rdr)
 		}
 	}
 
-	if ((!strcmp(token, "atr"))) {
+	if (!strcmp(token, "force_irdeto")) {
 		if(strlen(value) == 0) {
-			memset(rdr->atr, 0, 64);
+			rdr->force_irdeto = 0;
 			return;
 		} else {
-			key_atob_l(value, rdr->atr, 128);
+			rdr->force_irdeto = atoi(value);
+			return;
+		}
+	}
+
+
+	if ((!strcmp(token, "atr"))) {
+		memset(rdr->atr, 0, 128);
+		rdr->atrlen = strlen(value);
+		if(rdr->atrlen == 0) {
+			return;
+		} else {
+			key_atob_l(value, rdr->atr, rdr->atrlen);
 			return;
 		}
 	}
@@ -3022,6 +3097,11 @@ void chk_reader(char *token, char *value, struct s_reader *rdr)
 			//strcpy(value, "1");
 			//chk_caidtab(value, &rdr->ctab); 
 			//this is a MAJOR hack for auto multiple caid support (not currently working due to ncd table issue)
+			return;
+		}
+
+		if (!strcmp(value, "constcw")) {
+			rdr->typ = R_CONSTCW;
 			return;
 		}
 
@@ -3203,6 +3283,18 @@ void chk_reader(char *token, char *value, struct s_reader *rdr)
 		}
 	}
 
+	if (!strcmp(token, "lb_weight")) {
+		if(strlen(value) == 0) {
+			rdr->lb_weight = 100;
+			return;
+		} else {
+			rdr->lb_weight = atoi(value);
+			if (rdr->lb_weight > 1000) rdr->lb_weight = 1000;
+			else if (rdr->lb_weight <= 0) rdr->lb_weight = 100;
+			return;
+		}
+	}
+
 	if (!strcmp(token, "savenano")) {
 		//wildcard is used
 		if (!strcmp(value,"all")) {
@@ -3231,21 +3323,12 @@ void chk_reader(char *token, char *value, struct s_reader *rdr)
 		return;
 	}
 
-	if (!strcmp(token, "cccbuild")) {
-		// cccam build number
-		if (strlen(value) > sizeof(rdr->cc_build) - 1) {
-			fprintf(stderr, "cccam config build number too long\n");
-			exit(1);
-		}
-
-		memset(rdr->cc_build, 0, sizeof(rdr->cc_build));
-		cs_strncpy(rdr->cc_build, value, sizeof(rdr->cc_build));
-		return;
-	}
-
-	if (!strcmp(token, "cccmaxhop")) {
+	if (!strcmp(token, "cccmaxhop") || !strcmp(token, "cccmaxhops")) { //Schlocke: cccmaxhops is better!
 		// cccam max card distance
-		rdr->cc_maxhop = atoi(value);
+		if (!strlen(value))
+			rdr->cc_maxhop = 10;
+		else
+			rdr->cc_maxhop = atoi(value);
 		return;
 	}
 
@@ -3269,6 +3352,16 @@ void chk_reader(char *token, char *value, struct s_reader *rdr)
 		}
 	}
 
+	if (!strcmp(token, "cccwantemu")) {
+		if (strlen(value) == 0) {
+			rdr->cc_want_emu = 0;
+			return;
+		} else {
+			rdr->cc_want_emu = atoi(value);
+			return;
+		}
+	}
+
 
 	if (!strcmp(token, "deprecated")) {
 		if (strlen(value) == 0) {
@@ -3278,6 +3371,11 @@ void chk_reader(char *token, char *value, struct s_reader *rdr)
 			rdr->deprecated = atoi(value);
 			return;
 		}
+	}
+
+	if (!strcmp(token, "ccchopsaway") || !strcmp(token, "cccreshar")  || !strcmp(token, "cccreshare")) {
+		rdr->cc_reshare = atoi(value);
+		return;
 	}
 
 	if (token[0] != '#')
@@ -3394,7 +3492,11 @@ int init_readerdb()
 			reader[nr].mhz = 357;
 			reader[nr].cardmhz = 357;
 			reader[nr].deprecated = 0;
+			reader[nr].force_irdeto = 0;
 			reader[nr].cachecm = 1;
+			reader[nr].cc_reshare = cfg->cc_reshare; //set global value as init value
+			reader[nr].cc_maxhop = 10;
+			reader[nr].lb_weight = 100;
 			strcpy(reader[nr].pincode, "none");
 			for (i=1; i<CS_MAXCAIDTAB; reader[nr].ctab.mask[i++]=0xffff);
 			continue;

@@ -8,6 +8,8 @@ static struct s_emm *emmcache;
 static int last_idx=1;
 static ushort idx=1;
 
+void reader_do_idle(struct s_reader * reader);
+
 void cs_ri_brk(struct s_reader * reader, int flag)
 {
   static int brk_pos=0;
@@ -189,12 +191,12 @@ cs_debug("conn_nb 9 (fd=%d)", sockfd);
 int network_tcp_connection_open()
 {
   int flags;
-  if( connect_nonb(client[cs_idx].udp_fd, 
-      (struct sockaddr *)&client[cs_idx].udp_sa, 
+  if( connect_nonb(client[cs_idx].udp_fd,
+      (struct sockaddr *)&client[cs_idx].udp_sa,
       sizeof(client[cs_idx].udp_sa), 5) < 0)
-  { 
-    cs_log("connect(fd=%d) failed: (errno=%d)", client[cs_idx].udp_fd, errno); 
-    return -1; 
+  {
+    cs_log("connect(fd=%d) failed: (errno=%d)", client[cs_idx].udp_fd, errno);
+    return -1;
   }
   flags = fcntl(client[cs_idx].udp_fd, F_GETFL, 0);
   flags &=~ O_NONBLOCK;
@@ -203,7 +205,7 @@ int network_tcp_connection_open()
   return client[cs_idx].udp_fd;
 }
 
-void network_tcp_connection_close(struct s_reader * reader, int fd) 
+void network_tcp_connection_close(struct s_reader * reader, int fd)
 {
   cs_debug("tcp_conn_close(): fd=%d, is_server=%d", fd, is_server);
   close(fd);
@@ -229,7 +231,7 @@ void network_tcp_connection_close(struct s_reader * reader, int fd)
     if (reader->typ == R_CCCAM) {
       if (reader->ph.cleanup) reader->ph.cleanup();
       if (client[cs_idx].typ == 'p') return;
-    } 
+    }
     /* END */
 
     if (reader->ph.c_init()) {
@@ -277,8 +279,12 @@ static void casc_do_sock(struct s_reader * reader, int w)
   {
     if (reader->ph.type==MOD_CONN_TCP && reader->typ != R_RADEGAST)
     {
-      cs_debug("casc_do_sock: close connection");
-      network_tcp_connection_close(reader, client[cs_idx].udp_fd);
+      if (reader->ph.c_idle)
+      	reader_do_idle(reader);
+      else {
+        cs_debug("casc_do_sock: close connection");
+        network_tcp_connection_close(reader, client[cs_idx].udp_fd);
+      }
     }
     return;
   }
@@ -366,8 +372,12 @@ int casc_process_ecm(struct s_reader * reader, ECM_REQUEST *er)
     int rto = abs(reader->last_s - reader->last_g);
     if (rto >= (reader->tcp_rto*60))
     {
-      cs_debug("rto=%d", rto);
-      network_tcp_connection_close(reader, client[cs_idx].udp_fd);
+      if (reader->ph.c_idle)
+      	reader_do_idle(reader);
+      else {
+        cs_debug("rto=%d", rto);
+        network_tcp_connection_close(reader, client[cs_idx].udp_fd);
+      }
     }
   }
 
@@ -375,7 +385,7 @@ int casc_process_ecm(struct s_reader * reader, ECM_REQUEST *er)
   rc=0;
   if (sflag)
   {
-    if (!client[cs_idx].udp_sa.sin_addr.s_addr) // once resolved at least
+	  if ((!client[cs_idx].udp_sa.sin_addr.s_addr) && (reader[ridx].ph.type != MOD_NO_CONN))  // once resolved at least
       cs_resolve();
 
     if ((rc=reader->ph.c_send_ecm(&ecmtask[n], buf)))
@@ -444,7 +454,8 @@ static void reader_get_ecm(struct s_reader * reader, ECM_REQUEST *er)
   write_ecm_answer(reader, fd_c2m, er);
   reader_post_process(reader);
 #endif
-  //if(reader->typ=='r') reader->qlen--;
+  //fixme re-activated code for testing
+  if(reader->typ=='r') reader->qlen--;
   //printf("queue: %d\n",reader->qlen);
 }
 
@@ -609,9 +620,13 @@ static int reader_listen(struct s_reader * reader, int fd1, int fd2)
       time_diff = abs(now-reader->last_s);
       if (time_diff>(reader->tcp_ito*60))
       {
-        cs_debug("%s inactive_timeout (%d), close connection (fd=%d)", 
+        if (reader->ph.c_idle)
+          reader_do_idle(reader);
+        else {
+          cs_debug("%s inactive_timeout (%d), close connection (fd=%d)", 
                   reader->ph.desc, time_diff, fd2);
-        network_tcp_connection_close(reader, fd2);
+          network_tcp_connection_close(reader, fd2);
+        }
       }
     }
     cs_debug("select: pipe is set");
@@ -620,9 +635,13 @@ static int reader_listen(struct s_reader * reader, int fd1, int fd2)
 
   if (tcp_toflag)
   {
-    cs_debug("%s inactive_timeout (%d), close connection (fd=%d)", 
+    if (reader->ph.c_idle)
+      reader_do_idle(reader);
+    else {
+      cs_debug("%s inactive_timeout (%d), close connection (fd=%d)", 
              reader->ph.desc, tv.tv_sec, fd2);
-    network_tcp_connection_close(reader, fd2);
+      network_tcp_connection_close(reader, fd2);
+    }
     return(0);
   }
 #ifdef WITH_CARDREADER
@@ -659,6 +678,12 @@ static void reader_do_pipe(struct s_reader * reader)
   }
 }
 
+void reader_do_idle(struct s_reader * reader)
+{
+  if (reader->ph.c_idle) 
+    reader->ph.c_idle();
+}
+
 static void reader_main(struct s_reader * reader)
 {
   while (1)
@@ -669,12 +694,14 @@ static void reader_main(struct s_reader * reader)
     	 	  cs_exit(1);
        cs_log("%s not connected! Reconection in %d sec", reader->label, cfg->reader_restart_seconds);
        cs_sleepms(1000 * cfg->reader_restart_seconds);
-       if (reader->ph.c_init() && reader->ph.cleanup)
+       if (reader->ph.c_init() && reader->ph.cleanup) {
     	    reader->ph.cleanup();
-       continue;
+	    continue;
+       }
     }    
     switch(reader_listen(reader, client[reader->cs_idx].fd_m2c_c, pfd))
     {
+      case 0: reader_do_idle(reader); break;
       case 1: reader_do_pipe(reader)  ; break;
       case 2: casc_do_sock(reader, 0)   ; break;
       case 3: casc_do_sock_log(reader); break;
@@ -692,7 +719,6 @@ void * start_cardreader(void * rdr)
     client[cs_idx].typ='p';
     client[cs_idx].port=reader->r_port;
     strcpy(client[cs_idx].usr, reader->r_usr);
-
     
     if (!(reader->ph.c_init)) {
       cs_log("FATAL: %s-protocol not supporting cascading", reader->ph.desc);

@@ -8,15 +8,22 @@ At least one [reader] section is \fIrequired\fR.
 .SH DESCRIPTIONS
 .SS "The [reader] section"
 .PP
-\fBdevice\fP = \fB<device|bus:device>\fP|\fB<ip|hostname>,<port>[,<lport>]\fP|\fBpcsc\fP
+\fBdevice\fP = \fB<device|bus:device>\fP|Serial:Reader \fBserial\fP|\fB<ip|hostname>,<port>[,<lport>]\fP|\fBpcsc\fP|\fBconstantcw\fP
 .RS 3n
 define local or remote reader 
  
  \fBdevice\fP:      device name
  \fBbus:devivce\fP: bus name and device name of the Smartreader+
               (get the names with lsusb 'Bus' and 'Device')
+ \fBserial\fP       serial number of Smartreader+
+              (get the serial number while starting OSCam)
  \fBlport\fP:       remapping to local port
- \fBPCSC\fP:        number of PCSC readers, starting with 0 
+ \fBPCSC\fP:        number of PCSC readers, starting with 0
+ \fBconstantcw\fP:  constant CW file name 
+
+constant CW file format: CA (4 digits):ID (6 digits):SID (4 digits):PMT PID (4 digits):ECM PID (4 digits):key (16 Bytes seperated by spaces)
+
+expample: 1234:123456:1234:1234:1234:00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F
 .RE
 .PP
 \fBenable\fP = \fB0\fP|\fB1\fP
@@ -77,11 +84,6 @@ name for reader, \fIrequired\fR
 \fBfallback\fP = \fB0\fP|\fB1\fP
 .RS 3n
 1 = define reader as fallback, standard and fallback reader must have the same group, default:0
-.RE
-.PP
-\fBloadbalanced\fP = \fB0\fP|\fB1\fP
-.RS 3n
-1 = spread requests over all \fBloadbalanced\fP enabled readers, default=0
 .RE
 .PP
 \fBlogport\fP = \fB0\fP|\fBport\fP
@@ -146,6 +148,7 @@ reader protocol, \fIrequired\fR:
  \fBcccam\fP
  \fBradegast\fP
  \fBpcsc\fP
+ \fBconstcw\fP 
 .RE
 .PP
 \fBcccversion\fP = \fB<main version>.<version>.<sub version>\fP
@@ -162,9 +165,13 @@ define CCcam build, default:none
 example: cccbuild = 5678
 .RE
 .PP
-\fBcccmaxhop\fP = \fBhops\fP
+\fBcccmaxhops\fP = \fBhops\fP
 .RS 3n
-define CCcam maximum SC distance, default:10
+define CCcam maximum SC distance hops, default:10
+ \fB0\fP = local SCs only
+ \fB1\fP = local SCs and + 1 hop
+ \fB2\fP = local SCs and + 2 hops
+ and so on
 .RE
 .PP
 \fBident\fP = \fB<CAID>:<ident>[,ident]...[,<CAID>:<ident>[,ident]...]...\fP
@@ -222,6 +229,9 @@ set EMM cache of local reader:
 
  example: emmcache = 1,3,10
           emmcache = 1,2,6
+
+ types of caching: cache1 = ECM and CW in cache already
+                   cache2 = ECM and checksum in the cache already
 .RE
 .PP
 \fBecmcache\fP = \fB0\fP|\fB1\fP
@@ -273,6 +283,18 @@ write file (usually a copy of a file saved by savenano) to your smartcard, if no
           readnano = /var/oscam/write.emm
 .RE
 .PP
+\fBlb_weight\fP = \fBweight\fP
+.RS 3n
+the higher the value the higher the probability for reader selection, default:100
+
+ It's an divider for the average responstime.
+.RE
+.PP
+\fBforce_irdeto\fP = \fB0\fP|\fB1\fP
+.RS 3n
+1 = force Irdeto SC mode even if RSA key is set for Irdeto tunnled Nagravion SC, default:0
+.RE
+.PP
 \fBn3_rsakey\fP|\fBrsakey\fP = \fBRSA key\fP
 .RS 3n
 RSA key for Nagravision SCs / CAM key data for Irdeto SCs 
@@ -305,7 +327,12 @@ is denied from an CCCam server, OSCam sends no new ECM request, default:0
 0 = enables auto block: When an ECM request is send to an CCCam server, it tries the 
 SC with the lowest hop. If it is denied, the SID is blocked on this SC. When all 
 SC are blocked, the CAID:PROV:SID information is stored in a auto block list and 
-is newer send again, 1= disabled auto block, default: 1 
+is newer send again, 1= disabled auto block, default: 1
+.RE
+.PP
+\fBcccwantemu\fP = \fB0\fP|\fB1\fP
+.RS 3n
+1 = request to provide emu from CCCam server, too, default: 0
 .RE
 .SH OVERCLOCKING
 .TP 3n
@@ -439,5 +466,13 @@ internal reader
  device   = /dev/sci0
  group    = 8
  caid     = 0800 
+.TP 3n 
+\(bu
+constant CW 
+ [reader]
+ label    = myconstantcw
+ protocol = constcw
+ device   = /var/keys/constant.cw
+ group    = 9
 .SH "SEE ALSO"
 \fBlist_smargo\fR(1), \fBoscam\fR(1), \fBoscam.ac\fR(5), \fBoscam.cert\fR(5), \fBoscam.conf\fR(5), \fBoscam.guess\fR(5), \fBoscam.ird\fR(5), \fBoscam.provid\fR(5), \fBoscam.services\fR(5), \fBoscam.srvid\fR(5), \fBoscam.user\fR(5)

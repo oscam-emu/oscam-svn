@@ -70,7 +70,7 @@ void send_oscam_config_global(struct templatevars *vars, FILE *f, struct uripara
 	if (strcmp(getParam(params, "action"), "execute") == 0) {
 		for(i = 0; i < (*params).paramcount; ++i) {
 			if ((strcmp((*params).params[i], "part")) && (strcmp((*params).params[i], "action"))) {
-				tpl_printf(vars, 1, "MESSAGE", "Parameter: %s set to Value: %s<BR>\n", (*params).params[i], (*params).values[i]);
+				//tpl_printf(vars, 1, "MESSAGE", "Parameter: %s set to Value: %s<BR>\n", (*params).params[i], (*params).values[i]);
 				//we use the same function as used for parsing the config tokens
 
 				chk_t_global((*params).params[i], (*params).values[i]);
@@ -115,7 +115,7 @@ void send_oscam_config_global(struct templatevars *vars, FILE *f, struct uripara
 	if (cfg->reader_restart_seconds)
 		tpl_printf(vars, 0, "READERRESTARTSECONDS", "%d", cfg->reader_restart_seconds);
 	if (cfg->reader_auto_loadbalance)
-		tpl_printf(vars, 0, "READERAUTOLOADBALANCE", "%d", cfg->reader_auto_loadbalance);
+		tpl_addVar(vars, 0, "READERAUTOLOADBALANCE", "checked");
 
 
 	fputs(tpl_getTpl(vars, "CONFIGGLOBAL"), f);
@@ -208,7 +208,7 @@ void send_oscam_config_camd35tcp(struct templatevars *vars, FILE *f, struct urip
 		dot1 = "";
 		for(i = 0; i < cfg->c35_tcp_ptab.nports; ++i) {
 			tpl_printf(vars, 1, "PORT", "%s%d@%04X", dot1, cfg->c35_tcp_ptab.ports[i].s_port, cfg->c35_tcp_ptab.ports[i].ftab.filts[0].caid);
-			if (cfg->c35_tcp_ptab.ports[i].ftab.filts[0].nprids > 0) {
+			if (cfg->c35_tcp_ptab.ports[i].ftab.filts[0].nprids > 1) {
 				tpl_printf(vars, 1, "PORT", ":");
 				dot2 = "";
 				for (j = 0; j < cfg->c35_tcp_ptab.ports[i].ftab.filts[0].nprids; ++j) {
@@ -253,7 +253,8 @@ void send_oscam_config_newcamd(struct templatevars *vars, FILE *f, struct uripar
 		dot1 = "";
 		for(i = 0; i < cfg->ncd_ptab.nports; ++i) {
 			tpl_printf(vars, 1, "PORT", "%s%d@%04X", dot1, cfg->ncd_ptab.ports[i].s_port, cfg->ncd_ptab.ports[i].ftab.filts[0].caid);
-			if (cfg->ncd_ptab.ports[i].ftab.filts[0].nprids > 0) {
+
+			if (cfg->ncd_ptab.ports[i].ftab.filts[0].nprids > 1) {
 				tpl_printf(vars, 1, "PORT", ":");
 				dot2 = "";
 				for (j = 0; j < cfg->ncd_ptab.ports[i].ftab.filts[0].nprids; ++j) {
@@ -335,8 +336,18 @@ void send_oscam_config_cccam(struct templatevars *vars, FILE *f, struct uriparam
 
 	tpl_printf(vars, 1, "PORT", "%d", cfg->cc_port);
 	tpl_printf(vars, 0, "RESHARE", "%d", cfg->cc_reshare);
-	tpl_printf(vars, 0, "VERSION", "%s", cfg->cc_version);
-	tpl_printf(vars, 0, "BUILD", "%s", cfg->cc_build);
+
+	if (!strcmp((char*)cfg->cc_version,"2.0.11")) {
+		tpl_addVar(vars, 0, "VERSIONSELECTED0", "selected");
+	} else if (!strcmp((char*)cfg->cc_version,"2.1.1")) {
+		tpl_addVar(vars, 0, "VERSIONSELECTED1", "selected");
+	} else if (!strcmp((char*)cfg->cc_version,"2.1.2")) {
+		tpl_addVar(vars, 0, "VERSIONSELECTED2", "selected");
+	} else if (!strcmp((char*)cfg->cc_version,"2.1.3")) {
+		tpl_addVar(vars, 0, "VERSIONSELECTED3", "selected");
+	} else if (!strcmp((char*)cfg->cc_version,"2.1.4")) {
+		tpl_addVar(vars, 0, "VERSIONSELECTED4", "selected");
+	}
 
 	fputs(tpl_getTpl(vars, "CONFIGCCCAM"), f);
 }
@@ -513,22 +524,30 @@ void send_oscam_config_dvbapi(struct templatevars *vars, FILE *f, struct uripara
 		else tpl_addVar(vars, 1, "MESSAGE", "<B>Write Config failed</B><BR><BR>");
 	}
 
-	if (cfg->dvbapi_enabled > 0) tpl_addVar(vars, 0, "ENABLEDCHECKED", "checked");
-	if (cfg->dvbapi_au > 0) tpl_addVar(vars, 0, "AUCHECKED", "checked");
+	if (cfg->dvbapi_enabled > 0)
+		tpl_addVar(vars, 0, "ENABLEDCHECKED", "checked");
+
+	if (cfg->dvbapi_au > 0)
+		tpl_addVar(vars, 0, "AUCHECKED", "checked");
 
 	tpl_printf(vars, 0, "BOXTYPE", "<option value=\"\"%s>None</option>\n", cfg->dvbapi_boxtype == 0 ? " selected" : "");
 	for (i=1; i<=BOXTYPES; i++) {
 		tpl_printf(vars, 1, "BOXTYPE", "<option%s>%s</option>\n", cfg->dvbapi_boxtype == i ? " selected" : "", boxdesc[i]);
 	}
 
-	tpl_addVar(vars, 0, "USER", cfg->dvbapi_usr);
+	if(cfg->dvbapi_usr[0])
+		tpl_addVar(vars, 0, "USER", cfg->dvbapi_usr);
+
+	//PMT Mode
+	tpl_printf(vars, 0, "TMP", "PMTMODESELECTED%d", cfg->dvbapi_pmtmode);
+	tpl_addVar(vars, 0, tpl_getVar(vars, "TMP"), "selected");
 
 	i = 0;
 	char *dot = "";
 	while(cfg->dvbapi_prioritytab.caid[i]) {
 		tpl_printf(vars, 1, "PRIORITY", "%s%04X", dot, cfg->dvbapi_prioritytab.caid[i]);
 		if(cfg->dvbapi_prioritytab.mask[i])
-			tpl_printf(vars, 1, "PRIORITY", ":%06X", cfg->dvbapi_prioritytab.mask[i]);
+			tpl_printf(vars, 1, "PRIORITY", ":%06lX", cfg->dvbapi_prioritytab.mask[i]);
 		dot = ",";
 		i++;
 	}
@@ -537,6 +556,8 @@ void send_oscam_config_dvbapi(struct templatevars *vars, FILE *f, struct uripara
 	dot = "";
 	while(cfg->dvbapi_ignoretab.caid[i]) {
 		tpl_printf(vars, 1, "IGNORE", "%s%04X", dot, cfg->dvbapi_ignoretab.caid[i]);
+		if(cfg->dvbapi_ignoretab.mask[i])
+			tpl_printf(vars, 1, "IGNORE", ":%06lX", cfg->dvbapi_ignoretab.mask[i]);
 		dot = ",";
 		i++;
 	}
@@ -774,7 +795,7 @@ void send_oscam_reader_config(struct templatevars *vars, FILE *f, struct uripara
 		for(i = 0; i < (*params).paramcount; ++i) {
 			if ((strcmp((*params).params[i], "reader")) && (strcmp((*params).params[i], "action"))) {
 				if (!strcmp((*params).params[i], "services"))
-					sprintf(servicelabels + strlen(servicelabels), "%s,", (*params).values[i]);
+					snprintf(servicelabels + strlen(servicelabels), sizeof(servicelabels), "%s,", (*params).values[i]);
 				else
 					chk_reader((*params).params[i], (*params).values[i], &reader[ridx]);
 			}
@@ -800,15 +821,20 @@ void send_oscam_reader_config(struct templatevars *vars, FILE *f, struct uripara
 	if(reader[ridx].fallback)
 		tpl_addVar(vars, 0, "FALLBACKCHECKED", "checked");
 	tpl_printf(vars, 0, "LOGPORT", "%d", reader[ridx].log_port);
-	tpl_printf(vars, 0, "BOXID", "%ld", reader[ridx].boxid);
+	tpl_printf(vars, 0, "BOXID", "%08X", reader[ridx].boxid);
 	tpl_addVar(vars, 0, "USER", reader[ridx].r_usr);
 	tpl_addVar(vars, 0, "PASS", reader[ridx].r_pwd);
+
+	if(reader[ridx].force_irdeto)
+		tpl_addVar(vars, 0, "FORCEIRDETOCHECKED", "checked");
+
 	if(reader[ridx].has_rsa) {
 		for (i = 0; i < 64; i++) tpl_printf(vars, 1, "RSAKEY", "%02X", reader[ridx].rsa_mod[i]);
 		for (i = 0; i < 8 ; i++) tpl_printf(vars, 1, "BOXKEY", "%02X", reader[ridx].nagra_boxkey[i]);
 	}
-	if ( reader[i].atr[0])
-		for (i = 0; i < 20; i++) tpl_printf(vars, 1, "ATR", "%02X", reader[ridx].atr[i]);
+	if ( reader[ridx].atr[0])
+		for (i = 0; i < reader[ridx].atrlen/2; i++)
+			tpl_printf(vars, 1, "ATR", "%02X", reader[ridx].atr[i]);
 
 	if(reader[ridx].smargopatch)
 		tpl_addVar(vars, 0, "SMARGOPATCHCHECKED", "checked");
@@ -840,6 +866,9 @@ void send_oscam_reader_config(struct templatevars *vars, FILE *f, struct uripara
 	value = mk_t_group((ulong*)reader[ridx].grp);
 	tpl_printf(vars, 0, "GRP", "%s", value);
 	free(value);
+
+	if(reader[ridx].lb_weight)
+		tpl_printf(vars, 0, "LBWEIGHT", "%d", reader[ridx].lb_weight);
 
 	//services
 	char sidok[33];
@@ -951,16 +980,32 @@ void send_oscam_reader_config(struct templatevars *vars, FILE *f, struct uripara
 	if (reader[ridx].deprecated)
 		tpl_addVar(vars, 0, "DEPRECATEDCHCHECKED", "checked");
 
-	tpl_addVar(vars, 0, "CCCVERSION", reader[ridx].cc_version);
-	tpl_addVar(vars, 0, "CCCBUILD", reader[ridx].cc_build);
+	if (!strcmp(reader[ridx].cc_version, "2.0.11")) {
+		tpl_addVar(vars, 0, "CCCVERSIONSELECTED0", "selected");
+	} else if (!strcmp(reader[ridx].cc_version, "2.1.1")) {
+		tpl_addVar(vars, 0, "CCCVERSIONSELECTED1", "selected");
+	} else if (!strcmp(reader[ridx].cc_version, "2.1.2")) {
+		tpl_addVar(vars, 0, "CCCVERSIONSELECTED2", "selected");
+	} else if (!strcmp(reader[ridx].cc_version, "2.1.3")) {
+		tpl_addVar(vars, 0, "CCCVERSIONSELECTED3", "selected");
+	} else if (!strcmp(reader[ridx].cc_version, "2.1.4")) {
+		tpl_addVar(vars, 0, "CCCVERSIONSELECTED4", "selected");
+	}
+
 	tpl_printf(vars, 0, "CCCMAXHOP", "%d", reader[ridx].cc_maxhop);
 	if (reader[ridx].cc_disable_retry_ecm)
 		tpl_addVar(vars, 0, "CCCDISABLERETRYECMCHECKED", "checked");
 	if (reader[ridx].cc_disable_auto_block)
 		tpl_addVar(vars, 0, "CCCDISABLEAUTOBLOCKCHECKED", "checked");
+	if(reader[ridx].cc_want_emu)
+		tpl_addVar(vars, 0, "CCCWANTEMUCHECKED", "checked");
 
 	// Show only parameters which needed for the reader
 	switch (reader[ridx].typ) {
+		case R_CONSTCW:
+			tpl_addVar(vars, 0, "PROTOCOL", "constcw");
+			tpl_addVar(vars, 1, "READERDEPENDINGCONFIG", tpl_getTpl(vars, "READERCONFIGSTDHWREADERBIT"));
+			break;
 		case R_DB2COM1:
 		case R_DB2COM2:
 		case R_MOUSE :
@@ -1091,7 +1136,7 @@ void send_oscam_user_config_edit(struct templatevars *vars, FILE *f, struct urip
 				if (!strcmp((*params).params[i], "expdate"))
 				account->expirationdate=(time_t)NULL;
 				if (!strcmp((*params).params[i], "services"))
-				sprintf(servicelabels + strlen(servicelabels), "%s,", (*params).values[i]);
+				snprintf(servicelabels + strlen(servicelabels), sizeof(servicelabels), "%s,", (*params).values[i]);
 				else
 				chk_account((*params).params[i], (*params).values[i], account);
 			}
@@ -1108,7 +1153,7 @@ void send_oscam_user_config_edit(struct templatevars *vars, FILE *f, struct urip
 
 	//Disabled
 	if(account->disabled)
-	tpl_addVar(vars, 0, "DISABLEDCHECKED", "checked");
+	tpl_addVar(vars, 0, "DISABLEDCHECKED", "selected");
 
 	//Expirationdate
 	struct tm * timeinfo = localtime (&account->expirationdate);
@@ -1185,19 +1230,23 @@ void send_oscam_user_config_edit(struct templatevars *vars, FILE *f, struct urip
 
 	//SUPPRESSCMD08
 	if (account->c35_suppresscmd08)
-		tpl_addVar(vars, 0, "SUPPRESSCMD08", "checked");
+		tpl_addVar(vars, 0, "SUPPRESSCMD08", "selected");
 
 	//Sleepsend
 	tpl_printf(vars, 0, "SLEEPSEND", "%d", account->c35_sleepsend);
 
 	//Keepalive
 	if (account->ncd_keepalive)
-		tpl_addVar(vars, 0, "KEEPALIVE", "checked");
+		tpl_addVar(vars, 0, "KEEPALIVE", "selected");
 
 #ifdef CS_ANTICASC
 	tpl_printf(vars, 0, "AC_USERS", "%d", account->ac_users);
 	tpl_printf(vars, 0, "AC_PENALTY", "%d", account->ac_penalty);
 #endif
+
+	tpl_printf(vars, 0, "CCCMAXHOPS", "%d", account->cccmaxhops);
+	tpl_printf(vars, 0, "CCCRESHARE", "%d", account->cccreshare);
+
 	fputs(tpl_getTpl(vars, "USEREDIT"), f);
 }
 
@@ -1403,12 +1452,12 @@ void send_oscam_entitlement(struct templatevars *vars, FILE *f, struct uriparams
 				//tpl_printf(vars, 1, "LOGHISTORY", "card cnt: %d<BR><BR>\n", ctest->card_count);
 
 				char fname[40];
-				sprintf(fname, "/tmp/.oscam/caidinfos.%d", ridx);
+				snprintf(fname, sizeof(fname), "/tmp/.oscam/caidinfos.%d", ridx);
 				FILE *file = fopen(fname, "r");
 				if (file) {
 					uint16 caid = 0;
 					uint8 hop = 0;
-					char ascprovid[6];
+					char ascprovid[7];
 					char *provider="";
 					do {
 						if (fread(&caid, 1, sizeof(caid), file) <= 0)
@@ -1424,7 +1473,7 @@ void send_oscam_entitlement(struct templatevars *vars, FILE *f, struct uriparams
 						while (count > 0) {
 							if (fread(prov, 1, sizeof(prov), file) <= 0)
 								break;
-							sprintf(ascprovid, "%02X%02X%02X", prov[0], prov[1], prov[2]);
+							snprintf(ascprovid, sizeof(ascprovid), "%02X%02X%02X", prov[0], prov[1], prov[2]);
 							provider = get_provider(caid, a2i(ascprovid, 3));
 
 							tpl_printf(vars, 1, "LOGHISTORY", "&nbsp;&nbsp;-- Provider %d: %s -- %s<BR>\n",
@@ -1460,12 +1509,12 @@ void send_oscam_entitlement(struct templatevars *vars, FILE *f, struct uriparams
 			//tpl_printf(vars, 1, "LOGHISTORY", "card cnt: %d<BR><BR>\n", ctest->card_count);
 
 			char fname[40];
-			sprintf(fname, "/tmp/.oscam/caidinfos.%d", ridx);
+			snprintf(fname, sizeof(fname), "/tmp/.oscam/caidinfos.%d", ridx);
 			FILE *file = fopen(fname, "r");
 			if (file) {
 				uint16 caid = 0;
 				uint8 hop = 0;
-				char ascprovid[6];
+				char ascprovid[7];
 				char *provider="";
 				do {
 					if (fread(&caid, 1, sizeof(caid), file) <= 0)
@@ -1481,7 +1530,7 @@ void send_oscam_entitlement(struct templatevars *vars, FILE *f, struct uriparams
 					while (count > 0) {
 						if (fread(prov, 1, sizeof(prov), file) <= 0)
 							break;
-						sprintf(ascprovid, "%02X%02X%02X", prov[0], prov[1], prov[2]);
+						snprintf(ascprovid, sizeof(ascprovid), "%02X%02X%02X", prov[0], prov[1], prov[2]);
 						provider = get_provider(caid, a2i(ascprovid, 3));
 
 						tpl_printf(vars, 1, "LOGHISTORY", "&nbsp;&nbsp;-- Provider %d: %s -- %s<BR>\n",
@@ -1499,7 +1548,7 @@ void send_oscam_entitlement(struct templatevars *vars, FILE *f, struct uriparams
 			FILE *fp;
 			char filename[32];
 			char buffer[128];
-			sprintf(filename, "/tmp/.oscam/reader%d", reader[ridx].ridx);
+			snprintf(filename, sizeof(filename), "/tmp/.oscam/reader%d", reader[ridx].ridx);
 			fp = fopen(filename, "r");
 
 			if (fp) {
@@ -1713,16 +1762,16 @@ void send_oscam_status(struct templatevars *vars, FILE *f, struct uriparams *par
 	tpl_addVar(vars, 0, "LOGHISTORY", "the flag CS_LOGHISTORY is not set in your binary<BR>\n");
 #endif
 
-	tpl_printf(vars, 0, "SDEBUG", "%s&nbsp;%d to&nbsp;\n", "Switch Debug from", cfg->debuglvl);
-	tpl_addVar(vars, 1, "SDEBUG", "<A HREF=\"status.html?debug=0\" title=\"no debugging (default)\">0</A>&nbsp;\n");
-	tpl_addVar(vars, 1, "SDEBUG", "<A HREF=\"status.html?debug=1\" title=\"detailed error messages\">1</A>&nbsp;\n");
-	tpl_addVar(vars, 1, "SDEBUG", "<A HREF=\"status.html?debug=2\" title=\"ATR parsing info, ECM dumps, CW dumps\">2</A>&nbsp;\n");
-	tpl_addVar(vars, 1, "SDEBUG", "<A HREF=\"status.html?debug=4\" title=\"traffic from/to the reader\">4</A>&nbsp;\n");
-	tpl_addVar(vars, 1, "SDEBUG", "<A HREF=\"status.html?debug=8\" title=\"traffic from/to the clients\">8</A>&nbsp;\n");
-	tpl_addVar(vars, 1, "SDEBUG", "<A HREF=\"status.html?debug=16\" title=\"traffic to the reader-device on IFD layer\">16</A>&nbsp;\n");
-	tpl_addVar(vars, 1, "SDEBUG", "<A HREF=\"status.html?debug=32\" title=\"traffic to the reader-device on I/O layer\">32</A>&nbsp;\n");
-	tpl_addVar(vars, 1, "SDEBUG", "<A HREF=\"status.html?debug=64\" title=\"EMM logging\">64</A>&nbsp;\n");
-	tpl_addVar(vars, 1, "SDEBUG", "<A HREF=\"status.html?debug=255\" title=\"debug all\">255</A>\n");
+	tpl_printf(vars, 0, "SDEBUG", "<SPAN CLASS=\"debugt\"> %s&nbsp;%d to&nbsp;</SPAN>\n", "Switch Debug from", cfg->debuglvl);
+	tpl_addVar(vars, 1, "SDEBUG", "<A CLASS=\"debugl\" HREF=\"status.html?debug=0\" title=\"no debugging (default)\">0</A>&nbsp;\n");
+	tpl_addVar(vars, 1, "SDEBUG", "<A CLASS=\"debugl\" HREF=\"status.html?debug=1\" title=\"detailed error messages\">1</A>&nbsp;\n");
+	tpl_addVar(vars, 1, "SDEBUG", "<A CLASS=\"debugl\" HREF=\"status.html?debug=2\" title=\"ATR parsing info, ECM dumps, CW dumps\">2</A>&nbsp;\n");
+	tpl_addVar(vars, 1, "SDEBUG", "<A CLASS=\"debugl\" HREF=\"status.html?debug=4\" title=\"traffic from/to the reader\">4</A>&nbsp;\n");
+	tpl_addVar(vars, 1, "SDEBUG", "<A CLASS=\"debugl\" HREF=\"status.html?debug=8\" title=\"traffic from/to the clients\">8</A>&nbsp;\n");
+	tpl_addVar(vars, 1, "SDEBUG", "<A CLASS=\"debugl\" HREF=\"status.html?debug=16\" title=\"traffic to the reader-device on IFD layer\">16</A>&nbsp;\n");
+	tpl_addVar(vars, 1, "SDEBUG", "<A CLASS=\"debugl\" HREF=\"status.html?debug=32\" title=\"traffic to the reader-device on I/O layer\">32</A>&nbsp;\n");
+	tpl_addVar(vars, 1, "SDEBUG", "<A CLASS=\"debugl\" HREF=\"status.html?debug=64\" title=\"EMM logging\">64</A>&nbsp;\n");
+	tpl_addVar(vars, 1, "SDEBUG", "<A CLASS=\"debugl\" HREF=\"status.html?debug=255\" title=\"debug all\">255</A>\n");
 
 	fputs(tpl_getTpl(vars, "STATUS"), f);
 }
@@ -1953,6 +2002,8 @@ void send_oscam_files(struct templatevars *vars, FILE *f, struct uriparams *para
 	snprintf(targetfile, 255,"%s%s", cs_confdir, "oscam.services");
 	else if (strcmp(getParam(params, "part"), "srvid") == 0)
 	snprintf(targetfile, 255,"%s%s", cs_confdir, "oscam.srvid");
+	else if (strcmp(getParam(params, "part"), "provid") == 0)
+	snprintf(targetfile, 255,"%s%s", cs_confdir, "oscam.provid");
 	else if (strcmp(getParam(params, "part"), "logfile") == 0) {
 		snprintf(targetfile, 255,"%s", cfg->logfile);
 
@@ -1963,23 +2014,23 @@ void send_oscam_files(struct templatevars *vars, FILE *f, struct uriparams *para
 			}
 		}
 
-		tpl_printf(vars, 0, "SDEBUG", "%s&nbsp;%d to&nbsp;\n", "Switch Debug from", cfg->debuglvl);
-		tpl_addVar(vars, 1, "SDEBUG", "<A HREF=\"files.html?part=logfile&debug=0\" title=\"no debugging (default)\">0</A>&nbsp;\n");
-		tpl_addVar(vars, 1, "SDEBUG", "<A HREF=\"files.html?part=logfile&debug=1\" title=\"detailed error messages\">1</A>&nbsp;\n");
-		tpl_addVar(vars, 1, "SDEBUG", "<A HREF=\"files.html?part=logfile&debug=2\" title=\"ATR parsing info, ECM dumps, CW dumps\">2</A>&nbsp;\n");
-		tpl_addVar(vars, 1, "SDEBUG", "<A HREF=\"files.html?part=logfile&debug=4\" title=\"traffic from/to the reader\">4</A>&nbsp;\n");
-		tpl_addVar(vars, 1, "SDEBUG", "<A HREF=\"files.html?part=logfile&debug=8\" title=\"traffic from/to the clients\">8</A>&nbsp;\n");
-		tpl_addVar(vars, 1, "SDEBUG", "<A HREF=\"files.html?part=logfile&debug=16\" title=\"traffic to the reader-device on IFD layer\">16</A>&nbsp;\n");
-		tpl_addVar(vars, 1, "SDEBUG", "<A HREF=\"files.html?part=logfile&debug=32\" title=\"traffic to the reader-device on I/O layer\">32</A>&nbsp;\n");
-		tpl_addVar(vars, 1, "SDEBUG", "<A HREF=\"files.html?part=logfile&debug=64\" title=\"EMM logging\">64</A>&nbsp;\n");
-		tpl_addVar(vars, 1, "SDEBUG", "<A HREF=\"files.html?part=logfile&debug=255\" title=\"debug all\">255</A>&nbsp;&nbsp;|\n");
+		tpl_printf(vars, 0, "SDEBUG", "<SPAN CLASS=\"debugt\"> %s&nbsp;%d to&nbsp;</SPAN>\n", "Switch Debug from", cfg->debuglvl);
+		tpl_addVar(vars, 1, "SDEBUG", "<A CLASS=\"debugl\" HREF=\"files.html?part=logfile&debug=0\" title=\"no debugging (default)\">0</A>&nbsp;\n");
+		tpl_addVar(vars, 1, "SDEBUG", "<A CLASS=\"debugl\" HREF=\"files.html?part=logfile&debug=1\" title=\"detailed error messages\">1</A>&nbsp;\n");
+		tpl_addVar(vars, 1, "SDEBUG", "<A CLASS=\"debugl\" HREF=\"files.html?part=logfile&debug=2\" title=\"ATR parsing info, ECM dumps, CW dumps\">2</A>&nbsp;\n");
+		tpl_addVar(vars, 1, "SDEBUG", "<A CLASS=\"debugl\" HREF=\"files.html?part=logfile&debug=4\" title=\"traffic from/to the reader\">4</A>&nbsp;\n");
+		tpl_addVar(vars, 1, "SDEBUG", "<A CLASS=\"debugl\" HREF=\"files.html?part=logfile&debug=8\" title=\"traffic from/to the clients\">8</A>&nbsp;\n");
+		tpl_addVar(vars, 1, "SDEBUG", "<A CLASS=\"debugl\" HREF=\"files.html?part=logfile&debug=16\" title=\"traffic to the reader-device on IFD layer\">16</A>&nbsp;\n");
+		tpl_addVar(vars, 1, "SDEBUG", "<A CLASS=\"debugl\" HREF=\"files.html?part=logfile&debug=32\" title=\"traffic to the reader-device on I/O layer\">32</A>&nbsp;\n");
+		tpl_addVar(vars, 1, "SDEBUG", "<A CLASS=\"debugl\" HREF=\"files.html?part=logfile&debug=64\" title=\"EMM logging\">64</A>&nbsp;\n");
+		tpl_addVar(vars, 1, "SDEBUG", "<A CLASS=\"debugl\" HREF=\"files.html?part=logfile&debug=255\" title=\"debug all\">255</A><SPAN CLASS=\"debugt\">&nbsp;&nbsp;|</SPAN>\n");
 
 		if(!cfg->disablelog)
-			tpl_printf(vars, 0, "SLOG", "<A HREF=\"files.html?part=logfile&stoplog=%d\">%s</A>&nbsp;&nbsp;|&nbsp;&nbsp;\n", 1, "Stop Log");
+			tpl_printf(vars, 0, "SLOG", "<A CLASS=\"debugl\" HREF=\"files.html?part=logfile&stoplog=%d\">%s</A><SPAN CLASS=\"debugt\">&nbsp;&nbsp;|&nbsp;&nbsp;</SPAN>\n", 1, "Stop Log");
 		else
-			tpl_printf(vars, 0, "SLOG", "<A HREF=\"files.html?part=logfile&stoplog=%d\">%s</A>&nbsp;&nbsp;|&nbsp;&nbsp;\n", 0, "Start Log");
+			tpl_printf(vars, 0, "SLOG", "<A CLASS=\"debugl\" HREF=\"files.html?part=logfile&stoplog=%d\">%s</A><SPAN CLASS=\"debugt\">&nbsp;&nbsp;|&nbsp;&nbsp;</SPAN>\n", 0, "Start Log");
 
-		tpl_printf(vars, 0, "SCLEAR", "<A HREF=\"files.html?part=logfile&clear=logfile\">%s</A><BR><BR>\n", "Clear Log");
+		tpl_printf(vars, 0, "SCLEAR", "<A CLASS=\"debugl\" HREF=\"files.html?part=logfile&clear=logfile\">%s</A><BR><BR>\n", "Clear Log");
 	}
 	else if (strcmp(getParam(params, "part"), "userfile") == 0) {
 		snprintf(targetfile, 255,"%s", cfg->usrfile);
@@ -2003,14 +2054,20 @@ void send_oscam_files(struct templatevars *vars, FILE *f, struct uriparams *para
 	snprintf(targetfile, 255,"%s", cfg->ac_logfile);
 #endif
 
-	if(strlen(targetfile) > 0 && file_exists(targetfile) == 1) {
-		FILE *fp;
-		char buffer[256];
+	if (!strstr(targetfile, "/dev/")) {
+		if((strlen(targetfile) > 0) && (file_exists(targetfile) == 1)) {
+			FILE *fp;
+			char buffer[256];
 
-		if((fp = fopen(targetfile,"r")) == NULL) return;
-		while (fgets(buffer, sizeof(buffer), fp) != NULL)
-		tpl_printf(vars, 1, "FILECONTENT", "%s", buffer);
-		fclose (fp);
+			if((fp = fopen(targetfile,"r")) == NULL) return;
+			while (fgets(buffer, sizeof(buffer), fp) != NULL)
+				tpl_printf(vars, 1, "FILECONTENT", "%s", buffer);
+			fclose (fp);
+		} else {
+			tpl_addVar(vars, 1, "FILECONTENT", "File not exist");
+		}
+	} else {
+		tpl_addVar(vars, 1, "FILECONTENT", "File not valid");
 	}
 
 	fputs(tpl_getTpl(vars, "FILE"), f);

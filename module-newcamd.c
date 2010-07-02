@@ -356,7 +356,21 @@ static int connect_newcamd_server()
 
   // 5. Parse CAID and PROVID(s)
   reader[ridx].caid[0] = (ushort)((buf[4+2]<<8) | buf[5+2]);
-  memcpy(&reader[ridx].hexserial, buf+6+2, 8);
+
+  /* handle special serial format in newcamd. See newcamd_auth_client */
+  if (((reader[ridx].caid[0] >> 8) == 0x17) || ((reader[ridx].caid[0] >> 8) == 0x06)) {
+    memcpy(&reader[ridx].hexserial, buf+10+2, 4);
+    int hexbase = reader[ridx].hexserial[0];
+    reader[ridx].hexserial[0] = reader[ridx].hexserial[1];
+    reader[ridx].hexserial[1] = reader[ridx].hexserial[2];
+    reader[ridx].hexserial[2] = reader[ridx].hexserial[3];
+    reader[ridx].hexserial[3] = hexbase;
+  }
+  else if (((reader[ridx].caid[0] >> 8) == 0x05) || ((reader[ridx].caid[0] >> 8) == 0x0D))
+    memcpy(&reader[ridx].hexserial, buf+9+2, 5);
+  else
+    memcpy(&reader[ridx].hexserial, buf+8+2, 6);
+
   cs_log("Newcamd Server: %s:%d - UserID: %i", reader[ridx].device, reader[ridx].r_port, buf[3+2]);
   cs_log("CAID: %04X - UA: %02X%02X%02X%02X%02X%02X%02X%02X - Provider # %i", reader[ridx].caid[0], reader[ridx].hexserial[0], reader[ridx].hexserial[1], reader[ridx].hexserial[2], reader[ridx].hexserial[3], reader[ridx].hexserial[4], reader[ridx].hexserial[5], reader[ridx].hexserial[6], reader[ridx].hexserial[7], buf[14+2]);
   reader[ridx].nprov = buf[14+2];
@@ -818,7 +832,7 @@ static void newcamd_auth_client(in_addr_t ip)
         mbuf[14] = pufilt->nprids;
         for( j=0; j<pufilt->nprids; j++) 
         {
-          if ((pufilt->caid >= 0x0600) && (pufilt->caid <= 0x0699))    // Irdeto
+          if (((pufilt->caid >> 8) == 0x17) || ((pufilt->caid >> 8) == 0x06))    // Betacrypt or Irdeto
           {
             mbuf[15+11*j] = 0;
             mbuf[16+11*j] = 0;
@@ -847,7 +861,7 @@ static void newcamd_auth_client(in_addr_t ip)
                 rprid=b2i(3, &reader[au].prid[k][1]);
                 if( rprid==pufilt->prids[j] )
                 {
-                  if ((pufilt->caid >= 0x0600) && (pufilt->caid <= 0x0699))    // Irdeto
+                  if (((pufilt->caid >> 8) == 0x17) || ((pufilt->caid >> 8) == 0x06))    // Betacrypt or Irdeto
                   {
                     mbuf[22+11*j] = reader[au].prid[k][0];
                     mbuf[23+11*j] = reader[au].prid[k][1];
@@ -876,7 +890,7 @@ static void newcamd_auth_client(in_addr_t ip)
           }
           else 
           {
-            if ((pufilt->caid >= 0x0600) && (pufilt->caid <= 0x0699))    // Irdeto
+            if (((pufilt->caid >> 8) == 0x17) || ((pufilt->caid >> 8) == 0x06))    // Betacrypt or Irdeto
             {
               mbuf[22+11*j] = 0x00;
               mbuf[23+11*j] = (uchar)(pufilt->prids[j]>>16);

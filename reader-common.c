@@ -209,8 +209,8 @@ void reader_card_info(struct s_reader * reader)
     cs_ri_brk(reader, 0);
     do_emm_from_file(reader);
 
-	if (cardsystem[reader[ridx].card_system-1].card_info) {
-		cardsystem[reader[ridx].card_system-1].card_info(reader);
+	if (cardsystem[reader->card_system-1].card_info) {
+		cardsystem[reader->card_system-1].card_info(reader);
 	}
   }
 }
@@ -330,7 +330,7 @@ void reader_post_process(struct s_reader * reader)
 int reader_ecm(struct s_reader * reader, ECM_REQUEST *er)
 {
   int rc=-1;
-  if((rc=reader_checkhealth(reader)))
+  if( (rc=reader_checkhealth(reader)) )
   {
     if((reader->caid[0] >> 8) == ((er->caid >> 8) & 0xFF))
     {
@@ -453,4 +453,9 @@ int reader_emm(struct s_reader * reader, EMM_PACKET *ep)
 		rc=0;
   }
   return(rc);
+}
+
+int check_emm_cardsystem(struct s_reader * rdr, EMM_PACKET *ep)
+{
+	return (rdr->fd && (rdr->caid[0] == b2i(2,ep->caid) || rdr->typ == R_CCCAM));
 }

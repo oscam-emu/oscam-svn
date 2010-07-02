@@ -152,13 +152,8 @@ int Phoenix_Reset (struct s_reader * reader, ATR * atr)
 			else
 #endif
 				IO_Serial_RTS_Clr(reader);
-#ifndef OS_CYGWIN32
-			/* 
-			* Pause for 200ms as this might help with the PL2303.
-			* Some users reporting that this breaks cygwin, so we exclude this.
-			*/
-			cs_sleepms(200);
-#endif
+
+			cs_sleepms(50);
 			IO_Serial_Ioctl_Lock(reader, 0);
 
 			int n=0;
@@ -259,4 +254,34 @@ int Phoenix_Close (struct s_reader * reader)
 	IO_Serial_Close(reader);
 	cs_debug_mask (D_IFD, "IFD: Closing phoenix device %s", reader->device);
 	return OK;
+}
+
+
+int Phoenix_FastReset (struct s_reader * reader, int delay)
+{
+    IO_Serial_Ioctl_Lock(reader, 1);
+#ifdef USE_GPIO
+    if (gpio_detect)
+        set_gpio(0);
+    else
+#endif
+        IO_Serial_RTS_Set(reader);
+
+    cs_sleepms(delay);
+
+#ifdef USE_GPIO  //felix: set card reset hi (inactive)
+    if (gpio_detect) {
+        set_gpio_input();
+    }
+    else
+#endif
+        IO_Serial_RTS_Clr(reader);
+
+    IO_Serial_Ioctl_Lock(reader, 0);
+    
+    cs_sleepms(50);
+
+    IO_Serial_Flush(reader);
+    return 0;
+
 }

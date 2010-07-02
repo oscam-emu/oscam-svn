@@ -18,7 +18,6 @@
 #define SC_VIDEOGUARD2 6
 #define SC_DRE 7
 #define SC_NAGRA 8
-#define SC_CCCAM 9
 
 // reader-irdeto
 int irdeto_card_init(struct s_reader * reader, ATR atr);
@@ -85,6 +84,8 @@ int dre_do_emm(struct s_reader * reader, EMM_PACKET *);
 int dre_get_emm_type(EMM_PACKET *, struct s_reader *);
 int dre_card_info(void);
 void dre_get_emm_filter(struct s_reader * rdr, uchar *filter);
+
+int check_emm_cardsystem(struct s_reader * rdr, EMM_PACKET *ep);
 
 #define write_cmd(cmd, data) \
 { \

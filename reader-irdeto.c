@@ -182,7 +182,7 @@ static int irdeto_card_init_provider(struct s_reader * reader)
       reader->prid[i][0]=0xf;
   }
   if (p)
-    cs_ri_log(reader, "providers: %d (%s)", p, buf+1);
+    cs_ri_log(reader, "active providers: %d (%s)", p, buf+1);
 
   return OK;
 }
@@ -196,9 +196,9 @@ int irdeto_card_init(struct s_reader * reader, ATR newatr)
 
   if (memcmp(atr+4, "IRDETO", 6))
     return ERROR;
-  cs_ri_log(reader, "detect Irdeto card");
+  cs_ri_log(reader, "detect irdeto card");
   
-  if(reader->has_rsa) // we use rsa from config as camkey
+  if(reader->has_rsa && !reader->force_irdeto) // we use rsa from config as camkey
   {
   	cs_debug("[irdeto-reader] using camkey data from config");
   	memcpy(&sc_GetCamKey383C[5], reader->rsa_mod, 0x40);
@@ -226,8 +226,8 @@ int irdeto_card_init(struct s_reader * reader, ATR newatr)
   reader_chk_cmd(sc_GetHEXSerial, 18);
   memcpy(reader->hexserial, cta_res+12, 8); 
   reader->nprov=cta_res[10];
-  cs_ri_log(reader, "ascii serial: %s, hex serial: %02X%02X%02X, hex base: %02X",
-          buf, cta_res[12], cta_res[13], cta_res[14], cta_res[15]);
+  cs_ri_log(reader, "providers: %d, ascii serial: %s, hex serial: %02X%02X%02X, hex base: %02X",
+            reader->nprov, buf, cta_res[12], cta_res[13], cta_res[14], cta_res[15]);
 
   /*
    * CardFile
@@ -456,12 +456,19 @@ int irdeto_card_info(struct s_reader * reader)
       if (reader->prid[i][4]!=0xff)
       {
         p++;
-        sc_GetChanelIds[3]=i;
-        for (j=0; j<10; j++)
+        sc_GetChanelIds[3]=i; // provider at index i
+        j=0;
+        // for (j=0; j<10; j++) => why 10 .. do we know for sure the there are only 10 chids !!! 
+        // shouldn't it me the max chid value we read above ?!
+        while(1) // will exit if cta_lr < 61 .. which is the correct break condition.
         {
-          sc_GetChanelIds[5]=j;
+          sc_GetChanelIds[5]=j; // chid at index j for provider at index i
           reader_chk_cmd(sc_GetChanelIds, 0);
-          if (cta_lr<61) break;
+          // if (cta_lr<61) break; // why 61 (0 to 60 in steps of 6 .. is it 10*6 from the 10 in the for loop ?
+          // what happen if the card only send back.. 9 chids (or less)... we don't see them
+          // so we should check whether or not we have at least 6 bytes (1 chid).
+          if (cta_lr<6) break; 
+          
           for(k=0; k<cta_lr; k+=6)
           {
             chid=b2i(2, cta_res+k);
@@ -472,12 +479,13 @@ int irdeto_card_info(struct s_reader * reader)
               chid_date(date+cta_res[k+4], t+16, 16);
               if (first)
               {
-                cs_ri_log(reader, "provider: %d, id: %06X", p, b2i(3, &reader->prid[i][1]));
+                cs_ri_log(reader, "entitlements for provider: %d, id: %06X", p, b2i(3, &reader->prid[i][1]));
                 first=0;
               }
               cs_ri_log(reader, "chid: %04X, date: %s - %s", chid, t, t+16);
             }
           }
+        j++;
         }
       }
     }

@@ -34,6 +34,9 @@
 #ifndef CS_GLOBALS
 #define CS_GLOBALS
 #define CS_VERSION    "0.99.4-modular-svn"
+#ifndef CS_SVN_VERSION
+#	define CS_SVN_VERSION "test"
+#endif
 
 #if defined(__GNUC__)
 #  define GCC_PACK __attribute__((packed))
@@ -60,12 +63,16 @@
 #include "cscrypt/cscrypt.h"
 
 #ifdef HAVE_PCSC 
+  #ifdef OS_CYGWIN32
+    #include <winscard.h>
+  #else
     #include <PCSC/pcsclite.h> 
     #ifdef OS_MACOSX 
         #include <PCSC/wintypes.h> 
     #else 
         #include <PCSC/reader.h> 
     #endif 
+  #endif
 #endif
 
 #if defined(LIBUSB)
@@ -145,6 +152,7 @@
 #define R_NEWCAMD   0x12  // Reader cascading newcamd
 #define R_RADEGAST  0x13  // Reader cascading radegast
 #define R_CS378X    0x14  // Reader cascading camd 3.5x TCP
+#define R_CONSTCW   0x15  // Reader for Constant CW
 /////////////////// peer to peer proxy readers after R_CCCAM
 #ifdef CS_WITH_GBOX
 #define R_GBOX      0x20  // Reader cascading gbox
@@ -160,8 +168,11 @@
 #define MOD_CONN_UDP    2
 #define MOD_CONN_NET    3
 #define MOD_CONN_SERIAL 4
-#define MOD_CARDSYSTEM  8
-#define MOD_ADDON       16
+#define MOD_NO_CONN	8
+
+#define MOD_CARDSYSTEM  16
+#define MOD_ADDON       32
+
 
 #ifdef HAVE_DVBAPI
 #define BOXTYPE_DREAMBOX	1
@@ -169,7 +180,8 @@
 #define BOXTYPE_UFS910	3
 #define BOXTYPE_DBOX2	4
 #define BOXTYPE_IPBOX	5
-#define BOXTYPES		5
+#define BOXTYPE_IPBOX_PMT	6 
+#define BOXTYPES		6
 extern char *boxdesc[];
 #endif
 
@@ -339,7 +351,7 @@ typedef struct  {
     pthread_mutex_t g_usb_mutex;
     pthread_t rt;
     unsigned char modem_status;
-} GCC_PACK SR_CONFIG;
+} SR_CONFIG;
 #endif
 
 
@@ -381,6 +393,7 @@ struct s_module
   int  (*c_init_log)();
   int  (*c_recv_log)();
   int  (*c_available)(); //Schlocke: available check for load-balancing
+  void (*c_idle)(); //Schlocke: called when reader is idle
   int  c_port;
   PTAB *ptab;
   int num;
@@ -495,6 +508,7 @@ struct s_reader  //contains device info, reader info and card info
   int       cs_idx;
   int       ridx; //FIXME reader[ridx] reader has to know what number it is, should be replaced by storing pointer to reader instead of array index
   int       enable;
+  int       available; //Schlocke: New flag for loadbalancing. Only reader if reader supports ph.c_available function
   int       fd;
   ulong     grp;
   int       fallback;
@@ -522,9 +536,11 @@ struct s_reader  //contains device info, reader info and card info
   ulong     boxid;
   uchar	    nagra_boxkey[16]; //n3 boxkey 8byte  or tiger idea key 16byte
   int       has_rsa;
+  int       force_irdeto;
   uchar     aes_key[16];
   uchar     rsa_mod[120]; //rsa modulus for nagra cards.
   uchar     atr[64];
+  int		atrlen;
   ulong     sidtabok;	// positiv services
   ulong     sidtabno;	// negative services
   uchar     hexserial[8];
@@ -561,7 +577,8 @@ struct s_reader  //contains device info, reader info and card info
   void      *cc;            // ptr to cccam internal data struct
   int       cc_disable_retry_ecm; //Schlocke
   int       cc_disable_auto_block; //Schlocke
-  uchar     cc_id;
+  int       cc_want_emu; //Schlocke: Client want to have EMUs, 0 - NO; 1 - YES
+  uint      cc_id;
   uchar     tcp_connected;
   int       tcp_ito;      // inactivity timeout
   int       tcp_rto;      // reconnect timeout
@@ -631,6 +648,8 @@ struct s_reader  //contains device info, reader info and card info
 	BIGNUM ucpk;
 	////variables from reader-viaccess.c 
 	struct geo_cache last_geo;
+	uchar cc_reshare;
+	int lb_weight; //loadbalance weight factor, if unset, weight=100. The higher the value, the higher the usage-possibility
 };
 
 #ifdef CS_ANTICASC
@@ -684,6 +703,8 @@ struct s_auth
   int       c35_suppresscmd08;
   int       c35_sleepsend;
   int       ncd_keepalive;
+  int       cccmaxhops;
+  int       cccreshare;
   int       disabled;
   struct   s_auth *next;
 };
@@ -789,7 +810,6 @@ struct s_config
 	int		cc_reshare;
 	in_addr_t	cc_srvip;
 	uchar		cc_version[7];
-	uchar		cc_build[5];
 	struct s_ip *rad_allowed;
 	char		rad_usr[32];
 	char		ser_device[512];
@@ -800,6 +820,7 @@ struct s_config
 	int		saveinithistory;
 	int     reader_restart_seconds; //schlocke: reader restart auf x seconds, disable = 0
 	int     reader_auto_loadbalance; //schlocke: reader loadbalancing disable = 0 enable = 1
+	int     reader_auto_loadbalance_save; //schlocke: load/save statistics to file, save every x ecms
 
 #ifdef CS_WITH_GBOX
 	uchar		gbox_pwd[8];
@@ -820,6 +841,7 @@ struct s_config
 	int		dvbapi_au;
 	char		dvbapi_usr[33];
 	int		dvbapi_boxtype;
+	int		dvbapi_pmtmode;
 	CAIDTAB	dvbapi_prioritytab;
 	CAIDTAB	dvbapi_ignoretab;
 	CAIDTAB	dvbapi_delaytab;
@@ -877,6 +899,7 @@ typedef struct ecm_request_t
 
 #define MAX_STAT_TIME 20
 #define MIN_ECM_COUNT 5
+#define MAX_READER_RETRY 4
  
 typedef struct add_reader_stat_t
 {
@@ -1174,10 +1197,12 @@ extern int reader_emm(struct s_reader * reader, EMM_PACKET *);
 int reader_get_emm_type(EMM_PACKET *ep, struct s_reader * reader);
 int get_cardsystem(ushort caid);
 void get_emm_filter(struct s_reader * rdr, uchar *filter);
+extern int check_emm_cardsystem(struct s_reader * rdr, EMM_PACKET *ep);
 
 //module-stat
+extern void init_stat();
 extern void add_reader_stat(ADD_READER_STAT *add_stat);
-extern int get_best_reader(struct s_reader *reader, ushort caid, ulong prid, ushort srvid);
+extern int get_best_reader(ushort caid, ulong prid, ushort srvid);
 
 #ifdef HAVE_PCSC
 // reader-pcsc
@@ -1197,6 +1222,7 @@ extern void module_newcamd(struct s_module *);
 extern void module_radegast(struct s_module *);
 extern void module_oscam_ser(struct s_module *);
 extern void module_cccam(struct s_module *);
+extern void module_constcw(struct s_module *);
 extern struct timeval *chk_pending(struct timeb tp_ctimeout);
 #ifdef CS_WITH_GBOX
 extern void module_gbox(struct s_module *);
