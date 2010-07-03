@@ -338,9 +338,10 @@ void cs_exit(int sig)
                 if (unlink(cfg->pidfile) < 0)
                   cs_log("cannot remove pid file %s errno=(%d)", cfg->pidfile, errno);
               }
+#ifndef OS_CYGWIN32
               if (unlink("/tmp/oscam.version") < 0)
             	  cs_log("cannot remove /tmp/oscam.version errno=(%d)", errno);
-
+#endif
               cs_log("cardserver down");
 #ifndef CS_NOSHM
               if (ecmcache) shmdt((void *)ecmcache);
@@ -2431,6 +2432,8 @@ void do_emm(EMM_PACKET *ep)
 		return;
 
 	cs_debug_mask(D_EMM, "emmtype %s. Reader %s has serial %s.", typtext[ep->type], reader[au].label, cs_hexdump(0, reader[au].hexserial, 8)); 
+	cs_ddump_mask(D_EMM, ep->hexserial, 8, "emm UA/SA:");
+	cs_ddump_mask(D_EMM, ep->emm, ep->l, "emm:");
 
 	switch (ep->type) {
 		case UNKNOWN:
@@ -2472,9 +2475,7 @@ void do_emm(EMM_PACKET *ep)
 			break;
 	}
 
-	cs_ddump_mask(D_EMM, ep->hexserial, 8, "emm UA/SA:");
 	client[cs_idx].lastemm = time((time_t)0);
-	cs_ddump_mask(D_EMM, ep->emm, ep->l, "emm:");
 
 	if (reader[au].card_system > 0) {
 		if (!check_emm_cardsystem(&reader[au], ep)) {   // wrong caid

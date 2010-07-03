@@ -47,6 +47,15 @@ static char *getprefix() {
 	return prefix;
 }
 
+static int comp_timeb(struct timeb *tpa, struct timeb *tpb)
+{
+  if (tpa->time>tpb->time) return(1);
+  if (tpa->time<tpb->time) return(-1);
+  if (tpa->millitm>tpb->millitm) return(1);
+  if (tpa->millitm<tpb->millitm) return(-1);
+  return(0);
+}
+          
 static void cc_init_crypt(struct cc_crypt_block *block, uint8 *key, int len) {
 	int i = 0;
 	uint8 j = 0;
@@ -618,21 +627,16 @@ static int cc_send_ecm(ECM_REQUEST *er, uchar *buf) {
 	struct cc_current_card *current_card;
 	LLIST_ITR itr;
 	ECM_REQUEST *cur_er;
+	struct timeb cur_time;
+	cs_ftime(&cur_time);
 
 	if (!cc || (pfd < 1) || !reader[ridx].tcp_connected) {
 		if (er) {
 			er->rc = 0;
 			er->rcEx = 0x27;
-			cs_log("%s server not init! ccinit=%d pfd=%d", getprefix(), cc ? 1
+			cs_debug_mask(D_TRACE, "%s server not init! ccinit=%d pfd=%d", getprefix(), cc ? 1
 					: 0, pfd);
 			write_ecm_answer(&reader[ridx], fd_c2m, er);
-
-			if (cc) { cc->proxy_init_errors++; if
-				(cc->proxy_init_errors > 20 ||
-				((cc->ecm_time+(time_t)(cfg->ctimeout/500))
-				< time(NULL))) //TODO: Configuration?
-					cc_cycle_connection();
-			}
 		}
 		return -1;
 	}
@@ -642,21 +646,38 @@ static int cc_send_ecm(ECM_REQUEST *er, uchar *buf) {
 		
 	cc->just_logged_in = 0;
 
+	int force_resend_ecm = 0;
+	
 	if (pthread_mutex_trylock(&cc->ecm_busy) == EBUSY) { //Unlock by NOK or ECM ACK
 		cs_debug_mask(D_TRACE, "%s ecm trylock: ecm busy, retrying later after msg-receive",
-				getprefix());
-		cc->proxy_init_errors++;
-
-		if ((cc->proxy_init_errors > 20) || ((cc->ecm_time+(time_t)(cfg->ctimeout/250)) < time(NULL))) { //TODO: Configuration?
-			cs_debug_mask(D_TRACE, "%s unlocked-cycleconnection! ecm time %d timeout %ds time %d", getprefix(),
-					cc->ecm_time, cfg->ctimeout/250, time(NULL));
-			cc_cycle_connection();
+			getprefix());
+			
+		//force resend ecm and break lock when fallbacktimeout occured
+		struct timeb timeout = cur_time;
+		timeout.millitm += cfg->ftimeout;
+		timeout.time += timeout.millitm / 1000;
+		timeout.millitm = timeout.millitm % 1000;
+		force_resend_ecm = reader[ridx].cc_force_resend_ecm && comp_timeb(&cur_time, &timeout) > 0;
+			
+		if (force_resend_ecm) {
+			cs_debug_mask(D_TRACE, "%s force_resend");
 		}
-		return 0; //pending send...
+		else {
+			timeout = cur_time;
+			timeout.millitm += cfg->ctimeout*4;
+			timeout.time += timeout.millitm / 1000;
+			timeout.millitm = timeout.millitm % 1000;
+			
+			if (comp_timeb(&cur_time, &timeout) > 0) { //TODO: Configuration?
+				cs_debug_mask(D_TRACE, "%s unlocked-cycleconnection! timeout %ds", getprefix(),
+					cfg->ctimeout*4/1000);
+				cc_cycle_connection();
+			}
+			return 0; //pending send...
+		}
 	}
 	cs_debug("cccam: ecm trylock: got lock");
-	cc->ecm_time = time(NULL);
-	cc->proxy_init_errors = 0;
+	cc->ecm_time = cur_time;
 	reader[ridx].available = 0;
 
 	//Search next ECM to send:
@@ -674,7 +695,7 @@ static int cc_send_ecm(ECM_REQUEST *er, uchar *buf) {
 		//cs_debug("cccam: ecm-task-idx = %d", n);
 		cur_er = &ecmtask[n];
 		
-		if (crc32(0, cur_er->ecm, cur_er->l) == cc->crc) {
+		if (!force_resend_ecm && crc32(0, cur_er->ecm, cur_er->l) == cc->crc) {
 			//cs_log("%s cur_er->rc=%d", getprefix(), cur_er->rc);
 			cur_er->rc = 99; //ECM already send
 		}
@@ -796,22 +817,22 @@ static int cc_send_ecm(ECM_REQUEST *er, uchar *buf) {
 		//cs_sleepms(300);
 		//reader[ridx].last_s = reader[ridx].last_g;
 
-		card = llist_itr_init(cc->cards, &itr);
-		while (card) {
-			if (card->caid == cur_er->caid) { // caid matches
-				LLIST_ITR sitr;
-				struct cc_srvid *srvid = llist_itr_init(card->badsids, &sitr);
-				while (srvid) {
-					if (sid_eq(srvid, &cur_srvid)) {
-						free(srvid);
-						srvid = llist_itr_remove(&sitr);
-					}
-					else
-						srvid = llist_itr_next(&sitr);
-				}
-			}
-			card = llist_itr_next(&itr);
-		}
+		//card = llist_itr_init(cc->cards, &itr);
+		//while (card) {
+		//	if (card->caid == cur_er->caid) { // caid matches
+		//		LLIST_ITR sitr;
+		//		struct cc_srvid *srvid = llist_itr_init(card->badsids, &sitr);
+		//		while (srvid) {
+		//			if (sid_eq(srvid, &cur_srvid)) {
+		//				free(srvid);
+		//				srvid = llist_itr_remove(&sitr);
+		//			}
+		//			else
+		//				srvid = llist_itr_next(&sitr);
+		//		}
+		//	}
+		//	card = llist_itr_next(&itr);
+		//}
 
 		if (!reader[ridx].cc_disable_auto_block) {
 			cc_add_auto_blocked(cc->auto_blocked, cur_er->caid, cur_er->prid,
@@ -866,9 +887,8 @@ static int cc_send_pending_emms() {
 	
 		reader[ridx].available = 0;
 		cc->current_ecm_cidx = 0;
-		cc->proxy_init_errors = 0;
 		cc->just_logged_in = 0;
-		cc->ecm_time = time(NULL);
+		cs_ftime(&cc->ecm_time);
 		
 		cs_debug_mask(D_EMM, "%s emm send for card %08X", getprefix(), b2i(4, emmbuf+7));
 		
@@ -890,9 +910,6 @@ static int cc_send_emm(EMM_PACKET *ep) {
 	if (!cc || (pfd < 1) || !reader[ridx].tcp_connected) {
 		cs_log("%s server not init! ccinit=%d pfd=%d", getprefix(), cc ? 1 : 0,
 				pfd);
-		cc->proxy_init_errors++;
-		if (cc->proxy_init_errors > 20) //TODO: Configuration?
-			cc_cycle_connection();
 		return 0;
 	}
 
@@ -1868,7 +1885,6 @@ static int cc_cli_connect(void) {
 	}
 	cc->ecm_counter = 0;
 	cc->max_ecms = 0;
-	cc->proxy_init_errors = 0;
 	//cc->current_ecm_cidx = 0;
 	cc->cmd05_mode = MODE_UNKNOWN;
 	cc->cmd05_offset = 0;
@@ -1984,13 +2000,6 @@ struct s_auth *get_account(char *usr) {
 	return NULL;
 }
 
-int min(int a, int b) {
-	if (a < b)
-		return a;
-	else
-		return b;
-}
-
 /**
  * Server:
  * Reports all caid/providers to the connected clients
@@ -1999,7 +2008,8 @@ int min(int a, int b) {
 static int cc_srv_report_cards() {
 	int j;
 	uint id, r, k;
-	uint8 hop = 0, reshare, usr_reshare, reader_reshare, maxhops, flt = 0;
+	uint8 hop = 0;
+	int reshare, usr_reshare, reader_reshare, maxhops, flt = 0;
 	uint8 buf[CC_MAXMSGSIZE];
 	struct cc_data *cc = client[cs_idx].cc;
 
@@ -2012,9 +2022,6 @@ static int cc_srv_report_cards() {
 		usr_reshare = cfg->cc_reshare;
 	}
 	
-	if (!usr_reshare)
-		return 0;
-
 	if (!cc->report_carddata_id)
 		id = 0x64;
 	else
@@ -2025,9 +2032,11 @@ static int cc_srv_report_cards() {
 	for (r = 0; r < CS_MAXREADER; r++) {
 		if (!(reader[r].grp & client[cs_idx].grp)) continue;
 		reader_reshare = reader[r].cc_reshare;
-		if (!reader_reshare) continue;
 
-		reshare = min(reader_reshare-1, usr_reshare-1);
+		reshare = (reader_reshare < usr_reshare) ? reader_reshare : usr_reshare;
+		if (reshare < 0)
+			continue;
+			
 		flt = 0;
 		if (/*!reader[r].caid[0] && */reader[r].ftab.filts) {
 			for (j = 0; j < CS_MAXFILTERS; j++) {

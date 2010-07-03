@@ -322,8 +322,8 @@ void reader_post_process(struct s_reader * reader)
   // some systems eg. nagra2/3 needs post process after receiving cw from card
   // To save ECM/CW time we added this function after writing ecm answer
 
-	if (cardsystem[reader[ridx].card_system-1].post_process) {
-		cardsystem[reader[ridx].card_system-1].post_process(reader);
+	if (cardsystem[reader->card_system-1].post_process) {
+		cardsystem[reader->card_system-1].post_process(reader);
 	}
 }
 
@@ -338,8 +338,8 @@ int reader_ecm(struct s_reader * reader, ECM_REQUEST *er)
       client[cs_idx].last_caid=er->caid;
       client[cs_idx].last=time((time_t)0);
 
-	if (cardsystem[reader[ridx].card_system-1].do_ecm) 
-		rc=cardsystem[reader[ridx].card_system-1].do_ecm(reader, er);
+	if (cardsystem[reader->card_system-1].do_ecm) 
+		rc=cardsystem[reader->card_system-1].do_ecm(reader, er);
 	else
 		rc=0;
 
@@ -447,8 +447,8 @@ int reader_emm(struct s_reader * reader, EMM_PACKET *ep)
     if (reader->b_nano[ep->emm[0]] & 0x01) //should this nano be blcoked?
       return 3;
 
-	if (cardsystem[reader[ridx].card_system-1].do_emm) 
-		rc=cardsystem[reader[ridx].card_system-1].do_emm(reader, ep);
+	if (cardsystem[reader->card_system-1].do_emm) 
+		rc=cardsystem[reader->card_system-1].do_emm(reader, ep);
 	else
 		rc=0;
   }
