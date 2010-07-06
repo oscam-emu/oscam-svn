@@ -797,11 +797,11 @@ static int cc_send_ecm(ECM_REQUEST *er, uchar *buf) {
 		cc_cmd_send(ecmbuf, cur_er->l + 13, MSG_CW_ECM); // send ecm
 
 		//For EMM
-		if (reader[ridx].caid[0])
-			reader[ridx].card_system = get_cardsystem(reader[ridx].caid[0]);
-		else
-			reader[ridx].card_system = get_cardsystem(card->caid);
-		memcpy(reader[ridx].hexserial, &card->key, sizeof(card->key));
+		uint16 caid = reader[ridx].caid[0]?reader[ridx].caid[0]:card->caid;
+		reader[ridx].card_system = get_cardsystem(caid);
+		memcpy(reader[ridx].hexserial, card->hexserial, sizeof(card->hexserial));
+		cs_ddump_mask(D_EMM, card->hexserial, 8, "%s au info: caid %04X card system: %d serial:", 
+			getprefix(), caid, reader[ridx].card_system);
 
 		return 0;
 	} else {
@@ -905,12 +905,12 @@ static int cc_send_pending_emms() {
  * READER only:
  * find card by hexserial
  * */
-struct cc_card *get_card_by_hexserial(uint8 *hexserial) {
+struct cc_card *get_card_by_hexserial(uint8 *hexserial, uint16 caid) {
 	struct cc_data *cc = reader[ridx].cc;
 	LLIST_ITR itr;
 	struct cc_card *card = llist_itr_init(cc->cards, &itr);
 	while (card) {
-		if (memcmp(card->key, hexserial, 8) == 0) { //found it!
+		if (memcmp(card->hexserial, hexserial, 8) == 0 && card->caid == caid) { //found it!
 			return card;
 		}
 		card = llist_itr_next(&itr);
@@ -933,9 +933,9 @@ static int cc_send_emm(EMM_PACKET *ep) {
 
 
 	struct cc_card *emm_card = cc->current_card[ep->cidx].card;
-	
-	if (!emm_card || memcmp(emm_card->key, ep->hexserial, 8) != 0) {
-		emm_card = get_card_by_hexserial(ep->hexserial);
+
+	if (!emm_card || memcmp(emm_card->hexserial, ep->hexserial, 8) != 0 || emm_card->caid != b2i(2, ep->caid)) {
+		emm_card = get_card_by_hexserial(ep->hexserial, b2i(2, ep->caid));
 	}
 
 	if (!emm_card) { //Card for emm not found!
@@ -944,7 +944,7 @@ static int cc_send_emm(EMM_PACKET *ep) {
 	}
 
 	cs_debug_mask(D_EMM, "%s emm received for client %d caid %04X for card %08X", getprefix(), ep->cidx,
-			b2i(2, (uchar*)&ep->caid), emm_card->id);
+			b2i(2, ep->caid), emm_card->id);
 
 	int size = ep->l+12;
 	uint8 *emmbuf = malloc(size);
@@ -1256,7 +1256,7 @@ static void rebuild_caidinfos(struct cc_data *cc) {
 }
 
 static void cleanup_old_cards(struct cc_data *cc) {
-	time_t clean_time = time((time_t) 0) - 60 * 60 * 5; //TODO: Timeout old cards 60*60*5=5h Config
+	time_t clean_time = time((time_t) 0) - 60 * 60 * 48; //TODO: Timeout old cards 60*60*48=48h Config
 	LLIST_ITR itr;
 	struct cc_card *card = llist_itr_init(cc->cards, &itr);
 	while (card) {
@@ -1435,10 +1435,10 @@ static int cc_parse_msg(uint8 *buf, int l) {
 		card->caid = b2i(2, buf + 12);
 		card->hop = buf[14];
 		card->maxdown = buf[15];
-		memcpy(card->key, buf + 16, 8); //HEXSERIAL!!
+		memcpy(card->hexserial, buf + 16, 8); //HEXSERIAL!!
 
 		//cs_debug("cccam: card %08x added, caid %04X, hop %d, key %s, count %d",
-		//		card->id, card->caid, card->hop, cs_hexdump(0, card->key, 8),
+		//		card->id, card->caid, card->hop, cs_hexdump(0, card->hexserial, 8),
 		//		llist_count(cc->cards));
 
 		for (i = 0; i < buf[24]; i++) { // providers
@@ -1509,9 +1509,8 @@ static int cc_parse_msg(uint8 *buf, int l) {
 				while ((current_card = cc_find_current_card(cc, card))) {
 					cs_debug_mask(D_TRACE, "%s current card %08x removed!", getprefix(), card->id);
 
-					//make a copy of the current card, remove card and retry ECM with the copy:
 					current_card->card = NULL;
-					//Schlocke: disabled because of problems...cc_retry_ecm(cc, current_card);
+					
 				}
 				cc_free_card(card);
 
@@ -1726,6 +1725,7 @@ static int cc_parse_msg(uint8 *buf, int l) {
 
 				int au = client[cs_idx].au;
 				if ((au < 0) || (au > CS_MAXREADER)) {
+					cs_debug_mask(D_EMM, "%s EMM Request discarded because au is not assigned to an reader!", getprefix());
 					cc_cmd_send(NULL, 0, MSG_CW_NOK1); //Send back NOK
 					return 0;
 				}
@@ -1734,10 +1734,10 @@ static int cc_parse_msg(uint8 *buf, int l) {
 				memset(emm, 0, sizeof(EMM_PACKET));
 				emm->caid[0] = buf[4];
 				emm->caid[1] = buf[5];
-				//emm->provid[0] = buf[7];
-				//emm->provid[1] = buf[8];
-				//emm->provid[2] = buf[9];
-				//emm->provid[3] = buf[10];
+				emm->provid[0] = buf[7];
+				emm->provid[1] = buf[8];
+				emm->provid[2] = buf[9];
+				emm->provid[3] = buf[10];
 				//emm->hexserial[0] = buf[11];
 				//emm->hexserial[1] = buf[12];
 				//emm->hexserial[2] = buf[13];
@@ -2085,6 +2085,7 @@ static int cc_srv_report_cards() {
 					buf[9] = reader[r].ftab.filts[j].caid & 0xff;
 					buf[10] = hop;
 					buf[11] = reshare;
+					memcpy(buf + 12, reader->hexserial, 8);
 					buf[20] = reader[r].ftab.filts[j].nprids;
 					//cs_log("Ident CCcam card report caid: %04X readr %s subid: %06X", reader[r].ftab.filts[j].caid, reader[r].label, reader[r].cc_id);
 					for (k = 0; k < reader[r].ftab.filts[j].nprids; k++) {
@@ -2143,6 +2144,7 @@ static int cc_srv_report_cards() {
 					buf[9] = lcaid & 0xff;
 					buf[10] = hop;
 					buf[11] = reshare;
+					memcpy(buf + 12, reader->hexserial, 8);
 					buf[20] = 1;
 					//cs_log("CAID map CCcam card report caid: %04X nodeid: %s subid: %06X", lcaid, cs_hexdump(0, cc->peer_node_id, 8), reader[r].cc_id);
 					//buf[21] = 0;
@@ -2178,6 +2180,7 @@ static int cc_srv_report_cards() {
 			buf[9] = reader[r].caid[0] & 0xff;
 			buf[10] = hop;
 			buf[11] = reshare;
+			memcpy(buf + 12, reader->hexserial, 8);
 			buf[20] = reader[r].nprov;
 			for (j = 0; j < reader[r].nprov; j++) {
 				if (!(reader[r].typ & R_IS_CASCADING)) //(reader[r].card_status == CARD_INSERTED)
@@ -2236,6 +2239,7 @@ static int cc_srv_report_cards() {
 						buf[9] = caid_info->caid & 0xff;
 						buf[10] = caid_info->hop+1;
 						buf[11] = reshare;
+						//memcpy(buf + 12, caid_info->hexserial, 8);
 						int j = 0;
 						LLIST_ITR itr_prov;
 						uint8 *prov = llist_itr_init(caid_info->provs, &itr_prov);
