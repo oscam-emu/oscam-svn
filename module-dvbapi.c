@@ -308,9 +308,11 @@ int dvbapi_read_device(int dmx_fd, unsigned char *buf, int length) {
 	pfd3[0].fd = dmx_fd;
 	pfd3[0].events = (POLLIN | POLLPRI);
 
-	rc = poll(pfd3, 1, 1000);
-	if (rc<1)
+	rc = poll(pfd3, 1, 2000);
+	if (rc<1) {
+		cs_log("read on %d timed out", dmx_fd);
 		return -1;
+	}
 
 	len = read(dmx_fd, buf, length);
 
@@ -1249,11 +1251,15 @@ void dvbapi_main_local() {
 					dvbapi_handlesockmsg(client[cs_idx].mbuf, len, connfd);
 
 				} else { // type==0
-					if ((len=dvbapi_read_device(pfd2[i].fd, client[cs_idx].mbuf, sizeof(client[cs_idx].mbuf))) <= 0)
-						continue;
-
 					int demux_index=ids[i];
 					int n=fdn[i];
+
+					if ((len=dvbapi_read_device(pfd2[i].fd, client[cs_idx].mbuf, sizeof(client[cs_idx].mbuf))) <= 0) {
+						if (demux[demux_index].pidindex==-1) {
+							dvbapi_try_next_caid(demux_index);
+						}
+						continue;
+					}
 
 					if (pfd2[i].fd==(int)demux[demux_index].demux_fd[n].fd) {
 						dvbapi_process_input(demux_index,n,client[cs_idx].mbuf,len);

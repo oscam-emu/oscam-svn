@@ -531,6 +531,8 @@ struct geo_cache
 
 struct s_reader  //contains device info, reader info and card info
 {
+  ulong		auprovid; // AU only for this provid
+  int		audisabled; // exclude reader from auto AU
   int 		deleted; // if this flag is set the reader is not shown in webif and becomes not writte to oscam.server
   int		smargopatch;
   int		pid;
@@ -895,6 +897,7 @@ struct s_config
 
 #define MAX_STAT_TIME 20
 #define MIN_ECM_COUNT 5
+#define MAX_ECM_COUNT 500
 #define MAX_READER_RETRY 4
  
 typedef struct add_reader_stat_t
@@ -1144,6 +1147,7 @@ extern int init_provid();
 extern int logfd;
 extern int reader_cmd2icc(struct s_reader * reader, uchar *buf, int l, uchar *response, ushort *response_length);
 extern int card_write(struct s_reader * reader, uchar *, uchar *, uchar *, ushort *);
+extern int check_sct_len(const unsigned char *data, int off);
 extern void cs_ri_brk(struct s_reader * reader, int);
 extern void cs_ri_log(struct s_reader * reader, char *,...);
 extern void * start_cardreader(void *);

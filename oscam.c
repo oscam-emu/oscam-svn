@@ -94,7 +94,7 @@ static char *logo = "  ___  ____   ___                \n / _ \\/ ___| / __|__ _ 
 static void cs_set_mloc(int ato, char *txt)
 {
   if (ato>=0)
-    alarm(ato);
+    //alarm(ato);
   if (txt)
     strcpy(mloc, txt);
 }
@@ -643,8 +643,8 @@ static void init_signal()
 		//  set_signal_handler(SIGPIPE , 0, SIG_IGN);
 		set_signal_handler(SIGPIPE , 0, cs_sigpipe);
 		//  set_signal_handler(SIGALRM , 0, cs_alarm);
-		set_signal_handler(SIGALRM , 0, cs_master_alarm);
-		set_signal_handler(SIGCHLD , 1, cs_child_chk);
+		// set_signal_handler(SIGALRM , 0, cs_master_alarm);
+		// set_signal_handler(SIGCHLD , 1, cs_child_chk);
 		//  set_signal_handler(SIGHUP  , 1, cs_accounts_chk);
 		set_signal_handler(SIGHUP , 1, cs_sighup);
 		set_signal_handler(SIGUSR1, 1, cs_debug_level);
@@ -1660,7 +1660,7 @@ int send_dcw(ECM_REQUEST *er)
 			int r=0;
 			for(r=0;r<CS_MAXREADER;r++)
 			{
-				if(er->caid==reader[r].caid[0])
+				if((er->caid == reader[r].caid[0]) && (er->prid == reader[r].auprovid) && (!reader[r].audisabled))
 				{
 					client[cs_idx].au=r;
 					break;
@@ -2580,6 +2580,7 @@ int accept_connection(int i, int j) {
 
 				//ph[i].s_handler(cad);   // never return
 				pthread_create(&client[o].thread, NULL, (void *)ph[i].s_handler, NULL);
+				pthread_detach(client[o].thread);
 			} else {
 				unsigned short rl;
 				rl=n;
@@ -2611,6 +2612,7 @@ int accept_connection(int i, int j) {
 			//	alarm(cfg->cmaxidle + cfg->ctimeout / 1000 + 1);
 
 			pthread_create(&client[o].thread, NULL, (void *)ph[i].s_handler, NULL);
+			pthread_detach(client[o].thread);
 		}
 	}
 	return 0;
