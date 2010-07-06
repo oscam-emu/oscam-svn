@@ -72,7 +72,7 @@ static int camd35_recv(uchar *buf, int l)
   for (rc=rs=s=0; !rc; s++) switch(s)
   {
     case 0:
-      if (is_server)
+      if (client[cs_idx].is_server)
       {
         if (!client[cs_idx].udp_fd) return(-9);
         if (is_udp)
@@ -166,48 +166,48 @@ static void camd35_request_emm(ECM_REQUEST *er)
 		else
 			disable_counter++;
 
-	memset(mbuf, 0, sizeof(mbuf));
-	mbuf[2] = mbuf[3] = 0xff;			// must not be zero
-	memcpy(mbuf + 8, i2b(2, er->srvid), 2);
-	memcpy(mbuf + 12, i2b(4, er->prid), 4);
-	memcpy(mbuf + 16, i2b(2, er->pid), 2);
-	mbuf[0] = 5;
-	mbuf[1] = 111;
+	memset(client[cs_idx].mbuf, 0, sizeof(client[cs_idx].mbuf));
+	client[cs_idx].mbuf[2] = client[cs_idx].mbuf[3] = 0xff;			// must not be zero
+	memcpy(client[cs_idx].mbuf + 8, i2b(2, er->srvid), 2);
+	memcpy(client[cs_idx].mbuf + 12, i2b(4, er->prid), 4);
+	memcpy(client[cs_idx].mbuf + 16, i2b(2, er->pid), 2);
+	client[cs_idx].mbuf[0] = 5;
+	client[cs_idx].mbuf[1] = 111;
 	if (reader[au].caid[0])
 	{
-		mbuf[39] = 1;							// no. caids
-		mbuf[20] = reader[au].caid[0]>>8;		// caid's (max 8)
-		mbuf[21] = reader[au].caid[0]&0xff;
-		memcpy(mbuf + 40, reader[au].hexserial, 6);	// serial now 6 bytes
-		mbuf[47] = reader[au].nprov;
+		client[cs_idx].mbuf[39] = 1;							// no. caids
+		client[cs_idx].mbuf[20] = reader[au].caid[0]>>8;		// caid's (max 8)
+		client[cs_idx].mbuf[21] = reader[au].caid[0]&0xff;
+		memcpy(client[cs_idx].mbuf + 40, reader[au].hexserial, 6);	// serial now 6 bytes
+		client[cs_idx].mbuf[47] = reader[au].nprov;
 		for (i = 0; i < reader[au].nprov; i++)
 		{
 			if (((reader[au].caid[0] >= 0x1700) && (reader[au].caid[0] <= 0x1799))  || // Betacrypt
 					((reader[au].caid[0] >= 0x0600) && (reader[au].caid[0] <= 0x0699)))    // Irdeto (don't know if this is correct, cause I don't own a IRDETO-Card)
 			{
-				mbuf[48 + (i*5)] = reader[au].prid[i][0];
-				memcpy(&mbuf[50 + (i*5)], &reader[au].prid[i][1], 3);
+				client[cs_idx].mbuf[48 + (i*5)] = reader[au].prid[i][0];
+				memcpy(&client[cs_idx].mbuf[50 + (i*5)], &reader[au].prid[i][1], 3);
 			}
 			else
 			{
-				mbuf[48 + (i * 5)] = reader[au].prid[i][2];
-				mbuf[49 + (i * 5)] =reader[au].prid[i][3];
-				memcpy(&mbuf[50 + (i * 5)], &reader[au].sa[i][0],4); // for conax we need at least 4 Bytes
+				client[cs_idx].mbuf[48 + (i * 5)] = reader[au].prid[i][2];
+				client[cs_idx].mbuf[49 + (i * 5)] =reader[au].prid[i][3];
+				memcpy(&client[cs_idx].mbuf[50 + (i * 5)], &reader[au].sa[i][0],4); // for conax we need at least 4 Bytes
 			}
 		}
 		//we think client/server protocols should deliver all information, and only readers should discard EMM
-		mbuf[128] = (reader[au].blockemm_g == 1) ? 0: 1;
-		mbuf[129] = (reader[au].blockemm_s == 1) ? 0: 1;
-		mbuf[130] = (reader[au].blockemm_u == 1) ? 0: 1;
-		//mbuf[131] = reader[au].card_system; //Cardsystem for Oscam client
+		client[cs_idx].mbuf[128] = (reader[au].blockemm_g == 1) ? 0: 1;
+		client[cs_idx].mbuf[129] = (reader[au].blockemm_s == 1) ? 0: 1;
+		client[cs_idx].mbuf[130] = (reader[au].blockemm_u == 1) ? 0: 1;
+		//client[cs_idx].mbuf[131] = reader[au].card_system; //Cardsystem for Oscam client
 	}
 	else		// disable emm
-		mbuf[20] = mbuf[39] = mbuf[40] = mbuf[47] = mbuf[49] = 1;
+		client[cs_idx].mbuf[20] = client[cs_idx].mbuf[39] = client[cs_idx].mbuf[40] = client[cs_idx].mbuf[47] = client[cs_idx].mbuf[49] = 1;
 
-	memcpy(mbuf + 10, mbuf + 20, 2);
-	camd35_send(mbuf);		// send with data-len 111 for camd3 > 3.890
-	mbuf[1]++;
-	camd35_send(mbuf);		// send with data-len 112 for camd3 < 3.890
+	memcpy(client[cs_idx].mbuf + 10, client[cs_idx].mbuf + 20, 2);
+	camd35_send(client[cs_idx].mbuf);		// send with data-len 111 for camd3 > 3.890
+	client[cs_idx].mbuf[1]++;
+	camd35_send(client[cs_idx].mbuf);		// send with data-len 112 for camd3 < 3.890
 }
 
 static void camd35_send_dcw(ECM_REQUEST *er)
@@ -299,20 +299,20 @@ static void camd35_server()
 
   is_udp = (ph[client[cs_idx].ctyp].type == MOD_CONN_UDP);
 
-  while ((n=process_input(mbuf, sizeof(mbuf), cfg->cmaxidle))>0)
+  while ((n=process_input(client[cs_idx].mbuf, sizeof(client[cs_idx].mbuf), cfg->cmaxidle))>0)
   {
-    switch(mbuf[0])
+    switch(client[cs_idx].mbuf[0])
     {
       case  0:	// ECM
       case  3:	// ECM (cascading)
-        camd35_process_ecm(mbuf);
+        camd35_process_ecm(client[cs_idx].mbuf);
         break;
       case  6:	// EMM
       case 19:  // EMM
-        camd35_process_emm(mbuf);
+        camd35_process_emm(client[cs_idx].mbuf);
         break;
       default:
-        cs_log("unknown camd35 command! (%d)", mbuf[0]);
+        cs_log("unknown camd35 command! (%d)", client[cs_idx].mbuf[0]);
     }
   }
 
@@ -327,8 +327,8 @@ static void camd35_server()
 
 static void casc_set_account()
 {
-  strcpy((char *)upwd, reader[ridx].r_pwd);
-  memcpy(client[cs_idx].ucrc, i2b(4, crc32(0L, MD5((unsigned char *)reader[ridx].r_usr, strlen(reader[ridx].r_usr), NULL), 16)), 4);
+  strcpy((char *)upwd, reader[client[cs_idx].ridx].r_pwd);
+  memcpy(client[cs_idx].ucrc, i2b(4, crc32(0L, MD5((unsigned char *)reader[client[cs_idx].ridx].r_usr, strlen(reader[client[cs_idx].ridx].r_usr), NULL), 16)), 4);
   aes_set_key((char *)MD5(upwd, strlen((char *)upwd), NULL));
   client[cs_idx].crypted=1;
 }
@@ -340,13 +340,13 @@ int camd35_client_init()
   int p_proto;//, sock_type;
   char ptxt[16];
 
-  pfd=0;
-  if (reader[ridx].r_port<=0)
+  client[cs_idx].pfd=0;
+  if (reader[client[cs_idx].ridx].r_port<=0)
   {
-    cs_log("invalid port %d for server %s", reader[ridx].r_port, reader[ridx].device);
+    cs_log("invalid port %d for server %s", reader[client[cs_idx].ridx].r_port, reader[client[cs_idx].ridx].device);
     return(1);
   }
-  is_udp=(reader[ridx].typ==R_CAMD35);
+  is_udp=(reader[client[cs_idx].ridx].typ==R_CAMD35);
   if( (ptrp=getprotobyname(is_udp ? "udp" : "tcp")) )
     p_proto=ptrp->p_proto;
   else
@@ -361,7 +361,7 @@ int camd35_client_init()
   else
 #endif
     loc_sa.sin_addr.s_addr = INADDR_ANY;
-  loc_sa.sin_port = htons(reader[ridx].l_port);
+  loc_sa.sin_port = htons(reader[client[cs_idx].ridx].l_port);
 
   if ((client[cs_idx].udp_fd=socket(PF_INET, is_udp ? SOCK_DGRAM : SOCK_STREAM, p_proto))<0)
   {
@@ -374,7 +374,7 @@ int camd35_client_init()
     setsockopt(client[cs_idx].udp_fd, SOL_SOCKET, SO_PRIORITY, (void *)&cfg->netprio, sizeof(ulong));
 #endif
 
-  if (reader[ridx].l_port>0)
+  if (reader[client[cs_idx].ridx].l_port>0)
   {
     if (bind(client[cs_idx].udp_fd, (struct sockaddr *)&loc_sa, sizeof (loc_sa))<0)
     {
@@ -382,7 +382,7 @@ int camd35_client_init()
       close(client[cs_idx].udp_fd);
       return(1);
     }
-    sprintf(ptxt, ", port=%d", reader[ridx].l_port);
+    sprintf(ptxt, ", port=%d", reader[client[cs_idx].ridx].l_port);
   }
   else
     ptxt[0]='\0';
@@ -390,13 +390,13 @@ int camd35_client_init()
   casc_set_account();
   memset((char *)&client[cs_idx].udp_sa, 0, sizeof(client[cs_idx].udp_sa));
   client[cs_idx].udp_sa.sin_family=AF_INET;
-  client[cs_idx].udp_sa.sin_port=htons((u_short)reader[ridx].r_port);
+  client[cs_idx].udp_sa.sin_port=htons((u_short)reader[client[cs_idx].ridx].r_port);
 
   cs_log("proxy %s:%d (fd=%d%s)",
-         reader[ridx].device, reader[ridx].r_port,
+         reader[client[cs_idx].ridx].device, reader[client[cs_idx].ridx].r_port,
          client[cs_idx].udp_fd, ptxt);
 
-  if (is_udp) pfd=client[cs_idx].udp_fd;
+  if (is_udp) client[cs_idx].pfd=client[cs_idx].udp_fd;
 
   return(0);
 }
@@ -407,9 +407,9 @@ int camd35_client_init_log()
   struct protoent *ptrp;
   int p_proto;
 
-  if (reader[ridx].log_port<=0)
+  if (reader[client[cs_idx].ridx].log_port<=0)
   {
-    cs_log("invalid port %d for camd3-loghost", reader[ridx].log_port);
+    cs_log("invalid port %d for camd3-loghost", reader[client[cs_idx].ridx].log_port);
     return(1);
   }
 
@@ -422,7 +422,7 @@ int camd35_client_init_log()
   memset((char *)&loc_sa,0,sizeof(loc_sa));
   loc_sa.sin_family = AF_INET;
   loc_sa.sin_addr.s_addr = INADDR_ANY;
-  loc_sa.sin_port = htons(reader[ridx].log_port);
+  loc_sa.sin_port = htons(reader[client[cs_idx].ridx].log_port);
 
   if ((logfd=socket(PF_INET, SOCK_DGRAM, p_proto))<0)
   {
@@ -438,23 +438,23 @@ int camd35_client_init_log()
   }
 
   cs_log("camd3 loghost initialized (fd=%d, port=%d)",
-         logfd, reader[ridx].log_port);
+         logfd, reader[client[cs_idx].ridx].log_port);
 
   return(0);
 }
 
 static int tcp_connect()
 {
-  if (!reader[ridx].tcp_connected)
+  if (!reader[client[cs_idx].ridx].tcp_connected)
   {
     int handle=0;
     handle = network_tcp_connection_open();
     if (handle<0) return(0);
 
-    reader[ridx].tcp_connected = 1;
-    reader[ridx].card_status = CARD_INSERTED;
-    reader[ridx].last_s = reader[ridx].last_g = time((time_t *)0);
-    pfd = client[cs_idx].udp_fd = handle;
+    reader[client[cs_idx].ridx].tcp_connected = 1;
+    reader[client[cs_idx].ridx].card_status = CARD_INSERTED;
+    reader[client[cs_idx].ridx].last_s = reader[client[cs_idx].ridx].last_g = time((time_t *)0);
+    client[cs_idx].pfd = client[cs_idx].udp_fd = handle;
   }
   if (!client[cs_idx].udp_fd) return(0);
   return(1);
@@ -467,7 +467,7 @@ static int camd35_send_ecm(ECM_REQUEST *er, uchar *buf)
 	if (stopped) {
 		if (er->srvid == lastsrvid && er->caid == lastcaid && er->pid == lastpid){
 			cs_log("%s is stopped - requested by server (%s)",
-					reader[ridx].label, typtext[stopped]);
+					reader[client[cs_idx].ridx].label, typtext[stopped]);
 			return(-1);
 		}
 		else {
@@ -484,7 +484,7 @@ static int camd35_send_ecm(ECM_REQUEST *er, uchar *buf)
 
 	if (!is_udp && !tcp_connect()) return(-1);
 
-	reader[ridx].card_status = CARD_INSERTED; //for udp
+	reader[client[cs_idx].ridx].card_status = CARD_INSERTED; //for udp
 	
 	memset(buf, 0, 20);
 	memset(buf + 20, 0xff, er->l+15);
@@ -529,47 +529,47 @@ static int camd35_recv_chk(uchar *dcw, int *rc, uchar *buf)
 	// reading CMD05 Emm request and set serial
 	if (buf[0] == 0x05 && buf[1] == 111) {
 
-		reader[ridx].nprov = 0; //reset if number changes on reader change
-		reader[ridx].nprov = buf[47];
-		reader[ridx].caid[0] = b2i(2, buf+20);
+		reader[client[cs_idx].ridx].nprov = 0; //reset if number changes on reader change
+		reader[client[cs_idx].ridx].nprov = buf[47];
+		reader[client[cs_idx].ridx].caid[0] = b2i(2, buf+20);
 
 		int i;
-		for (i=0; i<reader[ridx].nprov; i++) {
-			if (((reader[ridx].caid[0] >= 0x1700) && (reader[ridx].caid[0] <= 0x1799))  ||	// Betacrypt
-					((reader[ridx].caid[0] >= 0x0600) && (reader[ridx].caid[0] <= 0x0699)))	// Irdeto (don't know if this is correct, cause I don't own a IRDETO-Card)
+		for (i=0; i<reader[client[cs_idx].ridx].nprov; i++) {
+			if (((reader[client[cs_idx].ridx].caid[0] >= 0x1700) && (reader[client[cs_idx].ridx].caid[0] <= 0x1799))  ||	// Betacrypt
+					((reader[client[cs_idx].ridx].caid[0] >= 0x0600) && (reader[client[cs_idx].ridx].caid[0] <= 0x0699)))	// Irdeto (don't know if this is correct, cause I don't own a IRDETO-Card)
 			{
-				reader[ridx].prid[i][0] = buf[48 + (i*5)];
-				memcpy(&reader[ridx].prid[i][1], &buf[50 + (i * 5)], 3);
+				reader[client[cs_idx].ridx].prid[i][0] = buf[48 + (i*5)];
+				memcpy(&reader[client[cs_idx].ridx].prid[i][1], &buf[50 + (i * 5)], 3);
 			} else {
-				reader[ridx].prid[i][2] = buf[48 + (i * 5)];
-				reader[ridx].prid[i][3] = buf[49+ (i * 5)];
-				memcpy(&reader[ridx].sa[i][0], &buf[50 + (i * 5)], 4);
+				reader[client[cs_idx].ridx].prid[i][2] = buf[48 + (i * 5)];
+				reader[client[cs_idx].ridx].prid[i][3] = buf[49+ (i * 5)];
+				memcpy(&reader[client[cs_idx].ridx].sa[i][0], &buf[50 + (i * 5)], 4);
 			}
 		}
 
-		memcpy(reader[ridx].hexserial, buf + 40, 6);
-		reader[ridx].hexserial[6] = 0;
-		reader[ridx].hexserial[7] = 0;
+		memcpy(reader[client[cs_idx].ridx].hexserial, buf + 40, 6);
+		reader[client[cs_idx].ridx].hexserial[6] = 0;
+		reader[client[cs_idx].ridx].hexserial[7] = 0;
 
-		reader[ridx].blockemm_g = (buf[128]==1) ? 0: 1;
-		reader[ridx].blockemm_s = (buf[129]==1) ? 0: 1;
-		reader[ridx].blockemm_u = (buf[130]==1) ? 0: 1;
-		reader[ridx].card_system = get_cardsystem(reader[ridx].caid[0]);
+		reader[client[cs_idx].ridx].blockemm_g = (buf[128]==1) ? 0: 1;
+		reader[client[cs_idx].ridx].blockemm_s = (buf[129]==1) ? 0: 1;
+		reader[client[cs_idx].ridx].blockemm_u = (buf[130]==1) ? 0: 1;
+		reader[client[cs_idx].ridx].card_system = get_cardsystem(reader[client[cs_idx].ridx].caid[0]);
 		cs_log("%s CMD05 AU request for caid: %04X",
-				reader[ridx].label,
-				reader[ridx].caid[0]);
+				reader[client[cs_idx].ridx].label,
+				reader[client[cs_idx].ridx].caid[0]);
 	}
 
 	if (buf[0] == 0x08) {
 		if(buf[21] == 0xFF) {
 			stopped = 2; // server says sleep
-			reader[ridx].card_status = NO_CARD;
+			reader[client[cs_idx].ridx].card_status = NO_CARD;
 		} else {
 			stopped = 1; // server says invalid
-			reader[ridx].card_status = CARD_FAILURE;
+			reader[client[cs_idx].ridx].card_status = CARD_FAILURE;
 		}
 		cs_log("%s CMD08 stop request by server (%s)",
-				reader[ridx].label, typtext[stopped]);
+				reader[client[cs_idx].ridx].label, typtext[stopped]);
 	}
 
 	// CMD44: old reject command introduced in mpcs

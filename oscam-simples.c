@@ -25,7 +25,7 @@ void aes_encrypt_idx(int idx, uchar *buf, int n)
 
 char *remote_txt(void)
 {
-  if (is_server)
+  if (client[cs_idx].is_server)
     return("client");
   else
     return("remote server");

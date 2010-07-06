@@ -201,7 +201,7 @@ int get_best_reader(ushort caid, ulong prid, ushort srvid)
 	int best = 0, current = 0;
 	READER_STAT *stat, *best_stat = NULL;
 	for (i = 0; i < CS_MAXREADER; i++) {
-		if (reader_stat[i] && reader[i].pid && reader[i].cs_idx) {
+		if (reader_stat[i] && reader[i].pid) {
 			if (reader[i].tcp_connected || reader[i].card_status == CARD_INSERTED) {
 	 			int weight = reader[i].lb_weight <= 0?100:reader[i].lb_weight;
 				stat = get_stat(i, caid, prid, srvid);

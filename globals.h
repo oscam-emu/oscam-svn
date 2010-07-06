@@ -399,6 +399,40 @@ struct s_irdeto_quess
 };
 #endif
 
+typedef struct ecm_request_t
+{
+  uchar         ecm[256];
+  uchar         cw[16];
+  uchar         ecmd5[CS_ECMSTORESIZE];
+//  uchar         l;
+  short         l;
+  ushort        caid;
+  ushort        ocaid;
+  ushort        srvid;
+  ushort        chid;
+  ushort        pid;
+  ushort        idx;
+  ulong         prid;
+  int           reader[CS_MAXREADER];
+  int           cidx;   // client index
+  int           cpti;   // client pending table index
+  int           stage;    // processing stage in server module
+  int           level;    // send-level in client module
+  int           rc;
+  uchar         rcEx;
+  struct timeb  tps;    // incoming time stamp
+  uchar         locals_done;
+  int		btun; // mark er as betatunneled
+
+#ifdef CS_WITH_GBOX
+  ushort	gbxCWFrom;
+  ushort	gbxFrom;
+  ushort	gbxTo;
+  uchar		gbxForward[16];
+  int		gbxRidx;
+#endif
+} GCC_PACK      ECM_REQUEST;
+
 struct s_client
 {
   pid_t		pid;
@@ -467,7 +501,25 @@ struct s_client
   FTAB		fchid;
   FTAB		ftab;        // user [caid] and ident filter
   CLASSTAB	cltab;
+
+
+  int pfd;      // Primary FD, must be closed on exit
+  int ridx;
+  int cs_ptyp; // process-type
+  uchar mbuf[1024];   // global buffer
+  pthread_mutex_t gethostbyname_lock; //gethostbyname ist NOT threadsafe! So we need a mutex-lock!
+
+  ECM_REQUEST *ecmtask;
+
+  int is_server;
+  pthread_t thread;
+
+  int last_idx;
+  ushort idx;
+  uchar	*req;
+  int ncd_proto;
 };
+
 
 //for viaccess var in s_reader:
 struct geo_cache
@@ -482,7 +534,7 @@ struct s_reader  //contains device info, reader info and card info
   int 		deleted; // if this flag is set the reader is not shown in webif and becomes not writte to oscam.server
   int		smargopatch;
   int		pid;
-  int       cs_idx;
+  int	     cidx;
   int       ridx; //FIXME reader[ridx] reader has to know what number it is, should be replaced by storing pointer to reader instead of array index
   int       enable;
   int       available; //Schlocke: New flag for loadbalancing. Only reader if reader supports ph.c_available function
@@ -839,41 +891,7 @@ struct s_config
 	//  struct s_reader reader[];
 };
 
-typedef struct ecm_request_t
-{
 
-  uchar         ecm[256];
-  uchar         cw[16];
-  uchar         ecmd5[CS_ECMSTORESIZE];
-//  uchar         l;
-  short         l;
-  ushort        caid;
-  ushort        ocaid;
-  ushort        srvid;
-  ushort        chid;
-  ushort        pid;
-  ushort        idx;
-  ulong         prid;
-  int           reader[CS_MAXREADER];
-  int           cidx;   // client index
-  int           cpti;   // client pending table index
-  int           stage;    // processing stage in server module
-  int           level;    // send-level in client module
-  int           rc;
-  uchar         rcEx;
-  struct timeb  tps;    // incoming time stamp
-  uchar         locals_done;
-  int		btun; // mark er as betatunneled
-
-#ifdef CS_WITH_GBOX
-  ushort	gbxCWFrom;
-  ushort	gbxFrom;
-  ushort	gbxTo;
-  uchar		gbxForward[16];
-  int		gbxRidx;
-#endif
-
-} GCC_PACK      ECM_REQUEST;
 
 #define MAX_STAT_TIME 20
 #define MIN_ECM_COUNT 5
@@ -977,13 +995,19 @@ extern void cs_strncpy(char * destination, const char * source, size_t num);
 extern char *get_servicename(int srvid, int caid);
 extern char *get_provider(int caid, ulong provid);
 
+extern int get_csidx();
+#define cs_idx		get_csidx()
+
+extern int mfdr,fd_c2m;
+
 // oscam variables
-extern int pfd, fd_c2m, cs_idx, *c_start, cs_ptyp, cs_dblevel;
+
+extern int *c_start, cs_dblevel;
 extern int *logidx, *loghistidx, *log_fd;
-extern int is_server, *mcl;
-extern uchar mbuf[1024];
+extern int *mcl;
+
 extern ushort len4caid[256];
-extern pid_t master_pid;
+
 extern struct s_ecm *ecmcache;
 extern struct s_client *client;
 
@@ -994,13 +1018,13 @@ extern unsigned long *IgnoreList;
 extern struct s_config *cfg;
 extern char cs_confdir[], *loghist;
 extern struct s_module ph[CS_MAX_MOD];
-extern ECM_REQUEST *ecmtask;
+//extern ECM_REQUEST *ecmtask;
 #ifdef CS_ANTICASC
 extern struct s_acasc_shm *acasc;
 extern FILE *fpa;
 extern int use_ac_log;
 #endif
-extern pthread_mutex_t gethostbyname_lock; //gethostbyname ist NOT threadsafe! So we need a mutex-lock!
+extern pthread_mutex_t gethostbyname_lock;
 
 // oscam
 extern int recv_from_udpipe(uchar *);
@@ -1042,7 +1066,7 @@ extern void cs_log_config(void);
 extern void cs_waitforcardinit(void);
 extern void cs_reinit_clients(void);
 extern void cs_resolve(void);
-extern void cs_resolve_reader(int ridx);
+extern void cs_resolve_reader(int );
 extern void chk_dcw(int fd);
 extern void update_reader_config(uchar *ptr);
 
@@ -1117,7 +1141,7 @@ extern char *mk_t_ftab(FTAB *ftab);
 extern int init_provid();
 
 // oscam-reader
-extern int ridx, logfd;
+extern int logfd;
 extern int reader_cmd2icc(struct s_reader * reader, uchar *buf, int l, uchar *response, ushort *response_length);
 extern int card_write(struct s_reader * reader, uchar *, uchar *, uchar *, ushort *);
 extern void cs_ri_brk(struct s_reader * reader, int);

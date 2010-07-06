@@ -235,9 +235,10 @@ static void monitor_send_info(char *txt, int last)
 
 int cs_idx2ridx(int idx){
 	int i;
-	for (i = 0; i < CS_MAXREADER; i++)
-		if (reader[i].cs_idx==idx)
-			return(i);
+//TODO: !
+	//for (i = 0; i < CS_MAXREADER; i++)
+	//	if (reader[i].cs_idx==idx)
+	//		return(i);
 	return(-1);
 }
 
@@ -448,7 +449,7 @@ static void monitor_process_details_reader(int pid, int idx) {
 		FILE *fp;
 		char filename[32];
 		char buffer[128];
-		sprintf(filename, "/tmp/.oscam/reader%d", reader[ridx].ridx);
+		sprintf(filename, "/tmp/.oscam/reader%d", client[cs_idx].ridx);
 		fp = fopen(filename, "r");
 
 		if (fp) {
@@ -754,7 +755,7 @@ static int monitor_process_request(char *req)
 static void monitor_server(){
 	int n;
 	client[cs_idx].typ='m';
-	while (((n = process_input(mbuf, sizeof(mbuf), cfg->cmaxidle)) >= 0) && monitor_process_request((char *)mbuf));
+	while (((n = process_input(client[cs_idx].mbuf, sizeof(client[cs_idx].mbuf), cfg->cmaxidle)) >= 0) && monitor_process_request((char *)client[cs_idx].mbuf));
 	cs_disconnect_client();
 }
 

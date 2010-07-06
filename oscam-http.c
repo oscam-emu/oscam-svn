@@ -2350,18 +2350,16 @@ void http_srv() {
 		return;
 	}
 	cs_log("HTTP Server listening on port %d", cfg->http_port);
-	struct pollfd pfd[1];
+	struct pollfd pfd2[1];
 	int rc;
-	pfd[0].fd = sock;
-	pfd[0].events = (POLLIN | POLLPRI);
+	pfd2[0].fd = sock;
+	pfd2[0].events = (POLLIN | POLLPRI);
 
 	while (running) {
 		int s;
 		FILE *f;
 
-		rc = poll(pfd, 1, 1000);
-		if (master_pid != getppid())
-		cs_exit(0);
+		rc = poll(pfd2, 1, 1000);
 
 		if (rc > 0) {
 			if((s = accept(sock, (struct sockaddr *) &remote, &len)) < 0) {
