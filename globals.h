@@ -514,10 +514,34 @@ struct s_client
   int is_server;
   pthread_t thread;
 
+  //reader common
   int last_idx;
   ushort idx;
+  int cs_ptyp_orig;
+
   uchar	*req;
+
+  //newcamd
   int ncd_proto;
+
+  //camd33
+  uchar	camdbug[256];
+
+  //camd35
+  uchar upwd[64];
+  int is_udp;
+  int stopped;
+  int lastcaid;
+  int lastsrvid;
+  int lastpid;
+
+  //cccam
+  char * prefix;
+  int g_flag;
+  int cc_use_rc4;
+
+  //monitor
+  int auth;
 };
 
 

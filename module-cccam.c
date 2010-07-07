@@ -10,9 +10,6 @@
 
 extern struct s_reader *reader;
 
-int g_flag = 0;
-int cc_use_rc4 = 0;
-
 //Mode names for CMD_05 command:
 char *cmd05_mode_name[] = { "UNKNOWN", "PLAIN", "AES", "CC_CRYPT", "RC4", "LEN=0" };
 
@@ -31,20 +28,18 @@ static int cc_send_pending_emms();
 static void cc_rc4_crypt(struct cc_crypt_block *block, uint8 *data, int len,
 		cc_crypt_mode_t mode);
 
-char * prefix = NULL;
-
 static char *getprefix() {
-	if (prefix)
-		return prefix;
+	if (client[cs_idx].prefix)
+		return client[cs_idx].prefix;
 
-	prefix = malloc(100);
+	client[cs_idx].prefix = malloc(100);
 	if (client[cs_idx].is_server)
-		sprintf(prefix, "cccam(s) %s: ", client[cs_idx].usr);
+		sprintf(client[cs_idx].prefix, "cccam(s) %s: ", client[cs_idx].usr);
 	else
-		sprintf(prefix, "cccam(r) %s: ", reader[client[cs_idx].ridx].label);
-	while (strlen(prefix) < 22)
-		strcat(prefix, " ");
-	return prefix;
+		sprintf(client[cs_idx].prefix, "cccam(r) %s: ", reader[client[cs_idx].ridx].label);
+	while (strlen(client[cs_idx].prefix) < 22)
+		strcat(client[cs_idx].prefix, " ");
+	return client[cs_idx].prefix;
 }
 
 static int comp_timeb(struct timeb *tpa, struct timeb *tpb)
@@ -86,7 +81,7 @@ static void cc_crypt(struct cc_crypt_block *block, uint8 *data, int len,
 		z = data[i];
 		data[i] = z ^ block->keytable[(block->keytable[block->counter]
 				+ block->keytable[block->sum]) & 0xff];
-		if (!cc_use_rc4)
+		if (!client[cs_idx].cc_use_rc4)
 			data[i] ^= block->state;
 		if (!mode)
 			z = data[i];
@@ -353,7 +348,7 @@ static int cc_msg_recv(uint8 *buf) {
 	cc_crypt(&cc->block[DECRYPT], netbuf, 4, DECRYPT);
 	cs_ddump(netbuf, 4, "cccam: decrypted header:");
 
-	g_flag = netbuf[0];
+	client[cs_idx].g_flag = netbuf[0];
 
 	int size = (netbuf[2] << 8) | netbuf[3];
 	if (size) { // check if any data is expected in msg
@@ -401,7 +396,7 @@ static int cc_cmd_send(uint8 *buf, int len, cc_msg_type_t cmd) {
 		memcpy(netbuf, buf, len);
 	} else {
 		// build command message
-		netbuf[0] = g_flag; // flags??
+		netbuf[0] = client[cs_idx].g_flag; // flags??
 		netbuf[1] = cmd & 0xff;
 		netbuf[2] = len >> 8;
 		netbuf[3] = len & 0xff;
@@ -797,11 +792,10 @@ static int cc_send_ecm(ECM_REQUEST *er, uchar *buf) {
 		cc_cmd_send(ecmbuf, cur_er->l + 13, MSG_CW_ECM); // send ecm
 
 		//For EMM
-		uint16 caid = reader[client[cs_idx].ridx].caid[0]?reader[client[cs_idx].ridx].caid[0]:card->caid;
-		reader[client[cs_idx].ridx].card_system = get_cardsystem(caid);
+		reader[client[cs_idx].ridx].card_system = get_cardsystem(card->caid);
 		memcpy(reader[client[cs_idx].ridx].hexserial, card->hexserial, sizeof(card->hexserial));
 		cs_ddump_mask(D_EMM, card->hexserial, 8, "%s au info: caid %04X card system: %d serial:", 
-			getprefix(), caid, reader[client[cs_idx].ridx].card_system);
+			getprefix(), card->caid, reader[client[cs_idx].ridx].card_system);
 
 		return 0;
 	} else {
@@ -1319,9 +1313,11 @@ static void fix_dcw(uchar *dcw)
 static void cc_idle() {
 	struct cc_data *cc = reader[client[cs_idx].ridx].cc;
 	cs_debug("%s IDLE", getprefix());
-	cc_cmd_send(NULL, 0, MSG_KEEPALIVE);
-	cc->answer_on_keepalive = time(NULL);
-	
+	if (cc->answer_on_keepalive + 55 < time(NULL)) {
+		cc_cmd_send(NULL, 0, MSG_KEEPALIVE);
+		cs_debug("cccam: keepalive");
+		cc->answer_on_keepalive = time(NULL);
+	}
 }
 
 static int cc_parse_msg(uint8 *buf, int l) {
@@ -1720,13 +1716,13 @@ static int cc_parse_msg(uint8 *buf, int l) {
 	case MSG_EMM_ACK: {
 		cc->just_logged_in = 0;
 		if (client[cs_idx].is_server) { //EMM Request received
+			cc_cmd_send(NULL, 0, MSG_EMM_ACK); //Send back ACK
 			if (l > 4) {
 				cs_debug_mask(D_EMM, "%s EMM Request received!", getprefix());
 
 				int au = client[cs_idx].au;
 				if ((au < 0) || (au > CS_MAXREADER)) {
 					cs_debug_mask(D_EMM, "%s EMM Request discarded because au is not assigned to an reader!", getprefix());
-					cc_cmd_send(NULL, 0, MSG_CW_NOK1); //Send back NOK
 					return 0;
 				}
 
@@ -1748,7 +1744,6 @@ static int cc_parse_msg(uint8 *buf, int l) {
 				//emm->cidx = cs_idx;
 				do_emm(emm);
 				free(emm);
-				cc_cmd_send(NULL, 0, MSG_EMM_ACK); //Send back ACK
 			}
 		} else { //Our EMM Request Ack!
 			cs_debug_mask(D_EMM, "%s EMM ACK!", getprefix());
@@ -2008,7 +2003,6 @@ static int cc_cli_connect(void) {
 	reader[client[cs_idx].ridx].last_g = reader[client[cs_idx].ridx].last_s = time((time_t *) 0);
 	reader[client[cs_idx].ridx].tcp_connected = 1;
 	reader[client[cs_idx].ridx].available = 1;
-	reader[client[cs_idx].ridx].card_system = get_cardsystem(reader[client[cs_idx].ridx].caid[0]);
 
 	cc->just_logged_in = 1;
 
@@ -2314,7 +2308,8 @@ static int cc_srv_connect() {
 		memset(client[cs_idx].cc, 0, sizeof(struct cc_data));
 		cc->server_card = malloc(sizeof(struct cc_card));
 	}
-	cc_use_rc4 = 0;
+	client[cs_idx].cc_use_rc4 = 0;
+	client[cs_idx].is_server = 1;
 	
 	// calc + send random seed
 	seed = (unsigned int) time((time_t*) 0);
@@ -2379,21 +2374,21 @@ static int cc_srv_connect() {
 		strncpy(usr_rc4, (char *) buf_rc4, sizeof(usr_rc4));
 		
 		//test for nonprintable characters:
-		cc_use_rc4 = -1;
+		client[cs_idx].cc_use_rc4 = -1;
 		for (i = 0; i < 20; i++)
 		{
 			if (usr[i] > 0 && usr[i] < 0x20) { //found nonprintable char
-				cc_use_rc4 = 1;
+				client[cs_idx].cc_use_rc4 = 1;
 				break;
 			}
 			if (usr_rc4[i] > 0 && usr_rc4[i] < 0x20) { //found nonprintable char
-				cc_use_rc4 = 0;
+				client[cs_idx].cc_use_rc4 = 0;
 				break;
 			}
 		}
-		if (cc_use_rc4 == 0)
+		if (client[cs_idx].cc_use_rc4 == 0)
 			cs_ddump(buf, 20, "cccam: username '%s':", usr);
-		else if (cc_use_rc4 == 1)
+		else if (client[cs_idx].cc_use_rc4 == 1)
 			cs_ddump(buf_rc4, 20, "cccam: username rc4 '%s':", usr_rc4);
 		else
 			cs_debug("illegal username received");
@@ -2402,22 +2397,22 @@ static int cc_srv_connect() {
 	for (account = cfg->account; account; account = account->next) {
 		if (strcmp(usr, account->usr) == 0) {
 			strncpy(pwd, account->pwd, sizeof(pwd));
-			cc_use_rc4 = 0; //We found a user by cc_crypt
+			client[cs_idx].cc_use_rc4 = 0; //We found a user by cc_crypt
 			break;
 		}
 		if (strcmp(usr_rc4, account->usr) == 0) {
 			strncpy(pwd, account->pwd, sizeof(pwd));
-			cc_use_rc4 = 1; //We found a user by cc_rc4_crypt
+			client[cs_idx].cc_use_rc4 = 1; //We found a user by cc_rc4_crypt
 			break;
 		}
 	}
 	 
-	if (!account || cc_use_rc4 == -1) {
-		cs_log("account '%s' not found!", cc_use_rc4?usr_rc4:usr);
+	if (!account || client[cs_idx].cc_use_rc4 == -1) {
+		cs_log("account '%s' not found!", client[cs_idx].cc_use_rc4?usr_rc4:usr);
 		return -1;
 	}
 	
-	if (cc_use_rc4) {
+	if (client[cs_idx].cc_use_rc4) {
 		cs_log("%s client is using version 2.0.11 rc4", getprefix());
 		memcpy(cc->block, block_rc4, sizeof(struct cc_crypt_block)*2);
 	}
@@ -2460,8 +2455,6 @@ static int cc_srv_connect() {
 
 	if (cc_send_srv_data() < 0)
 		return -1;
-
-	client[cs_idx].is_server = 1;
 
 	// report cards
 	ulong hexserial_crc = get_reader_hexserial_crc();

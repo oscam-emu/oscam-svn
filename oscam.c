@@ -288,7 +288,6 @@ static void cs_alarm()
 {
   cs_debug("Got alarm signal");
   cs_log("disconnect from %s by watchdog", cs_inet_ntoa(client[cs_idx].ip));
-  cs_exit(0);
 }
 
 static void cs_master_alarm()
@@ -296,7 +295,6 @@ static void cs_master_alarm()
   cs_log("PANIC: master deadlock! last location: %s", mloc);
   fprintf(stderr, "PANIC: master deadlock! last location: %s", mloc);
   fflush(stderr);
-  cs_exit(0);
 }
 
 static void cs_sigpipe()
@@ -312,6 +310,9 @@ void cs_exit(int sig)
 
 	if (sig && (sig!=SIGQUIT))
 		cs_log("exit with signal %d", sig);
+
+	if (sig==SIGALRM)
+		return;
 
 	switch(client[cs_idx].typ) {
 		case 'c':
@@ -643,7 +644,7 @@ static void init_signal()
 		//  set_signal_handler(SIGPIPE , 0, SIG_IGN);
 		set_signal_handler(SIGPIPE , 0, cs_sigpipe);
 		//  set_signal_handler(SIGALRM , 0, cs_alarm);
-		// set_signal_handler(SIGALRM , 0, cs_master_alarm);
+		set_signal_handler(SIGALRM , 0, cs_master_alarm);
 		// set_signal_handler(SIGCHLD , 1, cs_child_chk);
 		//  set_signal_handler(SIGHUP  , 1, cs_accounts_chk);
 		set_signal_handler(SIGHUP , 1, cs_sighup);
@@ -1657,8 +1658,11 @@ int send_dcw(ECM_REQUEST *er)
 		//client[cs_idx].au=er->reader[0];
 		//if(client[cs_idx].au<0)
 		//{
+		if((er->caid == reader[er->reader[0]].caid[0]) && (er->prid == reader[er->reader[0]].auprovid) && (!reader[er->reader[0]].audisabled)) {
+			client[cs_idx].au = er->reader[0]; // First chance - check whether actual reader can AU
+		} else {
 			int r=0;
-			for(r=0;r<CS_MAXREADER;r++)
+			for(r=0;r<CS_MAXREADER;r++) //second chance loop through all readers to find an AU reader
 			{
 				if((er->caid == reader[r].caid[0]) && (er->prid == reader[r].auprovid) && (!reader[r].audisabled))
 				{
@@ -1670,6 +1674,7 @@ int send_dcw(ECM_REQUEST *er)
 			{
 				client[cs_idx].au=(-1);
 			}
+		}
 		//}
 	}
 
@@ -1802,7 +1807,7 @@ ulong chk_provid(uchar *ecm, ushort caid) {
 			for(i=8; i<len; i+=descriptor_length+2) {
 				descriptor_length = ecm[i+1];
 				if (ecm[i] == 0x83) {
-					provid = (ulong)ecm[i+2];
+					provid = (ulong)ecm[i+2] & 0xFE;
 					break;
 				}
 			}

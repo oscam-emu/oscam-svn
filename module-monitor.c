@@ -14,7 +14,7 @@ static void monitor_check_ip()
 	int ok=0;
 	struct s_ip *p_ip;
 
-	if (auth) return;
+	if (client[cs_idx].auth) return;
 	for (p_ip=cfg->mon_allowed; (p_ip) && (!ok); p_ip=p_ip->next)
 		ok=((client[cs_idx].ip>=p_ip->ip[0]) && (client[cs_idx].ip<=p_ip->ip[1]));
 	if (!ok)
@@ -28,20 +28,20 @@ static void monitor_auth_client(char *usr, char *pwd)
 {
 	struct s_auth *account;
 
-	if (auth) return;
+	if (client[cs_idx].auth) return;
 	if ((!usr) || (!pwd))
 	{
 		cs_auth_client((struct s_auth *)0, NULL);
 		cs_exit(0);
 	}
-	for (account=cfg->account, auth=0; (account) && (!auth);)
+	for (account=cfg->account, client[cs_idx].auth=0; (account) && (!client[cs_idx].auth);)
 	{
 		if (account->monlvl)
-			auth=!(strcmp(usr, account->usr) | strcmp(pwd, account->pwd));
-		if (!auth)
+			client[cs_idx].auth=!(strcmp(usr, account->usr) | strcmp(pwd, account->pwd));
+		if (!client[cs_idx].auth)
 			account=account->next;
 	}
-	if (!auth)
+	if (!client[cs_idx].auth)
 	{
 		cs_auth_client((struct s_auth *)0, "invalid account");
 		cs_exit(0);
@@ -55,7 +55,7 @@ static int secmon_auth_client(uchar *ucrc)
 	ulong crc;
 	struct s_auth *account;
 
-	if (auth)
+	if (client[cs_idx].auth)
 	{
 		int s=memcmp(client[cs_idx].ucrc, ucrc, 4);
 		if (s)
@@ -64,7 +64,7 @@ static int secmon_auth_client(uchar *ucrc)
 	}
 	client[cs_idx].crypted=1;
 	crc=(ucrc[0]<<24) | (ucrc[1]<<16) | (ucrc[2]<<8) | ucrc[3];
-	for (account=cfg->account; (account) && (!auth); account=account->next)
+	for (account=cfg->account; (account) && (!client[cs_idx].auth); account=account->next)
 		if ((account->monlvl) &&
 				(crc==crc32(0L, MD5((unsigned char *)account->usr, strlen(account->usr), NULL), 16)))
 		{
@@ -72,14 +72,14 @@ static int secmon_auth_client(uchar *ucrc)
 			aes_set_key((char *)MD5((unsigned char *)account->pwd, strlen(account->pwd), NULL));
 			if (cs_auth_client(account, NULL))
 				cs_exit(0);
-			auth=1;
+			client[cs_idx].auth=1;
 		}
-	if (!auth)
+	if (!client[cs_idx].auth)
 	{
 		cs_auth_client((struct s_auth *)0, "invalid user");
 		cs_exit(0);
 	}
-	return(auth);
+	return(client[cs_idx].auth);
 }
 
 int monitor_send_idx(int idx, char *txt)
@@ -491,7 +491,7 @@ static void monitor_process_details(char *arg){
 
 static void monitor_send_login(void){
 	char buf[64];
-	if (auth)
+	if (client[cs_idx].auth)
 		sprintf(buf, "[A-0000]1|%s logged in\n", client[cs_idx].usr);
 	else
 		strcpy(buf, "[A-0000]0|not logged in\n");
@@ -726,7 +726,7 @@ static int monitor_process_request(char *req)
 
 	if( (arg = strchr(req, ' ')) ) { *arg++ = 0; trim(arg); }
 	//trim(req);
-	if ((!auth) && (strcmp(req, cmd[0])))	monitor_login(NULL);
+	if ((!client[cs_idx].auth) && (strcmp(req, cmd[0])))	monitor_login(NULL);
 
 	for (rc=1, i = 0; i < cmdcnt; i++)
 		if (!strcmp(req, cmd[i])) {
