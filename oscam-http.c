@@ -113,9 +113,9 @@ void send_oscam_config_global(struct templatevars *vars, FILE *f, struct uripara
 		tpl_addVar(vars, 0, "SAVEINITHISTORY", "checked");
 	if (cfg->reader_restart_seconds)
 		tpl_printf(vars, 0, "READERRESTARTSECONDS", "%d", cfg->reader_restart_seconds);
-	if (cfg->reader_auto_loadbalance)
-		tpl_addVar(vars, 0, "READERAUTOLOADBALANCE", "checked");
 
+	tpl_printf(vars, 0, "TMP", "READERAUTOLOADBALANCE%d", cfg->reader_auto_loadbalance);
+	tpl_addVar(vars, 0, tpl_getVar(vars, "TMP"), "selected");
 
 	fputs(tpl_getTpl(vars, "CONFIGGLOBAL"), f);
 }
@@ -312,7 +312,8 @@ void send_oscam_config_radegast(struct templatevars *vars, FILE *f, struct uripa
 	char *dot="";
 	for (cip=cfg->rad_allowed; cip; cip=cip->next) {
 		tpl_printf(vars, 1, "ALLOWED", "%s%s", dot, cs_inet_ntoa(cip->ip[0]));
-		if (cip->ip[0] != cip->ip[1]) tpl_printf(vars, 1, "ALLOWED", "-%s", cs_inet_ntoa(cip->ip[1]));
+		if (cip->ip[0] != cip->ip[1])
+			tpl_printf(vars, 1, "ALLOWED", "-%s", cs_inet_ntoa(cip->ip[1]));
 		dot=",";
 	}
 
@@ -1167,7 +1168,7 @@ void send_oscam_user_config_edit(struct templatevars *vars, FILE *f, struct urip
 
 	//Disabled
 	if(account->disabled)
-	tpl_addVar(vars, 0, "DISABLEDCHECKED", "selected");
+		tpl_addVar(vars, 0, "DISABLEDCHECKED", "selected");
 
 	//Expirationdate
 	struct tm * timeinfo = localtime (&account->expirationdate);
@@ -1466,7 +1467,7 @@ void send_oscam_entitlement(struct templatevars *vars, FILE *f, struct uriparams
 				//tpl_printf(vars, 1, "LOGHISTORY", "card cnt: %d<BR><BR>\n", ctest->card_count);
 
 				char fname[40];
-				snprintf(fname, sizeof(fname), "/tmp/.oscam/caidinfos.%d", ridx);
+				snprintf(fname, sizeof(fname), "%s/caidinfos.%d", get_tmp_dir(), ridx);
 				FILE *file = fopen(fname, "r");
 				if (file) {
 					int cardcount = 0;
@@ -1527,7 +1528,7 @@ void send_oscam_entitlement(struct templatevars *vars, FILE *f, struct uriparams
 			//tpl_printf(vars, 1, "LOGHISTORY", "card cnt: %d<BR><BR>\n", ctest->card_count);
 
 			char fname[40];
-			snprintf(fname, sizeof(fname), "/tmp/.oscam/caidinfos.%d", ridx);
+			snprintf(fname, sizeof(fname), "%s/caidinfos.%d", get_tmp_dir(), ridx);
 			FILE *file = fopen(fname, "r");
 			if (file) {
 				int cardcount = 0;
@@ -1571,7 +1572,7 @@ void send_oscam_entitlement(struct templatevars *vars, FILE *f, struct uriparams
 			FILE *fp;
 			char filename[32];
 			char buffer[128];
-			snprintf(filename, sizeof(filename), "/tmp/.oscam/reader%d", reader[ridx].ridx);
+			snprintf(filename, sizeof(filename), "%s/reader%d", get_tmp_dir(), reader[ridx].ridx);
 			fp = fopen(filename, "r");
 
 			if (fp) {

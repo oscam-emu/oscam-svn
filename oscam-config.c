@@ -1860,9 +1860,11 @@ int write_config()
 		fprintf_conf(f, CONFVARWIDTH, "user", "%s\n", cfg->rad_usr);
 		fprintf_conf(f, CONFVARWIDTH, "allowed", "");
 		struct s_ip *cip;
+		dot="";
 		for (cip = cfg->rad_allowed; cip; cip = cip->next){
-			fprintf(f,"%s%s", dot, inet_ntoa(*(struct in_addr *)&cip->ip[0]));
-			if (cip->ip[0] == cip->ip[1])	fprintf(f,"-%s", inet_ntoa(*(struct in_addr *)&cip->ip[1]));
+			fprintf(f,"%s%s", dot, cs_inet_ntoa(cip->ip[0]));
+			if (cip->ip[0] != cip->ip[1])
+				fprintf(f,"-%s", cs_inet_ntoa(cip->ip[1]));
 			dot=",";
 		}
 		fprintf(f,"\n\n");
@@ -3808,3 +3810,36 @@ char *mk_t_ftab(FTAB *ftab){
 	value[pos] = '\0';
 	return value;
 }
+
+char tmpdir[200] = {0x00};
+
+/**
+ * get tmp dir
+ **/
+char * get_tmp_dir()
+{
+  if (tmpdir[0])
+    return tmpdir;
+  
+#ifdef OS_CYGWIN
+  char *d = getenv("TMPDIR");
+  if (!d || d[0] == '\0') 
+  	strcpy(tmpdir,"/cygdrive/c/tmp/.oscam");
+  else
+  {
+        strcpy(tmpdir, d);
+    	char *p = tmpdir;
+    	while(*p) p++;
+    	p--;
+    	if (*p != '/' && *p != '\\')
+    		strcat(tmpdir, "/");
+        strcat(tmpdir, ".oscam");
+  }
+                          
+#else
+  strcpy(tmpdir, "/tmp/.oscam");
+#endif
+  mkdir(tmpdir, S_IRWXU);
+  return tmpdir;
+}
+

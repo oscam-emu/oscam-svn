@@ -9,11 +9,10 @@ void reader_do_idle(struct s_reader * reader);
 
 void cs_ri_brk(struct s_reader * reader, int flag)
 {
-  static int brk_pos=0;
   if (flag)
-    brk_pos=reader->init_history_pos;
+    reader->brk_pos=reader->init_history_pos;
   else
-    reader->init_history_pos=brk_pos;
+    reader->init_history_pos=reader->brk_pos;
 }
 
 void cs_ri_log(struct s_reader * reader, char *fmt,...)
@@ -31,14 +30,11 @@ void cs_ri_log(struct s_reader * reader, char *fmt,...)
 	if (val>0)
 		snprintf((char *) reader->init_history+reader->init_history_pos, val, "%s", txt);
 #endif
-#ifdef OS_LINUX
 	if (cfg->saveinithistory) {
 		FILE *fp;
 		char filename[32];
 		char *buffer;
-		mkdir("/tmp/.oscam", S_IRWXU);
-		sprintf(filename, "/tmp/.oscam/reader%d", reader->ridx);
-
+		sprintf(filename, "%s/reader%d", get_tmp_dir(), reader->ridx);
 		int size = reader->init_history_pos+strlen(txt)+1;
 		buffer = malloc(size+1);
 
@@ -62,7 +58,6 @@ void cs_ri_log(struct s_reader * reader, char *fmt,...)
 
 		free(buffer);
 	}
-#endif
 	reader->init_history_pos+=strlen(txt)+1;
 }
 

@@ -59,7 +59,7 @@
 
 #ifdef HAVE_PCSC 
   #ifdef OS_CYGWIN32
-    #include <winscard.h>
+    #include "cygwin/WinSCard.h"
   #else
     #include <PCSC/pcsclite.h> 
     #ifdef OS_MACOSX 
@@ -362,6 +362,9 @@ struct s_emm
   int   count;
 };
 
+#define AVAIL_CHECK_CONNECTED 0
+#define AVAIL_CHECK_LOADBALANCE 1
+
 struct s_module
 {
   //int  fd;
@@ -383,7 +386,10 @@ struct s_module
   int  (*c_send_emm)();
   int  (*c_init_log)();
   int  (*c_recv_log)();
-  int  (*c_available)(); //Schlocke: available check for load-balancing
+  int  (*c_available)(); //Schlocke: available check for load-balancing, 
+                         //params: 
+                         //int ridx (reader to check)
+                         //int checktype (0=return connected, 1=return loadbalance-avail) return int
   void (*c_idle)(); //Schlocke: called when reader is idle
   int  c_port;
   PTAB *ptab;
@@ -659,6 +665,7 @@ struct s_reader  //contains device info, reader info and card info
   uchar     init_history[4096];
 #endif
   int       init_history_pos;
+  int       brk_pos;
   int       msg_idx;
 #ifdef WEBIF
   int		emmwritten[4]; //count written EMM
@@ -704,8 +711,12 @@ struct s_reader  //contains device info, reader info and card info
 	BIGNUM ucpk;
 	////variables from reader-viaccess.c 
 	struct geo_cache last_geo;
-	uchar cc_reshare;
-	int lb_weight; //loadbalance weight factor, if unset, weight=100. The higher the value, the higher the usage-possibility
+	int cc_reshare;
+	int lb_weight;     //loadbalance weight factor, if unset, weight=100. The higher the value, the higher the usage-possibility
+	int lb_usagelevel; //usagelevel for loadbalancer
+	int lb_usagelevel_ecmcount;
+	time_t lb_usagelevel_time; //time for counting ecms, this creates usagelevel
+	time_t lb_last; //time for oldest reader
 };
 
 #ifdef CS_ANTICASC
@@ -919,10 +930,16 @@ struct s_config
 
 
 
+//Loadbalance constants:
+#define LB_NONE 0
+#define LB_FASTEST_READER_FIRST 1
+#define LB_OLDEST_READER_FIRST 2
+#define LB_LOWEST_USAGELEVEL 3
+
 #define MAX_STAT_TIME 20
 #define MIN_ECM_COUNT 5
 #define MAX_ECM_COUNT 500
-#define MAX_READER_RETRY 4
+
  
 typedef struct add_reader_stat_t
 {
@@ -1082,6 +1099,7 @@ extern void request_cw(ECM_REQUEST *, int, int);
 extern int send_dcw(ECM_REQUEST *);
 extern int process_input(uchar *, int, int);
 extern int chk_srvid(ECM_REQUEST *, int);
+extern int chk_srvid_match(ECM_REQUEST *, SIDTAB *);
 extern int chk_sfilter(ECM_REQUEST *, PTAB*);
 extern int chk_ufilters(ECM_REQUEST *);
 extern int chk_rfilter(ECM_REQUEST *, struct s_reader *);
@@ -1166,6 +1184,7 @@ extern char *mk_t_group(ulong *grp);
 extern char *mk_t_ftab(FTAB *ftab);
 //Todo #ifdef CCCAM
 extern int init_provid();
+extern char * get_tmp_dir();
 
 // oscam-reader
 extern int logfd;

@@ -9,6 +9,13 @@
 #include <string.h>
 #include"ifd_smartreader.h"
 
+#ifdef OS_CYGWIN32
+#undef OK
+#undef ERROR
+#undef LOBYTE
+#undef HIBYTE
+#endif
+
 #define OK 0
 #define ERROR 1
 #define LOBYTE(w) ((BYTE)((w) & 0xff))
@@ -487,6 +494,20 @@ static struct libusb_device* find_smartreader(const char *busname,const char *de
             ret=libusb_open(dev,&usb_dev_handle);
             if (ret) {
                 cs_log ("coulnd't open device %03d:%03d\n", libusb_get_bus_number(dev), libusb_get_device_address(dev));
+                switch(ret) {
+                    case LIBUSB_ERROR_NO_MEM: 
+                        cs_log("libusb_open error LIBUSB_ERROR_NO_MEM : memory allocation failure");
+                        break;
+                    case LIBUSB_ERROR_ACCESS: 
+                        cs_log("libusb_open error LIBUSB_ERROR_ACCESS : the user has insufficient permissions");
+                        break;
+                    case LIBUSB_ERROR_NO_DEVICE: 
+                        cs_log("libusb_open error LIBUSB_ERROR_NO_DEVICE : the device has been disconnected");
+                        break;
+                    default: 
+                        cs_log("libusb_open unknown error : %d", ret);
+                        break;
+                }
                 continue;
             }
             
@@ -642,11 +663,26 @@ int smartreader_usb_open_dev(S_READER *reader)
 
     ret=libusb_open(reader->sr_config->usb_dev,&reader->sr_config->usb_dev_handle);
     if (ret) {
-        cs_log("Smartreader usb_open() failed");
+            cs_log ("coulnd't open SmartReader device %03d:%03d\n", libusb_get_bus_number(reader->sr_config->usb_dev), libusb_get_device_address(reader->sr_config->usb_dev));
+            switch(ret) {
+                case LIBUSB_ERROR_NO_MEM: 
+                    cs_log("libusb_open error LIBUSB_ERROR_NO_MEM : memory allocation failure");
+                    break;
+                case LIBUSB_ERROR_ACCESS: 
+                    cs_log("libusb_open error LIBUSB_ERROR_ACCESS : the user has insufficient permissions");
+                    break;
+                case LIBUSB_ERROR_NO_DEVICE: 
+                    cs_log("libusb_open error LIBUSB_ERROR_NO_DEVICE : the device has been disconnected");
+                    break;
+                default: 
+                    cs_log("libusb_open unknown error : %d", ret);
+                    break;
+            }
         return (-4);
     }
+
 #if defined(OS_LINUX)
-    // Try to detach smartreader_sio kernel module.
+    // Try to detach ftdi_sio kernel module.
     // Returns ENODATA if driver is not loaded.
     //
     // The return code is kept in a separate variable and only parsed
@@ -1210,8 +1246,11 @@ static int smart_write(S_READER *reader, unsigned char* buff, unsigned int size,
     return ret;
 }
 
+#ifdef OS_CYGWIN32
+static LIBUSB_API read_callback(struct libusb_transfer *transfer){
+#else
 static void read_callback(struct libusb_transfer *transfer){
-
+#endif
     struct s_reader *reader = (struct s_reader*)transfer->user_data;
     int copy_size;
     int ret;
@@ -1278,7 +1317,7 @@ static void* ReaderThread(void *p)
                                     reader->sr_config->out_ep,
                                     usb_buffers[idx],
                                     64,
-                                    &read_callback,
+                                    (void *)(&read_callback),
                                     p,
                                     0 );
 

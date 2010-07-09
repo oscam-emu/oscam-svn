@@ -400,7 +400,7 @@ void cs_reinit_clients()
 			} else {
 				if (ph[client[i].ctyp].type & MOD_CONN_NET) {
 					cs_debug("client '%s', pid=%d not found in db (or password changed)", client[i].usr, client[i].pid);
-					//kill(client[i].pid, SIGQUIT);
+					pthread_cancel(client[i].thread);
 				}
 			}
 		}
@@ -1591,6 +1591,15 @@ void send_reader_stat(int ridx9, ECM_REQUEST *er, int rc)
 	write_to_pipe(fd_c2m, PIP_ID_STA, (uchar*)&add_stat, sizeof(ADD_READER_STAT));
 }
 
+int hexserialset(int ridx)
+{
+	int i;
+	for (i = 0; i < 8; i++)
+		if (reader[ridx].hexserial[i])
+			return 1;
+	return 0;
+}
+
 int send_dcw(ECM_REQUEST *er)
 {
 	static char *stxt[]={"found", "cache1", "cache2", "emu",
@@ -1658,16 +1667,30 @@ int send_dcw(ECM_REQUEST *er)
 		//client[cs_idx].au=er->reader[0];
 		//if(client[cs_idx].au<0)
 		//{
-		if((er->caid == reader[er->reader[0]].caid[0]) && (er->prid == reader[er->reader[0]].auprovid) && (!reader[er->reader[0]].audisabled)) {
+		struct s_reader *cur = &reader[er->reader[0]];
+		
+		if (cur->typ == R_CCCAM && !cur->caid[0] && !cur->audisabled && 
+				cur->card_system == get_cardsystem(er->caid) && hexserialset(er->reader[0]))
+			client[cs_idx].au = er->reader[0];
+		else if((er->caid == cur->caid[0]) && (!cur->audisabled)) {
 			client[cs_idx].au = er->reader[0]; // First chance - check whether actual reader can AU
 		} else {
 			int r=0;
 			for(r=0;r<CS_MAXREADER;r++) //second chance loop through all readers to find an AU reader
 			{
-				if((er->caid == reader[r].caid[0]) && (er->prid == reader[r].auprovid) && (!reader[r].audisabled))
-				{
-					client[cs_idx].au=r;
-					break;
+				cur = &reader[r];
+				if (matching_reader(er, cur)) {
+					if (cur->typ == R_CCCAM && !cur->caid[0] && !cur->audisabled && 
+						cur->card_system == get_cardsystem(er->caid) && hexserialset(r))
+					{
+						client[cs_idx].au = r;
+						break;
+					}
+					else if((er->caid == cur->caid[0]) && (er->prid == cur->auprovid) && (!cur->audisabled))
+					{
+						client[cs_idx].au=r;
+						break;
+					}
 				}
 			}
 			if(r==CS_MAXREADER)
@@ -1733,7 +1756,7 @@ void chk_dcw(int fd)
   //cs_log("dcw check from reader %d for idx %d (rc=%d)", er->reader[0], er->cpti, er->rc);
   ert=&client[cs_idx].ecmtask[er->cpti];
   if (ert->rc<100) {
-	send_reader_stat(er->reader[0], er, (er->rc==0)?4:-1);
+	send_reader_stat(er->reader[0], er, (er->rc==0)?4:((er->rc==1)?0:er->rc));
 	return; // already done
   }
   if( (er->caid!=ert->caid) || memcmp(er->ecm , ert->ecm , sizeof(er->ecm)) )
@@ -2222,8 +2245,10 @@ void do_emm(EMM_PACKET *ep)
 	au = client[cs_idx].au;
 	cs_ddump_mask(D_ATR, ep->emm, ep->l, "emm:");
 
-	if ((au < 0) || (au >= CS_MAXREADER))
+	if ((au < 0) || (au >= CS_MAXREADER)) {
+		cs_debug_mask(D_EMM, "emm disabled, client has no au-reader!");
 		return;
+	}
 
 	if (reader[au].card_system>0) {
 		if (!reader_get_emm_type(ep, &reader[au])) { //decodes ep->type and ep->hexserial from the EMM
@@ -2231,8 +2256,10 @@ void do_emm(EMM_PACKET *ep)
 			return;
 		}
 	}
-	else
+	else {
+		cs_debug_mask(D_EMM, "emm skipped, reader %s (%d) has no cardsystem defined!", reader[au].label, au); 
 		return;
+	}
 
 	cs_debug_mask(D_EMM, "emmtype %s. Reader %s has serial %s.", typtext[ep->type], reader[au].label, cs_hexdump(0, reader[au].hexserial, 8)); 
 	cs_ddump_mask(D_EMM, ep->hexserial, 8, "emm UA/SA:");
@@ -2449,7 +2476,7 @@ static void restart_clients()
 	cs_log("restarting clients");
 	for (i=0; i<CS_MAXPID; i++) {
 		if (client[i].pid && client[i].typ=='c' && ph[client[i].ctyp].type & MOD_CONN_NET) {
-			//kill(client[i].pid, SIGKILL);
+			pthread_cancel(client[i].thread);
 			cs_log("killing client c%02d pid %d", i, client[i].pid);
 		}
 	}
@@ -2460,9 +2487,9 @@ static void restart_clients()
 void send_best_reader(GET_READER_STAT *grs)
 {
 	//cs_debug_mask(D_TRACE, "got request for best reader for %04X/%04X/%04X", grs->caid, grs->prid, grs->srvid);
-	int ridx2 = get_best_reader(grs->caid, grs->prid, grs->srvid);
+	int ridx = get_best_reader(grs->caid, grs->prid, grs->srvid);
 	//cs_debug_mask(D_TRACE, "sending best reader %d", ridx);
-	write_to_pipe(client[grs->cidx].fd_m2c, PIP_ID_BES, (uchar*)&ridx2, sizeof(ridx2));
+	write_to_pipe(client[grs->cidx].fd_m2c, PIP_ID_BES, (uchar*)&ridx, sizeof(ridx));
 }
 
 static void process_master_pipe()
@@ -2524,7 +2551,6 @@ void cs_log_config()
 
 void cs_waitforcardinit()
 {
-	return;
 	if (cfg->waitforcards)
 	{
   		cs_log("waiting for local card init");

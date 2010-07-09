@@ -1,6 +1,6 @@
 #include "globals.h"
 
-static int chk_srvid_match(ECM_REQUEST *er, SIDTAB *sidtab)
+int chk_srvid_match(ECM_REQUEST *er, SIDTAB *sidtab)
 {
   int i, rc=0;
 
@@ -283,7 +283,11 @@ int matching_reader(ECM_REQUEST *er, struct s_reader *rdr) {
   if (!((rdr->fd) && (rdr->grp&client[cs_idx].grp)))
     return(0);
 
-  if (!chk_srvid(er, get_csidx()))
+  //Schlocke reader-defined function 
+  if (rdr->ph.c_available && !rdr->ph.c_available(rdr->ridx, AVAIL_CHECK_CONNECTED))
+    return 0;
+    
+  if (!chk_srvid(er, rdr->cidx))
     return(0);
 
   if (!chk_rfilter(er, rdr))

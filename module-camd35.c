@@ -14,8 +14,6 @@ extern struct s_reader *reader;
 
 #define REQ_SIZE	328		// 256 + 20 + 0x34
 
-static int lastpid;
-
 static int camd35_send(uchar *buf)
 {
 	int l;
@@ -550,9 +548,10 @@ static int camd35_recv_chk(uchar *dcw, int *rc, uchar *buf)
 		reader[client[cs_idx].ridx].blockemm_s = (buf[129]==1) ? 0: 1;
 		reader[client[cs_idx].ridx].blockemm_u = (buf[130]==1) ? 0: 1;
 		reader[client[cs_idx].ridx].card_system = get_cardsystem(reader[client[cs_idx].ridx].caid[0]);
-		cs_log("%s CMD05 AU request for caid: %04X",
+		cs_log("%s CMD05 AU request for caid: %04X, provid: %06lX",
 				reader[client[cs_idx].ridx].label,
-				reader[client[cs_idx].ridx].caid[0]);
+				reader[client[cs_idx].ridx].caid[0],
+				reader[client[cs_idx].ridx].auprovid);
 	}
 
 	if (buf[0] == 0x08) {
