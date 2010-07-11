@@ -1061,7 +1061,7 @@ static void loop_resolver()
   {
     cs_resolve();
     cs_sleepms(1000*cfg->resolvedelay);
-
+/*
     //debug only. checking pipe status:
     FILE *f = fopen("/tmp/oscamdbg.txt", "w");
     int i;
@@ -1085,6 +1085,7 @@ static void loop_resolver()
     	}
     }
     fclose(f);
+*/
   }
 }
 
@@ -1506,6 +1507,51 @@ void store_logentry(char *txt)
 }
 
 /*
+* Check if a fd is ready for a write (fir pipes).
+*/
+int pipe_WaitToWrite (int out_fd, unsigned delay_ms, unsigned timeout_ms)
+{
+   fd_set wfds;
+   fd_set ewfds;
+   struct timeval tv;
+   int select_ret;
+   if (delay_ms > 0)
+      cs_sleepms(delay_ms);
+
+   FD_ZERO(&wfds);
+   FD_SET(out_fd, &wfds);
+   
+   FD_ZERO(&ewfds);
+   FD_SET(out_fd, &ewfds);
+   
+   tv.tv_sec = timeout_ms/1000L;
+   tv.tv_usec = (timeout_ms % 1000) * 1000L;
+
+   select_ret = select(out_fd+1, NULL, &wfds, &ewfds, &tv);
+
+   if(select_ret==-1)
+   {
+      printf("select_ret=%d\n" , select_ret);
+      printf("errno =%d\n", errno);
+      fflush(stdout);
+      return 0;
+   }
+
+   if (FD_ISSET(out_fd, &ewfds))
+   {
+      printf("fd is in ewfds\n");
+      printf("errno =%d\n", errno);
+      fflush(stdout);
+      return 0;
+   }
+
+   if (FD_ISSET(out_fd,&wfds))
+		 return 1;
+	 else
+		 return 0;
+}
+
+/*
  * write_to_pipe():
  * write all kind of data to pipe specified by fd
  */
@@ -1801,6 +1847,15 @@ void send_reader_stat(int ridx, ECM_REQUEST *er, int rc)
 	write_to_pipe(fd_c2m, PIP_ID_STA, (uchar*)&add_stat, sizeof(ADD_READER_STAT));
 }
 
+int hexserialset(int ridx)
+{
+	int i;
+	for (i = 0; i < 8; i++)
+		if (reader[ridx].hexserial[i])
+			return 1;
+	return 0;
+}
+
 int send_dcw(ECM_REQUEST *er)
 {
 	static char *stxt[]={"found", "cache1", "cache2", "emu",
@@ -1868,19 +1923,37 @@ int send_dcw(ECM_REQUEST *er)
 		//client[cs_idx].au=er->reader[0];
 		//if(client[cs_idx].au<0)
 		//{
+		struct s_reader *cur = &reader[er->reader[0]];
+		
+		if (cur->typ == R_CCCAM && !cur->caid[0] && !cur->audisabled && 
+				cur->card_system == get_cardsystem(er->caid) && hexserialset(er->reader[0]))
+			client[cs_idx].au = er->reader[0];
+		else if((er->caid == cur->caid[0]) && (!cur->audisabled)) {
+			client[cs_idx].au = er->reader[0]; // First chance - check whether actual reader can AU
+		} else {
 			int r=0;
-			for(r=0;r<CS_MAXREADER;r++)
+			for(r=0;r<CS_MAXREADER;r++) //second chance loop through all readers to find an AU reader
 			{
-				if(er->caid==reader[r].caid[0])
-				{
-					client[cs_idx].au=r;
-					break;
+				cur = &reader[r];
+				if (matching_reader(er, cur)) {
+					if (cur->typ == R_CCCAM && !cur->caid[0] && !cur->audisabled && 
+						cur->card_system == get_cardsystem(er->caid) && hexserialset(r))
+					{
+						client[cs_idx].au = r;
+						break;
+					}
+					else if((er->caid == cur->caid[0]) && (er->prid == cur->auprovid) && (!cur->audisabled))
+					{
+						client[cs_idx].au=r;
+						break;
+					}
 				}
 			}
 			if(r==CS_MAXREADER)
 			{
 				client[cs_idx].au=(-1);
 			}
+		}
 		//}
 	}
 
@@ -1939,7 +2012,7 @@ void chk_dcw(int fd)
   //cs_log("dcw check from reader %d for idx %d (rc=%d)", er->reader[0], er->cpti, er->rc);
   ert=&ecmtask[er->cpti];
   if (ert->rc<100) {
-	send_reader_stat(er->reader[0], er, (er->rc==0)?4:-1);
+	send_reader_stat(er->reader[0], er, (er->rc==0)?4:((er->rc==1)?0:er->rc));
 	return; // already done
   }
   if( (er->caid!=ert->caid) || memcmp(er->ecm , ert->ecm , sizeof(er->ecm)) )
@@ -1985,30 +2058,41 @@ void chk_dcw(int fd)
   return;
 }
 
-ulong chk_provid(uchar *ecm, ushort caid)
-{
-    int i;
-    ulong provid=0;
-    switch(caid) {
-        case 0x100:     // seca
-            provid=b2i(2, ecm+3);
-            break;
+ulong chk_provid(uchar *ecm, ushort caid) {
+	int i, len, descriptor_length = 0;
+	ulong provid = 0;
 
-        case 0x500:     // viaccess
-            i=(ecm[4]==0xD2) ? ecm[5] + 2 : 0;  // skip d2 nano
-            if ((ecm[5+i]==3) && ((ecm[4+i]==0x90) || (ecm[4+i]==0x40)))
-                provid=(b2i(3, ecm+6+i) & 0xFFFFF0);
+	switch(caid >> 8) {
+		case 0x01:
+			// seca
+			provid = b2i(2, ecm+3);
+			break;
+
+		case 0x05:
+			// viaccess
+			i = (ecm[4] == 0xD2) ? ecm[5]+2 : 0;  // skip d2 nano
+			if((ecm[5+i] == 3) && ((ecm[4+i] == 0x90) || (ecm[4+i] == 0x40)))
+				provid = (b2i(3, ecm+6+i) & 0xFFFFF0);
             
-            i=(ecm[6]==0xD2) ? ecm[7] + 2 : 0;  // skip d2 nano long ecm
-            if ((ecm[7+i]==7) && ((ecm[6+i]==0x90) || (ecm[6+i]==0x40)))
-                provid=(b2i(3, ecm+8+i) & 0xFFFFF0);
+			i = (ecm[6] == 0xD2) ? ecm[7]+2 : 0;  // skip d2 nano long ecm
+			if((ecm[7+i] == 7) && ((ecm[6+i] == 0x90) || (ecm[6+i] == 0x40)))
+				provid = (b2i(3, ecm+8+i) & 0xFFFFF0);
 
-        default:
-            // cryptoworks ?
-            if( caid&0x0d00 && ecm[8]==0x83 && ecm[9]==1 )
-                provid=(ulong)ecm[10];
-      }
-  return(provid);
+			break;
+
+		case 0x0D:
+			// cryptoworks
+			len = (((ecm[1] & 0xf) << 8) | ecm[2])+3;
+			for(i=8; i<len; i+=descriptor_length+2) {
+				descriptor_length = ecm[i+1];
+				if (ecm[i] == 0x83) {
+					provid = (ulong)ecm[i+2] & 0xFE;
+					break;
+				}
+			}
+			break;
+	}
+	return(provid);
 }
 
 #ifdef IRDETO_GUESSING
@@ -2419,8 +2503,10 @@ void do_emm(EMM_PACKET *ep)
 	au = client[cs_idx].au;
 	cs_ddump_mask(D_ATR, ep->emm, ep->l, "emm:");
 
-	if ((au < 0) || (au >= CS_MAXREADER))
+	if ((au < 0) || (au >= CS_MAXREADER)) {
+		cs_debug_mask(D_EMM, "emm disabled, client has no au-reader!");
 		return;
+	}
 
 	if (reader[au].card_system>0) {
 		if (!reader_get_emm_type(ep, &reader[au])) { //decodes ep->type and ep->hexserial from the EMM
@@ -2428,8 +2514,10 @@ void do_emm(EMM_PACKET *ep)
 			return;
 		}
 	}
-	else
+	else {
+		cs_debug_mask(D_EMM, "emm skipped, reader %s (%d) has no cardsystem defined!", reader[au].label, au); 
 		return;
+	}
 
 	cs_debug_mask(D_EMM, "emmtype %s. Reader %s has serial %s.", typtext[ep->type], reader[au].label, cs_hexdump(0, reader[au].hexserial, 8)); 
 	cs_ddump_mask(D_EMM, ep->hexserial, 8, "emm UA/SA:");

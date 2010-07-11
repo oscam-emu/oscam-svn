@@ -55,7 +55,8 @@ struct cc_card {
 	uint32 sub_id; // subshare id
 	uint16 caid;
 	uint8 hop;
-	uint8 key[8]; // card serial (for au)
+	uint8 maxdown;
+	uint8 hexserial[8]; // card serial (for au)
 	LLIST *provs; // providers
 	LLIST *badsids; // sids that have failed to decode (struct cc_srvid)
 	time_t time;
@@ -134,8 +135,9 @@ struct cc_data {
 
 	int current_ecm_cidx; //index to last current_card (reader)
 	struct cc_current_card *current_card; //initialized by reader (index CS_MAXPID)
-	struct cc_card *server_card; 		   //initialized by client
-
+	struct cc_card *server_card; 		   //initialized by server
+	int server_ecm_pending;                    //initialized by server
+	
 	pthread_mutex_t lock;
 	pthread_mutex_t ecm_busy;
 	struct timeb ecm_time;

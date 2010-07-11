@@ -582,6 +582,7 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 ##TPLMENU##\n\
 <BR><BR>Entitlements for ##READERNAME##<BR><BR>\n\n\
 <DIV class=\"log\">\n\
+  ##LOGSUMMARY##\
   ##LOGHISTORY##\
 </DIV>\n\
 ##TPLFOOTER##"
@@ -594,13 +595,13 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
   <form action=\"readerconfig.html?action=execute\" method=\"get\">\n\
   <input name=\"reader\" type=\"hidden\" value=\"##READERNAME##\">\n\
   <input name=\"protocol\" type=\"hidden\" value=\"##PROTOCOL##\">\n\
-  <input name=\"enable\" type=\"hidden\" value=\"0\">\n\
-  <input name=\"fallback\" type=\"hidden\" value=\"0\">\n\
   <TABLE cellspacing=\"0\">\n\
     <TR><TH COLSPAN=\"2\">Edit Reader ##READERNAME##</TH></TR>\n\
     <TR><TH>&nbsp;</TH><TH>Reader general settings</TH></TR>\n\
-    <TR><TD>Enable:</TD><TD><input name=\"enable\" type=\"checkbox\" value=\"1\" ##ENABLED##></TD></TR>\n\
-    <TR><TD>Fallback:</TD><TD><input name=\"fallback\" type=\"checkbox\" value=\"1\" ##FALLBACKCHECKED##></TD></TR>\n\
+    <TR><TD>Enable:</TD><TD><input name=\"enable\" type=\"hidden\" value=\"0\"><input name=\"enable\" type=\"checkbox\" value=\"1\" ##ENABLED##></TD></TR>\n\
+    <TR><TD>AU disabled:</TD><TD><input name=\"audisabled\" type=\"hidden\" value=\"0\"><input name=\"audisabled\" type=\"checkbox\" value=\"1\" ##AUDISABLED##></TD></TR>\n\
+    <TR><TD>AU Provid:</TD><TD><input name=\"auprovid\" type=\"text\" size=\"10\" maxlength=\"6\" value=\"##AUPROVID##\"></TD></TR>\n\
+	<TR><TD>Fallback:</TD><TD><input name=\"fallback\" type=\"hidden\" value=\"0\"><input name=\"fallback\" type=\"checkbox\" value=\"1\" ##FALLBACKCHECKED##></TD></TR>\n\
     <TR><TD>Group:</TD><TD><input name=\"group\" type=\"text\" size=\"10\" maxlength=\"10\" value=\"##GRP##\"></TD></TR>\n\
     <TR><TD>Device:</TD><TD><input name=\"device\" type=\"text\" size=\"60\" maxlength=\"150\" value=\"##DEVICE##\"></TD></TR>\n\
     <TR><TD>Caid:</TD><TD><input name=\"caid\" type=\"text\" size=\"60\" maxlength=\"100\" value=\"##CAIDS##\"></TD></TR>\n\
@@ -877,7 +878,6 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 	<input name=\"waitforcards\" type=\"hidden\" value=\"0\">\n\
 	<input name=\"preferlocalcards\" type=\"hidden\" value=\"0\">\n\
 	<input name=\"saveinithistory\" type=\"hidden\" value=\"0\">\n\
-	<input name=\"readerautoloadbalance\" type=\"hidden\" value=\"0\">\n\
 	<TABLE class=\"config\" cellspacing=\"0\">\n\
 		<TR><TH>&nbsp;</TH><TH>Edit Global Config</TH></TR>\n\
 		<TR><TD>Serverip:</TD><TD><input name=\"serverip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##SERVERIP##\"></TD></TR>\n\
@@ -904,7 +904,13 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 		<TR><TD>Wait for cards:</TD><TD><input name=\"waitforcards\" type=\"checkbox\" value=\"1\" ##WAITFORCARDS##></TD></TR>\n\
 		<TR><TD>Prefer local cards:</TD><TD><input name=\"preferlocalcards\" type=\"checkbox\" value=\"1\" ##PREFERLOCALCARDS##></TD></TR>\n\
 		<TR><TD>Save init history:</TD><TD><input name=\"saveinithistory\" type=\"checkbox\" value=\"1\" ##SAVEINITHISTORY##></TD></TR>\n\
-		<TR><TD>Reader autoloadbalance:</TD><TD><input name=\"readerautoloadbalance\" type=\"checkbox\" value=\"1\" ##READERAUTOLOADBALANCE##></TD></TR>\n\
+		<TR><TD>Reader autoloadbalance:</TD>\n\
+		<TD><select name=\"readerautoloadbalance\">\n\
+				<option value=\"0\" ##READERAUTOLOADBALANCE0##>0 - Loadbalancer disabled (send to all readers)</option>\n\
+				<option value=\"1\" ##READERAUTOLOADBALANCE1##>1 - Fastest reader first</option>\n\
+				<option value=\"2\" ##READERAUTOLOADBALANCE2##>2 - Oldest reader first</option>\n\
+				<option value=\"3\" ##READERAUTOLOADBALANCE3##>3 - Lowest usagelevel</option>\n\
+			</select></TD></TR>\n\
 		<TR><TD>Reader restart seconds:</TD><TD><input name=\"readerrestartseconds\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##READERRESTARTSECONDS##\"></TD></TR>\n\
 		<TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\" ##BTNDISABLED##>\n</TD></TR>\n\
 	</TABLE>\n\

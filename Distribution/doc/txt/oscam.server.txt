@@ -71,7 +71,15 @@ DESCRIPTIONS
        caid = CAID[&<mask>][,CAID[&<mask>]]...
 	  define CAID for reader, some protocols only support one CAID, default:mask=FFFF
 
-	  example: CAID=0100,0200&FFDF
+	  example: CAID = 0100,0200&FFDF
+
+       audisabled = 0|1
+	  1 = exclude reader from auto AU, default:0
+
+       auprovid = provider ID
+	  set provider ID to use the right reader for auto AU
+
+	  example: auprovid = 123456
 
        boxid = NDS box ID
 	  NDS receiver box id
@@ -116,11 +124,6 @@ DESCRIPTIONS
 	  define CCcam version, default:none
 
 	  example: cccversion = 1.2.34
-
-       cccbuild = <4-digit number>
-	  define CCcam build, default:none
-
-	  example: cccbuild = 5678
 
        cccmaxhops = hops
 	  define CCcam maximum SC distance hops, default:10

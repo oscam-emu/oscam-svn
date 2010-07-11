@@ -95,7 +95,19 @@ camd3 reader logport, camd3 UDP must be activated, only works if there's no camd
 .RS 3n
 define CAID for reader, some protocols only support one CAID, default:\fBmask\fP=FFFF
 
-example: CAID=0100,0200&FFDF
+example: CAID = 0100,0200&FFDF
+.RE
+.PP
+\fBaudisabled\fP = \fB0\fP|\fB1\fP
+.RS 3n
+1 = exclude reader from auto AU, default:0
+.RE
+.PP
+\fBauprovid\fP = \fBprovider ID\fP
+.RS 3n
+set provider ID to use the right reader for auto AU
+
+example: auprovid = 123456
 .RE
 .PP
 \fBboxid\fP = \fBNDS box ID\fP
@@ -156,13 +168,6 @@ reader protocol, \fIrequired\fR:
 define CCcam version, default:none
 
 example: cccversion = 1.2.34
-.RE
-.PP
-\fBcccbuild\fP = \fB<4-digit number>\fP
-.RS 3n
-define CCcam build, default:none
-
-example: cccbuild = 5678
 .RE
 .PP
 \fBcccmaxhops\fP = \fBhops\fP

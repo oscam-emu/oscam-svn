@@ -1738,7 +1738,7 @@ int write_config()
 	fputc((int)'\n', f);
 
 	/*monitor settings*/
-	if(cfg->mon_port || cfg->mon_appendchaninfo) {
+	if(cfg->mon_port || cfg->mon_appendchaninfo || cfg->mon_hideclient_to) {
 		fprintf(f,"[monitor]\n");
 		fprintf_conf(f, CONFVARWIDTH, "port", "%d\n", cfg->mon_port);
 		if (cfg->mon_srvip != 0)
@@ -1860,9 +1860,11 @@ int write_config()
 		fprintf_conf(f, CONFVARWIDTH, "user", "%s\n", cfg->rad_usr);
 		fprintf_conf(f, CONFVARWIDTH, "allowed", "");
 		struct s_ip *cip;
+		dot="";
 		for (cip = cfg->rad_allowed; cip; cip = cip->next){
-			fprintf(f,"%s%s", dot, inet_ntoa(*(struct in_addr *)&cip->ip[0]));
-			if (cip->ip[0] == cip->ip[1])	fprintf(f,"-%s", inet_ntoa(*(struct in_addr *)&cip->ip[1]));
+			fprintf(f,"%s%s", dot, cs_inet_ntoa(cip->ip[0]));
+			if (cip->ip[0] != cip->ip[1])
+				fprintf(f,"-%s", cs_inet_ntoa(cip->ip[1]));
 			dot=",";
 		}
 		fprintf(f,"\n\n");
@@ -1921,40 +1923,53 @@ int write_config()
 		fprintf_conf(f, CONFVARWIDTH, "boxtype", "%s\n", boxdesc[cfg->dvbapi_boxtype]);
 		fprintf_conf(f, CONFVARWIDTH, "user", "%s\n", cfg->dvbapi_usr);
         fprintf_conf(f, CONFVARWIDTH, "pmt_mode", "%d\n", cfg->dvbapi_pmtmode);
-		fprintf_conf(f, CONFVARWIDTH, "priority", "");
-		i = 0;
-		dot = "";
-		while(cfg->dvbapi_prioritytab.caid[i]) {
-			fprintf(f, "%s%04X", dot, cfg->dvbapi_prioritytab.caid[i]);
-			if(cfg->dvbapi_prioritytab.mask[i])
-				fprintf(f, ":%06X", cfg->dvbapi_prioritytab.mask[i]);
-			dot = ",";
-			i++;
-		}
-		fprintf(f,"\n");
 
-		fprintf_conf(f, CONFVARWIDTH, "ignore", "");
-		i = 0;
-		dot = "";
-		while(cfg->dvbapi_ignoretab.caid[i]) {
-			fprintf(f, "%s%04X", dot, cfg->dvbapi_ignoretab.caid[i]);
-			if(cfg->dvbapi_ignoretab.mask[i])
-				fprintf(f, ":%06X", cfg->dvbapi_ignoretab.mask[i]);
-			dot = ",";
-			i++;
-		}
-		fprintf(f,"\n");
+        ulong provid = 0;
+        if(cfg->dvbapi_prioritytab.caid[0]) {
+        	fprintf_conf(f, CONFVARWIDTH, "priority", "");
+        	i = 0;
+        	dot = "";
+        	while(cfg->dvbapi_prioritytab.caid[i]) {
+        		fprintf(f, "%s%04X", dot, cfg->dvbapi_prioritytab.caid[i]);
+        		if(cfg->dvbapi_prioritytab.mask[i]) {
+        			provid = (cfg->dvbapi_prioritytab.cmap[i] << 8 | cfg->dvbapi_prioritytab.mask[i]);
+        			fprintf(f, ":%06lX", provid);
+        		}
+        		dot = ",";
+        		i++;
+        	}
+        	fprintf(f,"\n");
+        }
 
-		fprintf_conf(f, CONFVARWIDTH, "cw_delay", "");
-		i = 0;
-		dot = "";
-		while(cfg->dvbapi_delaytab.caid[i]) {
-			fprintf(f, "%s%04X", dot, cfg->dvbapi_delaytab.caid[i]);
-			fprintf(f, ":%d", cfg->dvbapi_delaytab.mask[i]);
-			dot = ",";
-			i++;
-		}
-		fprintf(f,"\n");
+        if(cfg->dvbapi_ignoretab.caid[0]) {
+        	provid = 0;
+        	fprintf_conf(f, CONFVARWIDTH, "ignore", "");
+        	i = 0;
+        	dot = "";
+        	while(cfg->dvbapi_ignoretab.caid[i]) {
+        		fprintf(f, "%s%04X", dot, cfg->dvbapi_ignoretab.caid[i]);
+        		if(cfg->dvbapi_ignoretab.mask[i]) {
+        			provid = (cfg->dvbapi_ignoretab.cmap[i] << 8 | cfg->dvbapi_ignoretab.mask[i]);
+        			fprintf(f, ":%06lX", provid);
+        		}
+        		dot = ",";
+        		i++;
+        	}
+        	fprintf(f,"\n");
+        }
+
+        if(cfg->dvbapi_delaytab.caid[0]) {
+        	fprintf_conf(f, CONFVARWIDTH, "cw_delay", "");
+        	i = 0;
+        	dot = "";
+        	while(cfg->dvbapi_delaytab.caid[i]) {
+        		fprintf(f, "%s%04X", dot, cfg->dvbapi_delaytab.caid[i]);
+        		fprintf(f, ":%d", cfg->dvbapi_delaytab.mask[i]);
+        		dot = ",";
+        		i++;
+        	}
+        	fprintf(f,"\n");
+        }
 
 		fputc((int)'\n', f);
 	}
@@ -1965,22 +1980,28 @@ int write_config()
 	if (cfg->http_port > 0) {
 		fprintf(f,"[webif]\n");
 		fprintf_conf(f, CONFVARWIDTH, "httpport", "%d\n", cfg->http_port);
-		fprintf_conf(f, CONFVARWIDTH, "httpuser", "%s\n", cfg->http_user);
-		fprintf_conf(f, CONFVARWIDTH, "httppwd", "%s\n", cfg->http_pwd);
-		fprintf_conf(f, CONFVARWIDTH, "httpcss", "%s\n", cfg->http_css);
-		fprintf_conf(f, CONFVARWIDTH, "httptpl", "%s\n", cfg->http_tpl);
-		fprintf_conf(f, CONFVARWIDTH, "httpscript", "%s\n", cfg->http_script);
+		if(strlen(cfg->http_user) > 0)
+			fprintf_conf(f, CONFVARWIDTH, "httpuser", "%s\n", cfg->http_user);
+		if(strlen(cfg->http_pwd) > 0)
+			fprintf_conf(f, CONFVARWIDTH, "httppwd", "%s\n", cfg->http_pwd);
+		if(strlen(cfg->http_css) > 0)
+			fprintf_conf(f, CONFVARWIDTH, "httpcss", "%s\n", cfg->http_css);
+		if(strlen(cfg->http_tpl) > 0)
+			fprintf_conf(f, CONFVARWIDTH, "httptpl", "%s\n", cfg->http_tpl);
+		if(strlen(cfg->http_script) > 0)
+			fprintf_conf(f, CONFVARWIDTH, "httpscript", "%s\n", cfg->http_script);
 		fprintf_conf(f, CONFVARWIDTH, "httprefresh", "%d\n", cfg->http_refresh);
 		fprintf_conf(f, CONFVARWIDTH, "httpallowed", "");
 		struct s_ip *cip;
 		dot = "";
 		for (cip = cfg->http_allowed; cip; cip = cip->next){
 			fprintf(f,"%s%s", dot, cs_inet_ntoa(cip->ip[0]));
-	  	if (cip->ip[0] != cip->ip[1])	fprintf(f,"-%s", cs_inet_ntoa(cip->ip[1]));
-	  	dot = ",";
+			if (cip->ip[0] != cip->ip[1])	fprintf(f,"-%s", cs_inet_ntoa(cip->ip[1]));
+			dot = ",";
 		}
 		fputc((int)'\n', f);
-		fprintf_conf(f, CONFVARWIDTH, "httpdyndns", "%s\n", cfg->http_dyndns);
+		if(strlen((const char *) (cfg->http_dyndns)) > 0)
+			fprintf_conf(f, CONFVARWIDTH, "httpdyndns", "%s\n", cfg->http_dyndns);
 		fprintf_conf(f, CONFVARWIDTH, "httphideidleclients", "%d\n", cfg->http_hide_idle_clients);
 		fprintf_conf(f, CONFVARWIDTH, "httpreadonly", "%d\n", cfg->http_readonly);
 		fputc((int)'\n', f);
@@ -2374,6 +2395,12 @@ int write_server()
 
 			if (reader[i].deprecated && isphysical)
 				fprintf_conf(f, CONFVARWIDTH, "deprecated", "%d\n", reader[i].deprecated);
+
+			if (reader[i].audisabled)
+				fprintf_conf(f, CONFVARWIDTH, "audisabled", "%d\n", reader[i].audisabled);
+
+			if (reader[i].auprovid)
+				fprintf_conf(f, CONFVARWIDTH, "auprovid", "%06lX", reader[i].auprovid);
 
 			fprintf(f, "\n\n");
 		}
@@ -3391,6 +3418,26 @@ void chk_reader(char *token, char *value, struct s_reader *rdr)
 		return;
 	}
 
+	if (!strcmp(token, "audisabled")) {
+		if (strlen(value) == 0) {
+			rdr->audisabled = 0;
+			return;
+		} else {
+			rdr->audisabled = atoi(value);
+			return;
+		}
+	}
+
+	if (!strcmp(token, "auprovid")) {
+		if (strlen(value) == 0) {
+			rdr->auprovid = 0;
+			return;
+		} else {
+			rdr->auprovid = a2i(value, 3);
+			return;
+		}
+	}
+
 	if (token[0] != '#')
 		fprintf(stderr, "Warning: keyword '%s' in reader section not recognized\n",token);
 }
@@ -3763,3 +3810,36 @@ char *mk_t_ftab(FTAB *ftab){
 	value[pos] = '\0';
 	return value;
 }
+
+char tmpdir[200] = {0x00};
+
+/**
+ * get tmp dir
+ **/
+char * get_tmp_dir()
+{
+  if (tmpdir[0])
+    return tmpdir;
+  
+#ifdef OS_CYGWIN
+  char *d = getenv("TMPDIR");
+  if (!d || d[0] == '\0') 
+  	strcpy(tmpdir,"/cygdrive/c/tmp/.oscam");
+  else
+  {
+        strcpy(tmpdir, d);
+    	char *p = tmpdir;
+    	while(*p) p++;
+    	p--;
+    	if (*p != '/' && *p != '\\')
+    		strcat(tmpdir, "/");
+        strcat(tmpdir, ".oscam");
+  }
+                          
+#else
+  strcpy(tmpdir, "/tmp/.oscam");
+#endif
+  mkdir(tmpdir, S_IRWXU);
+  return tmpdir;
+}
+

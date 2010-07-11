@@ -2,6 +2,8 @@
 
 #define UNDEF_AVG_TIME 80000
 
+time_t nulltime = 0;
+
 void init_stat()
 {
 	memset(reader_stat, 0, sizeof(reader_stat));
@@ -10,7 +12,7 @@ void init_stat()
 void load_stat_from_file(int ridx)
 {
 	char fname[40];
-	sprintf(fname, "/tmp/.oscam/stat.%d", ridx);
+	sprintf(fname, "%s/stat.%d", get_tmp_dir(), ridx);
 	FILE *file = fopen(fname, "r");
 	if (!file)
 		return;
@@ -41,6 +43,8 @@ READER_STAT *get_stat(int ridx, ushort caid, ulong prid, ushort srvid)
 		if (cfg->reader_auto_loadbalance_save)
 			load_stat_from_file(ridx);
 	}
+	if (!nulltime)
+		nulltime = time(NULL);
 
 	LLIST_ITR itr;
 	READER_STAT *stat = llist_itr_init(reader_stat[ridx], &itr);
@@ -102,7 +106,7 @@ void calc_stat(READER_STAT *stat)
 void save_stat_to_file(int ridx)
 {
 	char fname[40];
-	sprintf(fname, "/tmp/.oscam/stat.%d", ridx);
+	sprintf(fname, "%s/stat.%d", get_tmp_dir(), ridx);
 	if (!reader_stat[ridx]) {
 		remove(fname);
 		return;
@@ -138,7 +142,7 @@ void save_all_stat_to_file()
 /**
  * Adds caid/prid/srvid to stat-list for reader ridx with time/rc
  */
-void add_stat(int ridx, ushort caid, ulong prid, ushort srvid, int time, int rc)
+void add_stat(int ridx, ushort caid, ulong prid, ushort srvid, int ecm_time, int rc)
 {
 	READER_STAT *stat = get_stat(ridx, caid, prid, srvid);
 	if (!stat) {
@@ -152,23 +156,40 @@ void add_stat(int ridx, ushort caid, ulong prid, ushort srvid, int time, int rc)
 	}
 
 	//inc ecm_count if found, drop to 0 if not found:
-	cs_debug_mask(D_TRACE, "adding stat for reader %s (%d): rc %d caid %04hX prid %04lX srvid %04hX time %dms",
-				reader[ridx].label, ridx, rc, caid, prid, srvid, time);
 	if (rc == 0) {
 		stat->rc = rc;
-		if (stat->ecm_count < INT_MAX)
-			stat->ecm_count++;
-
+		stat->ecm_count++;
 		stat->time_idx++;
+		
+		//FASTEST READER:
 		if (stat->time_idx >= MAX_STAT_TIME)
 			stat->time_idx = 0;
-		stat->time_stat[stat->time_idx] = time;
+		stat->time_stat[stat->time_idx] = ecm_time;
 		calc_stat(stat);
+
+		//OLDEST READER:
+		if (rc == 0)
+			reader[ridx].lb_last = time(NULL);
+		
+		//USAGELEVEL:
+		int ule = reader[ridx].lb_usagelevel_ecmcount;
+		if (ule > 0 && ((ule / MIN_ECM_COUNT) > 0)) //update every MIN_ECM_COUNT usagelevel:
+		{
+			time_t t = (time(NULL)-reader[ridx].lb_usagelevel_time);
+			reader[ridx].lb_usagelevel = 1000/(t<1?1:t);
+			ule = 0;
+		}
+		if (ule == 0)
+			reader[ridx].lb_usagelevel_time = time(NULL);
+		reader[ridx].lb_usagelevel_ecmcount = ule+1;
 	}
 	else if (rc >= 4 && rc < 100) { //not found+timeout+etc
 		stat->rc = rc;
 		stat->ecm_count = 0;
 	}
+
+	cs_debug_mask(D_TRACE, "adding stat for reader %s (%d): rc %d caid %04hX prid %04lX srvid %04hX time %dms usagelevel %d",
+				reader[ridx].label, ridx, rc, caid, prid, srvid, ecm_time, reader[ridx].lb_usagelevel);
 	
 	//debug only:
 	if (cfg->reader_auto_loadbalance_save) {
@@ -187,6 +208,20 @@ void add_reader_stat(ADD_READER_STAT *stat)
 {
 	add_stat(stat->ridx, stat->caid, stat->prid, stat->srvid, stat->time, stat->rc);
 }
+
+void reset_stat(ushort caid, ulong prid, ushort srvid)
+{
+	cs_debug_mask(D_TRACE, "loadbalance: resetting ecm count");
+	int i;
+	for (i = 0; i < CS_MAXREADER; i++) {
+		if (reader_stat[i] && reader[i].pid && reader[i].cs_idx) {
+			READER_STAT *stat = get_stat(i, caid, prid, srvid);
+			if (stat)
+				stat->ecm_count = 0;
+		}
+	}
+}
+
 
 /**	
  * Gets best reader for caid/prid/srvid.
@@ -210,19 +245,54 @@ int get_best_reader(ushort caid, ulong prid, ushort srvid)
 					return -1; //this reader is active (now) but we need statistics first!
 				}
 			
-				//if (stat->rc == 0 && stat->ecm_count < MIN_ECM_COUNT)
-				//	return -1; //first get full statistics before deciding which reader is the best
+				if (stat->ecm_count > MAX_ECM_COUNT) {
+					reset_stat(caid, prid, srvid);
+					return -1;
+				}
 				
-				current = stat->time_avg*100/weight;
-				if (stat->rc == 0 && stat->ecm_count >= MIN_ECM_COUNT && (!best_stat || current < best)) {
-					if (!reader[i].ph.c_available || reader[i].ph.c_available(i, stat)) {
-						best_stat = stat;
-						best_ridx = i;
-						best = current;
+				if (stat->rc == 0 && stat->ecm_count < MIN_ECM_COUNT) {
+					cs_debug_mask(D_TRACE, "loadbalance: reader %s needs more statistics", reader[i].label);
+					return -1; //need more statistics!
+				}
+				
+
+				//Reader can decode this service (rc==0) and has MIN_ECM_COUNT ecms:
+				if (stat->rc == 0) {
+					//get
+					switch (cfg->reader_auto_loadbalance) {
+					case LB_NONE:
+						cs_debug_mask(D_TRACE, "loadbalance disabled");
+						return -1;
+					case LB_FASTEST_READER_FIRST:
+						current = stat->time_avg * 100 / weight;
+						break;
+					case LB_OLDEST_READER_FIRST:
+						current = (reader[i].lb_last-nulltime) * 100 / weight;
+						break;
+					case LB_LOWEST_USAGELEVEL:
+						current = reader[i].lb_usagelevel * 100 / weight;
+						break;
+					default:
+						return -1;
+					}
+
+					cs_debug_mask(D_TRACE, "loadbalance reader %s value %d", reader[i].label, current);
+					if (!best_stat || current < best) {
+						if (!reader[i].ph.c_available
+								|| reader[i].ph.c_available(i,
+										AVAIL_CHECK_LOADBALANCE)) {
+							best_stat = stat;
+							best_ridx = i;
+							best = current;
+						}
 					}
 				}
 			}
 		}
 	}
+	if (best_ridx >= 0)
+		cs_debug_mask(D_TRACE, "-->loadbalance best reader %s best value %d", reader[best_ridx].label, best);
+	else
+		cs_debug_mask(D_TRACE, "-->loadbalance no best reader!");
 	return best_ridx;
 }

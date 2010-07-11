@@ -114,9 +114,9 @@ void send_oscam_config_global(struct templatevars *vars, FILE *f, struct uripara
 		tpl_addVar(vars, 0, "SAVEINITHISTORY", "checked");
 	if (cfg->reader_restart_seconds)
 		tpl_printf(vars, 0, "READERRESTARTSECONDS", "%d", cfg->reader_restart_seconds);
-	if (cfg->reader_auto_loadbalance)
-		tpl_addVar(vars, 0, "READERAUTOLOADBALANCE", "checked");
 
+	tpl_printf(vars, 0, "TMP", "READERAUTOLOADBALANCE%d", cfg->reader_auto_loadbalance);
+	tpl_addVar(vars, 0, tpl_getVar(vars, "TMP"), "selected");
 
 	fputs(tpl_getTpl(vars, "CONFIGGLOBAL"), f);
 }
@@ -313,7 +313,8 @@ void send_oscam_config_radegast(struct templatevars *vars, FILE *f, struct uripa
 	char *dot="";
 	for (cip=cfg->rad_allowed; cip; cip=cip->next) {
 		tpl_printf(vars, 1, "ALLOWED", "%s%s", dot, cs_inet_ntoa(cip->ip[0]));
-		if (cip->ip[0] != cip->ip[1]) tpl_printf(vars, 1, "ALLOWED", "-%s", cs_inet_ntoa(cip->ip[1]));
+		if (cip->ip[0] != cip->ip[1])
+			tpl_printf(vars, 1, "ALLOWED", "-%s", cs_inet_ntoa(cip->ip[1]));
 		dot=",";
 	}
 
@@ -544,20 +545,26 @@ void send_oscam_config_dvbapi(struct templatevars *vars, FILE *f, struct uripara
 
 	i = 0;
 	char *dot = "";
+	ulong provid = 0;
 	while(cfg->dvbapi_prioritytab.caid[i]) {
 		tpl_printf(vars, 1, "PRIORITY", "%s%04X", dot, cfg->dvbapi_prioritytab.caid[i]);
-		if(cfg->dvbapi_prioritytab.mask[i])
-			tpl_printf(vars, 1, "PRIORITY", ":%06lX", cfg->dvbapi_prioritytab.mask[i]);
+		if(cfg->dvbapi_prioritytab.mask[i]){
+			provid = (cfg->dvbapi_prioritytab.cmap[i] << 8 | cfg->dvbapi_prioritytab.mask[i]);
+			tpl_printf(vars, 1, "PRIORITY", ":%06lX", provid);
+		}
 		dot = ",";
 		i++;
 	}
 
 	i = 0;
 	dot = "";
+	provid = 0;
 	while(cfg->dvbapi_ignoretab.caid[i]) {
 		tpl_printf(vars, 1, "IGNORE", "%s%04X", dot, cfg->dvbapi_ignoretab.caid[i]);
-		if(cfg->dvbapi_ignoretab.mask[i])
-			tpl_printf(vars, 1, "IGNORE", ":%06lX", cfg->dvbapi_ignoretab.mask[i]);
+		if(cfg->dvbapi_ignoretab.mask[i]) {
+			provid = (cfg->dvbapi_ignoretab.cmap[i] << 8 | cfg->dvbapi_ignoretab.mask[i]);
+			tpl_printf(vars, 1, "IGNORE", ":%06lX", provid);
+		}
 		dot = ",";
 		i++;
 	}
@@ -792,6 +799,7 @@ void send_oscam_reader_config(struct templatevars *vars, FILE *f, struct uripara
 		char servicelabels[255]="";
 		clear_caidtab(&reader[ridx].ctab);
 		clear_ftab(&reader[ridx].ftab);
+		reader[ridx].grp = 0;
 		for(i = 0; i < (*params).paramcount; ++i) {
 			if ((strcmp((*params).params[i], "reader")) && (strcmp((*params).params[i], "action"))) {
 				if (!strcmp((*params).params[i], "services"))
@@ -824,6 +832,12 @@ void send_oscam_reader_config(struct templatevars *vars, FILE *f, struct uripara
 	tpl_printf(vars, 0, "BOXID", "%08X", reader[ridx].boxid);
 	tpl_addVar(vars, 0, "USER", reader[ridx].r_usr);
 	tpl_addVar(vars, 0, "PASS", reader[ridx].r_pwd);
+
+	if(reader[ridx].audisabled)
+		tpl_addVar(vars, 0, "AUDISABLED", "checked");
+
+	if(reader[ridx].auprovid)
+		tpl_printf(vars, 0, "AUPROVID", "%06lX", reader[ridx].auprovid);
 
 	if(reader[ridx].force_irdeto)
 		tpl_addVar(vars, 0, "FORCEIRDETOCHECKED", "checked");
@@ -1130,6 +1144,8 @@ void send_oscam_user_config_edit(struct templatevars *vars, FILE *f, struct urip
 		account->grp = 0;
 		//clear caidtab before it re-readed by chk_t
 		clear_caidtab(&account->ctab);
+		//clear Betatunnel before it re-readed by chk_t
+		clear_tuntab(&account->ttab);
 
 		for(i=0;i<(*params).paramcount;i++) {
 			if ((strcmp((*params).params[i], "action")) && (strcmp((*params).params[i], "user")) && (strcmp((*params).params[i], "newuser"))) {
@@ -1153,7 +1169,7 @@ void send_oscam_user_config_edit(struct templatevars *vars, FILE *f, struct urip
 
 	//Disabled
 	if(account->disabled)
-	tpl_addVar(vars, 0, "DISABLEDCHECKED", "selected");
+		tpl_addVar(vars, 0, "DISABLEDCHECKED", "selected");
 
 	//Expirationdate
 	struct tm * timeinfo = localtime (&account->expirationdate);
@@ -1452,9 +1468,10 @@ void send_oscam_entitlement(struct templatevars *vars, FILE *f, struct uriparams
 				//tpl_printf(vars, 1, "LOGHISTORY", "card cnt: %d<BR><BR>\n", ctest->card_count);
 
 				char fname[40];
-				snprintf(fname, sizeof(fname), "/tmp/.oscam/caidinfos.%d", ridx);
+				snprintf(fname, sizeof(fname), "%s/caidinfos.%d", get_tmp_dir(), ridx);
 				FILE *file = fopen(fname, "r");
 				if (file) {
+					int cardcount = 0;
 					uint16 caid = 0;
 					uint8 hop = 0;
 					char ascprovid[7];
@@ -1481,8 +1498,11 @@ void send_oscam_entitlement(struct templatevars *vars, FILE *f, struct uriparams
 							count--;
 						}
 						tpl_addVar(vars, 1, "LOGHISTORY", "<BR>\n");
+						cardcount++;
 					} while (1);
 					fclose(file);
+					if(cardcount)
+						tpl_printf(vars, 1, "LOGSUMMARY", "<BR>%d Cards found on this reader<BR><BR>\n", cardcount);
 					tpl_printf(vars, 1, "LOGHISTORY", "cardfile end<BR>\n");
 				} else {
 					tpl_printf(vars, 1, "LOGHISTORY", "no cardfile found<BR>\n");
@@ -1509,9 +1529,10 @@ void send_oscam_entitlement(struct templatevars *vars, FILE *f, struct uriparams
 			//tpl_printf(vars, 1, "LOGHISTORY", "card cnt: %d<BR><BR>\n", ctest->card_count);
 
 			char fname[40];
-			snprintf(fname, sizeof(fname), "/tmp/.oscam/caidinfos.%d", ridx);
+			snprintf(fname, sizeof(fname), "%s/caidinfos.%d", get_tmp_dir(), ridx);
 			FILE *file = fopen(fname, "r");
 			if (file) {
+				int cardcount = 0;
 				uint16 caid = 0;
 				uint8 hop = 0;
 				char ascprovid[7];
@@ -1538,8 +1559,12 @@ void send_oscam_entitlement(struct templatevars *vars, FILE *f, struct uriparams
 						count--;
 					}
 					tpl_addVar(vars, 1, "LOGHISTORY", "<BR>\n");
+					cardcount++;
 				} while (1);
 				fclose(file);
+				if(cardcount)
+					tpl_printf(vars, 1, "LOGSUMMARY", "<BR>%d Cards found on this reader<BR><BR>\n", cardcount);
+				tpl_printf(vars, 1, "LOGHISTORY", "cardfile end<BR>\n");
 			} else {
 				tpl_printf(vars, 1, "LOGHISTORY", "no cardfile found<BR>\n");
 			}
@@ -1548,7 +1573,7 @@ void send_oscam_entitlement(struct templatevars *vars, FILE *f, struct uriparams
 			FILE *fp;
 			char filename[32];
 			char buffer[128];
-			snprintf(filename, sizeof(filename), "/tmp/.oscam/reader%d", reader[ridx].ridx);
+			snprintf(filename, sizeof(filename), "%s/reader%d", get_tmp_dir(), reader[ridx].ridx);
 			fp = fopen(filename, "r");
 
 			if (fp) {
