@@ -449,20 +449,73 @@ void dvbapi_start_emm_filter(int demux_index) {
 	demux[demux_index].emm_filter=1;
 }
 
-void dvbapi_parse_cat(int demux_index, uchar *buf, int len) {
-	unsigned short i, j;
+void dvbapi_add_ecmpid(int demux_id, ushort caid, ushort ecmpid, ulong provid) {
+	int n,added=0;
+
+	for (n=0;n<demux[demux_id].ECMpidcount;n++) {
+		if (demux[demux_id].ECMpids[n].CAID == caid && demux[demux_id].ECMpids[n].ECM_PID == ecmpid)
+			added=1;
+	}
+
+	if (added==0) {
+		demux[demux_id].ECMpids[demux[demux_id].ECMpidcount].ECM_PID = ecmpid;
+		demux[demux_id].ECMpids[demux[demux_id].ECMpidcount].CAID = caid;
+		demux[demux_id].ECMpids[demux[demux_id].ECMpidcount].PROVID = provid;
+		cs_log("[ADD PID %d] CAID: %04X\tECM_PID: %04X\tPROVID: %06X", demux[demux_id].ECMpidcount, caid, ecmpid, provid);
+		demux[demux_id].ECMpidcount++;
+	}
+}
+
+void dvbapi_add_emmpid(int demux_id, ushort caid, ushort emmpid, ulong provid) {
+	int j;
+	for (j=0;j<demux[demux_id].ECMpidcount;j++) {
+		if (demux[demux_id].ECMpids[j].CAID==caid && (demux[demux_id].ECMpids[j].PROVID == provid || provid == 0)) {
+			demux[demux_id].ECMpids[j].EMM_PID=emmpid;
+			cs_debug("[ADD EMMPID %d] CAID: %04X\tEMM_PID: %04X\tPROVID: %06X", j, caid, emmpid, provid);
+		}
+	}	
+}
+
+void dvbapi_parse_cat(int demux_id, uchar *buf, int len) {
+	unsigned short i, k;
 
 	cs_ddump(buf, len, "cat:");
 
 	for (i = 8; i < (((buf[1] & 0x0F) << 8) | buf[2]) - 1; i += buf[i + 1] + 2) {
 		if (buf[i] != 0x09) continue;
-		unsigned short cat_sys_id=(((buf[i + 2] & 0x1F) << 8) | buf[i + 3]);
+		unsigned short caid=(((buf[i + 2] & 0x1F) << 8) | buf[i + 3]);
 		unsigned short emm_pid=(((buf[i + 4] & 0x1F) << 8) | buf[i + 5]);
-		cs_debug("cat: ca_system_id: %04x\temm_pid %04x", cat_sys_id, emm_pid);
-		for (j=0;j<demux[demux_index].ECMpidcount;j++) {
-			if (demux[demux_index].ECMpids[j].CAID==(((buf[i + 2] & 0x1F) << 8) | buf[i + 3])) {
-				demux[demux_index].ECMpids[j].EMM_PID=emm_pid;
-			}
+		ulong emm_provider = 0;
+
+		switch (caid >> 8) {
+			case 0x01:
+				dvbapi_add_emmpid(demux_id, caid, emm_pid, 0);
+				cs_debug("[cat] CAID: %04x\tEMM_PID: %04x", caid, emm_pid);
+				for (k = i+7; k < i+buf[i+1]+2; k += 4) {
+					emm_provider = (buf[k+2] << 8| buf[k+3]);
+					emm_pid = (buf[k] & 0x0F) << 8 | buf[k+1];
+					cs_debug("[cat] CAID: %04X\tEMM_PID: %04X\tPROVID: %06X", caid, emm_pid, emm_provider);
+					dvbapi_add_emmpid(demux_id, caid, emm_pid, emm_provider);
+				}
+				break;
+			case 0x05:
+				for (k = i+6; k < i+buf[i+1]+2; k += buf[k+1]+2) {
+					if (buf[k]==0x14) {
+						emm_provider = buf[k+2] << 16 | (buf[k+3] << 8| (buf[k+4] & 0xF0));
+						cs_debug("[cat] CAID: %04x\tEMM_PID: %04x\tPROVID: %06X", caid, emm_pid, emm_provider);
+						dvbapi_add_emmpid(demux_id, caid, emm_pid, emm_provider);
+					}
+				}
+				break;
+			case 0x18:
+				emm_provider = (buf[i+1] == 0x07) ? (buf[i+6] << 16 | (buf[i+7] << 8| (buf[i+8]))) : 0;
+				cs_debug("[cat] CAID: %04x\tEMM_PID: %04x\tPROVID: %06X", caid, emm_pid, emm_provider);
+				dvbapi_add_emmpid(demux_id, caid, emm_pid, emm_provider);
+				break;
+			default:
+				cs_debug("[cat] CAID: %04x\tEMM_PID: %04x", caid, emm_pid);
+				dvbapi_add_emmpid(demux_id, caid, emm_pid, 0);
+				break;
 		}
 	}
 	return;
@@ -634,22 +687,7 @@ void dvbapi_resort_ecmpids(int demux_index) {
 	return;
 }
 
-void dvbapi_add_ecmpid(int demux_id, ushort caid, ushort ecmpid, ulong provid) {
-	int n,added=0;
 
-	for (n=0;n<demux[demux_id].ECMpidcount;n++) {
-		if (demux[demux_id].ECMpids[n].CAID == caid && demux[demux_id].ECMpids[n].ECM_PID == ecmpid)
-			added=1;
-	}
-
-	if (added==0) {
-		demux[demux_id].ECMpids[demux[demux_id].ECMpidcount].ECM_PID = ecmpid;
-		demux[demux_id].ECMpids[demux[demux_id].ECMpidcount].CAID = caid;
-		demux[demux_id].ECMpids[demux[demux_id].ECMpidcount].PROVID = provid;
-		cs_log("[ADD PID %d] CAID: %04X\tECM_PID: %04X\tPROVID: %06X", demux[demux_id].ECMpidcount, caid, ecmpid, provid);
-		demux[demux_id].ECMpidcount++;
-	}
-}
 
 void dvbapi_parse_descriptor(int demux_id, int i, unsigned int info_length, unsigned char *buffer) {
 	//int ca_pmt_cmd_id = buffer[i + 5];
@@ -682,6 +720,9 @@ void dvbapi_parse_descriptor(int demux_id, int i, unsigned int info_length, unsi
 		} else {
 			if (descriptor_ca_system_id >> 8 == 0x05 && descriptor_length == 0x0F && buffer[index + 12] == 0x14)
 				descriptor_ca_provider = buffer[index + 14] << 16 | (buffer[index + 15] << 8| (buffer[index + 16] & 0xF0));
+
+			if (descriptor_ca_system_id >> 8 == 0x18 && descriptor_length == 0x07)
+				descriptor_ca_provider = buffer[index + 6] << 16 | (buffer[index + 7] << 8| (buffer[index + 8]));
 			
 			dvbapi_add_ecmpid(demux_id, descriptor_ca_system_id, descriptor_ca_pid, descriptor_ca_provider);
 		}
@@ -933,6 +974,8 @@ void dvbapi_chk_caidtab(char *caidasc, CAIDTAB *ctab) {
 	}
 }
 
+pthread_mutex_t event_handler_lock;
+
 void event_handler(int signal) {
 	struct stat pmt_info;
 	char dest[1024];
@@ -940,20 +983,33 @@ void event_handler(int signal) {
 	struct dirent *dp;
 	int i, pmt_fd;
 
-	signal=signal;
+	signal=signal; //avoid compiler warnings
+	pthread_mutex_lock(&event_handler_lock);
 	
 	int standby_fd = open(STANDBY_FILE, O_RDONLY);
 	pausecam = (standby_fd > 0) ? 1 : 0;
 	if (standby_fd) close(standby_fd);
 
-	if (cfg->dvbapi_boxtype==BOXTYPE_IPBOX)
+	if (cfg->dvbapi_boxtype==BOXTYPE_IPBOX || cfg->dvbapi_pmtmode == 1) {
+		pthread_mutex_unlock(&event_handler_lock);	
 		return;
+	}
 
 	for (i=0;i<MAX_DEMUX;i++) {
 		if (demux[i].pmt_file[0] != 0) {
 			sprintf(dest, "%s%s", TMPDIR, demux[i].pmt_file);
 			pmt_fd = open(dest, O_RDONLY);
 			if(pmt_fd>0) {
+				if (fstat(pmt_fd, &pmt_info) != 0) {
+					close(pmt_fd);
+					continue;
+				}
+
+				if (pmt_info.st_mtime != demux[i].pmt_time) {
+					cs_log("stoping demux for pmt file %s", dest);
+				 	dvbapi_stop_descrambling(i);
+				}
+
 				close(pmt_fd);
 				continue;
 			} else {
@@ -963,18 +1019,19 @@ void event_handler(int signal) {
 		}
 	}
 
-	if (disable_pmt_files)
+	if (disable_pmt_files) {
+	   	pthread_mutex_unlock(&event_handler_lock);	
 		return; 
+	}
 
 	dirp = opendir(TMPDIR);
 	if (!dirp) {
-		 cs_log("opendir errno %d", errno);
-		 return;
+		cs_log("opendir errno %d", errno);
+		pthread_mutex_unlock(&event_handler_lock);	
+		return;
 	}
   
 	while ((dp = readdir(dirp))) {
-		if (disable_pmt_files)
-			break; 
 		if (strlen(dp->d_name) < 7)
   			continue; 
 		if (strncmp(dp->d_name, "pmt", 3)!=0 || strncmp(dp->d_name+strlen(dp->d_name)-4, ".tmp", 4)!=0) 
@@ -986,7 +1043,7 @@ void event_handler(int signal) {
 			continue;
 			
 		if (fstat(pmt_fd, &pmt_info) != 0) 
-		 { close(pmt_fd); continue; }
+			{ close(pmt_fd); continue; }
 			 
 		int found=0;
 		for (i=0;i<MAX_DEMUX;i++) {
@@ -999,7 +1056,7 @@ void event_handler(int signal) {
 			}
 		}
 		if (found)
-		 { close(pmt_fd); continue; }
+			{ close(pmt_fd); continue; }
 					
 		cs_log("found pmt file %s", dest);
 		cs_sleepms(100);
@@ -1025,6 +1082,7 @@ void event_handler(int signal) {
 		for(j2=0,j1=0;j2<len;j2+=2,j1++) {
 			if (sscanf((char*)client[cs_idx].mbuf+j2, "%02X", dest+j1) != 1) {
 				cs_log("error parsing QboxHD pmt.tmp, data not valid in position %d",j2);
+				pthread_mutex_unlock(&event_handler_lock);	
 				return;
 			}
 		}
@@ -1052,10 +1110,13 @@ void event_handler(int signal) {
 		strcpy(demux[pmt_id].pmt_file, dp->d_name);
 		demux[pmt_id].pmt_time = pmt_info.st_mtime;
 
-		if (cfg->dvbapi_pmtmode == 3)
+		if (cfg->dvbapi_pmtmode == 3) {
 			disable_pmt_files=1;
+			break;
+		}
 	}
 	closedir(dirp);
+	pthread_mutex_unlock(&event_handler_lock);	
 }
 
 void dvbapi_process_input(int demux_id, int filter_num, uchar *buffer, int len) {
@@ -1107,8 +1168,6 @@ void dvbapi_process_input(int demux_id, int filter_num, uchar *buffer, int len) 
 		if (buffer[0]==0x01) { //CAT
 			cs_debug("receiving cat");
 			dvbapi_parse_cat(demux_id, buffer, len);
-			if (demux[demux_id].pidindex < 0)
-				return;
 								
 			dvbapi_stop_filternum(demux_id, filter_num);
 			return;
@@ -1177,6 +1236,11 @@ void dvbapi_main_local() {
 	sigemptyset(&signal_action.sa_mask);
 	signal_action.sa_flags = SA_RESTART;
 	sigaction(SIGRTMIN + 1, &signal_action, NULL);
+
+	pthread_mutexattr_t attr;
+	pthread_mutexattr_init(&attr);
+	pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_ERRORCHECK);
+	pthread_mutex_init(&event_handler_lock, &attr); 
 	
 	dir_fd = open(TMPDIR, O_RDONLY);
 	if (dir_fd >= 0) {
@@ -1319,7 +1383,7 @@ void dvbapi_send_dcw(ECM_REQUEST *er) {
 				dvbapi_start_descrambling(i, er->caid, er->pid);
 			}
 
-			if (er->rc==4 && cfg->dvbapi_au==1 && dvbapi_check_array(global_caid_list, MAX_CAID, er->caid)>=0) {
+			if (er->rc==4 && cfg->dvbapi_au==1 && dvbapi_check_array(global_caid_list, MAX_CAID, er->caid)>=0 && er->caid!=0x0500 && er->caid!=0x0100) {
 				//local card and not found -> maybe card need emm
 				dvbapi_start_descrambling(i, er->caid, er->pid);
 			}
@@ -1383,7 +1447,7 @@ void dvbapi_send_dcw(ECM_REQUEST *er) {
 					fprintf(ecmtxt, "from: %s\n", reader[er->reader[0]].device);
 				else
 					fprintf(ecmtxt, "from: local\n");
-				fprintf(ecmtxt, "protocol: %d\n", reader[er->reader[0]].typ);
+				fprintf(ecmtxt, "protocol: %s\n", reader[er->reader[0]].ph.desc);
 				fprintf(ecmtxt, "hops: %d\n", reader[er->reader[0]].cc_currenthops);
 				fprintf(ecmtxt, "ecm time: %.3f\n", (float) client[cs_idx].cwlastresptime/1000);
 				fprintf(ecmtxt, "cw0: %s\n", cs_hexdump(1,demux[i].lastcw[0],8));

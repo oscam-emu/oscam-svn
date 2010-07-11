@@ -190,7 +190,7 @@ extern char *RDR_CD_TXT[];
 
 #define PIP_ID_ECM    0
 #define PIP_ID_EMM    1
-#define PIP_ID_LOG    2
+//#define PIP_ID_LOG    2
 #define PIP_ID_CIN    3  // CARD_INFO
 #define PIP_ID_HUP    4
 #define PIP_ID_RST    5  // Schlocke: Restart Reader, CCcam for example (param: ridx)
@@ -1110,8 +1110,6 @@ extern void set_signal_handler(int , int , void (*)(int));
 extern void cs_log_config(void);
 extern void cs_waitforcardinit(void);
 extern void cs_reinit_clients(void);
-extern void cs_resolve(void);
-extern void cs_resolve_reader(int );
 extern void chk_dcw(int fd);
 extern void update_reader_config(uchar *ptr);
 

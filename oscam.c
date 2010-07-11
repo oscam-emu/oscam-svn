@@ -352,6 +352,8 @@ void cs_exit(int sig)
 		}
 	}
 
+	cs_close_log();
+
 	if (ecmcache) free((void *)ecmcache);
 
 	exit(sig);
@@ -470,25 +472,6 @@ static void cs_card_info(int i)
     }
 
       //kill(client[i].pid, SIGUSR2);
-}
-
-//Schlocke: restart cardreader after 5 seconds:
-static void restart_cardreader(int ridx) {
-	reader[ridx].ridx = ridx; //FIXME
-	if ((reader[ridx].device[0]) && (reader[ridx].enable == 1) && (!reader[ridx].deleted)) {
-		switch (cs_fork(0, 99)) {
-		case -1:
-			cs_exit(1);
-		case 0:
-			break;
-		default:
-			cs_sleepms(cfg->reader_restart_seconds * 1000); // SS: wait
-			cs_log("restarting reader %s (index=%d)", reader[ridx].label, ridx);
-
-			wait4master();
-			start_cardreader(&reader[ridx]);
-		}
-	}
 }
 
 
@@ -865,41 +848,6 @@ static void cs_client_resolve()
   }
 }
 
-static void loop_resolver()
-{
-  cs_sleepms(1000); // wait for reader
-  while(1)
-  {
-    cs_resolve();
-    cs_sleepms(1000*cfg->resolvedelay);
-/*
-    //debug only. checking pipe status:
-    FILE *f = fopen("/tmp/oscamdbg.txt", "w");
-    int i;
-    for (i=0; i<CS_MAXPID; i++) {
-    	if (client[i].pid) {
-    		struct stat buf;
-    		fstat(client[i].udp_fd, &buf);
-    		int s_udp_fd = buf.st_size;
-
-    		fstat(client[i].fd_m2c, &buf);
-    		int s_fd_m2c = buf.st_size;
-
-    		fstat(client[i].fd_m2c_c, &buf);
-    		int s_fd_m2c_c = buf.st_size;
-
-    		fprintf(f, "%d typ %c pid %d: udp_fd=%d fd_m2c=%d fs_m2c_c=%d ", i, client[i].typ,
-    				client[i].pid,
-    				s_udp_fd,
-    				s_fd_m2c,
-    				s_fd_m2c_c);
-    	}
-    }
-    fclose(f);
-*/
-  }
-}
-
 static void start_thread(void * startroutine, char * nameroutine, char typ) {
 	int i,o;
 
@@ -918,38 +866,6 @@ static void start_thread(void * startroutine, char * nameroutine, char typ) {
 		cs_log("%s thread started", nameroutine);
 		pthread_detach(client[o].thread);
 	}
-}
-
-void cs_resolve()
-{
-	int i, idx;
-	struct hostent *rht;
-	struct s_auth;
-	for (i=0; i<CS_MAXREADER; i++)
-		if ((idx=reader[i].cidx) && (reader[i].typ & R_IS_NETWORK) && (reader[i].typ!=R_CONSTCW))
-		{
-			//client[idx].last=time((time_t)0);
-			pthread_mutex_lock(&gethostbyname_lock); //gethostbyname ist NOT threadsafe! So we need a mutex-lock!
-			rht = gethostbyname(reader[i].device);
-			if (rht)
-			{
-				in_addr_t last_ip = client[idx].ip;
-				memcpy(&client[idx].udp_sa.sin_addr, rht->h_addr,
-						sizeof(client[idx].udp_sa.sin_addr));
-				client[idx].ip=cs_inet_order(client[idx].udp_sa.sin_addr.s_addr);
-				if (client[idx].ip != last_ip)
-				{
-					uint8 *ip = (uint8*)&client[idx].ip;
-					cs_debug_mask(D_TRACE, "resolved %s to %d.%d.%d.%d", reader[i].device,
-							ip[3], ip[2], ip[1], ip[0]);
-				}
-			}
-			else
-				cs_log("can't resolve %s", reader[i].device);
-			pthread_mutex_unlock(&gethostbyname_lock); //gethostbyname ist NOT threadsafe! So we need a mutex-lock!			
-			//client[cs_idx].last=time((time_t)0);
-		}
-
 }
 
 static void cs_logger(void)
@@ -971,13 +887,13 @@ static void cs_logger(void)
 //    switch(n=read_from_pipe(client[cs_idx].fd_m2c_c, &ptr, 1))
       n=read_from_pipe(client[cs_idx].fd_m2c_c, &ptr, 1);
 //if (n!=PIP_ID_NUL) printf("received %d bytes\n", n); fflush(stdout);
-      switch(n)
+   /*   switch(n)
       {
         case PIP_ID_LOG:
           cs_write_log((char *)ptr);
           break;
-      }
-    }
+      }*/
+    } 
   }
 }
 
@@ -1002,50 +918,62 @@ static void cs_http()
 }
 #endif
 
+static void restart_cardreader(int reader_idx, int restart) {
+	int i;
+	reader[reader_idx].ridx = reader_idx;
+	if ((reader[reader_idx].device[0]) && (reader[reader_idx].enable == 1) && (!reader[reader_idx].deleted)) {
+
+		if (restart) {
+			cs_sleepms(cfg->reader_restart_seconds * 1000); // SS: wait
+			cs_log("restarting reader %s (index=%d)", reader[reader_idx].label, reader_idx);
+		}
+
+		i=cs_fork(0, 99);
+		reader[reader_idx].fd=client[i].fd_m2c;
+		client[i].ridx=reader_idx;
+		cs_log("creating thread for device %s slot %i with ridx %i cs_idx %i", reader[reader_idx].device, reader[reader_idx].slot, reader_idx, i);
+             	
+		client[i].sidtabok=reader[reader_idx].sidtabok;
+		client[i].sidtabno=reader[reader_idx].sidtabno;
+   
+		reader[reader_idx].pid=getpid();
+
+		reader[reader_idx].cidx=i;
+
+		client[i].typ='r';
+		//client[i].ctyp=99;
+		pthread_create(&client[i].thread, NULL, start_cardreader, (void *)&reader[reader_idx]);
+
+       	if (reader[reader_idx].r_port)
+			cs_log("proxy thread started (pid=%d, server=%s)",reader[reader_idx].pid, reader[reader_idx].device);
+		else {
+			switch(reader[reader_idx].typ) {
+				case R_MOUSE:
+				case R_SMART:
+					cs_log("reader thread started (pid=%d, device=%s, detect=%s%s, mhz=%d, cardmhz=%d)",reader[reader_idx].pid, 
+						reader[reader_idx].device,reader[reader_idx].detect&0x80 ? "!" : "",RDR_CD_TXT[reader[reader_idx].detect&0x7f],
+						reader[reader_idx].mhz,reader[reader_idx].cardmhz);
+					break;
+				case R_SC8in1:
+					cs_log("reader thread started (pid=%d, device=%s:%i, detect=%s%s, mhz=%d, cardmhz=%d)",reader[reader_idx].pid, 
+						reader[reader_idx].device,reader[reader_idx].slot,reader[reader_idx].detect&0x80 ? "!" : "",
+						RDR_CD_TXT[reader[reader_idx].detect&0x7f],reader[reader_idx].mhz,reader[reader_idx].cardmhz);
+					break;
+				default:
+					cs_log("reader thread started (pid=%d, device=%s)",reader[reader_idx].pid, reader[reader_idx].device);
+			}
+			client[i].ip=client[0].ip;
+			strcpy(client[i].usr, client[0].usr);
+		}  
+	}
+}
 
 static void init_cardreader() {
-	int i;
 	int reader_idx;
 	for (reader_idx=0; reader_idx<CS_MAXREADER; reader_idx++) {
 		reader[reader_idx].ridx = reader_idx;
 		if ((reader[reader_idx].device[0]) && (reader[reader_idx].enable == 1)) {
-			i=cs_fork(0, 99);
-			reader[reader_idx].fd=client[i].fd_m2c;
-			client[i].ridx=reader_idx;
-			cs_log("creating thread for device %s slot %i with ridx %i cs_idx %i", reader[reader_idx].device, reader[reader_idx].slot, reader_idx, i);
-             		
-			client[i].sidtabok=reader[reader_idx].sidtabok;
-			client[i].sidtabno=reader[reader_idx].sidtabno;
-   
-			reader[reader_idx].pid=getpid();
-
-			reader[reader_idx].cidx=i;
-
-			client[i].typ='r';
-			//client[i].ctyp=99;
-			pthread_create(&client[i].thread, NULL, start_cardreader, (void *)&reader[reader_idx]);
-
-       		if (reader[reader_idx].r_port)
-				cs_log("proxy thread started (pid=%d, server=%s)",reader[reader_idx].pid, reader[reader_idx].device);
-			else {
-				switch(reader[reader_idx].typ) {
-					case R_MOUSE:
-					case R_SMART:
-						cs_log("reader thread started (pid=%d, device=%s, detect=%s%s, mhz=%d, cardmhz=%d)",reader[reader_idx].pid, 
-							reader[reader_idx].device,reader[reader_idx].detect&0x80 ? "!" : "",RDR_CD_TXT[reader[reader_idx].detect&0x7f],
-							reader[reader_idx].mhz,reader[reader_idx].cardmhz);
-						break;
-					case R_SC8in1:
-						cs_log("reader thread started (pid=%d, device=%s:%i, detect=%s%s, mhz=%d, cardmhz=%d)",reader[reader_idx].pid, 
-								reader[reader_idx].device,reader[reader_idx].slot,reader[reader_idx].detect&0x80 ? "!" : "",
-							RDR_CD_TXT[reader[reader_idx].detect&0x7f],reader[reader_idx].mhz,reader[reader_idx].cardmhz);
-						break;
-					default:
-						cs_log("reader thread started (pid=%d, device=%s)",reader[reader_idx].pid, reader[reader_idx].device);
-				}
-				client[i].ip=client[0].ip;
-				strcpy(client[i].usr, client[0].usr);
-			}  
+			restart_cardreader(reader_idx, 0);
 		}
 	}
 }
@@ -1294,11 +1222,48 @@ void store_logentry(char *txt)
 }
 
 /*
+* Check if a fd is ready for a write (fir pipes).
+*/
+int pipe_WaitToWrite (int out_fd, unsigned timeout_ms)
+{
+   fd_set wfds;
+   fd_set ewfds;
+   struct timeval tv;
+   
+   FD_ZERO(&wfds);
+   FD_SET(out_fd, &wfds);
+   
+   FD_ZERO(&ewfds);
+   FD_SET(out_fd, &ewfds);
+   
+   tv.tv_sec = timeout_ms/1000L;
+   tv.tv_usec = (timeout_ms % 1000) * 1000L;
+
+   if (select(out_fd + 1, NULL, &wfds, &ewfds, &tv) == -1) {
+      cs_log("pipe_WaitToWrite() error on fd=%d, select_ret=-1, errno=%d", out_fd, errno);
+      return 0;
+   }
+
+   if (FD_ISSET(out_fd, &ewfds)) {
+      cs_log("pipe_WaitToWrite() error on fd=%d, fd is in ewfds, errno=%d", out_fd, errno);
+      return 0;
+   }
+
+   return (FD_ISSET(out_fd,&wfds)) ? 1 : 0;
+}
+
+/*
  * write_to_pipe():
  * write all kind of data to pipe specified by fd
  */
 int write_to_pipe(int fd, int id, uchar *data, int n)
 {
+	// check is write to pipe ready if fails check 
+	// one more time and give up if fails
+	if (!pipe_WaitToWrite(fd, 100))
+    if (!pipe_WaitToWrite(fd, 100))  	
+  	   return -1;
+
   uchar buf[1024+3+sizeof(int)];
 
 //printf("WRITE_START pid=%d", getpid()); fflush(stdout);
@@ -1311,10 +1276,10 @@ int write_to_pipe(int fd, int id, uchar *data, int n)
 //n=write(fd, buf, n);
 //printf("WRITE_END pid=%d", getpid()); fflush(stdout);
 //return(n);
-  if( !fd ){
+  if( !fd ) {
     cs_log("write_to_pipe: fd==0");
-return(PIP_ID_ERR);
-}
+    return(PIP_ID_ERR);
+  }
   return(write(fd, buf, n));
 }
 
@@ -1953,9 +1918,9 @@ void request_cw(ECM_REQUEST *er, int flag, int reader_types)
   flag=(flag)?3:1;    // flag specifies with/without fallback-readers
   for (i=0; i<CS_MAXREADER; i++)
   {
-	  //if (reader[i].pid)
-	  //	  cs_log("active reader: %d pid %d fd %d", i, reader[i].pid, reader[i].fd);
-
+	    //if (reader[i].pid)
+	    //	  cs_log("active reader: %d pid %d fd %d", i, reader[i].pid, reader[i].fd);
+      int status = 0;
       switch (reader_types)
       {
           // network and local cards
@@ -1963,7 +1928,7 @@ void request_cw(ECM_REQUEST *er, int flag, int reader_types)
           case 0:
               if (er->reader[i]&flag){
                   cs_debug_mask(D_TRACE, "request_cw1 to reader %s ridx=%d fd=%d", reader[i].label, i, reader[i].fd);
-                  write_ecm_request(reader[i].fd, er);
+                  status = write_ecm_request(reader[i].fd, er);
               }
               break;
               // only local cards
@@ -1971,7 +1936,7 @@ void request_cw(ECM_REQUEST *er, int flag, int reader_types)
               if (!(reader[i].typ & R_IS_NETWORK))
                   if (er->reader[i]&flag) {
                 	  cs_debug_mask(D_TRACE, "request_cw2 to reader %s ridx=%d fd=%d", reader[i].label, i, reader[i].fd);
-                      write_ecm_request(reader[i].fd, er);
+                    status = write_ecm_request(reader[i].fd, er);
                   }
               break;
               // only network
@@ -1980,10 +1945,11 @@ void request_cw(ECM_REQUEST *er, int flag, int reader_types)
               if ((reader[i].typ & R_IS_NETWORK))
                   if (er->reader[i]&flag) {
                 	  cs_debug_mask(D_TRACE, "request_cw3 to reader %s ridx=%d fd=%d", reader[i].label, i, reader[i].fd);
-                      write_ecm_request(reader[i].fd, er);
+                    status = write_ecm_request(reader[i].fd, er);
                   }
               break;
       }
+      if (status == -1) cs_log("request_cw() failed on reader %s", reader[i].label);      
   }
 }
 
@@ -2499,14 +2465,14 @@ static void process_master_pipe()
 
   switch(n=read_from_pipe(mfdr, &ptr, 1))
   {
-    case PIP_ID_LOG:
-    	cs_write_log((char *)ptr);
-    	break;
+    //case PIP_ID_LOG:
+    //	cs_write_log((char *)ptr);
+    //	break;
     case PIP_ID_HUP:
     	cs_accounts_chk();
     	break;
     case PIP_ID_RST: //Restart Cardreader with ridx=prt[0]
-    	restart_cardreader(*(int*)ptr);
+    	restart_cardreader(*(int*)ptr, 1);
     	break;
     case PIP_ID_KCL: //Kill all clients
     	restart_clients();
@@ -2817,9 +2783,9 @@ int main (int argc, char *argv[])
 	if(cfg->clientdyndns)
 		start_thread((void *) &cs_client_resolve, "client resolver", 'n');
 
-	start_thread((void *) &cs_logger, "logger", 'l'); //97;
+	//start_thread((void *) &cs_logger, "logger", 'l'); //97;
 
-	start_thread((void *) &loop_resolver, "resolver", 'n');
+	//start_thread((void *) &loop_resolver, "resolver", 'n');
 #ifdef WEBIF
 	start_thread((void *) &cs_http, "http", 'h'); //95
 #endif

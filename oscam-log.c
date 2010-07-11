@@ -11,6 +11,8 @@ static int use_stdout=0;
 static char *log_txt;
 static char *log_buf;
 
+pthread_mutex_t log_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 #ifdef CS_ANTICASC
 FILE *fpa=(FILE *)0;
 int use_ac_log=0;
@@ -122,10 +124,9 @@ static char *get_log_header(int m, char *txt)
 		if (cs_idx) {
 			switch (client[cs_idx].typ) {
 				case 'r':
-				case 'p':	sprintf(txt+7, "%c%02d ", client[cs_idx].typ, cs_idx - 1);
-							break;
+				case 'p':
 				case 'm':
-				case 'c':	sprintf(txt+7, "%c%02d ", client[cs_idx].typ, cs_idx - cdiff);
+				case 'c':	sprintf(txt+7, "%c%02d ", client[cs_idx].typ, cs_idx);
 							break;
 #ifdef CS_ANTICASC
 				case 'a':
@@ -187,9 +188,9 @@ static void write_to_log(int flag, char *txt)
 			sprintf(log_buf, "[LOG000]%s", txt);
 	}
 
-	if ((*log_fd) && (client[cs_idx].typ != 'l') && (client[cs_idx].typ != 'a'))
-		write_to_pipe(*log_fd, PIP_ID_LOG, (uchar *) log_buf+8, strlen(log_buf+8));
-	else
+	//if ((*log_fd) && (client[cs_idx].typ != 'l') && (client[cs_idx].typ != 'a'))
+	//	write_to_pipe(*log_fd, PIP_ID_LOG, (uchar *) log_buf+8, strlen(log_buf+8));
+	//else
 		cs_write_log(log_buf + 8);
 
 	store_logentry(log_buf);
@@ -217,12 +218,14 @@ void cs_log(char *fmt,...)
 {
 	if (!log_txt)
 		return;
+	pthread_mutex_lock(&log_mutex);
 	get_log_header(1, log_txt);
 	va_list params;
 	va_start(params, fmt);
 	vsprintf(log_txt+11, fmt, params);
 	va_end(params);
 	write_to_log(-1, log_txt);
+	pthread_mutex_unlock(&log_mutex);
 }
 
 void cs_close_log(void)
@@ -242,6 +245,7 @@ void cs_close_log(void)
 void cs_debug(char *fmt,...)
 {
 	//  cs_log("cs_debug called, cs_ptyp=%d, cs_dblevel=%d, %d", cs_ptyp, client[cs_idx].dbglvl ,client[cs_idx].cs_ptyp & client[cs_idx].dbglvl);
+	pthread_mutex_lock(&log_mutex);
 	if (log_txt && client[cs_idx].dbglvl & client[cs_idx].cs_ptyp)
 	{
 		get_log_header(1, log_txt);
@@ -251,10 +255,12 @@ void cs_debug(char *fmt,...)
 		va_end(params);
 		write_to_log(-1, log_txt);
 	}
+	pthread_mutex_unlock(&log_mutex);
 }
 
 void cs_debug_mask(unsigned short mask, char *fmt,...)
 {
+	pthread_mutex_lock(&log_mutex);
 	if (log_txt && client[cs_idx].dbglvl & mask)
 	{
 		get_log_header(1, log_txt);
@@ -264,10 +270,12 @@ void cs_debug_mask(unsigned short mask, char *fmt,...)
 		va_end(params);
 		write_to_log(-1, log_txt);
 	}
+	pthread_mutex_unlock(&log_mutex);
 }
 
 void cs_debug_nolf(char *fmt,...)
 {
+	pthread_mutex_lock(&log_mutex);
 	if (log_txt && client[cs_idx].dbglvl & client[cs_idx].cs_ptyp)
 	{
 		va_list params;
@@ -281,12 +289,14 @@ void cs_debug_nolf(char *fmt,...)
 			number_of_chars_printed++;
 		write_to_log(number_of_chars_printed, log_txt);
 	}
+	pthread_mutex_unlock(&log_mutex);
 }
 
 void cs_dump(uchar *buf, int n, char *fmt, ...)
 {
 	if (!log_txt)
 		return;
+	pthread_mutex_lock(&log_mutex);
 	int i;
 
 	if( fmt )
@@ -306,12 +316,14 @@ void cs_dump(uchar *buf, int n, char *fmt, ...)
 		sprintf(log_txt+11, "%s", cs_hexdump(1, buf+i, (n-i>16) ? 16 : n-i));
 		write_to_log(-1, log_txt);
 	}
+	pthread_mutex_unlock(&log_mutex);
 }
 
 void cs_ddump(uchar *buf, int n, char *fmt, ...)
 {
 	if (!log_txt)
 		return;
+	pthread_mutex_lock(&log_mutex);
 	int i;
 
 	//if (((cs_ptyp & client[cs_idx].dbglvl)==cs_ptyp) && (fmt))
@@ -335,14 +347,16 @@ void cs_ddump(uchar *buf, int n, char *fmt, ...)
 			write_to_log(-1, log_txt);
 		}
 	}
+	pthread_mutex_unlock(&log_mutex);
 }
 
 void cs_ddump_mask(unsigned short mask, uchar *buf, int n, char *fmt, ...)
 {
+
 	if(!log_txt)
 		return;
 	int i;
-
+	pthread_mutex_lock(&log_mutex);
 	//if (((cs_ptyp & client[cs_idx].dbglvl)==cs_ptyp) && (fmt))
 	if ((mask & client[cs_idx].dbglvl) && (fmt))
 	{
@@ -364,6 +378,7 @@ void cs_ddump_mask(unsigned short mask, uchar *buf, int n, char *fmt, ...)
 			write_to_log(-1, log_txt);
 		}
 	}
+	pthread_mutex_unlock(&log_mutex);
 }
 
 int cs_init_statistics(char *file) 
@@ -444,9 +459,9 @@ void cs_statistics(int idx)
 				client[idx].last_srvid,
 				channel);
 
-		if ((*log_fd) && (client[cs_idx].typ != 'l') && (client[cs_idx].typ != 'a'))
-			write_to_pipe(*log_fd, PIP_ID_LOG, (uchar *) buf, strlen(buf));
-		else
+		//if ((*log_fd) && (client[cs_idx].typ != 'l') && (client[cs_idx].typ != 'a'))
+		//	write_to_pipe(*log_fd, PIP_ID_LOG, (uchar *) buf, strlen(buf));
+		//else
 			cs_write_log(buf);
 	}
 }
