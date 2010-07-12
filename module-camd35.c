@@ -389,7 +389,25 @@ int camd35_client_init()
          reader[client[cs_idx].ridx].device, reader[client[cs_idx].ridx].r_port,
          client[cs_idx].udp_fd, ptxt);
 
-  if (client[cs_idx].is_udp) client[cs_idx].pfd=client[cs_idx].udp_fd;
+  if (client[cs_idx].is_udp) {
+	client[cs_idx].pfd=client[cs_idx].udp_fd;
+
+	//TODO: dirty udp hotfix
+	struct addrinfo hints, *res = NULL; 
+   
+	memset(&hints, 0, sizeof(hints)); 
+	hints.ai_socktype = SOCK_STREAM; 
+ 	hints.ai_family = client[cs_idx].udp_sa.sin_family; 
+	hints.ai_protocol = IPPROTO_TCP; 
+ 	   
+	if (getaddrinfo(reader[client[cs_idx].ridx].device, NULL, &hints, &res) == 0) { 
+ 		client[cs_idx].udp_sa.sin_addr.s_addr =  ((struct sockaddr_in *)(res->ai_addr))->sin_addr.s_addr; 
+		client[cs_idx].ip = cs_inet_order(client[cs_idx].udp_sa.sin_addr.s_addr); 
+	}  else { 
+		cs_log("can't resolve %s", reader[client[cs_idx].ridx].device); 
+ 	}
+ 	if (res) freeaddrinfo(res);  
+}
 
   return(0);
 }

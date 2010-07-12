@@ -1222,8 +1222,40 @@ void store_logentry(char *txt)
 }
 
 /*
-* Check if a fd is ready for a write (fir pipes).
+* Check if a fd is ready for a write (for pipes).
+* retry twice in case of an error (so it could take 3 x timeout_ms in case of a hard error to return)
 */
+int pipe_WaitToWrite (int out_fd, unsigned timeout_ms)
+{
+    int i;
+    fd_set wfds;
+    fd_set ewfds;
+    struct timeval tv;
+    
+    FD_ZERO(&wfds);
+    FD_SET(out_fd, &wfds);
+    
+    FD_ZERO(&ewfds);
+    FD_SET(out_fd, &ewfds);
+    
+    tv.tv_sec = timeout_ms/1000L;
+    tv.tv_usec = (timeout_ms % 1000) * 1000L;
+    for(i=0;i<3;i++) {
+        if (select(out_fd + 1, NULL, &wfds, &ewfds, &tv) == -1) {
+            cs_debug("pipe_WaitToWrite() error on fd=%d, select_ret=-1, errno=%d", out_fd, errno);
+            continue;
+        }
+        if (FD_ISSET(out_fd, &ewfds)) {
+            cs_debug("pipe_WaitToWrite() error on fd=%d, fd is in ewfds, errno=%d", out_fd, errno);
+            continue;
+        }
+        break;   
+    }
+    
+    return (FD_ISSET(out_fd,&wfds)) ? 1 : 0;
+}
+
+/*
 int pipe_WaitToWrite (int out_fd, unsigned timeout_ms)
 {
    fd_set wfds;
@@ -1251,6 +1283,7 @@ int pipe_WaitToWrite (int out_fd, unsigned timeout_ms)
 
    return (FD_ISSET(out_fd,&wfds)) ? 1 : 0;
 }
+*/
 
 /*
  * write_to_pipe():
@@ -1260,7 +1293,6 @@ int write_to_pipe(int fd, int id, uchar *data, int n)
 {
 	// check is write to pipe ready if fails check 
 	// one more time and give up if fails
-	if (!pipe_WaitToWrite(fd, 100))
     if (!pipe_WaitToWrite(fd, 100))  	
   	   return -1;
 
