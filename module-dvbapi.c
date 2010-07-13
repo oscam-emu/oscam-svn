@@ -304,12 +304,12 @@ int dvbapi_detect_api() {
 
 int dvbapi_read_device(int dmx_fd, unsigned char *buf, int length) {
 	int len, rc;
-	struct pollfd pfd3[1];
+	struct pollfd pfd[1];
 
-	pfd3[0].fd = dmx_fd;
-	pfd3[0].events = (POLLIN | POLLPRI);
+	pfd[0].fd = dmx_fd;
+	pfd[0].events = (POLLIN | POLLPRI);
 
-	rc = poll(pfd3, 1, 2000);
+	rc = poll(pfd, 1, 7000);
 	if (rc<1) {
 		cs_log("read on %d timed out", dmx_fd);
 		return -1;
@@ -391,7 +391,7 @@ void dvbapi_start_filter(int demux_id, int pidindex, unsigned short pid, uchar t
 	filter[0]=table;
 	filter[16]=mask;
 
-	dvbapi_set_filter(demux_id, selected_api, pid, filter, filter+16, 4000, pidindex, 0, type);
+	dvbapi_set_filter(demux_id, selected_api, pid, filter, filter+16, 7000, pidindex, 0, type);
 }
 
 void dvbapi_start_emm_filter(int demux_index) {
@@ -597,12 +597,79 @@ void dvbapi_start_descrambling(int demux_index, unsigned short caid, unsigned sh
 		dvbapi_start_filter(demux_index, demux[demux_index].pidindex, 0x001, 0x01, 0xFF, TYPE_EMM); //CAT
 }
 
-void dvbapi_process_emm (int demux_index, unsigned char *buffer, unsigned int len) {
+void dvbapi_process_emm (int demux_index, int filter_num, unsigned char *buffer, unsigned int len) {
 	EMM_PACKET epg;
+	static uchar emm_global[512];
+	static int emm_global_len = 0;
+	int pos, emm_len = 0, k;
+	uchar emmbuf[512];
 
 	if (demux[demux_index].pidindex==-1) return;
+			
+	switch (demux[demux_index].ECMpids[demux[demux_index].pidindex].CAID >> 8) {
+		case 0x05:
+			if (len>500) return;
+			switch(buffer[0]) {
+				case 0x8c:
+				case 0x8d:
+					if (!memcmp(emm_global, buffer, len)) return;
+					memcpy(emm_global, buffer, len);
+					emm_global_len=len;
+					//cs_ddump(buffer, len, "viaccess global emm:");
+					return;
+				case 0x8e:
+					if (!emm_global_len) return;
 
-	cs_ddump(buffer, 16, "emm:");
+					memcpy(emmbuf, buffer, 7);
+					memcpy(emmbuf+7, "\x9E\x20", 2);
+					memcpy(emmbuf+9, buffer+7, 32);
+					pos=9+32;
+					for (k=3; k<emm_global[2]+2 && k<emm_global_len; k += emm_global[k+1]+2) {
+						memcpy(emmbuf+pos, emm_global+k, emm_global[k+1]+2);
+						pos += emm_global[k+1]+2;
+					}
+					memcpy(emmbuf+pos, "\xF0\x08", 2);
+					memcpy(emmbuf+pos+2, buffer+41, 8);
+					emm_len=pos+10;
+					emmbuf[2]=emm_len-3;
+					cs_ddump(buffer, len, "original emm:");
+					memcpy(buffer, emmbuf, emm_len);
+					len=emm_len;
+					break;
+			}
+			break;
+		case 0x0d:
+			if (len>500) return;
+			switch (buffer[0]) {
+				case 0x86:
+					if (!memcmp(emm_global, buffer, len)) return;
+					memcpy(emm_global, buffer, len);
+					emm_global_len=len;
+					cs_ddump(buffer, len, "cryptoworks global emm:");
+					return;
+				case 0x84:
+					if (!emm_global_len) return;
+
+					memcpy(emmbuf, buffer, 18);
+					pos=18;
+					for (k=5; k<emm_global[2]+2 && k<emm_global_len; k += emm_global[k+1]+2) {
+						memcpy(emmbuf+pos, emm_global+k, emm_global[k+1]+2);
+						pos += emm_global[k+1]+2;
+					}
+					memcpy(emmbuf+pos, buffer+18, len-18);
+					emm_len=pos+(len-18);
+					emmbuf[2]=emm_len-3;
+					cs_ddump(buffer, len, "original emm:");
+					memcpy(buffer, emmbuf, emm_len);
+					len=emm_len;
+				
+					break;
+			}
+			break;
+	}
+		
+
+	cs_ddump(buffer, len, "emm from fd %d:", demux[demux_index].demux_fd[filter_num].fd);
 
 	memset(&epg, 0, sizeof(epg));
 	epg.caid[0] = (uchar)(demux[demux_index].ECMpids[demux[demux_index].pidindex].CAID>>8);
@@ -1173,8 +1240,7 @@ void dvbapi_process_input(int demux_id, int filter_num, uchar *buffer, int len) 
 			dvbapi_stop_filternum(demux_id, filter_num);
 			return;
 		}
-		cs_debug("EMM Filter fd %d", demux[demux_id].demux_fd[filter_num].fd);
-		dvbapi_process_emm(demux_id, buffer, len);
+		dvbapi_process_emm(demux_id, filter_num, buffer, len);
 	}
 
 	if (demux[demux_id].demux_fd[filter_num].count==1) {

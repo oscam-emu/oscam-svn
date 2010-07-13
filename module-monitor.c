@@ -233,10 +233,10 @@ static void monitor_send_info(char *txt, int last)
 
 int cs_idx2ridx(int idx){
 	int i;
-//TODO: !
-	//for (i = 0; i < CS_MAXREADER; i++)
-	//	if (reader[i].cs_idx==idx)
-	//		return(i);
+
+	for (i = 0; i < CS_MAXREADER; i++)
+		if (reader[i].cidx==idx)
+			return(i);
 	return(-1);
 }
 

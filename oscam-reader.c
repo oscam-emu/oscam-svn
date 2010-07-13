@@ -133,9 +133,8 @@ int network_select(int forRead, int timeout)
    return -1; 
 } 
 
-int network_tcp_connection_open()
+int hostResolve()
 {
-  cs_log("connecting to %s", reader[client[cs_idx].ridx].device);
   pthread_mutex_lock(&gethostbyname_lock);
   struct addrinfo hints, *res = NULL;
   
@@ -149,34 +148,41 @@ int network_tcp_connection_open()
      client[cs_idx].udp_sa.sin_addr.s_addr = 
           ((struct sockaddr_in *)(res->ai_addr))->sin_addr.s_addr;
      client[cs_idx].ip = cs_inet_order(client[cs_idx].udp_sa.sin_addr.s_addr);
+     
+     if (client[client[cs_idx].idx].ip != last_ip) {
+	      uchar *ip = (uchar*) &client[cs_idx].ip;
+	      cs_debug("%s: resolved ip=%d.%d.%d.%d", reader[client[cs_idx].ridx].device, ip[3], ip[2], ip[1], ip[0]);
+     }
   }
   else {
+     client[cs_idx].udp_sa.sin_addr.s_addr = 0;
      cs_log("can't resolve %s", reader[client[cs_idx].ridx].device);
   }
   if (res) freeaddrinfo(res); 
   pthread_mutex_unlock(&gethostbyname_lock);	     	
-
-  if (!client[cs_idx].udp_sa.sin_addr.s_addr)
-  	 return -1; 
   
-  if (client[client[cs_idx].idx].ip != last_ip) {
-	   uchar *ip = (uchar*) &client[cs_idx].ip;
-	   cs_debug("%s: resolved ip=%d.%d.%d.%d", reader[client[cs_idx].ridx].device, ip[3], ip[2], ip[1], ip[0]);
-  }
-//-----------	
-	
+  return (client[cs_idx].udp_sa.sin_addr.s_addr) ? 1 : 0;
+}
+
+int network_tcp_connection_open()
+{
+  cs_log("connecting to %s", reader[client[cs_idx].ridx].device);
+
+  if (!hostResolve())
+     return -1;
+ 
   int sd = client[cs_idx].udp_fd;
   if (connect(sd, (struct sockaddr *)&client[cs_idx].udp_sa, sizeof(client[cs_idx].udp_sa)) == 0)
-	   return sd;
+     return sd;
 	 
   if (errno == EINPROGRESS || errno == EALREADY) {
-   	if (network_select(0, DEFAULT_CONNECT_TIMEOUT) > 0) {
-	     int r = -1;
-       uint l = sizeof(r);
-       if (getsockopt(sd, SOL_SOCKET, SO_ERROR, &r, (socklen_t*)&l) == 0) {
-          if (r == 0) return sd;
-	     }
-	  }
+     if (network_select(0, DEFAULT_CONNECT_TIMEOUT) > 0) {
+        int r = -1;
+        uint l = sizeof(r);
+        if (getsockopt(sd, SOL_SOCKET, SO_ERROR, &r, (socklen_t*)&l) == 0) {
+           if (r == 0) return sd;
+	}
+     }
   }
   else if (errno == EBADF || errno == ENOTSOCK) {
     cs_log("connect failed: bad socket/descriptor %d", sd);
@@ -220,10 +226,10 @@ void network_tcp_connection_close(struct s_reader * reader, int fd)
     reader->tcp_connected = 0;
 
     if (client[cs_idx].ecmtask) {
-			for (i = 0; i < CS_MAXPENDING; i++) {
-				client[cs_idx].ecmtask[i].idx = 0;
-				client[cs_idx].ecmtask[i].rc = 0;
-			}
+	for (i = 0; i < CS_MAXPENDING; i++) {
+	   client[cs_idx].ecmtask[i].idx = 0;
+	   client[cs_idx].ecmtask[i].rc = 0;
+	}
     }
 
     reader->ncd_msgid=0;

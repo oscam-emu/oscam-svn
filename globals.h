@@ -345,6 +345,13 @@ typedef struct  {
 } SR_CONFIG;
 #endif
 
+typedef struct aes_entry {
+    ushort      keyid;
+    ushort      caid;
+    uint32      ident;
+    AES_KEY     key;
+    struct aes_entry   *next;
+} AES_ENTRY;
 
 struct s_ecm
 {
@@ -717,6 +724,8 @@ struct s_reader  //contains device info, reader info and card info
 	int lb_usagelevel_ecmcount;
 	time_t lb_usagelevel_time; //time for counting ecms, this creates usagelevel
 	time_t lb_last; //time for oldest reader
+	// multi AES linked list
+	AES_ENTRY *aes_list;
 };
 
 #ifdef CS_ANTICASC
@@ -971,6 +980,7 @@ typedef struct get_reader_stat_t
   ulong         prid;
   ushort        srvid;
   int           cidx;
+  int           reader_avail[CS_MAXREADER];
 } GCC_PACK      GET_READER_STAT;
 
 typedef struct emm_packet_t
@@ -1193,6 +1203,7 @@ extern void cs_ri_brk(struct s_reader * reader, int);
 extern void cs_ri_log(struct s_reader * reader, char *,...);
 extern void * start_cardreader(void *);
 extern void reader_card_info(struct s_reader * reader);
+extern int hostResolve();
 extern int network_tcp_connection_open();
 extern void network_tcp_connection_close(struct s_reader * reader, int);
 
@@ -1214,6 +1225,10 @@ extern void cs_dump(uchar *, int, char *, ...);
 extern void aes_set_key(char *);
 extern void aes_encrypt_idx(int, uchar *, int);
 extern void aes_decrypt(uchar *, int);
+extern int aes_decrypt_from_list(AES_ENTRY *list, ushort caid, uint32 provid,int keyid, uchar *buf, int n);
+
+extern void parse_aes_keys(struct s_reader *rdr,char *value);
+
 #define aes_encrypt(b, n) aes_encrypt_idx(cs_idx, b, n)
 
 // reader-common
@@ -1230,7 +1245,7 @@ extern int check_emm_cardsystem(struct s_reader * rdr, EMM_PACKET *ep);
 //module-stat
 extern void init_stat();
 extern void add_reader_stat(ADD_READER_STAT *add_stat);
-extern int get_best_reader(ushort caid, ulong prid, ushort srvid);
+extern int get_best_reader(GET_READER_STAT *grs);
 
 #ifdef HAVE_PCSC
 // reader-pcsc

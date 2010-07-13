@@ -3437,6 +3437,11 @@ void chk_reader(char *token, char *value, struct s_reader *rdr)
 			return;
 		}
 	}
+    // new code for multiple aes key per reader
+	if (!strcmp(token, "aeskeys")) {
+        parse_aes_keys(rdr,value);
+		return;
+	}
 
 	if (token[0] != '#')
 		fprintf(stderr, "Warning: keyword '%s' in reader section not recognized\n",token);
@@ -3842,4 +3847,5 @@ char * get_tmp_dir()
   mkdir(tmpdir, S_IRWXU);
   return tmpdir;
 }
+
 

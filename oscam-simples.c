@@ -23,6 +23,130 @@ void aes_encrypt_idx(int idx, uchar *buf, int n)
     AES_encrypt(buf+i, buf+i, &client[idx].aeskey);
 }
 
+void add_aes_entry(struct s_reader *rdr, ushort caid, uint32 ident, int keyid, uchar *aesKey)
+{
+    AES_ENTRY *new_entry;
+    AES_ENTRY *next,*current;
+    
+    // create de AES key entry for the linked list
+    new_entry=malloc(sizeof(AES_ENTRY));
+    if(!new_entry) {
+            cs_log("Error alocation memory for AES key entry");
+            return;
+    }
+            
+    new_entry->caid=caid;
+    new_entry->ident=ident;
+    new_entry->keyid=keyid;
+    AES_set_decrypt_key((const unsigned char *)aesKey, 128, &(new_entry->key));
+    new_entry->next=NULL;
+    
+    //if list is empty, new_entry is the new head
+    if(!rdr->aes_list) {
+        rdr->aes_list=new_entry;
+        return;
+    }
+
+    //happend it to the list
+    current=rdr->aes_list;
+    next=current->next;
+    while(next) {
+        current=next;
+        next=current->next;
+        }
+    
+    current->next=new_entry;
+
+}
+
+void parse_aes_entry(struct s_reader *rdr,char *value) {
+    ushort caid;
+    uint32 ident;
+    int len;
+    char *tmp;
+    int nb_keys,key_id;
+    uchar aes_key[16];
+    char *save=NULL;
+
+    tmp=strtok_r(value,"@",&save);
+    caid=a2i(tmp,2);
+    tmp=strtok_r(NULL,":",&save);
+    ident=a2i(tmp,3);
+    
+    // now we need to split the key ane add the entry to the reader.
+    nb_keys=0;
+    key_id=0;
+    while((tmp=strtok_r(NULL,",",&save))) {
+        len=strlen(tmp);
+        if(len!=32) {
+            if(len!=1)
+                cs_log("AES key length error .. not adding");
+            key_id++;
+            continue;
+        }
+        nb_keys++;
+        key_atob(tmp,aes_key);
+        // now add the key to the reader... TBD
+        add_aes_entry(rdr,caid,ident,key_id,aes_key);
+        key_id++;
+    }
+    
+    cs_log("%d AES key(s) added on reader %s for %04x:%06x", nb_keys, rdr->label, caid, ident);
+}
+
+void parse_aes_keys(struct s_reader *rdr,char *value)
+{
+    // value format is caid1@ident1:key0,key1;caid2@indent2:key0,key1
+    char *entry;
+    char *save=NULL;
+    
+    rdr->aes_list=NULL;
+    for (entry=strtok_r(value, ";",&save); entry; entry=strtok_r(NULL, ";",&save)) {
+        cs_debug("AES key entry=%s",entry);
+        parse_aes_entry(rdr,entry);
+    }
+    
+    /*
+    AES_ENTRY *current;
+    current=rdr->aes_list;
+    while(current) {
+        cs_log("**************************");
+        cs_log("current = %p",current);
+        cs_log("CAID = %04x",current->caid);
+        cs_log("IDENT = %06x",current->ident);
+        cs_log("keyID = %d",current->keyid);
+        cs_log("next = %p",current->next);
+        cs_log("**************************");
+        current=current->next;
+    }
+    */
+}
+
+int aes_decrypt_from_list(AES_ENTRY *list, ushort caid, uint32 provid,int keyid, uchar *buf, int n)
+{
+    int OK=1;
+    int ERROR=0;
+    AES_ENTRY *current;
+    int i;
+    current=list;
+    while(current) {
+        if(current->caid==caid && current->ident==provid && current->keyid==keyid)
+            break;
+        current=current->next;
+    }
+
+    if(!current) {
+        cs_log("AES Decrypt : key id %d not found for CAID %04X , provider %06x",keyid,caid,provid);
+        return ERROR; // we don't have the key to decode this buffer.
+        }
+    else {
+        // decode the key
+        for(i=0; i<n; i+=16)
+            AES_decrypt(buf+i, buf+i, &(current->key));
+    }
+    return OK; // all ok, key decoded.
+}
+
 char *remote_txt(void)
 {
   if (client[cs_idx].is_server)
