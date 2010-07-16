@@ -509,8 +509,8 @@ void cryptoworks_get_emm_filter(struct s_reader * rdr, uchar *filter)
 	filter[2]=GLOBAL;
 	filter[3]=0;
 
-	filter[4+0]    = 0x88;
-	filter[4+0+16] = 0xFE; // 0x88 to 0x89
+	filter[4+0]    = 0x89;
+	filter[4+0+16] = 0xFF;
 	filter[4+1]    = 0xA9;
 	filter[4+1+16] = 0xFF;
 	filter[4+2]    = 0xFF;
@@ -557,6 +557,8 @@ void cryptoworks_get_emm_filter(struct s_reader * rdr, uchar *filter)
 
 	filter[106+0]    = 0x86;
 	filter[106+16]   = 0xFF;
+	filter[106+6]    = 0x84;
+	filter[106+6+16] = 0xFF;
 
 	return;
 }

@@ -3,8 +3,6 @@
 int logfd=0;
 extern struct s_reader * reader;
 
-static struct s_emm *emmcache;
-
 void reader_do_idle(struct s_reader * reader);
 
 void cs_ri_brk(struct s_reader * reader, int flag)
@@ -411,14 +409,13 @@ int casc_process_ecm(struct s_reader * reader, ECM_REQUEST *er)
 
 static int reader_store_emm(uchar *emm, uchar type)
 {
-  static int rotate=0;
   int rc;
-  memcpy(emmcache[rotate].emm, emm, emm[2]);
-  emmcache[rotate].type=type;
-  emmcache[rotate].count=1;
+  memcpy(client[cs_idx].emmcache[client[cs_idx].rotate].emm, emm, emm[2]);
+  client[cs_idx].emmcache[client[cs_idx].rotate].type=type;
+  client[cs_idx].emmcache[client[cs_idx].rotate].count=1;
 //  cs_debug("EMM stored (index %d)", rotate);
-  rc=rotate;
-  rotate=(rotate+1) % CS_EMMCACHESIZE;
+  rc=client[cs_idx].rotate;
+  client[cs_idx].rotate=(client[cs_idx].rotate+1) % CS_EMMCACHESIZE;
   return(rc);
 }
 
@@ -440,7 +437,7 @@ static void reader_get_ecm(struct s_reader * reader, ECM_REQUEST *er)
     return;
   }
   // cache2
-  if (check_ecmcache(er, client[er->cidx].grp))
+  if (check_ecmcache2(er, client[er->cidx].grp))
   {
     er->rc=2;
     write_ecm_answer(reader, fd_c2m, er);
@@ -481,13 +478,13 @@ static int reader_do_emm(struct s_reader * reader, EMM_PACKET *ep)
 
   no=0;
   for (i=ecs=0; (i<CS_EMMCACHESIZE) && (!ecs); i++)
-          if (!memcmp(emmcache[i].emm, ep->emm, ep->emm[2]))
+          if (!memcmp(client[cs_idx].emmcache[i].emm, ep->emm, ep->emm[2]))
           {
                   if (reader->cachemm)
-                          ecs=(reader->rewritemm > emmcache[i].count) ? 1 : 2;
+                          ecs=(reader->rewritemm > client[cs_idx].emmcache[i].count) ? 1 : 2;
                   else
                           ecs=1;
-                  no=++emmcache[i].count;
+                  no=++client[cs_idx].emmcache[i].count;
                   i--;
           }
 
@@ -525,7 +522,7 @@ static int reader_do_emm(struct s_reader * reader, EMM_PACKET *ep)
     cs_ftime(&tpe);
 
     cs_log("%s emmtype=%s, len=%d, idx=%d, cnt=%d: %s (%d ms) by %s",
-           username(ep->cidx), typedesc[emmcache[i].type], ep->emm[2],
+           username(ep->cidx), typedesc[client[cs_idx].emmcache[i].type], ep->emm[2],
            i, no, rtxt[rc], 1000*(tpe.time-tps.time)+tpe.millitm-tps.millitm, reader->label);
   }
 
@@ -748,13 +745,13 @@ void * start_cardreader(void * rdr)
       	cs_sleepms(60000); // wait 60 secs and try again
   }
 
-  emmcache=(struct s_emm *)malloc(CS_EMMCACHESIZE*(sizeof(struct s_emm)));
-  if (!emmcache)
+  client[cs_idx].emmcache=(struct s_emm *)malloc(CS_EMMCACHESIZE*(sizeof(struct s_emm)));
+  if (!client[cs_idx].emmcache)
   {
     cs_log("Cannot allocate memory (errno=%d)", errno);
     cs_exit(1);
   }
-  memset(emmcache, 0, CS_EMMCACHESIZE*(sizeof(struct s_emm)));
+  memset(client[cs_idx].emmcache, 0, CS_EMMCACHESIZE*(sizeof(struct s_emm)));
 
   client[cs_idx].ecmtask=(ECM_REQUEST *)malloc(CS_MAXPENDING*(sizeof(ECM_REQUEST)));
   if (!client[cs_idx].ecmtask)

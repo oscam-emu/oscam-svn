@@ -520,9 +520,9 @@ struct s_client
   int ridx;
   int cs_ptyp; // process-type
   uchar mbuf[1024];   // global buffer
-  pthread_mutex_t gethostbyname_lock; //gethostbyname ist NOT threadsafe! So we need a mutex-lock!
 
   ECM_REQUEST *ecmtask;
+  struct s_emm *emmcache;
 
   int is_server;
   pthread_t thread;
@@ -531,6 +531,7 @@ struct s_client
   int last_idx;
   ushort idx;
   int cs_ptyp_orig;
+  int rotate;
 
   uchar	*req;
 
@@ -547,6 +548,9 @@ struct s_client
   int lastcaid;
   int lastsrvid;
   int lastpid;
+  time_t emm_last;
+  int disable_counter;
+  uchar lastserial[8];
 
   //cccam
   char * prefix;
@@ -981,6 +985,7 @@ typedef struct get_reader_stat_t
   ushort        srvid;
   int           cidx;
   int           reader_avail[CS_MAXREADER];
+  uchar         ecmd5[CS_ECMSTORESIZE];
 } GCC_PACK      GET_READER_STAT;
 
 typedef struct emm_packet_t
@@ -1090,7 +1095,8 @@ extern int cs_fork(in_addr_t, in_port_t);
 extern void wait4master(void);
 extern int cs_auth_client(struct s_auth *, char*);
 extern void cs_disconnect_client(void);
-extern int check_ecmcache(ECM_REQUEST *, ulong);
+extern int check_ecmcache1(ECM_REQUEST *, ulong);
+extern int check_ecmcache2(ECM_REQUEST *, ulong);
 extern void store_logentry(char *);
 extern int write_to_pipe(int, int, uchar *, int);
 extern int read_from_pipe(int, uchar **, int);

@@ -139,31 +139,28 @@ static void camd35_request_emm(ECM_REQUEST *er)
 {
 	int i, au;
 	time_t now;
-	static time_t last = 0;
-	static int disable_counter = 0;
-	static uchar lastserial[8] = {0,0,0,0,0,0,0,0};
 
 	au = client[cs_idx].au;
 	if ((au < 0) || (au > CS_MAXREADER))
 		return;  // TODO
 
 	time(&now);
-	if (!memcmp(lastserial, reader[au].hexserial, 8))
-		if (abs(now-last) < 180) return;
+	if (!memcmp(client[cs_idx].lastserial, reader[au].hexserial, 8))
+		if (abs(now-client[cs_idx].last) < 180) return;
 
-	memcpy(lastserial, reader[au].hexserial, 8);
-	last = now;
+	memcpy(client[cs_idx].lastserial, reader[au].hexserial, 8);
+	client[cs_idx].last = now;
 
 	if (reader[au].caid[0])
 	{
-		disable_counter = 0;
+		client[cs_idx].disable_counter = 0;
 		log_emm_request(au);
 	}
 	else
-		if (disable_counter > 2)
+		if (client[cs_idx].disable_counter > 2)
 			return;
 		else
-			disable_counter++;
+			client[cs_idx].disable_counter++;
 
 	memset(client[cs_idx].mbuf, 0, sizeof(client[cs_idx].mbuf));
 	client[cs_idx].mbuf[2] = client[cs_idx].mbuf[3] = 0xff;			// must not be zero
@@ -404,7 +401,7 @@ int camd35_client_init()
 
 int camd35_client_init_log()
 {
-  static struct	sockaddr_in loc_sa;
+  struct	sockaddr_in loc_sa;
   struct protoent *ptrp;
   int p_proto;
 

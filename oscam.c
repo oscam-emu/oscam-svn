@@ -346,11 +346,27 @@ void cs_exit(int sig)
 	for (i=1; i<CS_MAXPID; i++) {
 		if (pthread_equal(client[i].thread, pthread_self())) {
 			client[i].pid=0;
+			if(client[i].ecmtask) 	free(client[i].ecmtask);
+			if(client[i].ecmtask) 	free(client[i].emmcache);
+			if(client[i].req) 		free(client[i].req);
+			if(client[i].prefix) 	free(client[i].prefix);
+			if(client[i].cc) 		free(client[i].cc);
 			cs_log("thread %d ended!", i);
 			pthread_exit(NULL);
 			return;
 		}
 	}
+
+
+
+	for (i=0; i<CS_MAXPID; i++) {
+		if(client[i].ecmtask) 	free(client[i].ecmtask);
+		if(client[i].ecmtask) 	free(client[i].emmcache);
+		if(client[i].req) 		free(client[i].req);
+		if(client[i].prefix) 	free(client[i].prefix);
+		if(client[i].cc) 		free(client[i].cc);
+	}
+	cs_log("memory freed");
 
 	cs_close_log();
 
@@ -1173,26 +1189,53 @@ void cs_disconnect_client(void)
 	cs_exit(0);
 }
 
-int check_ecmcache(ECM_REQUEST *er, ulong grp)
+/**
+ * cache 1: client-invoked
+ * returns found ecm task index
+ **/
+int check_ecmcache1(ECM_REQUEST *er, ulong grp)
 {
-	// disable cache1 and cache2
-	if (!reader[client[get_csidx()].ridx].cachecm) return(0);
-	
 	int i;
 	//cs_ddump(ecmd5, CS_ECMSTORESIZE, "ECM search");
-	//cs_log("cache CHECK: grp=%lX", grp);
+	//cs_log("cache1 CHECK: grp=%lX", grp);
 	for(i=0; i<CS_ECMCACHESIZE; i++) {
 		if ((grp & ecmcache[i].grp) &&
 		     ecmcache[i].caid==er->caid &&
 		     (!memcmp(ecmcache[i].ecmd5, er->ecmd5, CS_ECMSTORESIZE)))
 		{
-			//cs_log("cache found: grp=%lX cgrp=%lX", grp, ecmcache[i].grp);
+			//cs_log("cache1 found: grp=%lX cgrp=%lX", grp, ecmcache[i].grp);
 			memcpy(er->cw, ecmcache[i].cw, 16);
 			return(1);
 		}
 	}
 	return(0);
 }
+
+/**
+ * cache 2: reader-invoked
+ * returns 1 if found in cache. cw is copied to er
+ **/
+int check_ecmcache2(ECM_REQUEST *er, ulong grp)
+{
+	// disable cache2
+	if (!reader[client[get_csidx()].ridx].cachecm) return(0);
+	
+	int i;
+	//cs_ddump(ecmd5, CS_ECMSTORESIZE, "ECM search");
+	//cs_log("cache2 CHECK: grp=%lX", grp);
+	for(i=0; i<CS_ECMCACHESIZE; i++) {
+		if ((grp & ecmcache[i].grp) &&
+		     ecmcache[i].caid==er->caid &&
+		     (!memcmp(ecmcache[i].ecmd5, er->ecmd5, CS_ECMSTORESIZE)))
+		{
+			//cs_log("cache2 found: grp=%lX cgrp=%lX", grp, ecmcache[i].grp);
+			memcpy(er->cw, ecmcache[i].cw, 16);
+			return(1);
+		}
+	}
+	return(0);
+}
+
 
 static void store_ecm(ECM_REQUEST *er)
 {
@@ -1995,6 +2038,7 @@ int recv_best_reader(ECM_REQUEST *er, int *reader_avail)
 	grs.prid = er->prid;
 	grs.srvid = er->srvid;
 	grs.cidx = cs_idx;
+	memcpy(grs.ecmd5, er->ecmd5, sizeof(er->ecmd5));
 	memcpy(grs.reader_avail, reader_avail, sizeof(int)*CS_MAXREADER);
 	cs_debug_mask(D_TRACE, "requesting client %s best reader for %04X/%04X/%04X", username(cs_idx), grs.caid, grs.prid, grs.srvid);
 	write_to_pipe(fd_c2m, PIP_ID_BES, (uchar*)&grs, sizeof(GET_READER_STAT));
@@ -2018,7 +2062,7 @@ int recv_best_reader(ECM_REQUEST *er, int *reader_avail)
 			int n = read_from_pipe(client[cs_idx].fd_m2c_c, &ptr, 1);
 			if (n == PIP_ID_BES) {
 				int r = *(int*)ptr;
-				cs_debug_mask(D_TRACE, "got best reader: %s (%d)", reader[r].label, r);
+				cs_debug_mask(D_TRACE, "got best reader: %s (%d)", (r==-2)?"CACHE":(r<0)?"NONE":reader[r].label, r);
 				return r;
 			}
 			else if (n == PIP_ID_DIR)
@@ -2162,7 +2206,10 @@ void get_cw(ECM_REQUEST *er)
 					break;
 			}
 		}
-
+	}
+	
+	//Schlocke: above checks could change er->rc so 
+	if (er->rc > 99) {
 		/*BetaCrypt tunneling
 		 *moved behind the check routines,
 		 *because newcamd ECM will fail
@@ -2175,7 +2222,7 @@ void get_cw(ECM_REQUEST *er)
 		memcpy(er->ecmd5, MD5(er->ecm, er->l, NULL), CS_ECMSTORESIZE);
 
 		// cache1
-		if (check_ecmcache(er, client[cs_idx].grp))
+		if (check_ecmcache1(er, client[cs_idx].grp))
 			er->rc = 1;
 
 #ifdef CS_ANTICASC
@@ -2183,7 +2230,7 @@ void get_cw(ECM_REQUEST *er)
 #endif
 	}
 
-	if(er->rc > 99 && er->rc != 1) {
+	if(er->rc > 99) {
 
 		if (cfg->reader_auto_loadbalance) {
 			int reader_avail[CS_MAXREADER];
@@ -2196,6 +2243,9 @@ void get_cw(ECM_REQUEST *er)
 					//When autobalance enabled, all other readers are fallbacks:
 					m|=er->reader[i] = (best_ridx >= 0 && best_ridx != i)? 2: 1;
 				}
+			if (best_ridx == -2) { //Schlocke: already send by another reader!
+				return; //chk_pending does the job!
+			}
 		}
 		else
 		{

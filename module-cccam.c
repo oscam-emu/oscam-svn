@@ -256,6 +256,17 @@ static int is_sid_blocked(struct cc_card *card, struct cc_srvid *srvid_blocked) 
 	return 0;
 }
 
+static int is_good_sid(struct cc_card *card, struct cc_srvid *srvid_good) {
+	LLIST_ITR sitr;
+	struct cc_srvid *srvid = llist_itr_init(card->goodsids, &sitr);
+	while (srvid) {
+		if (sid_eq(srvid, srvid_good)) {
+			return 1;
+		}
+		srvid = llist_itr_next(&sitr);
+	}
+	return 0;
+}
 
 static void add_sid_block(struct cc_card *card, struct cc_srvid *srvid_blocked) {
 	if (is_sid_blocked(card, srvid_blocked))
@@ -265,8 +276,48 @@ static void add_sid_block(struct cc_card *card, struct cc_srvid *srvid_blocked) 
 	if (srvid) {
 		*srvid = *srvid_blocked;
 		llist_append(card->badsids, srvid);
-		cs_log("%s added sid block %04X(%d) for card %08x",
+		cs_debug_mask(D_TRACE, "%s added sid block %04X(%d) for card %08x",
 			getprefix(), srvid_blocked->sid, srvid_blocked->ecmlen, card->id);
+	}
+}
+
+static void remove_sid_block(struct cc_card *card, struct cc_srvid *srvid_blocked) {
+	LLIST_ITR sitr;
+	struct cc_srvid *srvid = llist_itr_init(card->badsids, &sitr);
+	while (srvid) {
+		if (sid_eq(srvid, srvid_blocked)) {
+			free(srvid);
+			srvid = llist_itr_remove(&sitr);
+		}
+		else
+			srvid = llist_itr_next(&sitr);
+	}
+}
+
+static void remove_good_sid(struct cc_card *card, struct cc_srvid *srvid_good) {
+	LLIST_ITR sitr;
+	struct cc_srvid *srvid = llist_itr_init(card->goodsids, &sitr);
+	while (srvid) {
+		if (sid_eq(srvid, srvid_good)) {
+			free(srvid);
+			srvid = llist_itr_remove(&sitr);
+		}
+		else
+			srvid = llist_itr_next(&sitr);
+	}
+}
+
+static void add_good_sid(struct cc_card *card, struct cc_srvid *srvid_good) {
+	if (is_good_sid(card, srvid_good))
+		return;
+
+	remove_sid_block(card, srvid_good);		
+	struct cc_srvid *srvid = malloc(sizeof(struct cc_srvid));
+	if (srvid) {
+		*srvid = *srvid_good;
+		llist_append(card->goodsids, srvid);
+		cs_debug_mask(D_TRACE, "%s added good sid %04X(%d) for card %08x",
+			getprefix(), srvid_good->sid, srvid_good->ecmlen, card->id);
 	}
 }
 
@@ -758,7 +809,7 @@ static int cc_send_ecm(ECM_REQUEST *er, uchar *buf) {
 			}
 		}
 	}
-
+	
 	if (current_card->card) {
 		card = current_card->card;
 		current_card->prov = cur_er->prid;
@@ -981,6 +1032,8 @@ static void cc_free_card(struct cc_card *card) {
 		llist_destroy(card->provs);
 	if (card->badsids)
 		llist_destroy(card->badsids);
+	if (card->goodsids)
+		llist_destroy(card->goodsids);
 	free(card);
 }
 
@@ -1272,12 +1325,12 @@ static void cleanup_old_cards(struct cc_data *cc) {
 	}
 }
 
-static int caid_filtered(int ridx2, int caid) {
+static int caid_filtered(int ridx, int caid) {
 	int defined = 0;
 	int i;
 	for (i = 0; i < CS_MAXREADERCAID; i++) {
-		if (reader[ridx2].caid[i]) {
-			if (reader[ridx2].caid[i] == caid)
+		if (reader[ridx].caid[i]) {
+			if (reader[ridx].caid[i] == caid)
 				return 0;
 			defined = 1;
 		}
@@ -1294,7 +1347,7 @@ static int is_null_dcw(uint8 *dcw)
 	return 1;
 }
 
-static int is_dcw_corrupted(uchar *dcw)
+/*static int is_dcw_corrupted(uchar *dcw)
 {
     int i;
     int c, cs;
@@ -1315,10 +1368,13 @@ static void fix_dcw(uchar *dcw)
     {
        dcw[i+3] = (dcw[i] + dcw[i+1] + dcw[i+2]) & 0xFF;
     }
-}
+}*/
 
 static void cc_idle() {
 	struct cc_data *cc = reader[client[cs_idx].ridx].cc;
+	if (!reader[client[cs_idx].ridx].tcp_connected)
+		return;
+		
 	cs_debug("%s IDLE", getprefix());
 	if (cc->answer_on_keepalive + 55 < time(NULL)) {
 		cc_cmd_send(NULL, 0, MSG_KEEPALIVE);
@@ -1433,6 +1489,7 @@ static int cc_parse_msg(uint8 *buf, int l) {
 
 		card->provs = llist_create();
 		card->badsids = llist_create();
+		card->goodsids = llist_create();
 		card->id = b2i(4, buf + 4);
 		card->sub_id = b2i(3, buf + 9);
 		card->caid = b2i(2, buf + 12);
@@ -1558,8 +1615,12 @@ static int cc_parse_msg(uint8 *buf, int l) {
 				current_card->srvid.sid, current_card->srvid.ecmlen);
 			struct cc_card *card = current_card->card;
 			if (card) {
-				add_sid_block(card, &current_card->srvid);
-				current_card->card = NULL;
+				if (!is_good_sid(card, &current_card->srvid)) {
+					add_sid_block(card, &current_card->srvid);
+					current_card->card = NULL;
+				}
+				else
+					remove_good_sid(card, &current_card->srvid);
 			}
 			else
 				current_card = NULL;
@@ -1607,28 +1668,6 @@ static int cc_parse_msg(uint8 *buf, int l) {
 				memcpy(cc->dcw, buf + 4, 16);
 				cc_crypt(&cc->block[DECRYPT], buf + 4, l - 4, ENCRYPT); // additional crypto step
 
-				if (is_dcw_corrupted(cc->dcw)) {
-					fix_dcw(cc->dcw);
-					
-					//cs_log("%s corrupted dcw received! retrying sid=%04X(%d)", getprefix(), 
-					//  current_card->srvid.sid, current_card->srvid.ecmlen);
-					//uint8 *dcw = cc->dcw;
-					//cs_log("%s corrupted dcw: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X",
-					//  getprefix(),
-					//  dcw[0], dcw[1], dcw[2], dcw[3], dcw[4], dcw[5], dcw[6], dcw[7], 
-					//  dcw[8], dcw[9], dcw[10], dcw[11], dcw[12], dcw[13], dcw[14], dcw[15]);
-					//cs_log("%s dcw right:     %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X",
-					//  getprefix(),
-					//  dcw[0], dcw[1], dcw[2], (dcw[0]+dcw[1]+dcw[2]) & 0xFF, 
-					//  dcw[4], dcw[5], dcw[6], (dcw[4]+dcw[5]+dcw[6]) & 0xFF, 
-					//  dcw[8], dcw[9], dcw[10], (dcw[8]+dcw[9]+dcw[10]) & 0xFF, 
-					//  dcw[12], dcw[13], dcw[14], (dcw[12]+dcw[13]+dcw[14]) & 0xFF);
-					//add_sid_block(card, &current_card->srvid);
-					//current_card->card = NULL;
-					//cc->crc++; //So ecm could retryied
-					//buf[1] = MSG_CW_NOK1; //So it's really handled like a nok!
-				}
-				//else 
 				if (is_null_dcw(cc->dcw)) {
 					cs_log("%s null dcw received! sid=%04X(%d)", getprefix(), 
 					  current_card->srvid.sid, current_card->srvid.ecmlen);
@@ -1646,6 +1685,7 @@ static int cc_parse_msg(uint8 *buf, int l) {
 					}
 					cs_debug_mask(D_TRACE, "%s cws: %d %s", getprefix(),
 						cc->send_ecmtask, cs_hexdump(0, cc->dcw, 16));
+					add_good_sid(card, &current_card->srvid);
 				}
 			}
 			else {
@@ -1917,6 +1957,7 @@ static int cc_cli_connect(void) {
 	cc->cmd05_offset = 0;
 	cc->cmd05_active = 0;
 	cc->cmd05_data_len = 0;
+	cc->answer_on_keepalive = time(NULL);
 	memset(&cc->cmd05_data, 0, sizeof(cc->cmd05_data));
 
 	cs_ddump(data, 16, "cccam: server init seed:");

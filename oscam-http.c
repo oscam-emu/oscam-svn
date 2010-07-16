@@ -117,8 +117,7 @@ void send_oscam_config_global(struct templatevars *vars, FILE *f, struct uripara
 	tpl_printf(vars, 0, "TMP", "READERAUTOLOADBALANCE%d", cfg->reader_auto_loadbalance);
 	tpl_addVar(vars, 0, tpl_getVar(vars, "TMP"), "selected");
 
-	if (cfg->reader_auto_loadbalance_save)
-		tpl_addVar(vars, 0, "READERAUTOLOADBALANCES", "selected");
+	tpl_printf(vars, 0, "READERAUTOLOADBALANCES", "%d",cfg->reader_auto_loadbalance_save);
 
 	fputs(tpl_getTpl(vars, "CONFIGGLOBAL"), f);
 }
@@ -807,7 +806,8 @@ void send_oscam_reader_config(struct templatevars *vars, FILE *f, struct uripara
 				if (!strcmp((*params).params[i], "services"))
 					snprintf(servicelabels + strlen(servicelabels), sizeof(servicelabels), "%s,", (*params).values[i]);
 				else
-					chk_reader((*params).params[i], (*params).values[i], &reader[ridx]);
+					if(strlen((*params).values[i]) > 0)
+						chk_reader((*params).params[i], (*params).values[i], &reader[ridx]);
 			}
 		}
 		chk_reader("services", servicelabels, &reader[ridx]);
@@ -844,10 +844,26 @@ void send_oscam_reader_config(struct templatevars *vars, FILE *f, struct uripara
 	if(reader[ridx].force_irdeto)
 		tpl_addVar(vars, 0, "FORCEIRDETOCHECKED", "checked");
 
+	//check for tiger
+	int tigerkey = 0;
+	for (i=64;i<120;i++) {
+		if(reader[ridx].rsa_mod[i] > 0) {
+			tigerkey = 1;
+			break;
+		}
+	}
+
 	if(reader[ridx].has_rsa) {
-		for (i = 0; i < 64; i++) tpl_printf(vars, 1, "RSAKEY", "%02X", reader[ridx].rsa_mod[i]);
+		if (!tigerkey) {
+			for (i = 0; i < 64; i++) tpl_printf(vars, 1, "RSAKEY", "%02X", reader[ridx].rsa_mod[i]);
+			for (i = 0; i < 8 ; i++) tpl_printf(vars, 1, "BOXKEY", "%02X", reader[ridx].nagra_boxkey[i]);
+		}
+	}
+	if (tigerkey) {
+		for (i = 0; i < 120; i++) tpl_printf(vars, 1, "TIGERRSAKEY", "%02X", reader[ridx].rsa_mod[i]);
 		for (i = 0; i < 8 ; i++) tpl_printf(vars, 1, "BOXKEY", "%02X", reader[ridx].nagra_boxkey[i]);
 	}
+
 	if ( reader[ridx].atr[0])
 		for (i = 0; i < reader[ridx].atrlen/2; i++)
 			tpl_printf(vars, 1, "ATR", "%02X", reader[ridx].atr[i]);
