@@ -214,7 +214,7 @@ void add_stat(int ridx, ushort caid, ulong prid, ushort srvid, int ecm_time, int
 	}
 	else if (rc >= 4 && rc < 100) { //not found+timeout+etc
 		stat->rc = rc;
-		stat->ecm_count = 0;
+		//stat->ecm_count = 0; Keep ecm_count!
 	}
 
 	cs_debug_mask(D_TRACE, "adding stat for reader %s (%d): rc %d caid %04hX prid %04lX srvid %04hX time %dms usagelevel %d",
@@ -245,8 +245,11 @@ void reset_stat(ushort caid, ulong prid, ushort srvid)
 	for (i = 0; i < CS_MAXREADER; i++) {
 		if (reader_stat[i] && reader[i].pid && reader[i].cidx) {
 			READER_STAT *stat = get_stat(i, caid, prid, srvid);
-			if (stat)
-				stat->ecm_count = 0;
+			if (stat) {
+				if (stat->ecm_count > 0)
+					stat->ecm_count = 1; //not zero, so we know it's decodeable
+				stat->rc = 0;
+			}
 		}
 	}
 }
@@ -259,33 +262,41 @@ void reset_stat(ushort caid, ulong prid, ushort srvid)
  * returns ridx when found or -1 when not found
  * ONLY FROM MASTER THREAD!
  */
-int get_best_reader(GET_READER_STAT *grs)
+int get_best_reader(GET_READER_STAT *grs, int *result)
 {
+	//resulting readers:
+	memset(result, 0, sizeof(int)*CS_MAXREADER);
+
 	if (chk_send_cache(grs->caid, grs->ecmd5))
-		return -2;
-	add_send_cache(grs->caid, grs->ecmd5);
+		return -2; //found in cache
+	add_send_cache(grs->caid, grs->ecmd5); //add to cache
+	
 	
 	int i;
-	int best_ridx = -1;
-	int best = 0, current = 0;
-	READER_STAT *stat, *best_stat = NULL;
+	int best_ridx = -1, best_ridx2 = -1;
+	int best = 0, best2 = 0;
+	int current = -1;
+	READER_STAT *stat = NULL;
 	for (i = 0; i < CS_MAXREADER; i++) {
 		if (grs->reader_avail[i]) {
  			int weight = reader[i].lb_weight <= 0?100:reader[i].lb_weight;
 			stat = get_stat(i, grs->caid, grs->prid, grs->srvid);
 			if (!stat) {
 				add_stat(i, grs->caid,  grs->prid, grs->srvid, 1, 0);
-				return -1; //this reader is active (now) but we need statistics first!
+				result[i] = 1; //no statistics, this reader is active (now) but we need statistics first!
+				continue; 
 			}
 			
-			if (stat->ecm_count > MAX_ECM_COUNT) {
+			if (stat->ecm_count > MAX_ECM_COUNT && stat->time_avg > (int)cfg->ftimeout) {
 				reset_stat(grs->caid, grs->prid, grs->srvid);
-				return -1;
+				result[i] = 1;//max ecm reached, get new statistics
+				continue;
 			}
 				
 			if (stat->rc == 0 && stat->ecm_count < MIN_ECM_COUNT) {
 				cs_debug_mask(D_TRACE, "loadbalance: reader %s needs more statistics", reader[i].label);
-				return -1; //need more statistics!
+				result[i] = 1; //need more statistics!
+				continue;
 			}
 				
 
@@ -293,9 +304,11 @@ int get_best_reader(GET_READER_STAT *grs)
 			if (stat->rc == 0) {
 				//get
 				switch (cfg->reader_auto_loadbalance) {
+				default:
 				case LB_NONE:
 					cs_debug_mask(D_TRACE, "loadbalance disabled");
-					return -1;
+					result[i] = 1;
+					break;
 				case LB_FASTEST_READER_FIRST:
 					current = stat->time_avg * 100 / weight;
 					break;
@@ -305,26 +318,38 @@ int get_best_reader(GET_READER_STAT *grs)
 				case LB_LOWEST_USAGELEVEL:
 					current = reader[i].lb_usagelevel * 100 / weight;
 					break;
-				default:
-					return -1;
 				}
 
 				cs_debug_mask(D_TRACE, "loadbalance reader %s value %d", reader[i].label, current);
-				if (!best_stat || current < best) {
+				if (best_ridx==-1 || current < best) {
 					if (!reader[i].ph.c_available
 							|| reader[i].ph.c_available(i,
 									AVAIL_CHECK_LOADBALANCE)) {
-						best_stat = stat;
 						best_ridx = i;
 						best = current;
 					}
 				}
+				if (best_ridx2==-1 || current < best2) {
+					best_ridx2 = i;
+					best2 = current;
+				}
 			}
+			else if (stat->rc >= 4 && stat->ecm_count == 0) //Never decodeable
+				grs->reader_avail[i] = 0;
 		}
 	}
-	if (best_ridx >= 0)
-		cs_debug_mask(D_TRACE, "-->loadbalance best reader %s best value %d", reader[best_ridx].label, best);
+	if (best_ridx == -1)
+		best_ridx = best_ridx2;
+	if (best_ridx >= 0) {
+		cs_debug_mask(D_TRACE, "-->loadbalance best reader %s best value %d", reader[best_ridx].label, best2);
+		result[best_ridx] = 1;
+	}
 	else
 		cs_debug_mask(D_TRACE, "-->loadbalance no best reader!");
+		
+	//setting all other readers as fallbacks:
+	for (i=0;i<CS_MAXREADER; i++)
+		if (grs->reader_avail[i] && !result[i])
+			result[i] = 2;
 	return best_ridx;
 }

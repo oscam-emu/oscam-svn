@@ -1306,7 +1306,10 @@ void dvbapi_process_input(int demux_id, int filter_num, uchar *buffer, int len) 
 	}
 }
 
-void dvbapi_main_local() {
+void dvbapi_main_local(void *idx) {
+	int cidx=(int)idx;
+	client[cidx].thread=pthread_self();
+
 	int maxpfdsize=(MAX_DEMUX*MAX_FILTER)+MAX_DEMUX+2;
 	struct pollfd pfd2[maxpfdsize];
 	int i,rc,pfdcount,g,connfd,clilen,j;
@@ -1587,7 +1590,7 @@ static void dvbapi_handler(int ctyp) {
 		client[i].typ='c';
               client[i].ip=0;
 		client[i].ctyp=ctyp;
-		pthread_create(&client[i].thread, NULL, (void *)dvbapi_main_local, NULL);
+		pthread_create(&client[i].thread, NULL, (void *)dvbapi_main_local, (void*) i);
 		pthread_detach(client[i].thread);
 	}
 

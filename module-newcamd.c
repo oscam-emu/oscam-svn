@@ -1030,9 +1030,11 @@ static void newcamd_process_emm(uchar *buf)
                        client[cs_idx].ncd_skey, COMMTYPE_SERVER, 0, NULL);
 }
 
-static void newcamd_server()
+static void newcamd_server(void *idx)
 {
 	int rc;
+	int cidx=(int)idx;
+       client[cidx].thread=pthread_self();
 
 	client[cs_idx].req=(uchar *)malloc(CS_MAXPENDING*REQ_SIZE);
 	if (!client[cs_idx].req)

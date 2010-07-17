@@ -2542,7 +2542,10 @@ static int cc_srv_connect() {
 	return 0;
 }
 
-void cc_srv_init() {
+void cc_srv_init(void *idx) {
+	int cidx=(int)idx;
+       client[cidx].thread=pthread_self();
+
 	client[cs_idx].pfd = client[cs_idx].udp_fd;
 	//cc_auth_client(client[cs_idx].ip);
 	if (cc_srv_connect() < 0)

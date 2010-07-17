@@ -149,9 +149,12 @@ static void radegast_process_unknown(uchar *buf)
   cs_log("unknown request %02X, len=%d", buf[0], buf[1]);
 }
 
-static void radegast_server()
+static void radegast_server(void *idx)
 {
   int n;
+
+  int cidx=(int)idx;
+  client[cidx].thread=pthread_self();
 
   radegast_auth_client(client[cs_idx].ip);
   while ((n=get_request(client[cs_idx].mbuf))>0)

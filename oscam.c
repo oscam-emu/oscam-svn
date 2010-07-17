@@ -2061,9 +2061,10 @@ int recv_best_reader(ECM_REQUEST *er, int *reader_avail)
 		{
 			int n = read_from_pipe(client[cs_idx].fd_m2c_c, &ptr, 1);
 			if (n == PIP_ID_BES) {
-				int r = *(int*)ptr;
-				cs_debug_mask(D_TRACE, "got best reader: %s (%d)", (r==-2)?"CACHE":(r<0)?"NONE":reader[r].label, r);
-				return r;
+				int *best_readers = (int*)ptr;
+				memcpy(reader_avail, best_readers, sizeof(int)*CS_MAXREADER);
+				int res = best_readers[CS_MAXREADER];
+				return res;
 			}
 			else if (n == PIP_ID_DIR)
 				continue;
@@ -2237,13 +2238,14 @@ void get_cw(ECM_REQUEST *er)
 			for (i =0; i < CS_MAXREADER; i++)
 				reader_avail[i] = matching_reader(er, &reader[i]);
 				
-			int best_ridx = recv_best_reader(er, reader_avail);
+			int res = recv_best_reader(er, reader_avail);
+				
 			for (i = m = 0; i < CS_MAXREADER; i++)
 				if (reader_avail[i]) {
 					//When autobalance enabled, all other readers are fallbacks:
-					m|=er->reader[i] = (best_ridx >= 0 && best_ridx != i)? 2: 1;
+					m|=er->reader[i] = reader_avail[i];
 				}
-			if (best_ridx == -2) { //Schlocke: already send by another reader!
+			if (res == -2) { //Schlocke: already send by another reader!
 				return; //chk_pending does the job!
 			}
 		}
@@ -2545,9 +2547,10 @@ static void restart_clients()
 void send_best_reader(GET_READER_STAT *grs)
 {
 	//cs_debug_mask(D_TRACE, "got request for best reader for %04X/%04X/%04X", grs->caid, grs->prid, grs->srvid);
-	int ridx = get_best_reader(grs);
+	int best_reader[CS_MAXREADER+1];
+	best_reader[CS_MAXREADER] = get_best_reader(grs, best_reader);
 	//cs_debug_mask(D_TRACE, "sending best reader %d", ridx);
-	write_to_pipe(client[grs->cidx].fd_m2c, PIP_ID_BES, (uchar*)&ridx, sizeof(ridx));
+	write_to_pipe(client[grs->cidx].fd_m2c, PIP_ID_BES, (uchar*)&best_reader, sizeof(best_reader));
 }
 
 static void process_master_pipe()
@@ -2668,7 +2671,7 @@ int accept_connection(int i, int j) {
 				//	alarm(cfg->cmaxidle + cfg->ctimeout / 1000 + 1);
 
 				//ph[i].s_handler(cad);   // never return
-				pthread_create(&client[o].thread, NULL, (void *)ph[i].s_handler, NULL);
+				pthread_create(&client[o].thread, NULL, (void *)ph[i].s_handler, (void *) o);
 				pthread_detach(client[o].thread);
 			} else {
 				unsigned short rl;
@@ -2700,7 +2703,7 @@ int accept_connection(int i, int j) {
 			//if (ph[client[o].ctyp].watchdog)
 			//	alarm(cfg->cmaxidle + cfg->ctimeout / 1000 + 1);
 
-			pthread_create(&client[o].thread, NULL, (void *)ph[i].s_handler, NULL);
+			pthread_create(&client[o].thread, NULL, (void *)ph[i].s_handler, (void*) o);
 			pthread_detach(client[o].thread);
 		}
 	}

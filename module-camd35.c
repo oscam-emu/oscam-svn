@@ -281,9 +281,12 @@ static void camd35_process_emm(uchar *buf)
 	do_emm(&epg);
 }
 
-static void camd35_server()
+static void camd35_server(void *idx)
 {
   int n;
+
+  int cidx=(int)idx;
+  client[cidx].thread=pthread_self();
 
   client[cs_idx].req=(uchar *)malloc(CS_MAXPENDING*REQ_SIZE);
   if (!client[cs_idx].req)
