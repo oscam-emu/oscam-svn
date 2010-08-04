@@ -23,6 +23,193 @@ void aes_encrypt_idx(int idx, uchar *buf, int n)
     AES_encrypt(buf+i, buf+i, &client[idx].aeskey);
 }
 
+void add_aes_entry(struct s_reader *rdr, ushort caid, uint32 ident, int keyid, uchar *aesKey)
+{
+    AES_ENTRY *new_entry;
+    AES_ENTRY *next,*current;
+    
+    // create de AES key entry for the linked list
+    new_entry=malloc(sizeof(AES_ENTRY));
+    if(!new_entry) {
+            cs_log("Error alocation memory for AES key entry");
+            return;
+    }
+            
+    new_entry->caid=caid;
+    new_entry->ident=ident;
+    new_entry->keyid=keyid;
+    if(memcmp(aesKey,"\xFF\xFF",2)) {
+        AES_set_decrypt_key((const unsigned char *)aesKey, 128, &(new_entry->key));
+        // cs_log("adding key : %s",cs_hexdump(1,aesKey,16));
+    }
+    else {
+        memset(&new_entry->key,0,sizeof(AES_KEY));
+        // cs_log("adding fake key");
+    }
+    new_entry->next=NULL;
+    
+    //if list is empty, new_entry is the new head
+    if(!rdr->aes_list) {
+        rdr->aes_list=new_entry;
+        return;
+    }
+
+    //happend it to the list
+    current=rdr->aes_list;
+    next=current->next;
+    while(next) {
+        current=next;
+        next=current->next;
+        }
+    
+    current->next=new_entry;
+
+}
+
+void parse_aes_entry(struct s_reader *rdr,char *value) {
+    ushort caid;
+    ushort dummy;
+    uint32 ident;
+    int len;
+    char *tmp;
+    int nb_keys,key_id;
+    uchar aes_key[16];
+    char *save=NULL;
+
+    tmp=strtok_r(value,"@",&save);
+    caid=a2i(tmp,2);
+    tmp=strtok_r(NULL,":",&save);
+    ident=a2i(tmp,3);
+    
+    // now we need to split the key ane add the entry to the reader.
+    nb_keys=0;
+    key_id=0;
+    while((tmp=strtok_r(NULL,",",&save))) {
+        dummy=0;
+        len=strlen(tmp);
+        if(len!=32) {
+            dummy=a2i(tmp,1);
+            // FF means the card will do the AES decrypt
+            // 00 means we don't have the aes.
+            if((dummy!=0xFF && dummy!=0x00) || len>2) {
+                key_id++;
+                cs_log("AES key length error .. not adding");
+                continue;
+            }
+            if(dummy==0x00) {
+                key_id++;
+                continue;
+            }
+        }
+        nb_keys++;
+        if(dummy)
+            memset(aes_key,0xFF,16);
+        else
+            key_atob(tmp,aes_key);
+        // now add the key to the reader... TBD
+        add_aes_entry(rdr,caid,ident,key_id,aes_key);
+        key_id++;
+    }
+    
+    cs_log("%d AES key(s) added on reader %s for %04x:%06x", nb_keys, rdr->label, caid, ident);
+}
+
+void parse_aes_keys(struct s_reader *rdr,char *value)
+{
+    // value format is caid1@ident1:key0,key1;caid2@indent2:key0,key1
+    char *entry;
+    char *save=NULL;
+    
+    rdr->aes_list=NULL;
+    for (entry=strtok_r(value, ";",&save); entry; entry=strtok_r(NULL, ";",&save)) {
+        parse_aes_entry(rdr,entry);
+    }
+    
+    /*
+    AES_ENTRY *current;
+    current=rdr->aes_list;
+    while(current) {
+        cs_log("**************************");
+        cs_log("current = %p",current);
+        cs_log("CAID = %04x",current->caid);
+        cs_log("IDENT = %06x",current->ident);
+        cs_log("keyID = %d",current->keyid);
+        cs_log("next = %p",current->next);
+        cs_log("**************************");
+        current=current->next;
+    }
+    */
+}
+
+int aes_decrypt_from_list(AES_ENTRY *list, ushort caid, uint32 provid,int keyid, uchar *buf, int n)
+{
+    AES_ENTRY *current;
+    AES_KEY   dummy;
+    int i;
+    int ok=1;
+    int error=0;
+
+    current=list;
+    while(current) {
+        if(current->caid==caid && current->ident==provid && current->keyid==keyid)
+            break;
+        current=current->next;
+    }
+
+    if(!current) {
+        cs_log("AES Decrypt : key id %d not found for CAID %04X , provider %06x",keyid,caid,provid);
+        return error; // we don't have the key to decode this buffer.
+        }
+    else {
+        // hack for card that do the AES decrypt themsleves
+        memset(&dummy,0,sizeof(AES_KEY));
+        if(!memcmp(&current->key,&dummy,sizeof(AES_KEY))) {
+            return ok;
+        }
+        // decode the key
+        for(i=0; i<n; i+=16)
+            AES_decrypt(buf+i, buf+i, &(current->key));
+    }
+    return ok; // all ok, key decoded.
+}
+
+int aes_present(AES_ENTRY *list, ushort caid, uint32 provid,int keyid)
+{
+    AES_ENTRY *current;
+    int ok=1;
+    int error=0;
+
+    current=list;
+    while(current) {
+        if(current->caid==caid && current->ident==provid && current->keyid==keyid)
+            break;
+        current=current->next;
+    }
+
+    if(!current) {
+        cs_log("AES Decrypt : key id %d not found for CAID %04X , provider %06x",keyid,caid,provid);
+        return error; // we don't have the key to decode this buffer.
+        }
+    
+    return ok;
+}
+
+void aes_clear_entries(struct s_reader *rdr)
+{
+
+    AES_ENTRY *current;
+    AES_ENTRY *next;
+
+    current=NULL;
+    next=rdr->aes_list;
+    while(next) {
+        current=next;
+        next=current->next;
+        free(current);
+    }
+    rdr->aes_list=NULL;
+}
+
 char *remote_txt(void)
 {
   if (is_server)
@@ -128,6 +315,25 @@ long word_atob(char *asc)
       rc=(-1);
   }
   return(rc);
+}
+
+/*
+ * dynamic word_atob
+ * converts an 1-4 digit asc hexstring
+ */
+long dyn_word_atob(char *asc)
+{
+	long rc = (-1);
+	int i, len = strlen(trim(asc));
+
+	if (len <= 4 && len > 0) {
+		for(i = 0, rc = 0; i < len; i++)
+			rc = rc << 4 | gethexval(asc[i]);
+
+		if (rc & 0x10000)
+			rc = (-1);
+	}
+	return(rc);
 }
 
 int key_atob(char *asc, uchar *bin)
@@ -346,22 +552,22 @@ int bytes_available(int fd)
    FD_ZERO(&erfds);
    FD_SET(in_fd, &erfds);
    
-   select_ret = select(in_fd+1, &rfds, NULL,  &erfds, NULL);
-   if(select_ret==-1)
-    {
-    cs_log("ERROR reading from fd %d select_ret=%i, errno=%d",in_fd, select_ret, errno);
-    return 0;
-    }
-
+   select_ret = select(in_fd+1, &rfds, NULL, &erfds, NULL);
+   if (select_ret==-1)
+   {
+     cs_log("ERROR reading from fd %d select_ret=%i, errno=%d",in_fd, select_ret, errno);
+     return 0;
+   }
+      
    if (FD_ISSET(in_fd, &erfds))
    {
     cs_log("ERROR reading from fd %d select_ret=%i, errno=%d",in_fd, select_ret, errno);
     return 0;
    }
    if (FD_ISSET(in_fd,&rfds))
-		 return 1;
-	 else
-		 return 0;
+     return 1;
+   else
+     return 0;
 }
 
 
@@ -424,7 +630,7 @@ void urldecode(char *s){
 /* Helper function for urlencode.*/
 char to_hex(char code){
 	static char hex[] = "0123456789abcdef";
-	return hex[code & 15];
+	return hex[(int)code & 15];
 }
 
 /* Encode values in a http url. Note: Be sure to free() the returned string after use */
@@ -646,4 +852,10 @@ char *get_provider(int caid, ulong provid){
 	if (!name[0]) snprintf(name, 83, "%04X:%06lX unknown", caid, provid);
 	if (!caid) name[0] = '\0';
 	return(name);
+}
+
+void make_non_blocking(int fd) {
+    int fl;
+    fl=fcntl(fd, F_GETFL);
+    fcntl(fd, F_SETFL, fl | O_NONBLOCK | O_NDELAY);
 }

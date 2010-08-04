@@ -64,6 +64,9 @@
 
 #ifdef HAVE_PCSC 
   #ifdef OS_CYGWIN32
+    #define __reserved
+    #define __nullnullterminated
+    #include <specstrings.h>
     #include "cygwin/WinSCard.h"
   #else
     #include <PCSC/pcsclite.h> 
@@ -136,31 +139,32 @@
 #define D_FUT				128 // Reserved for future use
 #define D_ALL_DUMP  255 // dumps all
 
-#define R_DB2COM1		0x1 // Reader Dbox2 @ com1
-#define R_DB2COM2		0x2 // Reader Dbox2 @ com1
+#define R_DB2COM1   0x1 // Reader Dbox2 @ com1
+#define R_DB2COM2   0x2 // Reader Dbox2 @ com1
 #define R_SC8in1    0x3 // Reader smartcard mouse
-#define R_MOUSE     0x4 // Reader smartcard mouse
+#define R_MP35      0x4 // AD-Teknik Multiprogrammer 3.5 and 3.6 (only usb tested)
+#define R_MOUSE     0x5 // Reader smartcard mouse
 /////////////////// phoenix readers which need baudrate setting and timings need to be guarded by OSCam: BEFORE R_MOUSE
-#define R_INTERNAL  0x5 // Reader smartcard intern
+#define R_INTERNAL  0x10 // Reader smartcard intern
 /////////////////// internal readers (Dreambox, Coolstream, IPBox) are all R_INTERNAL, they are determined compile-time
 /////////////////// readers that do not reed baudrate setting and timings are guarded by reader itself (large buffer built in): AFTER R_SMART
-#define R_SMART     0x6 // Smartreader+
-#define R_PCSC 			0x7 // PCSC
+#define R_SMART     0x11 // Smartreader+
+#define R_PCSC      0x12 // PCSC
 /////////////////// proxy readers after R_CS378X
-#define R_CAMD35    0x10  // Reader cascading camd 3.5x
-#define R_CAMD33    0x11  // Reader cascading camd 3.3x
-#define R_NEWCAMD   0x12  // Reader cascading newcamd
-#define R_RADEGAST  0x13  // Reader cascading radegast
-#define R_CS378X    0x14  // Reader cascading camd 3.5x TCP
-#define R_CONSTCW   0x15  // Reader for Constant CW
+#define R_CAMD35    0x20  // Reader cascading camd 3.5x
+#define R_CAMD33    0x21  // Reader cascading camd 3.3x
+#define R_NEWCAMD   0x22  // Reader cascading newcamd
+#define R_RADEGAST  0x23  // Reader cascading radegast
+#define R_CS378X    0x24  // Reader cascading camd 3.5x TCP
+#define R_CONSTCW   0x25  // Reader for Constant CW
 /////////////////// peer to peer proxy readers after R_CCCAM
 #ifdef CS_WITH_GBOX
-#define R_GBOX      0x20  // Reader cascading gbox
+#define R_GBOX      0x30  // Reader cascading gbox
 #endif
-#define R_CCCAM     0x25  // Reader cascading cccam
+#define R_CCCAM     0x35  // Reader cascading cccam
 #define R_SERIAL    0x80  // Reader serial
-#define R_IS_NETWORK    0x70
-#define R_IS_CASCADING  0xF0
+#define R_IS_NETWORK    0x60
+#define R_IS_CASCADING  0xE0
 
 
 #define CS_MAX_MOD 20
@@ -186,7 +190,7 @@ extern char *boxdesc[];
 #endif
 
 #ifdef CS_CORE
-char *PIP_ID_TXT[] = { "ECM", "EMM", "LOG", "CIN", "HUP", "RST", "KCL", "STA", "BES", NULL  };
+char *PIP_ID_TXT[] = { "ECM", "EMM", "LOG", "CIN", "HUP", "RST", "KCL", "STA", "BES", "RES", NULL  };
 char *RDR_CD_TXT[] = { "cd", "dsr", "cts", "ring", "none",
 #ifdef USE_GPIO
                        "gpio1", "gpio2", "gpio3", "gpio4", "gpio5", "gpio6", "gpio7", //felix: changed so that gpio can be used 
@@ -206,9 +210,9 @@ extern char *RDR_CD_TXT[];
 #define PIP_ID_KCL    6  // Schlocke: Kill all Clients (no param)
 #define PIP_ID_STA    7  // Schlocke: Add statistic (param: ADD_READER_STAT)
 #define PIP_ID_BES    8  // Schlocke: Get best reader (param ECM_REQUEST, return to client with data int ridx)
-
-#define PIP_ID_DCW    9
-#define PIP_ID_MAX    PIP_ID_BES
+#define PIP_ID_RES    9  // Schlocke: reset reader statistiks
+#define PIP_ID_DCW    10
+#define PIP_ID_MAX    PIP_ID_RES
 
 
 #define PIP_ID_ERR    (-1)
@@ -354,13 +358,21 @@ typedef struct  {
 } SR_CONFIG;
 #endif
 
+typedef struct aes_entry {
+    ushort      keyid;
+    ushort      caid;
+    uint32      ident;
+    AES_KEY     key;
+    struct aes_entry   *next;
+} AES_ENTRY;
 
 struct s_ecm
 {
-  uchar  ecmd5[CS_ECMSTORESIZE];
-  uchar  cw[16];
-  ushort caid;
-  ulong  grp;
+  uchar  	ecmd5[CS_ECMSTORESIZE];
+  uchar  	cw[16];
+  ushort 	caid;
+  ulong  	grp;
+  int 		reader;
   //int level;
 };
 
@@ -479,6 +491,7 @@ struct s_client
   int		emmnok;	     // count EMM nok
 #ifdef WEBIF
   int		wihidden;	// hidden in webinterface status
+  char      lastreader[32]; // last cw got from this reader
 #endif
   uchar		ucrc[4];    // needed by monitor and used by camd35
   ulong		pcrc;        // pwd crc
@@ -517,6 +530,7 @@ struct s_reader  //contains device info, reader info and card info
   int       ridx; //FIXME reader[ridx] reader has to know what number it is, should be replaced by storing pointer to reader instead of array index
   int       enable;
   int       available; //Schlocke: New flag for loadbalancing. Only reader if reader supports ph.c_available function
+  int       fd_error;
   int       fd;
   ulong     grp;
   int       fallback;
@@ -544,6 +558,7 @@ struct s_reader  //contains device info, reader info and card info
   ulong     boxid;
   uchar	    nagra_boxkey[16]; //n3 boxkey 8byte  or tiger idea key 16byte
   int       has_rsa;
+  char      country_code[3]; // irdeto country code.
   int       force_irdeto;
   uchar     aes_key[16];
   uchar     rsa_mod[120]; //rsa modulus for nagra cards.
@@ -618,6 +633,7 @@ struct s_reader  //contains device info, reader info and card info
   int		emmskipped[4]; //count skipped EMM
   int		emmerror[4];	//count error EMM
   int		emmblocked[4];	//count blocked EMM
+  int		lbvalue;		//loadbalance Value
 #endif
 #ifdef HAVE_PCSC
   SCARDCONTEXT hContext;
@@ -662,7 +678,9 @@ struct s_reader  //contains device info, reader info and card info
 	int lb_usagelevel; //usagelevel for loadbalancer
 	int lb_usagelevel_ecmcount;
 	time_t lb_usagelevel_time; //time for counting ecms, this creates usagelevel
-	time_t lb_last; //time for oldest reader
+	struct timeb lb_last; //time for oldest reader
+	// multi AES linked list
+	AES_ENTRY *aes_list;
 };
 
 #ifdef CS_ANTICASC
@@ -938,7 +956,9 @@ typedef struct reader_stat_t
   ushort        caid;
   ulong         prid;
   ushort        srvid;
-
+  
+  time_t        last_received;
+  
   int           ecm_count;  
   int           time_avg;
   int           time_stat[MAX_STAT_TIME];
@@ -951,6 +971,8 @@ typedef struct get_reader_stat_t
   ulong         prid;
   ushort        srvid;
   int           cidx;
+  int           reader_avail[CS_MAXREADER];
+  uchar         ecmd5[CS_ECMSTORESIZE];
 } GCC_PACK      GET_READER_STAT;
 
 typedef struct emm_packet_t
@@ -979,6 +1001,7 @@ extern int cs_atob(uchar *, char *, int);
 extern ulong cs_atoi(char *, int, int);
 extern int byte_atob(char *);
 extern long word_atob(char *);
+extern long dyn_word_atob(char *asc);
 extern int key_atob(char *, uchar *);
 extern int key_atob14(char *, uchar *);
 extern int key_atob_l(char *, uchar *, int);
@@ -1018,6 +1041,7 @@ extern void fprintf_conf(FILE *f, int varnameWidth, const char *varname, const c
 extern void cs_strncpy(char * destination, const char * source, size_t num);
 extern char *get_servicename(int srvid, int caid);
 extern char *get_provider(int caid, ulong provid);
+extern void make_non_blocking(int fd);
 
 // oscam variables
 extern int pfd, fd_c2m, cs_idx, *c_start, cs_ptyp, cs_dblevel;
@@ -1065,9 +1089,9 @@ extern int cs_fork(in_addr_t, in_port_t);
 extern void wait4master(void);
 extern int cs_auth_client(struct s_auth *, char*);
 extern void cs_disconnect_client(void);
-extern int check_ecmcache(ECM_REQUEST *, ulong);
+extern int check_ecmcache1(ECM_REQUEST *, ulong);
+extern int check_ecmcache2(ECM_REQUEST *, ulong);
 extern void store_logentry(char *);
-extern int pipe_WaitToWrite (int out_fd, unsigned delay_ms, unsigned timeout_ms);
 extern int write_to_pipe(int, int, uchar *, int);
 extern int read_from_pipe(int, uchar **, int);
 extern int write_ecm_request(int, ECM_REQUEST *);
@@ -1096,10 +1120,10 @@ extern void set_signal_handler(int , int , void (*)(int));
 extern void cs_log_config(void);
 extern void cs_waitforcardinit(void);
 extern void cs_reinit_clients(void);
-extern void cs_resolve(void);
-extern void cs_resolve_reader(int ridx);
 extern void chk_dcw(int fd);
 extern void update_reader_config(uchar *ptr);
+extern void send_restart_cardreader(int ridx);
+extern void send_clear_reader_stat(int ridx);
 
 #ifdef CS_ANTICASC
 //extern void start_anticascader(void);
@@ -1181,6 +1205,7 @@ extern void cs_ri_brk(struct s_reader * reader, int);
 extern void cs_ri_log(struct s_reader * reader, char *,...);
 extern void * start_cardreader(void *);
 extern void reader_card_info(struct s_reader * reader);
+extern int hostResolve(int ridx);
 extern int network_tcp_connection_open();
 extern void network_tcp_connection_close(struct s_reader * reader, int);
 
@@ -1210,6 +1235,11 @@ extern void cs_dump(uchar *, int, char *, ...);
 extern void aes_set_key(char *);
 extern void aes_encrypt_idx(int, uchar *, int);
 extern void aes_decrypt(uchar *, int);
+extern int aes_decrypt_from_list(AES_ENTRY *list, ushort caid, uint32 provid,int keyid, uchar *buf, int n);
+extern int aes_present(AES_ENTRY *list, ushort caid, uint32 provid,int keyid);
+extern void parse_aes_keys(struct s_reader *rdr,char *value);
+extern void aes_clear_entries(struct s_reader *rdr);
+
 #define aes_encrypt(b, n) aes_encrypt_idx(cs_idx, b, n)
 
 // reader-common
@@ -1222,11 +1252,13 @@ int reader_get_emm_type(EMM_PACKET *ep, struct s_reader * reader);
 int get_cardsystem(ushort caid);
 void get_emm_filter(struct s_reader * rdr, uchar *filter);
 extern int check_emm_cardsystem(struct s_reader * rdr, EMM_PACKET *ep);
+extern void reader_device_close(struct s_reader * reader);
 
 //module-stat
 extern void init_stat();
 extern void add_reader_stat(ADD_READER_STAT *add_stat);
-extern int get_best_reader(ushort caid, ulong prid, ushort srvid);
+extern int get_best_reader(GET_READER_STAT *grs, int *result);
+extern void clear_reader_stat(int ridx);
 
 #ifdef HAVE_PCSC
 // reader-pcsc
@@ -1234,6 +1266,7 @@ extern int pcsc_reader_do_api(struct s_reader *pcsc_reader, uchar *buf, uchar *c
 extern int pcsc_activate_card(struct s_reader *pcsc_reader, uchar *atr, ushort *atr_size);
 extern int pcsc_check_card_inserted(struct s_reader *pcsc_reader);
 extern int pcsc_reader_init(struct s_reader *pcsc_reader, char *device);
+extern void pcsc_close(struct s_reader *pcsc_reader);
 #endif
 
 // protocol modules

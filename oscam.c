@@ -1,5 +1,8 @@
 #define CS_CORE
 #include "globals.h"
+#ifdef AZBOX
+#  include "openxcas/openxcas_api.h"
+#endif
 #ifdef CS_WITH_GBOX
 #  include "csgbox/gbox.h"
 #  define CS_VERSION_X  CS_VERSION "-gbx-" GBXVERSION
@@ -24,7 +27,6 @@ pid_t master_pid=0;   // master pid OUTSIDE shm
 ushort  len4caid[256];    // table for guessing caid (by len)
 char  cs_confdir[128]=CS_CONFDIR;
 uchar mbuf[1024];   // global buffer
-pthread_mutex_t gethostbyname_lock; //gethostbyname ist NOT threadsafe! So we need a mutex-lock!
 ECM_REQUEST *ecmtask;
 #ifdef CS_ANTICASC
 struct s_acasc ac_stat[CS_MAXPID];
@@ -320,9 +322,18 @@ void cs_exit(int sig)
     	client[cs_idx].last_caid = 0xFFFF;
     	client[cs_idx].last_srvid = 0xFFFF;
     	cs_statistics(cs_idx);
+    	break;
     case 'm': break;
     case 'n': *log_fd=0;
               break;
+    case 'r':
+        // free AES entries allocated memory
+        if(reader[ridx].aes_list) {
+            aes_clear_entries(&reader[ridx]);
+        }
+        // close the device
+        reader_device_close(&reader[ridx]);
+        break;
     case 's': *log_fd=0;
               int i;
               for (i=1; i<CS_MAXPID; i++)
@@ -472,9 +483,32 @@ static void cs_card_info(int i)
       //kill(client[i].pid, SIGUSR2);
 }
 
+static void prepare_reader_restart(int ridx, int cs_idx)
+{
+  reader[ridx].pid = 0;
+  reader[ridx].cc = NULL;
+  reader[ridx].tcp_connected = 0;
+  reader[ridx].fd=0;
+  reader[ridx].cs_idx=0;
+  reader[ridx].last_s = 0;
+  reader[ridx].last_g = 0;
+  cs_debug_mask(D_TRACE, "reader %s closed (index=%d)", reader[ridx].label, ridx);
+  if (client[cs_idx].ufd) close(client[cs_idx].ufd);
+  if (client[cs_idx].fd_m2c_c) close(client[cs_idx].fd_m2c_c);
+  memset(&client[cs_idx], 0, sizeof(struct s_client));
+  client[cs_idx].au=(-1);
+}
+
 //Schlocke: restart cardreader after 5 seconds:
-static void restart_cardreader(int pridx) {
+static void restart_cardreader(int pridx, int force_now) {
 	ridx = pridx;
+	if (reader[ridx].cs_idx) {
+		if (reader[ridx].pid==client[reader[ridx].cs_idx].pid) {
+			int pid = reader[ridx].pid;
+			prepare_reader_restart(ridx, reader[ridx].cs_idx);
+			kill(pid, SIGKILL);
+		}
+	}
 	reader[ridx].ridx = ridx; //FIXME
 	if ((reader[ridx].device[0]) && (reader[ridx].enable == 1) && (!reader[ridx].deleted)) {
 		switch (cs_fork(0, 99)) {
@@ -483,7 +517,8 @@ static void restart_cardreader(int pridx) {
 		case 0:
 			break;
 		default:
-			cs_sleepms(cfg->reader_restart_seconds * 1000); // SS: wait
+			if (!force_now)
+				cs_sleepms(cfg->reader_restart_seconds * 1000); // SS: wait
 			cs_log("restarting reader %s (index=%d)", reader[ridx].label, ridx);
 
 			wait4master();
@@ -524,20 +559,7 @@ static void cs_child_chk(int i)
             {
               if (reader[ridx].pid == old_pid)
               {
-                reader[ridx].pid = 0;
-                reader[ridx].cc = NULL;
-                reader[ridx].tcp_connected = 0;
-    			reader[ridx].fd=0;
-    			reader[ridx].cs_idx=0;
-    			reader[ridx].last_s = 0;
-    			reader[ridx].last_g = 0;
-    			cs_debug_mask(D_TRACE, "%s %s closed (index=%d)", txt, reader[ridx].label, ridx);
-                //if (client[i].fd_m2c) close(client[i].fd_m2c);
-                if (client[i].ufd) close(client[i].ufd);
-                if (client[i].fd_m2c_c) close(client[i].fd_m2c_c);
-                memset(&client[i], 0, sizeof(struct s_client));
-                client[i].au=(-1);
-
+                prepare_reader_restart(ridx, i);
                 cs_log("restarting %s %s in %d seconds (index=%d)", reader[ridx].label, txt,
                 		cfg->reader_restart_seconds, ridx);
                 write_to_pipe(fd_c2m, PIP_ID_RST, (uchar*)&ridx, sizeof(ridx));
@@ -607,6 +629,10 @@ int cs_fork(in_addr_t ip, in_port_t port)
       cs_log("Cannot create pipe (errno=%d)", errno);
       cs_exit(1);
     }
+
+    make_non_blocking(fdp[0]);
+    make_non_blocking(fdp[1]);
+
 		if (reader[ridx].typ == R_SC8in1 && port == 99) { //SC8in1 reader gets threaded, not forked
                         if (reader[ridx].handle == 0)
 				reader_device_init(&reader[ridx]); 
@@ -899,7 +925,6 @@ static void init_shm()
   else
     strcpy(client[0].usr, "root");
 
-  pthread_mutex_init(&gethostbyname_lock, NULL); //gethostbyname ist NOT threadsafe! So we need a mutex-lock!
   init_stat();
 
 #ifdef CS_LOGHISTORY
@@ -1031,61 +1056,27 @@ static void cs_client_resolve()
 {
   while (1)
   {
-    struct hostent *rht;
+    struct addrinfo hints, *res = NULL;
     struct s_auth *account;
-    struct sockaddr_in udp_sa;
-
+       
     for (account=cfg->account; account; account=account->next)
       if (account->dyndns[0])
       {
-    	pthread_mutex_lock(&gethostbyname_lock); //gethostbyname ist NOT threadsafe! So we need a mutex-lock!
-        rht=gethostbyname((const char *)account->dyndns);
-        if (rht)
-        {
-          memcpy(&udp_sa.sin_addr, rht->h_addr, sizeof(udp_sa.sin_addr));
-          account->dynip=cs_inet_order(udp_sa.sin_addr.s_addr);
+        memset(&hints, 0, sizeof(hints));
+        hints.ai_socktype = SOCK_STREAM;
+        hints.ai_family = AF_INET;
+        hints.ai_protocol = IPPROTO_TCP;
+                
+        int err = getaddrinfo((const char*)account->dyndns, NULL, &hints, &res);
+        if (err != 0 || !res || !res->ai_addr) {
+	  cs_log("can't resolve %s, error: %s", account->dyndns, err ? gai_strerror(err) : "unknown");
+	}
+        else {
+          account->dynip=cs_inet_order(((struct sockaddr_in *)(res->ai_addr))->sin_addr.s_addr);
         }
-        else
-          cs_log("can't resolve hostname %s (user: %s)", account->dyndns, account->usr);
-        client[cs_idx].last=time((time_t)0);
-        pthread_mutex_unlock(&gethostbyname_lock); //gethostbyname ist NOT threadsafe! So we need a mutex-lock!
+        if (res) freeaddrinfo(res);
       }
     sleep(cfg->resolvedelay);
-  }
-}
-
-static void loop_resolver()
-{
-  cs_sleepms(1000); // wait for reader
-  while(1)
-  {
-    cs_resolve();
-    cs_sleepms(1000*cfg->resolvedelay);
-/*
-    //debug only. checking pipe status:
-    FILE *f = fopen("/tmp/oscamdbg.txt", "w");
-    int i;
-    for (i=0; i<CS_MAXPID; i++) {
-    	if (client[i].pid) {
-    		struct stat buf;
-    		fstat(client[i].udp_fd, &buf);
-    		int s_udp_fd = buf.st_size;
-
-    		fstat(client[i].fd_m2c, &buf);
-    		int s_fd_m2c = buf.st_size;
-
-    		fstat(client[i].fd_m2c_c, &buf);
-    		int s_fd_m2c_c = buf.st_size;
-
-    		fprintf(f, "%d typ %c pid %d: udp_fd=%d fd_m2c=%d fs_m2c_c=%d ", i, client[i].typ,
-    				client[i].pid,
-    				s_udp_fd,
-    				s_fd_m2c,
-    				s_fd_m2c_c);
-    	}
-    }
-    fclose(f);
-*/
   }
 }
 
@@ -1102,38 +1093,6 @@ static void start_thread(void * startroutine, char * nameroutine)
     cs_log("%s thread started", nameroutine);
     pthread_detach(tid);
   }
-}
-
-void cs_resolve()
-{
-	int i, idx;
-	struct hostent *rht;
-	struct s_auth;
-	for (i=0; i<CS_MAXREADER; i++)
-		if ((idx=reader[i].cs_idx) && (reader[i].typ & R_IS_NETWORK) && (reader[i].typ!=R_CONSTCW))
-		{
-			//client[idx].last=time((time_t)0);
-			pthread_mutex_lock(&gethostbyname_lock); //gethostbyname ist NOT threadsafe! So we need a mutex-lock!
-			rht = gethostbyname(reader[i].device);
-			if (rht)
-			{
-				in_addr_t last_ip = client[idx].ip;
-				memcpy(&client[idx].udp_sa.sin_addr, rht->h_addr,
-						sizeof(client[idx].udp_sa.sin_addr));
-				client[idx].ip=cs_inet_order(client[idx].udp_sa.sin_addr.s_addr);
-				if (client[idx].ip != last_ip)
-				{
-					uint8 *ip = (uint8*)&client[idx].ip;
-					cs_debug_mask(D_TRACE, "resolved %s to %d.%d.%d.%d", reader[i].device,
-							ip[3], ip[2], ip[1], ip[0]);
-				}
-			}
-			else
-				cs_log("can't resolve %s", reader[i].device);
-			pthread_mutex_unlock(&gethostbyname_lock); //gethostbyname ist NOT threadsafe! So we need a mutex-lock!			
-			//client[cs_idx].last=time((time_t)0);
-		}
-
 }
 
 static void cs_logger(void)
@@ -1458,26 +1417,54 @@ void cs_disconnect_client(void)
 	cs_exit(0);
 }
 
-int check_ecmcache(ECM_REQUEST *er, ulong grp)
+/**
+ * cache 1: client-invoked
+ * returns found ecm task index
+ **/
+int check_ecmcache1(ECM_REQUEST *er, ulong grp)
 {
-	// disable cache1 and cache2
-	if (!reader[ridx].cachecm) return(0);
-	
 	int i;
 	//cs_ddump(ecmd5, CS_ECMSTORESIZE, "ECM search");
-	//cs_log("cache CHECK: grp=%lX", grp);
+	//cs_log("cache1 CHECK: grp=%lX", grp);
 	for(i=0; i<CS_ECMCACHESIZE; i++) {
 		if ((grp & ecmcache[i].grp) &&
 		     ecmcache[i].caid==er->caid &&
 		     (!memcmp(ecmcache[i].ecmd5, er->ecmd5, CS_ECMSTORESIZE)))
 		{
-			//cs_log("cache found: grp=%lX cgrp=%lX", grp, ecmcache[i].grp);
+			//cs_log("cache1 found: grp=%lX cgrp=%lX", grp, ecmcache[i].grp);
+			memcpy(er->cw, ecmcache[i].cw, 16);
+			er->reader[0] = ecmcache[i].reader;
+			return(1);
+		}
+	}
+	return(0);
+}
+
+/**
+ * cache 2: reader-invoked
+ * returns 1 if found in cache. cw is copied to er
+ **/
+int check_ecmcache2(ECM_REQUEST *er, ulong grp)
+{
+	// disable cache2
+	if (!reader[ridx].cachecm) return(0);
+	
+	int i;
+	//cs_ddump(ecmd5, CS_ECMSTORESIZE, "ECM search");
+	//cs_log("cache2 CHECK: grp=%lX", grp);
+	for(i=0; i<CS_ECMCACHESIZE; i++) {
+		if ((grp & ecmcache[i].grp) &&
+		     ecmcache[i].caid==er->caid &&
+		     (!memcmp(ecmcache[i].ecmd5, er->ecmd5, CS_ECMSTORESIZE)))
+		{
+			//cs_log("cache2 found: grp=%lX cgrp=%lX", grp, ecmcache[i].grp);
 			memcpy(er->cw, ecmcache[i].cw, 16);
 			return(1);
 		}
 	}
 	return(0);
 }
+
 
 static void store_ecm(ECM_REQUEST *er)
 {
@@ -1489,6 +1476,7 @@ static void store_ecm(ECM_REQUEST *er)
 	memcpy(ecmcache[rc].cw, er->cw, 16);
 	ecmcache[rc].caid = er->caid;
 	ecmcache[rc].grp = reader[er->reader[0]].grp;
+	ecmcache[rc].reader = er->reader[0];
 	//cs_ddump(ecmcache[*ecmidx].ecmd5, CS_ECMSTORESIZE, "ECM stored (idx=%d)", *ecmidx);
 }
 
@@ -1507,70 +1495,31 @@ void store_logentry(char *txt)
 }
 
 /*
-* Check if a fd is ready for a write (fir pipes).
-*/
-int pipe_WaitToWrite (int out_fd, unsigned delay_ms, unsigned timeout_ms)
-{
-   fd_set wfds;
-   fd_set ewfds;
-   struct timeval tv;
-   int select_ret;
-   if (delay_ms > 0)
-      cs_sleepms(delay_ms);
-
-   FD_ZERO(&wfds);
-   FD_SET(out_fd, &wfds);
-   
-   FD_ZERO(&ewfds);
-   FD_SET(out_fd, &ewfds);
-   
-   tv.tv_sec = timeout_ms/1000L;
-   tv.tv_usec = (timeout_ms % 1000) * 1000L;
-
-   select_ret = select(out_fd+1, NULL, &wfds, &ewfds, &tv);
-
-   if(select_ret==-1)
-   {
-      printf("select_ret=%d\n" , select_ret);
-      printf("errno =%d\n", errno);
-      fflush(stdout);
-      return 0;
-   }
-
-   if (FD_ISSET(out_fd, &ewfds))
-   {
-      printf("fd is in ewfds\n");
-      printf("errno =%d\n", errno);
-      fflush(stdout);
-      return 0;
-   }
-
-   if (FD_ISSET(out_fd,&wfds))
-		 return 1;
-	 else
-		 return 0;
-}
-
-/*
  * write_to_pipe():
  * write all kind of data to pipe specified by fd
  */
 int write_to_pipe(int fd, int id, uchar *data, int n)
 {
-  uchar buf[1024+3+sizeof(int)];
+  if( !fd ) {
+        cs_log("write_to_pipe: fd==0 id: %d", id);
+        return -1;
+  }
 
 //printf("WRITE_START pid=%d", getpid()); fflush(stdout);
+
+  uchar buf[1024+3+sizeof(int)];
+
   if ((id<0) || (id>PIP_ID_MAX))
     return(PIP_ID_ERR);
   memcpy(buf, PIP_ID_TXT[id], 3);
   memcpy(buf+3, &n, sizeof(int));
   memcpy(buf+3+sizeof(int), data, n);
   n+=3+sizeof(int);
+
 //n=write(fd, buf, n);
 //printf("WRITE_END pid=%d", getpid()); fflush(stdout);
 //return(n);
-  if( !fd )
-    cs_log("write_to_pipe: fd==0");
+
   return(write(fd, buf, n));
 }
 
@@ -1912,6 +1861,14 @@ int send_dcw(ECM_REQUEST *er)
 		cs_log("%s (%04X&%06X/%04X/%02X:%04X): %s (%d ms)%s",
 				uname, er->caid, er->prid, er->srvid, er->l, lc,
 				er->rcEx?erEx:stxt[er->rc], client[cs_idx].cwlastresptime, sby);
+#ifdef WEBIF
+	if(er->rc == 0)
+		snprintf(client[cs_idx].lastreader, sizeof(client[cs_idx].lastreader)-1, "%s", sby);
+	else if ((er->rc == 1) || (er->rc == 2))
+		snprintf(client[cs_idx].lastreader, sizeof(client[cs_idx].lastreader)-1, "by %s (cache)", reader[er->reader[0]].label);
+	else
+		snprintf(client[cs_idx].lastreader, sizeof(client[cs_idx].lastreader)-1, "%s", stxt[er->rc]);
+#endif
 
 	if(!client[cs_idx].ncd_server && client[cs_idx].autoau && er->rcEx==0)
 	{
@@ -2209,9 +2166,9 @@ void request_cw(ECM_REQUEST *er, int flag, int reader_types)
   flag=(flag)?3:1;    // flag specifies with/without fallback-readers
   for (i=0; i<CS_MAXREADER; i++)
   {
-	  //if (reader[i].pid)
-	  //	  cs_log("active reader: %d pid %d fd %d", i, reader[i].pid, reader[i].fd);
-
+	    //if (reader[i].pid)
+	    //	  cs_log("active reader: %d pid %d fd %d", i, reader[i].pid, reader[i].fd);
+      int status = 0;
       switch (reader_types)
       {
           // network and local cards
@@ -2219,7 +2176,7 @@ void request_cw(ECM_REQUEST *er, int flag, int reader_types)
           case 0:
               if (er->reader[i]&flag){
                   //cs_debug_mask(D_TRACE, "request_cw1 to reader %s ridx=%d fd=%d", reader[i].label, i, reader[i].fd);
-                  write_ecm_request(reader[i].fd, er);
+                  status = write_ecm_request(reader[i].fd, er);
               }
               break;
               // only local cards
@@ -2227,7 +2184,7 @@ void request_cw(ECM_REQUEST *er, int flag, int reader_types)
               if (!(reader[i].typ & R_IS_NETWORK))
                   if (er->reader[i]&flag) {
                 	  //cs_debug_mask(D_TRACE, "request_cw2 to reader %s ridx=%d fd=%d", reader[i].label, i, reader[i].fd);
-                      write_ecm_request(reader[i].fd, er);
+                    status = write_ecm_request(reader[i].fd, er);
                   }
               break;
               // only network
@@ -2236,39 +2193,61 @@ void request_cw(ECM_REQUEST *er, int flag, int reader_types)
               if ((reader[i].typ & R_IS_NETWORK))
                   if (er->reader[i]&flag) {
                 	  //cs_debug_mask(D_TRACE, "request_cw3 to reader %s ridx=%d fd=%d", reader[i].label, i, reader[i].fd);
-                      write_ecm_request(reader[i].fd, er);
+                    status = write_ecm_request(reader[i].fd, er);
                   }
               break;
       }
+      if (status == -1) {
+                cs_log("request_cw() failed on reader %s (%d) errno=%d, %s", reader[i].label, i, errno, strerror(errno));
+      		if (reader[i].fd && reader[i].pid) {
+ 	     		reader[i].fd_error++;
+      			if (reader[i].fd_error > 5) {
+      				reader[i].fd_error = 0;
+      				kill(client[reader[i].cs_idx].pid, 1); //Schlocke: This should restart the reader!
+      			} 
+		}
+      }
+      else
+      	reader[i].fd_error = 0;
   }
 }
 
 //receive best reader from master process. Call this function from client!
-int recv_best_reader(ECM_REQUEST *er)
+void recv_best_reader(ECM_REQUEST *er, int *reader_avail)
 {
-	if (!cfg->reader_auto_loadbalance)
-		return -1;
-
 	GET_READER_STAT grs;
+	memset(&grs, 0, sizeof(grs));
 	grs.caid = er->caid;
 	grs.prid = er->prid;
 	grs.srvid = er->srvid;
 	grs.cidx = cs_idx;
-	cs_debug_mask(D_TRACE, "requesting client %s best reader for %04X/%04X/%04X", username(cs_idx), grs.caid, grs.prid, grs.srvid);
-	write_to_pipe(fd_c2m, PIP_ID_BES, (uchar*)&grs, sizeof(GET_READER_STAT));
+	memcpy(grs.ecmd5, er->ecmd5, sizeof(er->ecmd5));
+	memcpy(grs.reader_avail, reader_avail, sizeof(int)*CS_MAXREADER);
+	cs_debug_mask(D_TRACE, "requesting client %s best reader for %04X/%06X/%04X", username(cs_idx), grs.caid, grs.prid, grs.srvid);
+
+	int res_write = write_to_pipe(fd_c2m, PIP_ID_BES, (uchar*)&grs, sizeof(GET_READER_STAT));
+	if (res_write <= 0) {
+		cs_debug_mask(D_TRACE, "get best reader: write error!");
+		return;
+	}
 	
 	uchar *ptr;
 	fd_set fds;
-	struct timeval timeout;
-	timeout.tv_sec = 0;
-	timeout.tv_usec = 500;
 	do
 	{
+		struct timeval timeout;
+		timeout.tv_sec = 1;
+		timeout.tv_usec = 500;
 		FD_ZERO(&fds);
 		FD_SET(client[cs_idx].fd_m2c_c, &fds);
-		if (!select(client[cs_idx].fd_m2c_c+1, &fds, 0, 0, &timeout)) {
-			cs_debug_mask(D_TRACE, "get best reader timeout!");
-			break; //timeout
+		int res = select(client[cs_idx].fd_m2c_c+1, &fds, 0, 0, &timeout);
+		if (res == 0) {
+			cs_debug_mask(D_TRACE, "get best reader: timeout!");
+			return; //timeout
+		}
+		else if (res < 0) {
+			cs_debug_mask(D_TRACE, "get best reader: failed!");
+			return; //failed
 		}
 			
 		if (master_pid!=getppid())
@@ -2277,20 +2256,16 @@ int recv_best_reader(ECM_REQUEST *er)
 		{
 			int n = read_from_pipe(client[cs_idx].fd_m2c_c, &ptr, 1);
 			if (n == PIP_ID_BES) {
-				int r = *(int*)ptr;
-				cs_debug_mask(D_TRACE, "got best reader: %s (%d)", reader[r].label, r);
-				return r;
+				int *best_readers = (int*)ptr;
+				memcpy(reader_avail, best_readers, sizeof(int)*CS_MAXREADER);
+				return;
 			}
 			else if (n == PIP_ID_DIR)
 				continue;
 			else //should neven happen
-				cs_debug_mask(D_TRACE, "got best reader: illegal paket? n=%d", n);
-			break;
+				cs_debug_mask(D_TRACE, "get best reader: illegal paket? n=%d", n);
 		} 
-		else //no data
-			break;
 	} while (1);
-	return -1;
 }
 
 void get_cw(ECM_REQUEST *er)
@@ -2362,8 +2337,8 @@ void get_cw(ECM_REQUEST *er)
 
 		// user sleeping
 		if ((client[cs_idx].tosleep) && (now - client[cs_idx].lastswitch > client[cs_idx].tosleep)) {
-			if (client[cs_idx].c35_sleepsend == 0xFF) {
-				er->rc = 13; // send stop command CMD08 {00 FF}
+			if (client[cs_idx].c35_sleepsend != 0) {
+				er->rc = 13; // send stop command CMD08 {00 xx}
 			} else {
 				er->rc = 6;
 			}
@@ -2422,7 +2397,10 @@ void get_cw(ECM_REQUEST *er)
 					break;
 			}
 		}
-
+	}
+	
+	//Schlocke: above checks could change er->rc so 
+	if (er->rc > 99) {
 		/*BetaCrypt tunneling
 		 *moved behind the check routines,
 		 *because newcamd ECM will fail
@@ -2435,7 +2413,7 @@ void get_cw(ECM_REQUEST *er)
 		memcpy(er->ecmd5, MD5(er->ecm, er->l, NULL), CS_ECMSTORESIZE);
 
 		// cache1
-		if (check_ecmcache(er, client[cs_idx].grp))
+		if (check_ecmcache1(er, client[cs_idx].grp))
 			er->rc = 1;
 
 #ifdef CS_ANTICASC
@@ -2443,15 +2421,20 @@ void get_cw(ECM_REQUEST *er)
 #endif
 	}
 
-	if(er->rc > 99 && er->rc != 1) {
+	if(er->rc > 99) {
 
 		if (cfg->reader_auto_loadbalance) {
-			int best_ridx = recv_best_reader(er);
-			for (i = m = 0; i < CS_MAXREADER; i++)
-				if (matching_reader(er, &reader[i])) {
-					//When autobalance enabled, all other readers are fallbacks:
-					m|=er->reader[i] = (best_ridx >= 0 && best_ridx != i)? 2: 1;
+			int reader_avail[CS_MAXREADER];
+			for (i =0; i < CS_MAXREADER; i++)
+				reader_avail[i] = matching_reader(er, &reader[i]);
+				
+			recv_best_reader(er, reader_avail);
+				
+			for (i = m = 0; i < CS_MAXREADER; i++) {
+				if (reader_avail[i]) {
+					m|=er->reader[i] = reader_avail[i];
 				}
+			}
 		}
 		else
 		{
@@ -2503,6 +2486,21 @@ void do_emm(EMM_PACKET *ep)
 	au = client[cs_idx].au;
 	cs_ddump_mask(D_ATR, ep->emm, ep->l, "emm:");
 
+	//Unique Id matching for pay-per-view channels:
+	if (client[cs_idx].autoau) {
+		int i;
+		for (i=0;i<CS_MAXREADER;i++) {
+			if (reader[i].card_system>0 && !reader[i].audisabled) {
+				if (reader_get_emm_type(ep, &reader[i])) { //decodes ep->type and ep->hexserial from the EMM
+					if (memcmp(ep->hexserial, reader[i].hexserial, sizeof(ep->hexserial))==0) {
+						au = i;
+						break; //
+					}
+				}
+			}
+		}
+	}
+	
 	if ((au < 0) || (au >= CS_MAXREADER)) {
 		cs_debug_mask(D_EMM, "emm disabled, client has no au-reader!");
 		return;
@@ -2606,6 +2604,13 @@ struct timeval *chk_pending(struct timeb tp_ctimeout)
 
 	for (--i; i>=0; i--) {
 		if (ecmtask[i].rc>=100) { // check all pending ecm-requests 
+			er=&ecmtask[i];
+			if (check_ecmcache1(er, client[cs_idx].grp)) { //Schlocke: caching dupplicate requests from different clients
+				er->rc = 1;
+				send_dcw(er);
+			}
+		}
+		if (ecmtask[i].rc>=100) { // check all pending ecm-requests 
 			int act, j;
 			er=&ecmtask[i];
 			tpc=er->tps;
@@ -2660,6 +2665,12 @@ struct timeval *chk_pending(struct timeb tp_ctimeout)
 				//cs_log("           %d.%03d", tpc.time, tpc.millitm);
 				if (er->stage) {
 					er->rc=5; // timeout
+					if (cfg->reader_auto_loadbalance) {
+						int r;
+						for (r=0; r<CS_MAXREADER; r++)
+							if (er->reader[r])
+								send_reader_stat(r, er, 5);
+					}
 					send_dcw(er);
 					continue;
 				} else {
@@ -2747,9 +2758,20 @@ static void restart_clients()
 void send_best_reader(GET_READER_STAT *grs)
 {
 	//cs_debug_mask(D_TRACE, "got request for best reader for %04X/%04X/%04X", grs->caid, grs->prid, grs->srvid);
-	int ridx = get_best_reader(grs->caid, grs->prid, grs->srvid);
+	int best_reader[CS_MAXREADER];
+	get_best_reader(grs, best_reader);
 	//cs_debug_mask(D_TRACE, "sending best reader %d", ridx);
-	write_to_pipe(client[grs->cidx].fd_m2c, PIP_ID_BES, (uchar*)&ridx, sizeof(ridx));
+	write_to_pipe(client[grs->cidx].fd_m2c, PIP_ID_BES, (uchar*)&best_reader, sizeof(best_reader));
+}
+
+void send_clear_reader_stat(int ridx)
+{
+  write_to_pipe(fd_c2m, PIP_ID_RES, (uchar*)&ridx, sizeof(ridx)); 
+}
+
+void send_restart_cardreader(int ridx)
+{
+  write_to_pipe(fd_c2m, PIP_ID_RST, (uchar*)&ridx, sizeof(ridx)); 
 }
 
 static void process_master_pipe()
@@ -2766,7 +2788,7 @@ static void process_master_pipe()
     	cs_accounts_chk();
     	break;
     case PIP_ID_RST: //Restart Cardreader with ridx=prt[0]
-    	restart_cardreader(*(int*)ptr);
+    	restart_cardreader(*(int*)ptr, 1);
     	break;
     case PIP_ID_KCL: //Kill all clients
     	restart_clients();
@@ -2777,6 +2799,9 @@ static void process_master_pipe()
     case PIP_ID_BES: //Get best reader
         send_best_reader((GET_READER_STAT *)ptr);
         break;
+    case PIP_ID_RES: //Reset reader statistics
+	clear_reader_stat(*(int*)ptr);
+	break;
   }
 }
 
@@ -2831,6 +2856,24 @@ void cs_waitforcardinit()
 	}
 }
 
+void cs_resolve()
+{
+  int i;
+  for (i=0; i<CS_MAXREADER; i++)
+    if (reader[i].enable && !reader[i].deleted && (reader[i].cs_idx) && (reader[i].typ & R_IS_NETWORK) && (reader[i].typ!=R_CONSTCW))
+      hostResolve(i);
+}
+
+static void loop_resolver()
+{
+  cs_sleepms(1000); // wait for reader
+  while(cfg->resolvedelay > 0)
+  {
+    cs_resolve();
+    cs_sleepms(1000*cfg->resolvedelay);
+  }
+}
+              
 int main (int argc, char *argv[])
 {
 
@@ -3035,6 +3078,15 @@ int main (int argc, char *argv[])
   }
 #endif
 
+
+#ifdef AZBOX
+  openxcas_debug_message_onoff(1);  // debug
+
+  if (openxcas_open_with_smartcard("oscamCAS") < 0) {
+    cs_log("openxcas: could not init");
+  }
+#endif
+
   for (i=0; i<CS_MAX_MOD; i++)
     if( (ph[i].type & MOD_CONN_NET) && ph[i].ptab )
       for(j=0; j<ph[i].ptab->nports; j++)
@@ -3051,7 +3103,9 @@ int main (int argc, char *argv[])
 		start_thread((void *) &cs_client_resolve, "client resolver");
 
   init_service(97); // logger
-  start_thread((void *) &loop_resolver, "resolver");
+
+  if (cfg->resolvedelay > 0)
+    start_thread(&loop_resolver, "Resolver");
 #ifdef WEBIF
   init_service(95); // http
 #endif
@@ -3189,6 +3243,14 @@ int main (int argc, char *argv[])
       } // if (ph[i].type & MOD_CONN_NET)
     }
   }
+
+
+#ifdef AZBOX
+  if (openxcas_close() < 0) {
+    cs_log("openxcas: could not close");
+  }
+#endif
+
   cs_exit(1);
 }
 

@@ -214,9 +214,7 @@ void do_emm_from_file(struct s_reader * reader)
 
 void reader_card_info(struct s_reader * reader)
 {
-//  int rc=-1;
-  if (reader_checkhealth(reader))
-  //if (rc=reader_checkhealth())
+  if ((reader->card_status == CARD_NEED_INIT) || (reader->card_status == CARD_INSERTED))
   {
     client[cs_idx].last=time((time_t)0);
     cs_ri_brk(reader, 0);
@@ -293,16 +291,17 @@ int reader_checkhealth(struct s_reader * reader)
     if (reader->card_status == NO_CARD)
     {
       cs_log("card detected");
-      reader->card_status  = CARD_NEED_INIT;
-      reader->card_status = (reader_reset(reader) ? CARD_INSERTED : CARD_FAILURE);
-      if (reader->card_status == CARD_FAILURE)
+      reader->card_status = CARD_NEED_INIT;
+      if (!reader_reset(reader)) 
       {
+        reader->card_status = CARD_FAILURE;
         cs_log("card initializing error");
       }
       else
       {
-        client[cs_idx].au=reader->ridx;
+        client[cs_idx].au = reader->ridx;
         reader_card_info(reader);
+        reader->card_status = CARD_INSERTED;
       }
 
       int i;
@@ -318,16 +317,16 @@ int reader_checkhealth(struct s_reader * reader)
     if (reader->card_status == CARD_INSERTED)
     {
       reader_nullcard(reader);
-      client[cs_idx].lastemm=0;
-      client[cs_idx].lastecm=0;
-      client[cs_idx].au=-1;
+      client[cs_idx].lastemm = 0;
+      client[cs_idx].lastecm = 0;
+      client[cs_idx].au = -1;
       extern int io_serial_need_dummy_char;
-      io_serial_need_dummy_char=0;
+      io_serial_need_dummy_char = 0;
       cs_log("card ejected slot = %i", reader->slot);
     }
-    reader->card_status=NO_CARD;
+    reader->card_status = NO_CARD;
   }
-  return reader->card_status==CARD_INSERTED;
+  return reader->card_status == CARD_INSERTED;
 }
 
 void reader_post_process(struct s_reader * reader)
@@ -471,4 +470,14 @@ int reader_emm(struct s_reader * reader, EMM_PACKET *ep)
 int check_emm_cardsystem(struct s_reader * rdr, EMM_PACKET *ep)
 {
 	return (rdr->fd && (rdr->caid[0] == b2i(2,ep->caid) || rdr->typ == R_CCCAM));
+}
+
+void reader_device_close(struct s_reader * reader)
+{
+#ifdef HAVE_PCSC
+	if (reader->typ == R_PCSC)
+	   pcsc_close(reader);
+    else
+#endif
+	   ICC_Async_Close(reader);
 }

@@ -2163,6 +2163,10 @@ int write_server()
 
 			char *ctyp ="";
 			switch(reader[i].typ) {	/* TODO like ph*/
+				case R_MP35	:
+					ctyp = "mp35";
+					isphysical = 1;
+					break;
 				case R_MOUSE	:
 					ctyp = "mouse";
 					isphysical = 1;
@@ -2198,8 +2202,14 @@ int write_server()
 				case R_CCCAM	: ctyp = "cccam";		break;
 				case R_CONSTCW	: ctyp = "constcw";		break;
 				case R_CS378X	: ctyp = "cs378x";		break;
-				case R_DB2COM1	: ctyp = "internal";	break;
-				case R_DB2COM2	: ctyp = "internal";   break;
+				case R_DB2COM1	:
+					ctyp = "mouse";
+					isphysical = 1;
+					break;
+				case R_DB2COM2	:
+					ctyp = "mouse";
+					isphysical = 1;
+					break;
 
 			}
 			fprintf_conf(f, CONFVARWIDTH, "protocol", "%s\n", ctyp);
@@ -2211,7 +2221,7 @@ int write_server()
 				fprintf(f, ",%d", reader[i].l_port);
 			fprintf(f, "\n");
 
-			if (reader[i].ncd_key[0]) {
+			if (reader[i].ncd_key[0] || reader[i].ncd_key[13]) {
 				fprintf_conf(f, CONFVARWIDTH, "key", "");
 				for (j = 0; j < 14; j++) {
 					fprintf(f, "%02X", reader[i].ncd_key[j]);
@@ -2275,23 +2285,35 @@ int write_server()
 			if (reader[i].aes_key[0] && isphysical)
 				fprintf_conf(f, CONFVARWIDTH, "aeskey", "%s\n", key_btoa(NULL, reader[i].aes_key));
 
+
+			//check for tiger
+			int tigerkey = 0;
+			for (j=64;j<120;j++) {
+				if(reader[i].rsa_mod[j] > 0) {
+					tigerkey = 1;
+					break;
+				}
+			}
+
 			//n3_rsakey
-			if (reader[i].has_rsa && isphysical) {
-				//if (reader[i].is_pure_nagra) {
+			if (reader[i].has_rsa) {
+				if (!tigerkey) {
 					fprintf_conf(f, CONFVARWIDTH, "rsakey", "");
 					for (j=0;j<64;j++) {
 						fprintf(f, "%02X", reader[i].rsa_mod[j]);
 					}
 					fprintf(f, "\n");
-				/*}
-				else if (reader[i].is_tiger) {
+				}
+				else  {
 					//tiger_rsakey
-					fprintf_conf(f, CONFVARWIDTH, "tiger_rsakey", "");
-					for (j=0;j<240;j++) {
-						fprintf(f, "%02X", reader[i].rsa_mod[j]);
+					if (tigerkey) {
+						fprintf_conf(f, CONFVARWIDTH, "tiger_rsakey", "");
+						for (j=0;j<120;j++) {
+							fprintf(f, "%02X", reader[i].rsa_mod[j]);
+						}
+						fprintf(f, "\n");
 					}
-					fprintf(f, "\n");
-				}*/
+				}
 			}
 
 			if (reader[i].force_irdeto && isphysical) {
@@ -2389,7 +2411,7 @@ int write_server()
 				if (reader[i].cc_want_emu)
 					fprintf_conf(f, CONFVARWIDTH, "cccwantemu", "%d\n", reader[i].cc_want_emu);
 					
-				if (reader[i].cc_want_emu)
+				if (reader[i].cc_force_resend_ecm)
 					fprintf_conf(f, CONFVARWIDTH, "cccforceresendecm", "%d\n", reader[i].cc_force_resend_ecm);
 			}
 
@@ -2751,11 +2773,12 @@ int init_srvid()
 
 		char *srvidasc = strchr(token, ':');
 		*srvidasc++ = '\0';
-		srvid->srvid = word_atob(srvidasc);
+		srvid->srvid = dyn_word_atob(srvidasc);
+		//printf("srvid %s - %d\n",srvidasc,srvid->srvid );
 
 		srvid->ncaid = 0;
 		for (i = 0, ptr1 = strtok(token, ","); (ptr1) && (i < 10) ; ptr1 = strtok(NULL, ","), i++){
-			srvid->caid[i] = word_atob(ptr1);
+			srvid->caid[i] = dyn_word_atob(ptr1);
 			srvid->ncaid = i+1;
 			//cs_debug("ld caid: %04X srvid: %04X Prov: %s Chan: %s",srvid->caid[i],srvid->srvid,srvid->prov,srvid->name);
 		}
@@ -3067,6 +3090,11 @@ void chk_reader(char *token, char *value, struct s_reader *rdr)
 	}
 
 	if (!strcmp(token, "protocol")) {
+
+		if (!strcmp(value, "mp35")) {
+			rdr->typ = R_MP35;
+			return;
+		}
 
 		if (!strcmp(value, "mouse")) {
 			rdr->typ = R_MOUSE;
@@ -3437,6 +3465,11 @@ void chk_reader(char *token, char *value, struct s_reader *rdr)
 			return;
 		}
 	}
+    // new code for multiple aes key per reader
+	if (!strcmp(token, "aeskeys")) {
+        parse_aes_keys(rdr,value);
+		return;
+	}
 
 	if (token[0] != '#')
 		fprintf(stderr, "Warning: keyword '%s' in reader section not recognized\n",token);
@@ -3696,7 +3729,7 @@ char *mk_t_caidtab(CAIDTAB *ctab){
 			sprintf(value + pos, ",%04X", ctab->caid[i]);
 			pos += 5;
 		}
-		if(ctab->mask[i]){
+		if((ctab->mask[i]) && (ctab->mask[i] != 0xFFFF)){
 			sprintf(value + pos, "&%04X", ctab->mask[i]);
 			pos += 5;
 		}
@@ -3811,7 +3844,7 @@ char *mk_t_ftab(FTAB *ftab){
 	return value;
 }
 
-char tmpdir[200] = {0x00};
+static char tmpdir[200] = {0x00};
 
 /**
  * get tmp dir
@@ -3823,18 +3856,20 @@ char * get_tmp_dir()
   
 #ifdef OS_CYGWIN
   char *d = getenv("TMPDIR");
-  if (!d || d[0] == '\0') 
-  	strcpy(tmpdir,"/cygdrive/c/tmp/.oscam");
-  else
-  {
-        strcpy(tmpdir, d);
-    	char *p = tmpdir;
-    	while(*p) p++;
-    	p--;
-    	if (*p != '/' && *p != '\\')
-    		strcat(tmpdir, "/");
-        strcat(tmpdir, ".oscam");
-  }
+  if (!d || !d[0])
+        d = getenv("TMP");
+  if (!d || !d[0])
+        d = getenv("TEMP");
+  if (!d || !d[0]) 
+  	getcwd(tmpdir, sizeof(tmpdir)-1);
+  
+  strcpy(tmpdir, d);
+  char *p = tmpdir;
+  while(*p) p++;
+  p--;
+  if (*p != '/' && *p != '\\')
+    strcat(tmpdir, "/");
+  strcat(tmpdir, ".oscam");
                           
 #else
   strcpy(tmpdir, "/tmp/.oscam");
@@ -3842,4 +3877,5 @@ char * get_tmp_dir()
   mkdir(tmpdir, S_IRWXU);
   return tmpdir;
 }
+
 

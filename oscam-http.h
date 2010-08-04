@@ -27,6 +27,7 @@ TR.online TD {background-color:#f1f5e6;}\n\
 TR.expired TD {background-color:#ffe2d4;}\n\
 TR.usrcfg_anticasc TD {background-color:#FEF9BF;}\n\
 TR.usrcfg_cccam TD {background-color:#E6FEBF;}\n\
+TR.scanusbsubhead TD {background-color:#fdfbe1;}\n\
 DIV.log {border:1px dotted #AAAAAA; background-color: #FAFAFA; padding:10; font-family:\"Courier New\", monospace; color:#666666; font-size: 11px; word-wrap:break-word; text-align:left; }\n\
 DIV.sidlist {border:1px dotted #AAAAAA; background-color: #fffdf5; padding:2; font-family:\"Courier New\", monospace ; color:#666666; font-size: 11px; word-wrap:break-word; text-align:left;}\n\
 TABLE.menu {border-spacing:0px; border:0px; padding:0px; margin-left:auto; margin-right:auto;}\n\
@@ -274,7 +275,7 @@ c3fmBuFft/Ff8xMd0s65SXIb/gAAAABJRU5ErkJggg=="
   ##TPLHEADER##\
   ##TPLMENU##\n\
   ##TPLFILEMENU##\n\
-  <BR><BR>##SDEBUG####SLOG####SCLEAR##\n\
+  <BR><BR>##SDEBUG####SLOG####SCLEAR##<BR>##FILTER##\n\
   <DIV class=\"log\">\
   <pre>##FILECONTENT##</pre>\
   </DIV>\n\
@@ -322,6 +323,7 @@ c3fmBuFft/Ff8xMd0s65SXIb/gAAAABJRU5ErkJggg=="
 		<TH>Online</TH>\n\
 		<TH>CAID:SRVID</TH>\n\
 		<TH>Current Channel</TH>\n\
+		<TH>LB Value/ Reader</TH>\n\
 		<TH>Idle</TH>\n\
 		<TH>Status</TH>\n\
 		</TR>\n\
@@ -350,6 +352,7 @@ c3fmBuFft/Ff8xMd0s65SXIb/gAAAABJRU5ErkJggg=="
 		<TD align=\"center\">##CLIENTLOGINSECS##</TD>\n\
 		<TD align=\"center\">##CLIENTCAID##:##CLIENTSRVID##</TD>\n\
 		<TD>##CLIENTSRVPROVIDER####CLIENTSRVNAME##</TD>\n\
+		<TD align=\"center\">##CLIENTLBVALUE##</TD>\n\
 		<TD align=\"center\">##CLIENTIDLESECS##</TD>\n\
 		<TD align=\"center\">##CLIENTCON##</TD>\n\
 		</TR>\n"
@@ -515,10 +518,10 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 	  <TH>Delete</TH>\n\
       <TH>Reader</TH>\n\
       <TH>Protocol</TH>\n\
-      <TH>EMM error<br> UK / G / S / UQ</TH>\n\
-      <TH>EMM written<br> UK / G / S / UQ</TH>\n\
-      <TH>EMM skipped<br> UK / G / S / UQ</TH>\n\
-      <TH>EMM blocked<br> UK / G / S / UQ</TH>\n\
+      <TH>EMM error<br><span title=\"unknown EMM\"> UK </span>/<span title=\"global EMM\"> G </span>/<span title=\"shared EMM\"> S </span>/<span title=\"unique EMM\"> UQ </span></TH>\n\
+      <TH>EMM written<br><span title=\"unknown EMM\"> UK </span>/<span title=\"global EMM\"> G </span>/<span title=\"shared EMM\"> S </span>/<span title=\"unique EMM\"> UQ </span></TH>\n\
+      <TH>EMM skipped<br><span title=\"unknown EMM\"> UK </span>/<span title=\"global EMM\"> G </span>/<span title=\"shared EMM\"> S </span>/<span title=\"unique EMM\"> UQ </span></TH>\n\
+      <TH>EMM blocked<br><span title=\"unknown EMM\"> UK </span>/<span title=\"global EMM\"> G </span>/<span title=\"shared EMM\"> S </span>/<span title=\"unique EMM\"> UQ </span></TH>\n\
       <TH COLSPAN=\"3\">Action</TH>\n\
     </TR>\n\
     ##READERLIST##\
@@ -529,6 +532,7 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 		<TD COLSPAN=\"2\" align=\"center\">Label:&nbsp;&nbsp;<input type=\"text\" name=\"label\" value=\"##NEXTREADER##\"></TD>\
 		<TD COLSPAN=\"2\" align=\"center\">Protocol:&nbsp;&nbsp;<select name=\"protocol\">\
 			<option>mouse</option>\
+			<option>mp35</option>\
 			<option>smartreader</option>\
 			<option>internal</option>\
 			<option>serial</option>\
@@ -575,7 +579,7 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 </TABLE>\n\
 ##TPLFOOTER##"
 
-#define TPLSCANUSBBIT "<TR><TD>##USBENTRY##</TD></TR>\n"
+#define TPLSCANUSBBIT "<TR ##USBENTRYCLASS##><TD>##USBENTRY##</TD></TR>\n"
 
 #define TPLENTITLEMENTS "\
 ##TPLHEADER##\
@@ -641,9 +645,10 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
     <TR><TD>Disableserverfilter:</TD><TD><input name=\"disableserverfilter\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##DISABLESERVERFILTER##\"></TD></TR>\n\
     <TR><TD>Force Irdeto:<input name=\"force_irdeto\" type=\"hidden\" value=\"0\"></TD><TD><input name=\"force_irdeto\" type=\"checkbox\" value=\"1\" ##FORCEIRDETOCHECKED##></TD></TR>\n\
     <TR><TD>Boxid:</TD><TD><input name=\"boxid\" type=\"text\" size=\"15\" maxlength=\"8\" value=\"##BOXID##\"></TD></TR>\n\
-    <TR><TD>Rsakey:</TD><TD><input name=\"rsakey\" type=\"text\" size=\"140\" maxlength=\"128\" value=\"##RSAKEY##\"></TD></TR>\n\
+    <TR><TD>RSA key:</TD><TD><textarea name=\"rsakey\" cols=\"98\" rows=\"4\" class=\"bt\" maxlength=\"128\">##RSAKEY##</textarea></TD></TR>\n\
+    <TR><TD>Tiger RSA key:</TD><TD><textarea name=\"tiger_rsakey\" cols=\"98\" rows=\"6\" class=\"bt\" maxlength=\"240\">##TIGERRSAKEY##</textarea></TD></TR>\n\
     <TR><TD>Boxkey:</TD><TD><input name=\"boxkey\" type=\"text\" size=\"20\" maxlength=\"16\" value=\"##BOXKEY##\"></TD></TR>\n\
-    <TR><TD>ATR:</TD><TD><input name=\"atr\" type=\"text\" size=\"70\" maxlength=\"54\" value=\"##ATR##\"></TD></TR>\n\
+    <TR><TD>ATR:</TD><TD><input name=\"atr\" type=\"text\" size=\"100\" maxlength=\"54\" value=\"##ATR##\"></TD></TR>\n\
     <TR><TD>Detect:</TD><TD><input name=\"detect\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##DETECT##\"></TD></TR>\n\
     <TR><TD>Mhz:</TD><TD><input name=\"mhz\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##MHZ##\"></TD></TR>\n\
     <TR><TD>Cardmhz:</TD><TD><input name=\"cardmhz\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##CARDMHZ##\"></TD></TR>\n\
@@ -911,6 +916,7 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 				<option value=\"2\" ##READERAUTOLOADBALANCE2##>2 - Oldest reader first</option>\n\
 				<option value=\"3\" ##READERAUTOLOADBALANCE3##>3 - Lowest usagelevel</option>\n\
 			</select></TD></TR>\n\
+		<TR><TD>Reader autoloadbalance save:</TD><TD><input name=\"readerautoloadbalance_save\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##READERAUTOLOADBALANCES##\"></TD></TR>\n\
 		<TR><TD>Reader restart seconds:</TD><TD><input name=\"readerrestartseconds\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##READERRESTARTSECONDS##\"></TD></TR>\n\
 		<TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\" ##BTNDISABLED##>\n</TD></TR>\n\
 	</TABLE>\n\
@@ -1024,8 +1030,8 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 			<option value=\"2\" ##PMTMODESELECTED2##>2 - disable camd.socket</option>\n\
 			<option value=\"3\" ##PMTMODESELECTED3##>3 - read PMT file on startup only</option>\n\
 		</SELECT></TD></TR>\n\
-		<TR><TD>Priority:</TD><TD><input name=\"priority\" type=\"text\" size=\"100\" maxlength=\"200\" value=\"##PRIORITY##\"></TD></TR>\n\
-		<TR><TD>Ignore:</TD><TD><input name=\"ignore\" type=\"text\" size=\"100\" maxlength=\"200\" value=\"##IGNORE##\"></TD></TR>\n\
+		<TR><TD>Priority:</TD>   <TD><textarea name=\"priority\"    cols=\"98\" rows=\"4\" class=\"bt\">##PRIORITY##</textarea></TD></TR>\n\
+		<TR><TD>Ignore:</TD>     <TD><textarea name=\"ignore\"      cols=\"98\" rows=\"4\" class=\"bt\">##IGNORE##</textarea></TD></TR>\n\
 		<TR><TD>Cw_delay:</TD><TD><input name=\"cw_delay\" type=\"text\" size=\"100\" maxlength=\"200\" value=\"##CWDELAY##\"></TD></TR>\n\
     <TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\" ##BTNDISABLED##>\n</TD></TR>\n\
 	</TABLE>\n\

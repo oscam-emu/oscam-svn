@@ -222,7 +222,8 @@ int SR_Reset (struct s_reader *reader, ATR *atr)
         if(ret)
             cs_ddump(data,ATR_MAX_SIZE*2,"IO:SR: ");
 
-        if(data[0]!=0x3B && data[0]!=0x03 && data[0]!=0x3F) {
+        // this is to make sure we don't think this 03 FF 00 00 00 00 00 00 00 00 00 00 00 00 00 00  is a valid ATR.
+        if((data[0]!=0x3B && data[0]!=0x03 && data[0]!=0x3F) || (data[1]==0xFF && data[2]==0x00)) {
             reader->sr_config->irdeto=FALSE;
             continue; // this is not a valid ATR.
         }
@@ -383,7 +384,7 @@ static void EnableSmartReader(S_READER *reader, int clock, unsigned short Fi, un
         ret = smart_write(reader,FiDi, sizeof (FiDi),0);
     }
     else {
-        cs_log("Not setting F and D as we're in Irdeto mode");
+        cs_debug("Not setting F and D as we're in Irdeto mode");
     }
 
     // command 2, set the frequency in KHz

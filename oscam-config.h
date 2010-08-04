@@ -118,6 +118,14 @@
 #  if !defined(COOL) && !defined(ST_LINUX)
 #    define SCI_DEV 1
 #  endif
+#else
+#ifdef OS_LINUX
+#define HAVE_DVBAPI
+#endif
+#endif
+
+#ifdef AZBOX
+#  define HAVE_DVBAPI
 #endif
 
 #ifdef UCLIBC

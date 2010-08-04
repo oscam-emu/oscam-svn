@@ -36,12 +36,18 @@ static int camd35_send(uchar *buf)
 	cs_ddump(sbuf, l, "send %d bytes to %s", l, remote_txt());
 	aes_encrypt(sbuf, l);
 
-	if (is_udp)
-		return(sendto(client[cs_idx].udp_fd, rbuf, l+4, 0,
-				(struct sockaddr *)&client[cs_idx].udp_sa,
-				sizeof(client[cs_idx].udp_sa)));
-	else
-		return(send(client[cs_idx].udp_fd, rbuf, l + 4, 0));
+        int status;
+	if (is_udp) {
+	   status = sendto(client[cs_idx].udp_fd, rbuf, l+4, 0,
+				           (struct sockaddr *)&client[cs_idx].udp_sa,
+				            sizeof(client[cs_idx].udp_sa));
+           if (status == -1) client[cs_idx].udp_sa.sin_addr.s_addr = 0;
+        }
+	else {
+	   status = send(client[cs_idx].udp_fd, rbuf, l + 4, 0);
+	   if (status == -1) network_tcp_connection_close(&reader[ridx], pfd);
+        }
+	return status;		
 }
 
 static int camd35_auth_client(uchar *ucrc)
@@ -83,9 +89,9 @@ static int camd35_recv(uchar *buf, int l)
       else
       {
         if (!client[cs_idx].udp_fd) return(-9);
-        rs=recv(client[cs_idx].udp_fd, buf, l, 0);
+        rs = recv(client[cs_idx].udp_fd, buf, l, 0);
       }
-      if (rs<24) rc=-1;
+      if (rs < 24) rc = -1;
       break;
     case 1:
       memcpy(recrc, buf, 4);
@@ -94,7 +100,7 @@ static int camd35_recv(uchar *buf, int l)
       {
         case  0:        break;	// ok
         case  1: rc=-2; break;	// unknown user
-	default: rc=-9; break;	// error's from cs_auth()
+	      default: rc=-9; break;	// error's from cs_auth()
       }
       break;
     case 2:
@@ -231,7 +237,7 @@ static void camd35_send_dcw(ECM_REQUEST *er)
 		 * whoever knows the camd3 protocol related to CMD08 - please help!
 		 * on tests this don't work with native camd3
 		 */
-		buf[21] = 0xFF;
+		buf[21] = client[cs_idx].c35_sleepsend;
 		cs_log("%s stop request send", client[cs_idx].usr);
 	}
 	else
@@ -396,7 +402,9 @@ int camd35_client_init()
          reader[ridx].device, reader[ridx].r_port,
          client[cs_idx].udp_fd, ptxt);
 
-  if (is_udp) pfd=client[cs_idx].udp_fd;
+  if (is_udp) {
+  	pfd=client[cs_idx].udp_fd;
+  }
 
   return(0);
 }
@@ -479,11 +487,14 @@ static int camd35_send_ecm(ECM_REQUEST *er, uchar *buf)
 	lastcaid = er->caid;
 	lastpid = er->pid;
 
-	if (!client[cs_idx].udp_sa.sin_addr.s_addr)	// once resolved at least
-		return(-1);
-
-	if (!is_udp && !tcp_connect()) return(-1);
-
+	if (is_udp) {
+	   if (!client[cs_idx].udp_sa.sin_addr.s_addr)
+	      if (!hostResolve(ridx)) return -1;
+	}
+        else {
+  	   if (!tcp_connect()) return -1;
+        }
+	
 	reader[ridx].card_status = CARD_INSERTED; //for udp
 	
 	memset(buf, 0, 20);
@@ -504,11 +515,15 @@ static int camd35_send_ecm(ECM_REQUEST *er, uchar *buf)
 static int camd35_send_emm(EMM_PACKET *ep)
 {
 	uchar buf[512];
-	if (!client[cs_idx].udp_sa.sin_addr.s_addr)	// once resolved at least
-		return(-1);
-
-	if (!is_udp && !tcp_connect()) return(-1);
-
+	
+        if (is_udp) {
+           if (!client[cs_idx].udp_sa.sin_addr.s_addr)
+              if (!hostResolve(ridx)) return -1;
+        }
+        else {
+           if (!tcp_connect()) return -1;
+        }
+	
 	memset(buf, 0, 20);
 	memset(buf+20, 0xff, ep->l+15);
 
@@ -555,10 +570,9 @@ static int camd35_recv_chk(uchar *dcw, int *rc, uchar *buf)
 		reader[ridx].blockemm_s = (buf[129]==1) ? 0: 1;
 		reader[ridx].blockemm_u = (buf[130]==1) ? 0: 1;
 		reader[ridx].card_system = get_cardsystem(reader[ridx].caid[0]);
-		cs_log("%s CMD05 AU request for caid: %04X, provid: %06lX",
+		cs_log("%s CMD05 AU request for caid: %04X",
 				reader[ridx].label,
-				reader[ridx].caid[0],
-				reader[ridx].auprovid);
+				reader[ridx].caid[0]);
 	}
 
 	if (buf[0] == 0x08) {
@@ -569,8 +583,8 @@ static int camd35_recv_chk(uchar *dcw, int *rc, uchar *buf)
 			stopped = 1; // server says invalid
 			reader[ridx].card_status = CARD_FAILURE;
 		}
-		cs_log("%s CMD08 stop request by server (%s)",
-				reader[ridx].label, typtext[stopped]);
+		cs_log("%s CMD08 (%02X - %d) stop request by server (%s)",
+				reader[ridx].label, buf[21], buf[21], typtext[stopped]);
 	}
 
 	// CMD44: old reject command introduced in mpcs

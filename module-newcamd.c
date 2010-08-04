@@ -54,16 +54,16 @@ typedef struct custom_data
 
 static char *get_ncd_client_name(char *client_id)
 {
-        static const int max_id_idx = 28;
+        static const int max_id_idx = 29;
         static char *ncd_service_ids[] = { "0000", "5644", "4C43", "4333", "7264", "6762", "6D67", "7763", "6E73", "6378", "6B61",
                                            "6576", "4343", "5456", "414C", "0666", "0667", "9911", "434C", "4765", "5342",
-                                           "6E65", "4E58", "4453", "8888", "7363", "0669", "0665", "0769" };
+                                           "6E65", "4E58", "4453", "8888", "7363", "0669", "0665", "0769", "4543" };
 
         static char *ncd_service_names[] = { "generic", "vdr-sc", "LCE", "camd3", "radegast", "gbox2CS", "mgcamd",
                                              "WinCSC", "NewCS", "cx", "Kaffeine", "evocamd", "CCcam", "Tecview",
                                              "AlexCS", "rqcamd", "rq-echo-client", "ACamd", "Cardlink", "Octagon", "SBCL",
                                              "NextYE2k", "NextYE2k", "DiabloCam/UW", "OScam", "Scam", "rq-sssp-client/CW",
-                                             "rq-sssp-client/CS", "JlsRq", "unknown - please report" };
+                                             "rq-sssp-client/CS", "JlsRq", "eyetvCamd", "unknown - please report" };
 
         int idx = 0;
         for (idx = 0; idx <= max_id_idx; idx++) {
@@ -374,7 +374,7 @@ static int connect_newcamd_server()
   cs_log("Newcamd Server: %s:%d - UserID: %i", reader[ridx].device, reader[ridx].r_port, buf[3+2]);
   cs_log("CAID: %04X - UA: %02X%02X%02X%02X%02X%02X%02X%02X - Provider # %i", reader[ridx].caid[0], reader[ridx].hexserial[0], reader[ridx].hexserial[1], reader[ridx].hexserial[2], reader[ridx].hexserial[3], reader[ridx].hexserial[4], reader[ridx].hexserial[5], reader[ridx].hexserial[6], reader[ridx].hexserial[7], buf[14+2]);
   reader[ridx].nprov = buf[14+2];
-  memset(reader[ridx].prid, 0xff, sizeof(reader[ridx].prid));
+  memset(reader[ridx].prid, 0x00, sizeof(reader[ridx].prid));
   for (i=0; i < reader[ridx].nprov; i++) {
     reader[ridx].availkeys[i][0] = 1;
     reader[ridx].prid[i][0] = buf[15+2+11*i];
@@ -1225,8 +1225,8 @@ int newcamd_client_init()
 
 static int newcamd_send_ecm(ECM_REQUEST *er, uchar *buf)
 {
-  if (!client[cs_idx].udp_sa.sin_addr.s_addr)
-    return(-1);
+//  if (!client[cs_idx].udp_sa.sin_addr.s_addr)
+//    return(-1);
 
   if(!newcamd_connect())
     return (-1);
@@ -1244,8 +1244,8 @@ static int newcamd_send_emm(EMM_PACKET *ep)
 {
   uchar buf[200];
 
-  if (!client[cs_idx].udp_sa.sin_addr.s_addr)
-    return(-1);
+//  if (!client[cs_idx].udp_sa.sin_addr.s_addr)
+//    return(-1);
 
   if(!newcamd_connect())
     return (-1);
