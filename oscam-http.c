@@ -255,7 +255,7 @@ void send_oscam_config_newcamd(struct templatevars *vars, FILE *f, struct uripar
 		for(i = 0; i < cfg->ncd_ptab.nports; ++i) {
 			tpl_printf(vars, 1, "PORT", "%s%d@%04X", dot1, cfg->ncd_ptab.ports[i].s_port, cfg->ncd_ptab.ports[i].ftab.filts[0].caid);
 
-			if (cfg->ncd_ptab.ports[i].ftab.filts[0].nprids > 1) {
+			if (cfg->ncd_ptab.ports[i].ftab.filts[0].nprids > 0) {
 				tpl_printf(vars, 1, "PORT", ":");
 				dot2 = "";
 				for (j = 0; j < cfg->ncd_ptab.ports[i].ftab.filts[0].nprids; ++j) {
@@ -677,6 +677,10 @@ void send_oscam_reader(struct templatevars *vars, FILE *f, struct uriparams *par
 			tpl_addVar(vars, 0, "READERNAMEENC", tpl_addTmp(vars, urlencode(reader[readeridx].label)));
 
 			switch(reader[readeridx].typ) {
+			case R_MP35 :
+				ctyp = "mp35";
+				isphysical = 1;
+				break;
 			case R_MOUSE :
 				ctyp = "mouse";
 				isphysical = 1;
@@ -801,6 +805,7 @@ void send_oscam_reader_config(struct templatevars *vars, FILE *f, struct uripara
 		clear_caidtab(&reader[ridx].ctab);
 		clear_ftab(&reader[ridx].ftab);
 		reader[ridx].grp = 0;
+		reader[ridx].auprovid = 0;
 		for(i = 0; i < (*params).paramcount; ++i) {
 			if ((strcmp((*params).params[i], "reader")) && (strcmp((*params).params[i], "action"))) {
 				if (!strcmp((*params).params[i], "services"))
@@ -809,6 +814,7 @@ void send_oscam_reader_config(struct templatevars *vars, FILE *f, struct uripara
 					if(strlen((*params).values[i]) > 0)
 						chk_reader((*params).params[i], (*params).values[i], &reader[ridx]);
 			}
+			//printf("param %s value %s\n",(*params).params[i], (*params).values[i]);
 		}
 		chk_reader("services", servicelabels, &reader[ridx]);
 		if(write_server()==0) refresh_oscam(REFR_READERS, in);
@@ -1040,6 +1046,7 @@ void send_oscam_reader_config(struct templatevars *vars, FILE *f, struct uripara
 			break;
 		case R_DB2COM1:
 		case R_DB2COM2:
+		case R_MP35:
 		case R_MOUSE :
 			tpl_addVar(vars, 0, "PROTOCOL", "mouse");
 			tpl_addVar(vars, 1, "READERDEPENDINGCONFIG", tpl_getTpl(vars, "READERCONFIGSTDHWREADERBIT"));
@@ -1164,6 +1171,8 @@ void send_oscam_user_config_edit(struct templatevars *vars, FILE *f, struct urip
 		clear_caidtab(&account->ctab);
 		//clear Betatunnel before it re-readed by chk_t
 		clear_tuntab(&account->ttab);
+		//clear ident before it re-readed by chk_t
+		clear_ftab(&account->ftab);
 
 		for(i=0;i<(*params).paramcount;i++) {
 			if ((strcmp((*params).params[i], "action")) && (strcmp((*params).params[i], "user")) && (strcmp((*params).params[i], "newuser"))) {
@@ -1619,6 +1628,16 @@ void send_oscam_status(struct templatevars *vars, FILE *f, struct uriparams *par
 	if (strcmp(getParam(params, "action"), "kill") == 0)
 		kill(atoi(getParam(params, "pid")), SIGQUIT);
 
+	if (strcmp(getParam(params, "action"), "restart") == 0)
+		for (i = 0; i < CS_MAXREADER; i++)
+			if (reader[i].pid == atoi(getParam(params, "pid")))
+					send_restart_cardreader(i);
+
+	if (strcmp(getParam(params, "action"), "resetstat") == 0)
+		for (i = 0; i < CS_MAXREADER; i++)
+			if (reader[i].pid == atoi(getParam(params, "pid")))
+				send_clear_reader_stat(i);
+
 	char *debuglvl = getParam(params, "debug");
 	if(strlen(debuglvl) > 0) {
 		int lvl = atoi(debuglvl);
@@ -1650,6 +1669,10 @@ void send_oscam_status(struct templatevars *vars, FILE *f, struct uriparams *par
 	else tpl_addVar(vars, 0, "HIDEIDLECLIENTSSELECTED0", "selected");
 
 	for (i=0; i<CS_MAXPID; i++) {
+
+		// Reset template variables
+		tpl_addVar(vars, 0, "CLIENTLBVALUE","");
+
 		if (client[i].pid && client[i].wihidden != 1) {
 
 			if((cfg->http_hide_idle_clients == 1) && (client[i].typ == 'c') && ((now - client[i].lastecm) > cfg->mon_hideclient_to)) continue;
@@ -1659,6 +1682,9 @@ void send_oscam_status(struct templatevars *vars, FILE *f, struct uriparams *par
 			usr=client[i].usr;
 
 			if (((client[i].typ=='r') || (client[i].typ=='p')) && (con=cs_idx2ridx(i))>=0) usr=reader[con].label;
+
+			if (((client[i].typ!='r') || (client[i].typ!='p')) && (client[i].lastreader[0]))
+				tpl_printf(vars, 0, "CLIENTLBVALUE", "%s", client[i].lastreader);
 
 			if (client[i].dup) con=2;
 			else if ((client[i].tosleep) && (now-client[i].lastswitch>client[i].tosleep)) con=1;
@@ -1673,10 +1699,15 @@ void send_oscam_status(struct templatevars *vars, FILE *f, struct uriparams *par
 
 			tpl_printf(vars, 0, "HIDEIDX", "%d", i);
 			tpl_addVar(vars, 0, "HIDEICON", ICHID);
-			if((client[i].typ == 'c' || client[i].typ == 'r' || client[i].typ == 'p') && !cfg->http_readonly) {
+			if(client[i].typ == 'c' && !cfg->http_readonly) {
 				tpl_printf(vars, 0, "CLIENTPID", "%d&nbsp;", client[i].pid);
 				tpl_printf(vars, 1, "CLIENTPID", "<A HREF=\"status.html?action=kill&pid=%d\" TITLE=\"Kill this client\"><IMG SRC=\"%s\" ALT=\"Kill\" STYLE=\"float:right\"></A>", client[i].pid, ICKIL);
-			} else {
+			}
+			else if((client[i].typ == 'r' || client[i].typ == 'p') && !cfg->http_readonly) {
+				tpl_printf(vars, 0, "CLIENTPID", "%d&nbsp;", client[i].pid);
+				tpl_printf(vars, 1, "CLIENTPID", "<A HREF=\"status.html?action=restart&pid=%d\" TITLE=\"Restart this reader/ proxy\"><IMG SRC=\"%s\" ALT=\"Kill\" STYLE=\"float:right\"></A>", client[i].pid, ICKIL);
+			}
+			else {
 				tpl_printf(vars, 0, "CLIENTPID", "%d&nbsp;", client[i].pid);
 			}
 
@@ -1705,9 +1736,9 @@ void send_oscam_status(struct templatevars *vars, FILE *f, struct uriparams *par
 				}
 			}
 			if(days == 0)
-			tpl_printf(vars, 0, "CLIENTLOGINSECS", "%02d:%02d:%02d", hours, mins, secs);
+				tpl_printf(vars, 0, "CLIENTLOGINSECS", "%02d:%02d:%02d", hours, mins, secs);
 			else
-			tpl_printf(vars, 0, "CLIENTLOGINSECS", "%02dd %02d:%02d:%02d", days, hours, mins, secs);
+				tpl_printf(vars, 0, "CLIENTLOGINSECS", "%02dd %02d:%02d:%02d", days, hours, mins, secs);
 
 			tpl_printf(vars, 0, "CLIENTCAID", "%04X", client[i].last_caid);
 			tpl_printf(vars, 0, "CLIENTSRVID", "%04X", client[i].last_srvid);
@@ -1725,9 +1756,9 @@ void send_oscam_status(struct templatevars *vars, FILE *f, struct uriparams *par
 					}
 				}
 				if (found == 1)
-				break;
+					break;
 				else
-				srvid = srvid->next;
+					srvid = srvid->next;
 			}
 
 			if (found == 1) {
@@ -1756,9 +1787,9 @@ void send_oscam_status(struct templatevars *vars, FILE *f, struct uriparams *par
 				}
 			}
 			if(days == 0)
-			tpl_printf(vars, 0, "CLIENTIDLESECS", "%02d:%02d:%02d", hours, mins, secs);
+				tpl_printf(vars, 0, "CLIENTIDLESECS", "%02d:%02d:%02d", hours, mins, secs);
 			else
-			tpl_printf(vars, 0, "CLIENTIDLESECS", "%02dd %02d:%02d:%02d", days, hours, mins, secs);
+				tpl_printf(vars, 0, "CLIENTIDLESECS", "%02dd %02d:%02d:%02d", days, hours, mins, secs);
 			if(con == 2) tpl_printf(vars, 0, "CLIENTCON", "Duplicate");
 			else if (con == 1) tpl_printf(vars, 0, "CLIENTCON", "Sleep");
 			else
@@ -1771,18 +1802,21 @@ void send_oscam_status(struct templatevars *vars, FILE *f, struct uriparams *par
 					{
 						if(reader[ridx].pid == client[i].pid)
 						{
+							if (reader[ridx].lbvalue)
+								tpl_printf(vars, 0, "CLIENTLBVALUE", "<A HREF=\"status.html?action=resetstat&pid=%d\" TITLE=\"Reset statistics for this reader/ proxy\">%d</A>", reader[ridx].pid, reader[ridx].lbvalue);
+
 							switch(reader[ridx].card_status)
 							{
-								case NO_CARD: txt = "OFF"; break;
-								case CARD_NEED_INIT: txt = "NEEDINIT"; break;
-								case CARD_INSERTED:
-									if (client[i].typ=='p')
-										txt = "CONNECTED";
-									else
-										txt = "CARDOK";
-									break;
-								case CARD_FAILURE: txt = "ERROR"; break;
-								default: txt = "UNDEF";
+							case NO_CARD: txt = "OFF"; break;
+							case CARD_NEED_INIT: txt = "NEEDINIT"; break;
+							case CARD_INSERTED:
+								if (client[i].typ=='p')
+									txt = "CONNECTED";
+								else
+									txt = "CARDOK";
+								break;
+							case CARD_FAILURE: txt = "ERROR"; break;
+							default: txt = "UNDEF";
 							}
 						}
 					}
@@ -1997,7 +2031,7 @@ void send_oscam_scanusb(struct templatevars *vars, FILE *f) {
 	int err=0;
 	char path[1035];
 
-	fp = popen("lsusb", "r");
+	fp = popen("lsusb -v | egrep '^Bus|^ *iSerial|^ *iProduct'", "r");
 	if (fp == NULL) {
 		tpl_addVar(vars, 0, "USBENTRY", "Failed to run lusb");
 		tpl_printf(vars, 0, "USBENTRY", "%s", path);
@@ -2007,7 +2041,13 @@ void send_oscam_scanusb(struct templatevars *vars, FILE *f) {
 
 	if(!err) {
 		while (fgets(path, sizeof(path)-1, fp) != NULL) {
-			tpl_printf(vars, 0, "USBENTRY", "%s", path);
+			tpl_addVar(vars, 0, "USBENTRYCLASS", "");
+			if (strstr(path,"Bus ")) {
+				tpl_printf(vars, 0, "USBENTRY", "%s", path);
+				tpl_addVar(vars, 0, "USBENTRYCLASS", "CLASS=\"scanusbsubhead\"");
+			} else {
+				tpl_printf(vars, 0, "USBENTRY", "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;%s", path);
+			}
 			tpl_addVar(vars, 1, "USBBIT", tpl_getTpl(vars, "SCANUSBBIT"));
 		}
 	}
@@ -2090,6 +2130,17 @@ void send_oscam_files(struct templatevars *vars, FILE *f, struct uriparams *para
 			tpl_printf(vars, 0, "SLOG", "<A HREF=\"files.html?part=userfile&stopusrlog=%d\">%s</A>&nbsp;&nbsp;|&nbsp;&nbsp;\n", 0, "Start Log");
 
 		tpl_printf(vars, 0, "SCLEAR", "<A HREF=\"files.html?part=userfile&clear=usrfile\">%s</A><BR><BR>\n", "Clear Log");
+		tpl_addVar(vars, 0, "FILTER", "<FORM ACTION=\"files.html\" method=\"get\">\n");
+		tpl_addVar(vars, 1, "FILTER", "<INPUT name=\"part\" type=\"hidden\" value=\"userfile\">\n");
+		tpl_addVar(vars, 1, "FILTER", "<SELECT name=\"filter\">\n");
+		tpl_printf(vars, 1, "FILTER", "<OPTION value=\"%s\">%s</OPTION>\n", "all", "all");
+
+		struct s_auth *account = cfg->account;
+		do {
+			tpl_printf(vars, 1, "FILTER", "<OPTION value=\"%s\" %s>%s</OPTION>\n", account->usr, strcmp(getParam(params, "filter"), account->usr) ? "":"selected", account->usr);
+		} while ((account = account->next) && (account->next != NULL));
+
+		tpl_addVar(vars, 1, "FILTER", "</SELECT><input type=\"submit\" name=\"action\" value=\"Filter\" title=\"Filter for a specific user\"></FORM>\n");
 
 	}
 #ifdef CS_ANTICASC
@@ -2104,7 +2155,11 @@ void send_oscam_files(struct templatevars *vars, FILE *f, struct uriparams *para
 
 			if((fp = fopen(targetfile,"r")) == NULL) return;
 			while (fgets(buffer, sizeof(buffer), fp) != NULL)
-				tpl_printf(vars, 1, "FILECONTENT", "%s", buffer);
+				if (!strcmp(getParam(params, "filter"), "all"))
+					tpl_printf(vars, 1, "FILECONTENT", "%s", buffer);
+				else
+					if(strstr(buffer,getParam(params, "filter")))
+						tpl_printf(vars, 1, "FILECONTENT", "%s", buffer);
 			fclose (fp);
 		} else {
 			tpl_addVar(vars, 1, "FILECONTENT", "File not exist");
@@ -2131,7 +2186,6 @@ int process_request(FILE *f, struct in_addr in) {
 		if(cfg->http_dynip == addr) {
 			ok = 1;
 		} else {
-			pthread_mutex_lock(&gethostbyname_lock); //gethostbyname ist NOT threadsafe! So we need a mutex-lock!
 			struct hostent *rht;
 			struct sockaddr_in udp_sa;
 			rht = gethostbyname((const char *) cfg->http_dyndns);
@@ -2141,7 +2195,6 @@ int process_request(FILE *f, struct in_addr in) {
 				if (cfg->http_dynip == addr)
 					ok = 1;
 			}
-			pthread_mutex_unlock(&gethostbyname_lock); //gethostbyname ist NOT threadsafe! So we need a mutex-lock!
 		}
 	}
 

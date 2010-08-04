@@ -306,6 +306,22 @@ cross-sh4-linux:
 		DS_RL=/opt/STM/STLinux-2.3/devkit/sh4/bin/sh4-linux-ranlib \
 		DS_ST=/opt/STM/STLinux-2.3/devkit/sh4/bin/sh4-linux-strip
 
+cross-sh4-linux-stapi:
+	@-$(MAKE) --no-print-directory \
+		-f Maketype TYP=$(subst cross-,,$@) \
+		OS_LIBS="-lcrypto -lm -L./stapi -loscam_stapi" \
+		OS_CULI="-lncurses" \
+		OS_PTLI="-lpthread" \
+		DS_OPTS="-O2 -DOS_LINUX -DSH4 -DWITH_STAPI -DTUXBOX -DCS_CONFDIR='\"/var/tuxbox/config\"' -D'CS_SVN_VERSION="\"$(SVN_REV)\""'" \
+		DS_CFLAGS="-c" \
+		DS_LDFLAGS="" \
+		DS_ARFLAGS="-rvsl" \
+		DS_CC=/opt/STM/STLinux-2.3/devkit/sh4/bin/sh4-linux-gcc \
+		DS_AR=/opt/STM/STLinux-2.3/devkit/sh4/bin/sh4-linux-ar \
+		DS_LD=/opt/STM/STLinux-2.3/devkit/sh4/bin/sh4-linux-ld \
+		DS_RL=/opt/STM/STLinux-2.3/devkit/sh4/bin/sh4-linux-ranlib \
+		DS_ST=/opt/STM/STLinux-2.3/devkit/sh4/bin/sh4-linux-strip
+
 ######################################################################
 #
 #	Cygwin crosscompiler
@@ -353,18 +369,16 @@ i386-pc-cygwin:
 #
 #	Cygwin native with PCSC
 #
-# 	requires Visual Studio / Visual C++ for the winscard includes
 ######################################################################
 i386-pc-cygwin-pcsc:
 	@-$(MAKE) --no-print-directory \
 		-f Maketype TYP=$(subst cross-,,$@) \
-		LIBPCSC="cygwin/libwinscard.a" \
-		OS_LIBS="-lcrypto -lm" \
+		OS_LIBS="-lcrypto -lm -lwinscard" \
 		OS_CULI="-lncurses" \
 		OS_PTLI="-lpthread" \
-		DS_OPTS="-O2 -DOS_CYGWIN32 -D_WIN32 -DCS_CONFDIR=${CS_CONFDIR} -DHAVE_PCSC=1 -I /tmp/include -I ./cygwin -D'CS_SVN_VERSION="\"$(SVN_REV)\""'" \
+		DS_OPTS="-O2 -DOS_CYGWIN32 -D_WIN32 -DCS_CONFDIR=${CS_CONFDIR} -DHAVE_PCSC=1 -I /tmp/include -I ./cygwin -I/usr/include/w32api -D'CS_SVN_VERSION="\"$(SVN_REV)\""'" \
 		DS_CFLAGS="-c" \
-		DS_LDFLAGS="" \
+		DS_LDFLAGS="-L/cygdrive/c/WINDOWS/system32/" \
 		DS_ARFLAGS="-rvsl" \
 		DS_CC=gcc \
 		DS_AR=ar \

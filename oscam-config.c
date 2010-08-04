@@ -2163,6 +2163,10 @@ int write_server()
 
 			char *ctyp ="";
 			switch(reader[i].typ) {	/* TODO like ph*/
+				case R_MP35	:
+					ctyp = "mp35";
+					isphysical = 1;
+					break;
 				case R_MOUSE	:
 					ctyp = "mouse";
 					isphysical = 1;
@@ -2407,7 +2411,7 @@ int write_server()
 				if (reader[i].cc_want_emu)
 					fprintf_conf(f, CONFVARWIDTH, "cccwantemu", "%d\n", reader[i].cc_want_emu);
 					
-				if (reader[i].cc_want_emu)
+				if (reader[i].cc_force_resend_ecm)
 					fprintf_conf(f, CONFVARWIDTH, "cccforceresendecm", "%d\n", reader[i].cc_force_resend_ecm);
 			}
 
@@ -2769,11 +2773,12 @@ int init_srvid()
 
 		char *srvidasc = strchr(token, ':');
 		*srvidasc++ = '\0';
-		srvid->srvid = word_atob(srvidasc);
+		srvid->srvid = dyn_word_atob(srvidasc);
+		//printf("srvid %s - %d\n",srvidasc,srvid->srvid );
 
 		srvid->ncaid = 0;
 		for (i = 0, ptr1 = strtok(token, ","); (ptr1) && (i < 10) ; ptr1 = strtok(NULL, ","), i++){
-			srvid->caid[i] = word_atob(ptr1);
+			srvid->caid[i] = dyn_word_atob(ptr1);
 			srvid->ncaid = i+1;
 			//cs_debug("ld caid: %04X srvid: %04X Prov: %s Chan: %s",srvid->caid[i],srvid->srvid,srvid->prov,srvid->name);
 		}
@@ -3085,6 +3090,11 @@ void chk_reader(char *token, char *value, struct s_reader *rdr)
 	}
 
 	if (!strcmp(token, "protocol")) {
+
+		if (!strcmp(value, "mp35")) {
+			rdr->typ = R_MP35;
+			return;
+		}
 
 		if (!strcmp(value, "mouse")) {
 			rdr->typ = R_MOUSE;
@@ -3719,7 +3729,7 @@ char *mk_t_caidtab(CAIDTAB *ctab){
 			sprintf(value + pos, ",%04X", ctab->caid[i]);
 			pos += 5;
 		}
-		if(ctab->mask[i]){
+		if((ctab->mask[i]) && (ctab->mask[i] != 0xFFFF)){
 			sprintf(value + pos, "&%04X", ctab->mask[i]);
 			pos += 5;
 		}
@@ -3834,7 +3844,7 @@ char *mk_t_ftab(FTAB *ftab){
 	return value;
 }
 
-char tmpdir[200] = {0x00};
+static char tmpdir[200] = {0x00};
 
 /**
  * get tmp dir

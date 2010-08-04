@@ -227,7 +227,7 @@ static void camd35_send_dcw(ECM_REQUEST *er)
 		 * whoever knows the camd3 protocol related to CMD08 - please help!
 		 * on tests this don't work with native camd3
 		 */
-		buf[21] = 0xFF;
+		buf[21] = client[cs_idx].c35_sleepsend;
 		cs_log("%s stop request send", client[cs_idx].usr);
 	}
 	else
@@ -482,7 +482,7 @@ static int camd35_send_ecm(ECM_REQUEST *er, uchar *buf)
 
 	if (client[cs_idx].is_udp) {
 	   if (!client[cs_idx].udp_sa.sin_addr.s_addr)
-	      if (!hostResolve()) return -1;
+	      if (!hostResolve(client[cs_idx].ridx)) return -1;
 	}
         else {
   	   if (!tcp_connect()) return -1;
@@ -511,7 +511,7 @@ static int camd35_send_emm(EMM_PACKET *ep)
 	
         if (client[cs_idx].is_udp) {
            if (!client[cs_idx].udp_sa.sin_addr.s_addr)
-              if (!hostResolve()) return -1;
+              if (!hostResolve(client[cs_idx].ridx)) return -1;
         }
         else {
            if (!tcp_connect()) return -1;
@@ -563,10 +563,9 @@ static int camd35_recv_chk(uchar *dcw, int *rc, uchar *buf)
 		reader[client[cs_idx].ridx].blockemm_s = (buf[129]==1) ? 0: 1;
 		reader[client[cs_idx].ridx].blockemm_u = (buf[130]==1) ? 0: 1;
 		reader[client[cs_idx].ridx].card_system = get_cardsystem(reader[client[cs_idx].ridx].caid[0]);
-		cs_log("%s CMD05 AU request for caid: %04X, provid: %06lX",
+		cs_log("%s CMD05 AU request for caid: %04X",
 				reader[client[cs_idx].ridx].label,
-				reader[client[cs_idx].ridx].caid[0],
-				reader[client[cs_idx].ridx].auprovid);
+				reader[client[cs_idx].ridx].caid[0]);
 	}
 
 	if (buf[0] == 0x08) {
@@ -577,8 +576,8 @@ static int camd35_recv_chk(uchar *dcw, int *rc, uchar *buf)
 			client[cs_idx].stopped = 1; // server says invalid
 			reader[client[cs_idx].ridx].card_status = CARD_FAILURE;
 		}
-		cs_log("%s CMD08 stop request by server (%s)",
-				reader[client[cs_idx].ridx].label, typtext[client[cs_idx].stopped]);
+		cs_log("%s CMD08 (%02X - %d) stop request by server (%s)",
+				reader[client[cs_idx].ridx].label, buf[21], buf[21], typtext[client[cs_idx].stopped]);
 	}
 
 	// CMD44: old reject command introduced in mpcs

@@ -83,6 +83,13 @@ static uchar
                           0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
                           0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 
+typedef struct chid_base_date {
+    ushort caid;
+    ushort acs;
+    char c_code[4];
+    long base;
+} CHID_BASE_DATE;
+
 static void XRotateLeft8Byte(uchar *buf)
 {
   int k;
@@ -121,18 +128,48 @@ static void ReverseSessionKeyCrypt(const uchar *camkey, uchar *key)
   } 
 }
 
-static time_t chid_date(ulong date, char *buf, int l)
+static time_t chid_date(struct s_reader * reader, ulong date, char *buf, int l)
 {
-  // Irdeto date starts 01.08.1997 which is
-  // 870393600 seconds in unix calendar time
-  time_t ut=870393600L+date*(24*3600);
-  if (buf)
-  {
-    struct tm *t;
-    t=gmtime(&ut);
-    snprintf(buf, l, "%04d/%02d/%02d", t->tm_year+1900, t->tm_mon+1, t->tm_mday);
-  }
-  return(ut);
+
+    // Irdeto date starts 01.08.1997 which is
+    // 870393600 seconds in unix calendar time
+    //
+    // The above might not be true for all Irdeto card
+    // we need to find a way to identify cards to set the base date
+    // like we did for NDS
+    // 
+    // this is the known default value.
+    long date_base=870393600L; // this is actually 31.07.1997, 17:00
+
+    CHID_BASE_DATE table[] = { {0x0604, 0x1541, "GRC", 977817600L}, // 26.12.2000, 00:00
+                            {0x0604, 0x1542, "GRC", 977817600L},    // 26.12.2000, 00:00
+                            {0x0604, 0x1543, "GRC", 977817600L},    // 26.12.2000, 00:00
+                            {0x0604, 0x1544, "GRC", 977817600L},    // 26.12.2000, 17:00
+                            {0x0628, 0x0606, "MCR", 1159574400L},   // 29.09.2006, 00:00
+                            {0x0604, 0x0608, "EGY", 999993600L},
+                            {0x0604, 0x0606, "EGY", 1003276800L},
+                            {0x0627, 0x0608, "EGY", 946598400L},
+                            {0x0664, 0x0608, "TUR", 946598400L},   // 31.12.1999, 00:00
+                            {0x0, 0x0, "", 0L}
+                            };
+
+    // now check for specific providers base date
+    int i=0;
+    while(table[i].caid) {
+        if(reader->caid[0]==table[i].caid && reader->acs==table[i].acs && !memcmp(reader->country_code,table[i].c_code,3) ) {
+            date_base = table[i].base;
+            break;
+        }
+        i++;
+    }
+
+    time_t ut=date_base+date*(24*3600);  
+    if (buf) {
+        struct tm *t;
+        t=gmtime(&ut);
+        snprintf(buf, l, "%04d/%02d/%02d", t->tm_year+1900, t->tm_mon+1, t->tm_mday);
+    }
+    return(ut);
 }
 
 static int irdeto_do_cmd(struct s_reader * reader, uchar *buf, ushort good, uchar * cta_res, ushort * p_cta_lr)
@@ -214,8 +251,9 @@ int irdeto_card_init(struct s_reader * reader, ATR newatr)
   reader_chk_cmd(sc_GetCountryCode, 18);
   reader->acs=(cta_res[0]<<8)|cta_res[1];
   reader->caid[0]=(cta_res[5]<<8)|cta_res[6];
-  cs_ri_log(reader, "caid: %04X, acs: %x.%02x%s",
-         reader->caid[0], cta_res[0], cta_res[1], buf);
+  memcpy(reader->country_code,cta_res+13,3);
+  cs_ri_log(reader, "caid: %04X, acs: %x.%02x, country code: %c%c%c",
+         reader->caid[0], cta_res[0], cta_res[1], cta_res[13], cta_res[14], cta_res[15]);
 
   /*
    * Ascii/Hex-Serial
@@ -475,8 +513,8 @@ int irdeto_card_info(struct s_reader * reader)
             if (chid && chid!=0xFFFF)
             {
               time_t date;
-              chid_date(date=b2i(2, cta_res+k+2), t, 16);
-              chid_date(date+cta_res[k+4], t+16, 16);
+              chid_date(reader,date=b2i(2, cta_res+k+2), t, 16);
+              chid_date(reader,date+cta_res[k+4], t+16, 16);
               if (first)
               {
                 cs_ri_log(reader, "entitlements for provider: %d, id: %06X", p, b2i(3, &reader->prid[i][1]));
