@@ -506,7 +506,8 @@ struct s_client
 #endif
   uchar		ucrc[4];    // needed by monitor and used by camd35
   ulong		pcrc;        // pwd crc
-  AES_KEY	aeskey;      // needed by monitor and used by camd33, camd35
+  AES_KEY	aeskey;      // encryption key needed by monitor and used by camd33, camd35
+  AES_KEY	aeskey_decrypt;      // decryption key needed by monitor and used by camd33, camd35
   ushort	ncd_msgid;
   uchar		ncd_skey[16];
   void		*cc;
