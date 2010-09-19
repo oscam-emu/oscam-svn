@@ -32,7 +32,7 @@ void cs_ri_log(struct s_reader * reader, char *fmt,...)
 		FILE *fp;
 		char filename[32];
 		char *buffer;
-		sprintf(filename, "%s/reader%d", get_tmp_dir(), reader->ridx);
+		sprintf(filename, "%s/reader%d", get_tmp_dir(), client[cs_idx].ridx);
 		int size = reader->init_history_pos+strlen(txt)+1;
 		buffer = malloc(size+1);
 
@@ -147,7 +147,7 @@ int hostResolve(int ridx)
    int err = getaddrinfo(reader[client[cs_idx].ridx].device, NULL, &hints, &res);
    if (err != 0 || !res || !res->ai_addr) {
       client[cs_idx].udp_sa.sin_addr.s_addr = 0;
-      cs_log("can't resolve %s, error: %s", reader[reader[ridx].ridx].device, err ? gai_strerror(err) : "unknown");
+      cs_log("can't resolve %s, error: %s", reader[client[cs_idx].ridx].device, err ? gai_strerror(err) : "unknown");
    }
    else {
       in_addr_t last_ip = client[cs_idx].ip;
@@ -562,7 +562,7 @@ static int reader_listen(struct s_reader * reader, int fd1, int fd2)
     cs_ftime(&tpe);
     for(x=0;x<CS_MAXPENDING;x++){
       ms=1000*(tpe.time-client[cs_idx].ecmtask[x].tps.time)+tpe.millitm-client[cs_idx].ecmtask[x].tps.millitm;
-      if(client[cs_idx].ecmtask[x].rc == 10 && ms > cfg->ctimeout && reader->ridx == client[cs_idx].ecmtask[x].gbxRidx) {
+      if(client[cs_idx].ecmtask[x].rc == 10 && ms > cfg->ctimeout && client[cs_idx].ridx == client[cs_idx].ecmtask[x].gbxRidx) {
         //cs_log("hello rc=%d idx:%d x:%d ridx%d ridx:%d",client[cs_idx].ecmtask[x].rc,client[cs_idx].ecmtask[x].idx,x,ridx,client[cs_idx].ecmtask[x].gbxRidx);
         client[cs_idx].ecmtask[x].rc=5;
         send_dcw(&client[cs_idx].ecmtask[x]);

@@ -287,7 +287,7 @@ int matching_reader(ECM_REQUEST *er, struct s_reader *rdr) {
     return(0);
     
   //Schlocke reader-defined function 
-  if (rdr->ph.c_available && !rdr->ph.c_available(rdr->ridx, AVAIL_CHECK_CONNECTED))
+  if (rdr->ph.c_available && !rdr->ph.c_available(client[cs_idx].ridx, AVAIL_CHECK_CONNECTED))
     return 0;
     
   if (!chk_srvid(er, rdr->cidx))

@@ -952,7 +952,6 @@ static void cs_http()
 
 static void restart_cardreader(int reader_idx, int restart) {
 	int i;
-	reader[reader_idx].ridx = reader_idx;
 	if ((reader[reader_idx].device[0]) && (reader[reader_idx].enable == 1) && (!reader[reader_idx].deleted)) {
 
 		if (restart) {
@@ -1003,7 +1002,6 @@ static void restart_cardreader(int reader_idx, int restart) {
 static void init_cardreader() {
 	int reader_idx;
 	for (reader_idx=0; reader_idx<CS_MAXREADER; reader_idx++) {
-		reader[reader_idx].ridx = reader_idx;
 		if ((reader[reader_idx].device[0]) && (reader[reader_idx].enable == 1)) {
 			restart_cardreader(reader_idx, 0);
 		}
@@ -1487,7 +1485,7 @@ int write_ecm_answer(struct s_reader * reader, int fd, ECM_REQUEST *er)
     }
   }
 
-  er->reader[0]=reader->ridx;
+  er->reader[0]=client[cs_idx].ridx;
 //cs_log("answer from reader %d (rc=%d)", er->reader[0], er->rc);
   er->caid=er->ocaid;
 

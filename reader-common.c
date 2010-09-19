@@ -320,7 +320,7 @@ int reader_checkhealth(struct s_reader * reader)
       }
       else
       {
-        client[cs_idx].au = reader->ridx;
+        client[cs_idx].au = client[cs_idx].ridx;
         reader_card_info(reader);
         reader->card_status = CARD_INSERTED;
       }
