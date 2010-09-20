@@ -203,7 +203,6 @@ extern char *RDR_CD_TXT[];
 
 #define PIP_ID_ECM    0
 #define PIP_ID_EMM    1
-//#define PIP_ID_LOG    2
 #define PIP_ID_CIN    3  // CARD_INFO
 #define PIP_ID_HUP    4
 #define PIP_ID_RST    5  // Schlocke: Restart Reader, CCcam for example (param: ridx)
@@ -1129,7 +1128,7 @@ extern int mfdr,fd_c2m;
 // oscam variables
 
 extern int *c_start, cs_dblevel;
-extern int *logidx, *loghistidx, *log_fd;
+extern int *logidx, *loghistidx;
 extern int *mcl;
 
 extern ushort len4caid[256];

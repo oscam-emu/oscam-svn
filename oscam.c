@@ -33,7 +33,6 @@ int     *ecmidx;  // Shared Memory
 int     *logidx;  // Shared Memory
 int     *oscam_sem; // sem (multicam.o)
 int     *c_start; // idx of 1st client
-int     *log_fd;  // log-process is running
 struct  s_ecm     *ecmcache;  // Shared Memory
 struct  s_client  *client;    // Shared Memory
 struct  s_reader  *reader;    // Shared Memory
@@ -322,8 +321,7 @@ void cs_exit(int sig)
     	cs_statistics(cs_idx);
     	break;
     case 'm': break;
-    case 'n': *log_fd=0;
-              break;
+    case 'n': break;
     case 'r':
         // free AES entries allocated memory
         if(reader[client[cs_idx].ridx].aes_list) {
@@ -333,11 +331,12 @@ void cs_exit(int sig)
         reader_device_close(&reader[client[cs_idx].ridx]);
         break;
     case 'h':
-    case 's': *log_fd=0;
+    case 's': { 
               int i;
               for (i=1; i<CS_MAXPID; i++)
                 if (client[i].pid)
                   kill(client[i].pid, SIGQUIT);
+              }
 #ifdef CS_LED
               cs_switch_led(LED1B, LED_OFF);
               cs_switch_led(LED2, LED_OFF);
@@ -573,7 +572,6 @@ static void cs_child_chk(int i)
             }
           }
           else {
-              *log_fd=0;
               cs_exit(1);
           }
         }
@@ -703,8 +701,7 @@ static void init_shm()
   mcl=(int *)((void *)ecmidx+sizeof(int));
   logidx=(int *)((void *)mcl+sizeof(int));
   c_start=(int *)((void *)logidx+sizeof(int));
-  log_fd=(int *)((void *)c_start+sizeof(int));
-  oscam_sem=(int *)((void *)log_fd+sizeof(int));
+  oscam_sem=(int *)((void *)c_start+sizeof(int));
   client=(struct s_client *)((void *)oscam_sem+sizeof(int));
   reader=(struct s_reader *)&client[CS_MAXPID];
 #ifdef CS_WITH_GBOX
@@ -934,35 +931,6 @@ static void start_thread(void * startroutine, char * nameroutine, char typ) {
 		cs_log("%s thread started", nameroutine);
 		pthread_detach(client[o].thread);
 	}
-}
-
-static void cs_logger(void)
-{
-  *log_fd=client[cs_idx].fd_m2c;
-  while(1)
-  {
-    uchar *ptr;
-    //struct timeval tv;
-    fd_set fds;
-
-    FD_ZERO(&fds);
-    FD_SET(client[cs_idx].fd_m2c_c, &fds);
-    select(client[cs_idx].fd_m2c_c+1, &fds, 0, 0, 0);
-
-    if (FD_ISSET(client[cs_idx].fd_m2c_c, &fds))
-    {
-      int n;
-//    switch(n=read_from_pipe(client[cs_idx].fd_m2c_c, &ptr, 1))
-      n=read_from_pipe(client[cs_idx].fd_m2c_c, &ptr, 1);
-//if (n!=PIP_ID_NUL) printf("received %d bytes\n", n); fflush(stdout);
-   /*   switch(n)
-      {
-        case PIP_ID_LOG:
-          cs_write_log((char *)ptr);
-          break;
-      }*/
-    } 
-  }
 }
 
 #ifdef CS_ANTICASC
@@ -2725,9 +2693,6 @@ static void process_master_pipe()
 
   switch(n=read_from_pipe(mfdr, &ptr, 1))
   {
-    //case PIP_ID_LOG:
-    //	cs_write_log((char *)ptr);
-    //	break;
     case PIP_ID_HUP:
     	cs_accounts_chk();
     	break;

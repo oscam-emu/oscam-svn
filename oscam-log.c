@@ -187,10 +187,7 @@ static void write_to_log(int flag, char *txt)
 			sprintf(log_buf, "[LOG000]%s", txt);
 	}
 
-	//if ((*log_fd) && (client[cs_idx].typ != 'l') && (client[cs_idx].typ != 'a'))
-	//	write_to_pipe(*log_fd, PIP_ID_LOG, (uchar *) log_buf+8, strlen(log_buf+8));
-	//else
-		cs_write_log(log_buf + 8);
+	cs_write_log(log_buf + 8);
 
 	store_logentry(log_buf);
 
@@ -458,9 +455,6 @@ void cs_statistics(int idx)
 				client[idx].last_srvid,
 				channel);
 
-		//if ((*log_fd) && (client[cs_idx].typ != 'l') && (client[cs_idx].typ != 'a'))
-		//	write_to_pipe(*log_fd, PIP_ID_LOG, (uchar *) buf, strlen(buf));
-		//else
-			cs_write_log(buf);
+		cs_write_log(buf);
 	}
 }
