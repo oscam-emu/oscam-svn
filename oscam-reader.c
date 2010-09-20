@@ -134,32 +134,54 @@ int network_select(int forRead, int timeout)
 // according to documentation getaddrinfo() is thread safe
 int hostResolve(int ridx)
 {
-   struct addrinfo hints, *res = NULL;
-  
+   int result = 0;
    //int cs_idx = reader[ridx].cs_idx;
    
-   memset(&hints, 0, sizeof(hints));
-   hints.ai_socktype = SOCK_STREAM;
-   hints.ai_family = client[cs_idx].udp_sa.sin_family;
-   hints.ai_protocol = IPPROTO_TCP;
-  
+   pthread_mutex_lock(&gethostbyname_lock);
+   
+   in_addr_t last_ip = client[cs_idx].ip;
+   
+   if (cfg->resolve_gethostbyname) { //Resolve with gethostbyname:
+     struct hostent *rht = gethostbyname(reader[ridx].device);
+     if (!rht) {
+       cs_log("can't resolve %s", reader[ridx].device);
+       result = 0;
+     } else {
+       memcpy(&client[cs_idx].udp_sa.sin_addr, rht->h_addr, sizeof(client[cs_idx].udp_sa.sin_addr));
+       client[cs_idx].ip=cs_inet_order(client[cs_idx].udp_sa.sin_addr.s_addr);
+       result = 1;
+     }
+   }
+   else { //Resolve with getaddrinfo:
+     struct addrinfo hints, *res = NULL;
+     memset(&hints, 0, sizeof(hints));
+     hints.ai_socktype = SOCK_STREAM;
+     hints.ai_family = client[cs_idx].udp_sa.sin_family;
+     hints.ai_protocol = IPPROTO_TCP;
 
-   int err = getaddrinfo(reader[client[cs_idx].ridx].device, NULL, &hints, &res);
-   if (err != 0 || !res || !res->ai_addr) {
-      client[cs_idx].udp_sa.sin_addr.s_addr = 0;
-      cs_log("can't resolve %s, error: %s", reader[client[cs_idx].ridx].device, err ? gai_strerror(err) : "unknown");
+     int err = getaddrinfo(reader[ridx].device, NULL, &hints, &res);
+     if (err != 0 || !res || !res->ai_addr) {
+       cs_log("can't resolve %s, error: %s", reader[ridx].device, err ? gai_strerror(err) : "unknown");
+       result = 0;
+     } else {
+       client[cs_idx].udp_sa.sin_addr.s_addr = ((struct sockaddr_in *)(res->ai_addr))->sin_addr.s_addr;
+       client[cs_idx].ip = cs_inet_order(client[cs_idx].udp_sa.sin_addr.s_addr);
+       result = 1;
+     }
+     if (res) freeaddrinfo(res);
    }
-   else {
-      in_addr_t last_ip = client[cs_idx].ip;
-      client[cs_idx].udp_sa.sin_addr.s_addr = ((struct sockaddr_in *)(res->ai_addr))->sin_addr.s_addr;
-      client[cs_idx].ip = cs_inet_order(client[cs_idx].udp_sa.sin_addr.s_addr);
-      if (client[cs_idx].ip != last_ip) {
-         uchar *ip = (uchar*) &client[cs_idx].ip;
-         cs_log("%s: resolved ip=%d.%d.%d.%d", reader[client[cs_idx].ridx].device, ip[3], ip[2], ip[1], ip[0]);
-      }
+
+   if (!result) {
+     client[cs_idx].udp_sa.sin_addr.s_addr = 0;
+     client[cs_idx].ip = 0;
+   } else if (client[cs_idx].ip != last_ip) {
+     uchar *ip = (uchar*) &client[cs_idx].ip;
+     cs_log("%s: resolved ip=%d.%d.%d.%d", reader[ridx].device, ip[3], ip[2], ip[1], ip[0]);
    }
-   if (res) freeaddrinfo(res);
-   return (client[cs_idx].udp_sa.sin_addr.s_addr) ? 1 : 0;
+
+   pthread_mutex_unlock(&gethostbyname_lock);
+
+   return result;
 }
 
 int network_tcp_connection_open()
@@ -451,6 +473,7 @@ static void reader_get_ecm(struct s_reader * reader, ECM_REQUEST *er)
     return;
   }
   cs_ddump_mask(D_ATR, er->ecm, er->l, "ecm:");
+  er->msglog[0] = 0;
   er->rc=reader_ecm(reader, er);
   write_ecm_answer(reader, fd_c2m, er);
   reader_post_process(reader);
@@ -645,8 +668,8 @@ static void reader_do_pipe(struct s_reader * reader)
   int pipeCmd = read_from_pipe(client[cs_idx].fd_m2c_c, &ptr, 0);
 
   /* FIXME: this breaks camd35/newcamd cascading as this modules does not set tcp_connected = 2 */
-  if (reader->typ == R_CCCAM && reader->tcp_connected != 2 && client[cs_idx].typ == 'p')
-    return;
+  //if (reader->typ == R_CCCAM && reader->tcp_connected != 2 && client[cs_idx].typ == 'p')
+  //  return;
  
   switch(pipeCmd)
   {
@@ -676,16 +699,14 @@ static void reader_main(struct s_reader * reader)
   while (1)
   {
     /* FIXME: this breaks newcamd/camd3 cascading as newcamd/camd35 only connects if server sends ecm/emm to client */
-    if (reader->typ == R_CCCAM && !reader->tcp_connected && client[cs_idx].typ == 'p') {
-    	 if (!cfg->reader_restart_seconds)
-    	 	  cs_exit(1);
-       cs_log("%s not connected! Reconection in %d sec", reader->label, cfg->reader_restart_seconds);
-       cs_sleepms(1000 * cfg->reader_restart_seconds);
-       if (reader->ph.c_init() && reader->ph.cleanup) {
-    	    reader->ph.cleanup();
-    	    continue;
-       }
-    }    
+    //if (reader->typ == R_CCCAM && !reader->tcp_connected && client[cs_idx].typ == 'p') {
+    //   cs_log("%s not connected! Reconection in %d sec", reader->label, cfg->reader_restart_seconds);
+    //   cs_sleepms(1000 * cfg->reader_restart_seconds);
+    //   if (reader->ph.c_init() && reader->ph.cleanup) {
+    //	    reader->ph.cleanup();
+    //	    continue;
+    //   }
+    //}
     switch(reader_listen(reader, client[reader->cidx].fd_m2c_c, client[cs_idx].pfd))
     {
       case 0: reader_do_idle(reader); break;

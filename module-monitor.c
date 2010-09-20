@@ -270,7 +270,7 @@ char *monitor_get_proto(int idx)
 #ifdef HAVE_PCSC
 			case R_PCSC		: ctyp = "pcsc";		break;
 #endif
-			case R_CCCAM	: ctyp = "cccam";		break;
+			case R_CCCAM	: ctyp = client[idx].cc_extended_ecm_mode?"cccam ext":"cccam";	break;
 			case R_CONSTCW	: ctyp = "constcw";		break;
 			case R_CS378X	: ctyp = "cs378x";		break;
 			case R_DB2COM1	: ctyp = "dbox COM1";	break;
@@ -279,7 +279,10 @@ char *monitor_get_proto(int idx)
 			}
 		}
 		break;
-	default		: ctyp = ph[client[idx].ctyp].desc;
+	default		: if (client[idx].cc_extended_ecm_mode)
+				ctyp = "cccam ext";
+			else
+				ctyp = ph[client[idx].ctyp].desc;
 	}
 	return(ctyp);
 }
@@ -290,7 +293,7 @@ static char *monitor_client_info(char id, int i){
 
 	if (client[i].pid){
 		char ldate[16], ltime[16], *usr;
-		int lsec, isec, cnr, con, cau;
+		int lsec, isec, cnr, con, cau, lrt;
 		time_t now;
 		struct tm *lt;
 		now=time((time_t)0);
@@ -319,6 +322,14 @@ static char *monitor_client_info(char id, int i){
 			if( (cau = client[i].au + 1) )
 				if ((now-client[i].lastemm) /60 > cfg->mon_aulow)
 					cau=-cau;
+			if( client[i].typ == 'r')
+			{
+			    lrt = cs_idx2ridx(i);
+			    if( lrt >= 0 )
+                    lrt = 10 + reader[lrt].card_status;
+			}
+			else
+                lrt = client[i].cwlastresptime;
 			lt = localtime(&client[i].login);
 			sprintf(ldate, "%02d.%02d.%02d", lt->tm_mday, lt->tm_mon+1, lt->tm_year % 100);
 			sprintf(ltime, "%02d:%02d:%02d", lt->tm_hour, lt->tm_min, lt->tm_sec);
@@ -328,7 +339,7 @@ static char *monitor_client_info(char id, int i){
 					ldate, ltime, lsec, client[i].last_caid, client[i].last_srvid,
 					get_servicename(client[i].last_srvid, client[i].last_caid), isec, con,
                                         client[i].cwfound, client[i].cwnot, client[i].cwcache, client[i].cwignored,
-                                        client[i].cwtout, client[i].emmok, client[i].emmnok, client[i].cwlastresptime);
+                                        client[i].cwtout, client[i].emmok, client[i].emmnok, lrt);
 		}
 	}
 	return(sbuf);
@@ -718,7 +729,7 @@ static void monitor_list_commands(char *args[], int cmdcnt){
 static int monitor_process_request(char *req)
 {
 	int i, rc;
-	char *cmd[] = {"login", "exit", "log", "status", "shutdown", "reload", "details", "version", "debug", "getuser", "setuser", "setserver", "commands", "keepalive"};
+	char *cmd[] = {"login", "exit", "log", "status", "shutdown", "reload", "details", "version", "debug", "getuser", "setuser", "setserver", "commands", "keepalive", "reread"};
 	int cmdcnt = sizeof(cmd)/sizeof(char *);  // Calculate the amount of items in array
 	char *arg;
 
@@ -743,6 +754,7 @@ static int monitor_process_request(char *req)
 			case 11:	if (client[cs_idx].monlvl > 3) monitor_set_server(arg); break;	// setserver
 			case 12:	if (client[cs_idx].monlvl > 3) monitor_list_commands(cmd, cmdcnt); break;	// list commands
 			case 13:	if (client[cs_idx].monlvl > 3) monitor_send_keepalive_ack(); break;	// keepalive
+			case 14:	{ char buf[64];sprintf(buf, "[S-0000]reread\n");monitor_send_info(buf, 1); kill(client[0].pid, SIGUSR2); break; } // reread
 			default:	continue;
 			}
 			break;

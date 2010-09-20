@@ -18,6 +18,12 @@
 #  define MSG_WAITALL 0
 #endif
 
+#define CAIDFILE_VERSION 0xfffe
+
+#define MINIMIZE_NONE 0
+#define MINIMIZE_HOPS 1
+#define MINIMIZE_CAID 2
+
 typedef enum {
 	DECRYPT, ENCRYPT
 } cc_crypt_mode_t;
@@ -33,8 +39,8 @@ typedef enum {
 	MSG_SRV_DATA = 8,
 	MSG_CMD_0A = 0x0a,
 	MSG_CMD_0B = 0x0b,
-	MSG_CW_NOK1 = 0xfe,
-	MSG_CW_NOK2 = 0xff,
+	MSG_CW_NOK1 = 0xfe, //Node no more available
+	MSG_CW_NOK2 = 0xff, //No decoding
 	MSG_NO_HEADER = 0xffff
 } cc_msg_type_t;
 
@@ -50,17 +56,22 @@ struct cc_srvid {
 	uint8 ecmlen;
 };
 
+struct cc_provider {
+	ulong prov;  //provider
+	uint8 sa[4]; //shared address
+};
+
 struct cc_card {
 	uint32 id; // cccam card (share) id
-	uint32 sub_id; // subshare id
+	uint32 remote_id;
 	uint16 caid;
 	uint8 hop;
 	uint8 maxdown;
 	uint8 hexserial[8]; // card serial (for au)
-	LLIST *provs; // providers
+	LLIST *providers; // providers (struct cc_provider)
 	LLIST *badsids; // sids that have failed to decode (struct cc_srvid)
 	time_t time;
-	LLIST *goodsids; //sids that could decoded
+	LLIST *goodsids; //sids that could decoded (struct cc_srvid)
 };
 
 struct cc_reported_carddata {
@@ -70,7 +81,8 @@ struct cc_reported_carddata {
 
 struct cc_caid_info {
 	uint16 caid;
-	LLIST *provs;
+	uint32 remote_id;
+	LLIST *providers; // struct cc_provider
 	uint8 hop;
 };
 
@@ -95,6 +107,13 @@ typedef enum {
 	MODE_RC4_CRYPT = 4,
 	MODE_LEN0 = 5,
 } cc_cmd05_mode;
+
+struct cc_extended_ecm_idx {
+	uint8 send_idx;
+	ushort ecm_idx;
+	struct cc_card *card;
+	struct cc_srvid srvid;
+} EXTENDED_ECM_IDX;
 
 struct cc_data {
 	struct cc_crypt_block block[2]; // crypto state blocks
@@ -122,7 +141,7 @@ struct cc_data {
 	uint16 needs_rebuild_caidinfo;
 	int max_ecms;
 	int ecm_counter;
-	int report_carddata_id; //Server only
+	uint32 report_carddata_id; //Server only
 	LLIST *reported_carddatas; //struct cc_reported_carddata //struct cc_reported_carddata
 	LLIST *auto_blocked; //struct cc_auto_blocked //struct cc_auto_blocked
 	int just_logged_in; //true for checking NOK direct after login
@@ -130,19 +149,23 @@ struct cc_data {
 
 	LLIST *pending_emms; //pending emm list
 	
-	ulong crc;
-	uint32 send_ecmtask;
 	uint32 recv_ecmtask;
 
-	int current_ecm_cidx; //index to last current_card (reader)
-	struct cc_current_card *current_card; //initialized by reader (index CS_MAXPID)
-	struct cc_card *server_card; 		   //initialized by server
+	LLIST *current_cards; //reader: current card cache
 	int server_ecm_pending;                    //initialized by server
+	LLIST *server_caid_infos[CS_MAXREADER];
+	long server_caid_size[CS_MAXREADER];
+	ushort server_ecm_idx;
 	
 	pthread_mutex_t lock;
 	pthread_mutex_t ecm_busy;
 	struct timeb ecm_time;
 	time_t answer_on_keepalive;
+	uint8 last_msg;
+	
+	//Extended Mode for SPECIAL clients:
+	int extended_mode;
+	LLIST *extended_ecm_idx;
 };
 
 #endif /* MODULECCCAM_H_ */

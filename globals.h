@@ -44,6 +44,15 @@
 #  define GCC_PACK
 #endif
 
+#ifdef UNUSED 
+#elif defined(__GNUC__) 
+# define UNUSED(x) UNUSED_ ## x __attribute__((unused)) 
+#elif defined(__LCLINT__) 
+# define UNUSED(x) /*@unused@*/ x 
+#else 
+# define UNUSED(x) x 
+#endif
+
 #define call(arg) \
 	if (arg) { \
 		cs_debug_mask(D_TRACE, "ERROR, function call %s returns error.",#arg); \
@@ -228,9 +237,6 @@ enum {E1_GLOBAL=0, E1_USER, E1_READER, E1_SERVER, E1_LSERVER};
 enum {E2_GLOBAL=0, E2_GROUP, E2_CAID, E2_IDENT, E2_CLASS, E2_CHID, E2_QUEUE,
       E2_EA_LEN, E2_F0_LEN, E2_OFFLINE, E2_SID};
 
-//typedef unsigned char uchar;
-//typedef unsigned long ulong;
-
 typedef unsigned char uint8;
 typedef unsigned short uint16;
 typedef unsigned int uint32;
@@ -251,6 +257,11 @@ typedef unsigned long long uint64;
 #define  LED_DEFAULT 	10
 extern void cs_switch_led(int led, int action);
 #endif
+
+
+#define MAX_ATR_LEN 33         // max. ATR length
+#define MAX_HIST    15         // max. number of historical characters
+
 
 typedef struct s_classtab
 {
@@ -304,6 +315,8 @@ typedef struct s_port
 {
   int    fd;
   int    s_port;
+  int    ncd_key_is_set;    //0 or 1
+  uchar  ncd_key[16];
   FTAB   ftab;
 } GCC_PACK PORT;
 
@@ -417,6 +430,7 @@ struct s_irdeto_quess
 };
 #endif
 
+#define MSGLOGSIZE 64
 typedef struct ecm_request_t
 {
   uchar         ecm[256];
@@ -442,6 +456,12 @@ typedef struct ecm_request_t
   uchar         locals_done;
   int		btun; // mark er as betatunneled
 
+#ifdef CS_WITH_DOUBLECHECK
+  int		checked;
+  uchar		cw_checked[16];
+  int       origin_reader;
+#endif
+
 #ifdef CS_WITH_GBOX
   ushort	gbxCWFrom;
   ushort	gbxFrom;
@@ -449,6 +469,8 @@ typedef struct ecm_request_t
   uchar		gbxForward[16];
   int		gbxRidx;
 #endif
+  char msglog[MSGLOGSIZE];
+
 } GCC_PACK      ECM_REQUEST;
 
 struct s_client
@@ -462,6 +484,7 @@ struct s_client
   time_t	lastemm;
   time_t	lastecm;
   time_t	expirationdate;
+  int		allowedtimeframe[2];
   int		c35_suppresscmd08;
   int		c35_sleepsend;
   int		ncd_keepalive;
@@ -511,6 +534,7 @@ struct s_client
   ushort	ncd_msgid;
   uchar		ncd_skey[16];
   void		*cc;
+  int           cc_extended_ecm_mode; //Schlocke extended ecm mode active
   int		port_idx;    // index in server ptab
   int		ncd_server;  // newcamd server
 #ifdef CS_ANTICASC
@@ -654,12 +678,11 @@ struct s_reader  //contains device info, reader info and card info
   char      cc_build[5];    // cccam build number
   int       cc_maxhop;      // cccam max distance
   int       cc_currenthops; // number of hops for CCCam
-  void      *cc;            // ptr to cccam internal data struct
   int       cc_disable_retry_ecm; //Schlocke
   int       cc_disable_auto_block; //Schlocke
-  int       cc_force_resend_ecm;   //Schlocke
   int       cc_want_emu; //Schlocke: Client want to have EMUs, 0 - NO; 1 - YES
   uint      cc_id;
+  int       cc_keepalive;
   uchar     tcp_connected;
   int       tcp_ito;      // inactivity timeout
   int       tcp_rto;      // reconnect timeout
@@ -701,6 +724,9 @@ struct s_reader  //contains device info, reader info and card info
 #ifdef LIBUSB
   SR_CONFIG *sr_config;
 #endif
+#ifdef AZBOX
+  int mode;
+#endif
 	////variables from icc_async.h start
 	int convention; //Convention of this ICC
 	unsigned char protocol_type; // Type of protocol
@@ -716,7 +742,8 @@ struct s_reader  //contains device info, reader info and card info
 	////variables from reader-nagra.c 
         IDEA_KEY_SCHEDULE ksSession; 
  	int is_pure_nagra; 
- 	int is_tiger; 
+ 	int is_tiger;
+ 	int is_n3_na;
  	int has_dt08; 
  	int swapCW; 
  	unsigned char rom[15]; 
@@ -739,6 +766,8 @@ struct s_reader  //contains device info, reader info and card info
 	struct timeb lb_last; //time for oldest reader
 	// multi AES linked list
 	AES_ENTRY *aes_list;
+        // variables from reader-videoguard*
+        int ndsversion; // 0 auto (default), 1 NDS1, 12 NDS1+, 2 NDS2
 };
 
 #ifdef CS_ANTICASC
@@ -789,6 +818,7 @@ struct s_auth
   in_addr_t dynip;
   uchar     dyndns[64];
   time_t    expirationdate;
+  int		allowedtimeframe[2];
   int       c35_suppresscmd08;
   int       c35_sleepsend;
   int       ncd_keepalive;
@@ -808,6 +838,15 @@ struct s_srvid
   char    type[33];
   char    desc[33];
   struct  s_srvid *next;
+};
+
+struct s_tierid
+{
+  int     tierid;
+  int     ncaid;
+  int     caid[10];
+  char    name[33];
+  struct  s_tierid *next;
 };
 
 //Todo #ifdef CCCAM
@@ -851,6 +890,7 @@ struct s_config
 	int		usrfileflag;
 	struct s_auth 	*account;
 	struct s_srvid 	*srvid;
+        struct s_tierid *tierid;
 	//Todo #ifdef CCCAM
 	struct s_provid *provid;
 	struct s_sidtab *sidtab;
@@ -897,8 +937,10 @@ struct s_config
 	in_addr_t	rad_srvip;
 	int		cc_port;
 	int		cc_reshare;
+	int		cc_update_interval;
 	in_addr_t	cc_srvip;
 	uchar		cc_version[7];
+	int             cc_minimize_cards;
 	struct s_ip *rad_allowed;
 	char		rad_usr[32];
 	char		ser_device[512];
@@ -908,9 +950,22 @@ struct s_config
 	int		preferlocalcards;
 	int		saveinithistory;
 	int     reader_restart_seconds; //schlocke: reader restart auf x seconds, disable = 0
-	int     reader_auto_loadbalance; //schlocke: reader loadbalancing disable = 0 enable = 1
-	int     reader_auto_loadbalance_save; //schlocke: load/save statistics to file, save every x ecms
 
+//Loadbalancer-Config:
+	int     lb_mode; //schlocke: reader loadbalancing mode
+	int     lb_save; //schlocke: load/save statistics to file, save every x ecms
+	int		lb_nbest_readers; // count of best readers
+	int		lb_nfb_readers; // count of fallback readers
+	int		lb_min_ecmcount; // minimal ecm count to evaluate lbvalues
+	int     lb_max_ecmcount; // maximum ecm count before reseting lbvalues
+	int     lb_reopen_seconds; //time between retrying failed readers/caids/prov/srv
+
+	int             resolve_gethostbyname;
+
+#ifdef CS_WITH_DOUBLECHECK
+        int             double_check; //schlocke: Double checks each ecm+dcw from two (or more) readers
+#endif
+        
 #ifdef CS_WITH_GBOX
 	uchar		gbox_pwd[8];
 	uchar		ignorefile[128];
@@ -950,19 +1005,12 @@ struct s_config
 	//  struct s_reader reader[];
 };
 
-
-
 //Loadbalance constants:
 #define LB_NONE 0
 #define LB_FASTEST_READER_FIRST 1
 #define LB_OLDEST_READER_FIRST 2
 #define LB_LOWEST_USAGELEVEL 3
 
-#define MAX_STAT_TIME 20
-#define MIN_ECM_COUNT 5
-#define MAX_ECM_COUNT 500
-
- 
 typedef struct add_reader_stat_t
 {
   int           ridx;
@@ -973,6 +1021,8 @@ typedef struct add_reader_stat_t
   ulong         prid;
   ushort        srvid;
 } GCC_PACK      ADD_READER_STAT;
+
+#define MAX_STAT_TIME 20
 
 typedef struct reader_stat_t
 {
@@ -1064,6 +1114,7 @@ extern int safe_overwrite_with_bak(char *destfile, char *tmpfile, char *bakfile,
 extern void fprintf_conf(FILE *f, int varnameWidth, const char *varname, const char *fmtstring, ...);
 extern void cs_strncpy(char * destination, const char * source, size_t num);
 extern char *get_servicename(int srvid, int caid);
+extern char *get_tiername(int tierid, int caid);
 extern char *get_provider(int caid, ulong provid);
 extern void make_non_blocking(int fd);
 
@@ -1096,7 +1147,7 @@ extern struct s_acasc_shm *acasc;
 extern FILE *fpa;
 extern int use_ac_log;
 #endif
-extern pthread_mutex_t gethostbyname_lock;
+extern pthread_mutex_t gethostbyname_lock; 
 
 // oscam
 extern int recv_from_udpipe(uchar *);
@@ -1141,9 +1192,12 @@ extern void cs_waitforcardinit(void);
 extern void cs_reinit_clients(void);
 extern void chk_dcw(int fd);
 extern void update_reader_config(uchar *ptr);
-extern void send_restart_cardreader(int ridx);
+extern void send_restart_cardreader(int ridx, int force_now);
 extern void send_clear_reader_stat(int ridx);
-
+extern int chk_ctab(ushort caid, CAIDTAB *ctab);
+extern int chk_srvid_match_by_caid_prov(ushort caid, ulong provid, SIDTAB *sidtab);
+extern int chk_srvid_by_caid_prov(ushort caid, ulong provid, int idx);
+                                        
 #ifdef CS_ANTICASC
 //extern void start_anticascader(void);
 extern void init_ac(void);
@@ -1163,6 +1217,7 @@ extern int  init_userdb(struct s_auth **authptr_org);
 extern int  init_readerdb(void);
 extern int  init_sidtab(void);
 extern int  init_srvid(void);
+extern int  init_tierid(void);
 extern int  search_boxkey(ushort, char *);
 extern void init_len4caid(void);
 #ifdef IRDETO_GUESSING
@@ -1218,7 +1273,7 @@ extern char * get_tmp_dir();
 // oscam-reader
 extern int logfd;
 extern int reader_cmd2icc(struct s_reader * reader, uchar *buf, int l, uchar *response, ushort *response_length);
-extern int card_write(struct s_reader * reader, uchar *, uchar *, uchar *, ushort *);
+extern int card_write(struct s_reader * reader, const uchar *, const uchar *, uchar *, ushort *);
 extern int check_sct_len(const unsigned char *data, int off);
 extern void cs_ri_brk(struct s_reader * reader, int);
 extern void cs_ri_log(struct s_reader * reader, char *,...);
@@ -1273,10 +1328,6 @@ extern void clear_reader_stat(int ridx);
 
 #ifdef HAVE_PCSC
 // reader-pcsc
-extern int pcsc_reader_do_api(struct s_reader *pcsc_reader, uchar *buf, uchar *cta_res, ushort *cta_lr,int l);
-extern int pcsc_activate_card(struct s_reader *pcsc_reader, uchar *atr, ushort *atr_size);
-extern int pcsc_check_card_inserted(struct s_reader *pcsc_reader);
-extern int pcsc_reader_init(struct s_reader *pcsc_reader, char *device);
 extern void pcsc_close(struct s_reader *pcsc_reader);
 #endif
 

@@ -165,7 +165,17 @@ static void camd35_request_emm(ECM_REQUEST *er)
 	memset(client[cs_idx].mbuf, 0, sizeof(client[cs_idx].mbuf));
 	client[cs_idx].mbuf[2] = client[cs_idx].mbuf[3] = 0xff;			// must not be zero
 	memcpy(client[cs_idx].mbuf + 8, i2b(2, er->srvid), 2);
-	memcpy(client[cs_idx].mbuf + 12, i2b(4, er->prid), 4);
+
+	//override request provid with auprovid if set in CMD05
+	if(reader[au].auprovid) {
+		if(reader[au].auprovid != er->prid)
+			memcpy(client[cs_idx].mbuf + 12, i2b(4, reader[au].auprovid), 4);
+		else
+			memcpy(client[cs_idx].mbuf + 12, i2b(4, er->prid), 4);
+	} else {
+		memcpy(client[cs_idx].mbuf + 12, i2b(4, er->prid), 4);
+	}
+
 	memcpy(client[cs_idx].mbuf + 16, i2b(2, er->pid), 2);
 	client[cs_idx].mbuf[0] = 5;
 	client[cs_idx].mbuf[1] = 111;
@@ -481,7 +491,7 @@ static int camd35_send_ecm(ECM_REQUEST *er, uchar *buf)
 	client[cs_idx].lastpid = er->pid;
 
 	if (client[cs_idx].is_udp) {
-	   if (!client[cs_idx].udp_sa.sin_addr.s_addr)
+	   if (!client[cs_idx].udp_sa.sin_addr.s_addr || reader[client[cs_idx].ridx].last_s-reader[client[cs_idx].ridx].last_g > reader[client[cs_idx].ridx].tcp_rto)
 	      if (!hostResolve(client[cs_idx].ridx)) return -1;
 	}
         else {
@@ -510,7 +520,7 @@ static int camd35_send_emm(EMM_PACKET *ep)
 	uchar buf[512];
 	
         if (client[cs_idx].is_udp) {
-           if (!client[cs_idx].udp_sa.sin_addr.s_addr)
+           if (!client[cs_idx].udp_sa.sin_addr.s_addr || reader[client[cs_idx].ridx].last_s-reader[client[cs_idx].ridx].last_g > reader[client[cs_idx].ridx].tcp_rto)
               if (!hostResolve(client[cs_idx].ridx)) return -1;
         }
         else {
@@ -537,9 +547,11 @@ static int camd35_recv_chk(uchar *dcw, int *rc, uchar *buf)
 	// reading CMD05 Emm request and set serial
 	if (buf[0] == 0x05 && buf[1] == 111) {
 
+		//cs_log("CMD05: %s", cs_hexdump(1, buf, buf[1]));
 		reader[client[cs_idx].ridx].nprov = 0; //reset if number changes on reader change
 		reader[client[cs_idx].ridx].nprov = buf[47];
-		reader[client[cs_idx].ridx].caid[0] = b2i(2, buf+20);
+		reader[client[cs_idx].ridx].caid[0] = b2i(2, buf + 20);
+		reader[client[cs_idx].ridx].auprovid = b2i(4, buf + 12);
 
 		int i;
 		for (i=0; i<reader[client[cs_idx].ridx].nprov; i++) {
@@ -563,9 +575,10 @@ static int camd35_recv_chk(uchar *dcw, int *rc, uchar *buf)
 		reader[client[cs_idx].ridx].blockemm_s = (buf[129]==1) ? 0: 1;
 		reader[client[cs_idx].ridx].blockemm_u = (buf[130]==1) ? 0: 1;
 		reader[client[cs_idx].ridx].card_system = get_cardsystem(reader[client[cs_idx].ridx].caid[0]);
-		cs_log("%s CMD05 AU request for caid: %04X",
+		cs_log("%s CMD05 AU request for caid: %04X auprovid: %06lX",
 				reader[client[cs_idx].ridx].label,
-				reader[client[cs_idx].ridx].caid[0]);
+				reader[client[cs_idx].ridx].caid[0],
+				reader[client[cs_idx].ridx].auprovid);
 	}
 
 	if (buf[0] == 0x08) {

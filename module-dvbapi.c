@@ -427,7 +427,7 @@ void dvbapi_stop_descrambling(int demux_id) {
 			needed=1;
 	}
 
-	if (needed==0) {
+	if (needed==0 && demux[demux_id].ca_fd > 1) {
 		close(demux[demux_id].ca_fd);
 		cs_debug("closing ca device");
 	}
@@ -784,6 +784,8 @@ int dvbapi_parse_capmt(unsigned char *buffer, unsigned int length, int connfd) {
 		ca_mask = buffer[19];
 		demux_index = buffer[20];
 	}
+
+	cs_ddump(buffer, length, "capmt:");
 	
 	for (i = 0; i < MAX_DEMUX; i++) {
 		if (demux[i].demux_index == demux_index && demux[i].program_number == program_number) {
@@ -803,8 +805,6 @@ int dvbapi_parse_capmt(unsigned char *buffer, unsigned int length, int connfd) {
 		demux_index = demux_id;
 	}
 	
-	cs_ddump(buffer, length, "capmt:");
-
 	dvbapi_stop_filter(demux_id, TYPE_ECM);
 	dvbapi_stop_filter(demux_id, TYPE_EMM);
 
@@ -1300,6 +1300,7 @@ void dvbapi_main_local(void *idx) {
 
 				pfd2[pfdcount].fd=demux[i].socket_fd;
 				pfd2[pfdcount].events = (POLLIN | POLLPRI | POLLHUP);
+				ids[pfdcount]=i;
 				type[pfdcount++]=1;
 			}
 		}
@@ -1344,6 +1345,7 @@ void dvbapi_main_local(void *idx) {
 						}
 					} else {
 						cs_debug("New capmt on old socket. Please report.");
+						dvbapi_stop_descrambling(ids[i]);
 						connfd = pfd2[i].fd;
 					}
 
@@ -1494,7 +1496,7 @@ static void dvbapi_handler(int ctyp) {
 void azbox_openxcas_ecm_callback(int stream_id, unsigned int seq, int cipher_index, unsigned int caid, unsigned char *ecm_data, int l, unsigned short pid) {
 	cs_debug("openxcas: ecm callback received"); 
 
-  //openxcas_stream_id = stream_id;
+  openxcas_stream_id = stream_id;
   //openxcas_seq = seq;
 	//openxcas_caid = caid;
 	openxcas_ecm_pid = pid;
@@ -1550,6 +1552,7 @@ void azbox_openxcas_ecm_callback(int stream_id, unsigned int seq, int cipher_ind
 void azbox_openxcas_ex_callback(int stream_id, unsigned int seq, int idx, unsigned int pid, unsigned char *ecm_data, int l) {
 	cs_debug("openxcas: ex callback received");
 
+	openxcas_stream_id = stream_id;
 	openxcas_ecm_pid = pid;
 	openxcas_cipher_idx = idx; // is this really cipher_idx?
 
@@ -1661,7 +1664,7 @@ void azbox_main(void *idx) {
 					else
 						cs_debug("openxcas: ecm filter started");
 
-					if (!openxcas_create_cipher_ex(openxcas_stream_id, openxcas_seq, 0, openxcas_ecm_pid, openxcas_video_pid, 0xffff, openxcas_audio_pid, 0xffff, 0xffff, 0xffff))
+					if (!openxcas_create_cipher_ex(msg.stream_id, openxcas_seq, 0, openxcas_ecm_pid, openxcas_video_pid, 0xffff, openxcas_audio_pid, 0xffff, 0xffff, 0xffff))
 						cs_log("openxcas: failed to create cipher ex");
 					else
 						cs_debug("openxcas: cipher created");

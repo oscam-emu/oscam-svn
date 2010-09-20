@@ -111,10 +111,10 @@ static int network_message_send(int handle, uint16 *netMsgId, uint8 *buffer,
     netbuf[(client[cs_idx].ncd_proto==NCD_524)?6:4] = (uchar)(sid>>8); //sid
     netbuf[(client[cs_idx].ncd_proto==NCD_524)?7:5] = (uchar)(sid);
   }
-  if ((!client[cs_idx].ncd_proto==NCD_524) && (buffer[0] >= 0xd1) && (buffer[0]<= 0xd8)) { // extended proto for mg
-    cs_debug("newcamd: extended: msg");
+  //if ((!ncd_proto==NCD_524) && (buffer[0] >= 0xd1) && (buffer[0]<= 0xd8)) { // extended proto for mg
+    //cs_debug("newcamd: extended: msg");
     if (cd) {
-      cs_debug("newcamd: extended: has cd");
+      cs_debug("newcamd: has cd");
       netbuf[4] = cd->sid >> 8;
       netbuf[5] = cd->sid & 0xff;
       netbuf[6] = cd->caid >> 8;
@@ -123,7 +123,7 @@ static int network_message_send(int handle, uint16 *netMsgId, uint8 *buffer,
       netbuf[9] = (cd->provid >> 8) & 0xff;
       netbuf[10] = cd->provid & 0xff;
     }
-  }
+  //}
   netbuf[0] = (len - 2) >> 8;
   netbuf[1] = (len - 2) & 0xff;
   cs_ddump(netbuf, len, "send %d bytes to %s", len, remote_txt());
@@ -607,7 +607,7 @@ static FILTER mk_user_ftab()
   return filt;
 }
 
-static void newcamd_auth_client(in_addr_t ip)
+static void newcamd_auth_client(in_addr_t ip, uint8 *deskey)
 {
     int i, r, ok;
     uchar *usr = NULL, *pwd = NULL;
@@ -635,7 +635,7 @@ static void newcamd_auth_client(in_addr_t ip)
 
     // send init sequence
     send(client[cs_idx].udp_fd, buf, 14, 0);
-    key = des_login_key_get(buf, cfg->ncd_key, 14);
+    key = des_login_key_get(buf, deskey, 14);
     memcpy(client[cs_idx].ncd_skey, key, 16);
     client[cs_idx].ncd_msgid = 0;
 
@@ -743,7 +743,7 @@ static void newcamd_auth_client(in_addr_t ip)
     {
       FILTER *pufilt = 0;
 
-      key = des_login_key_get(cfg->ncd_key, passwdcrypt, strlen((char *)passwdcrypt));
+      key = des_login_key_get(deskey, passwdcrypt, strlen((char *)passwdcrypt));
       memcpy(client[cs_idx].ncd_skey, key, 16);
 
       i=process_input(client[cs_idx].mbuf, sizeof(client[cs_idx].mbuf), cfg->cmaxidle);
@@ -906,8 +906,22 @@ static void newcamd_auth_client(in_addr_t ip)
           }
           len+=11;
         }
+
+        custom_data_t cd;
+        memset(&cd, 0, sizeof(cd));
+
+        if (au != -1)
+        {
+          if (reader[au].blockemm_g)
+            cd.sid |= 4;
+          if (reader[au].blockemm_s)
+            cd.sid |= 2;
+          if (reader[au].blockemm_u)
+            cd.sid |= 1;
+        }
+
         if( network_message_send(client[cs_idx].udp_fd, &client[cs_idx].ncd_msgid,
-            client[cs_idx].mbuf, len, key, COMMTYPE_SERVER, 0, NULL) <0 )
+            client[cs_idx].mbuf, len, key, COMMTYPE_SERVER, 0, &cd) <0 )
         {
           if(client[cs_idx].req)
           {
@@ -1047,7 +1061,14 @@ static void newcamd_server(void *idx)
 	memset(client[cs_idx].req, 0, CS_MAXPENDING*REQ_SIZE);
 	client[cs_idx].ncd_server = 1;
 	cs_log("client connected to %d port", cfg->ncd_ptab.ports[client[cs_idx].port_idx].s_port);
-	newcamd_auth_client(client[cs_idx].ip);
+
+	if (cfg->ncd_ptab.ports[client[cs_idx].port_idx].ncd_key_is_set) {
+	    //port has a des key specified
+	    newcamd_auth_client(client[cs_idx].ip, cfg->ncd_ptab.ports[client[cs_idx].port_idx].ncd_key);
+	} else {
+	    //default global des key
+	    newcamd_auth_client(client[cs_idx].ip, cfg->ncd_key);
+	}
 
 	// report all cards if using extended mg proto
 	if (cfg->ncd_mgclient) {

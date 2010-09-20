@@ -31,7 +31,7 @@ DESCRIPTIONS
 	  example: 1234:123456:1234:1234:1234:00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F
 
        enable = 0|1
-	  0 = deactivate reader, default=1
+	  0 = deactivate reader, default:1
 
        key = DES key
 	  key for newcamd remote reader encryption
@@ -44,9 +44,6 @@ DESCRIPTIONS
 
        account = user,password
 	  user and password for remote reader
-
-       pincode = pincode
-	  pincode for Conax and Cryptoworks SCs
 
        services = [!]services[,[!]<services>]...
 	  reader [de]assignment to service group, default=none
@@ -83,24 +80,6 @@ DESCRIPTIONS
 
 	  example: auprovid = 123456
 
-       boxid = NDS box ID
-	  NDS receiver box id
-
-       aeskey = AES key
-	  16 byte AES key for Viaccess SCs
-
-       aeskeys = CAID@ident:AES key #1[,AES key #2],...[;CAID@ident:AES key #2[,AES key #3],...]...
-	  mutiple 16 byte AES keys for Viaccess SCs
-
-	  special AES keys:
-
-	   00 = no AES key specified, do not return any CW
-	   FF = no AES key specified, return CW received from the SC
-
-	  example:
-
-	   aeskeys = 0100@012345:000102030405060708090a0b0c0d0e0f;0200@543210:0,0,0f0e0d0c0b0a090807060504030201
-
        detect = CD|DSR|CTS|RING|NONE|gpio[1-7]
 	  status detect of card (NONE = no detection), default:CD
 
@@ -117,6 +96,9 @@ DESCRIPTIONS
 	  speed of 9600 baud.
 
 	  1 = use deprecated SC mode only, default:0
+
+       mode = mode
+	  set card init mode for AzBox reader, default:none
 
        protocol = reader protocol
 	  reader protocol, required:
@@ -135,18 +117,6 @@ DESCRIPTIONS
 	   pcsc
 	   constcw
 
-       cccversion = <main version>.<version>.<sub version>
-	  define CCcam version, default:none
-
-	  example: cccversion = 1.2.34
-
-       cccmaxhops = hops
-	  define CCcam maximum SC distance hops, default:10
-	   0 = local SCs only
-	   1 = local SCs and + 1 hop
-	   2 = local SCs and + 2 hops
-	   and so on
-
        ident = <CAID>:<ident>[,ident]...[,<CAID>:<ident>[,ident]...]...
 	  define CAID and ident for reader
 
@@ -159,14 +129,6 @@ DESCRIPTIONS
 	  define class in hex for reader
 
 	  example: class = 01,02,!1b,!2b
-
-       chid = CAID:ChID
-	  define Irdeto ChID for reader
-
-	  example: chid = 0100:12
-
-       showcls = quantity
-	  number of classes subscriptions to show for Viaccess SCs, default=10
 
        maxqlen = size
 	  size of request queue for reader, default:128
@@ -231,6 +193,45 @@ DESCRIPTIONS
 
 	   It's an divider for the average responstime.
 
+       cccversion = <main version>.<version>.<sub version>
+	  define CCcam version, default:none
+
+	  example: cccversion = 1.2.34
+
+       cccmaxhops = hops
+	  define CCcam maximum SC distance hops, default:10
+	   0 = local SCs only
+	   1 = local SCs and + 1 hop
+	   2 = local SCs and + 2 hops
+	   and so on
+
+       cccdisableretryecm = 0|1
+	  0  =	enables  ECM retrying: When an ECM request is denied from an CCCam server, OSCam immediatelly sends a
+	  new ECM request, 1= disables ECM retrying: When an ECM request is denied from an CCCam server, OSCam	sends
+	  no new ECM request, default:0
+
+       cccdisableautoblock = 0|1
+	  0  =	enables  auto  block: When an ECM request is send to an CCCam server, it tries the SC with the lowest
+	  hop. If it is denied, the SID is blocked on this SC. When all SC are blocked, the CAID:PROV:SID information
+	  is stored in a auto block list and is newer send again, 1= disabled auto block, default:1
+
+       cccwantemu = 0|1
+	  1 = request to provide emu from CCCam server, too, default:0
+
+       updateinval = seconds
+	  interval to provide share list update to CCCam clients, default:240
+
+       ccckeepalive = 0|1
+	  1 = send keepalive messages to keep connection to remote CCCam server up, default:0
+
+       pincode = pincode
+	  pincode for Conax and Cryptoworks SCs
+
+       chid = CAID:ChID
+	  define Irdeto ChID for reader
+
+	  example: chid = 0100:12
+
        force_irdeto = 0|1
 	  1 = force Irdeto SC mode even if RSA key is set for Irdeto tunnled Nagravion SC, default:0
 
@@ -246,26 +247,34 @@ DESCRIPTIONS
        tiger_ideakey = IDEA key
 	  IDEA key for Tiger Nagravision SCs
 
-       cccdisableretryecm = 0|1
-	  0  =	enables  ECM retrying: When an ECM request is denied from an CCCam server, OSCam immediatelly sends a
-	  new ECM request, 1= disables ECM retrying: When an ECM request is denied from an CCCam server, OSCam	sends
-	  no new ECM request, default:0
+       aeskey = AES key
+	  16 byte AES key for Viaccess SCs
 
-       cccdisableautoblock = 0|1
-	  0  =	enables  auto  block: When an ECM request is send to an CCCam server, it tries the SC with the lowest
-	  hop. If it is denied, the SID is blocked on this SC. When all SC are blocked, the CAID:PROV:SID information
-	  is stored in a auto block list and is newer send again, 1= disabled auto block, default: 1
+       aeskeys = CAID@ident:AES key #1[,AES key #2],...[;CAID@ident:AES key #2[,AES key #3],...]...
+	  mutiple 16 byte AES keys for Viaccess SCs
 
-       cccforceresendecm = 0|1
-	  1 = activates ECM resending when fallback reader timeout occurs, default: 0
+	  special AES keys:
 
+	   00 = no AES key specified, do not return any CW
+	   FF = no AES key specified, return CW received from the SC
 
-       cccwantemu = 0|1
-	  1 = request to provide emu from CCCam server, too, default: 0
+	  example:
 
+	   aeskeys = 0100@012345:000102030405060708090a0b0c0d0e0f;0200@543210:0,0,0f0e0d0c0b0a090807060504030201
 
+       showcls = quantity
+	  number of classes subscriptions to show for Viaccess SCs, default=10
 
+       boxid = NDS box ID
+	  NDS receiver box id
 
+       ndsversion = 0|1|12|2
+	  set NDS Videoguard version
+
+	    0 = autodetection (default)
+	    1 = NDS Videoguard 1
+	   12 = NDS Videoguard 1+
+	    2 = NDS Videoguard 2
 
 OVERCLOCKING
        ·  Dreambox and other internal readers
@@ -391,7 +400,7 @@ EXAMPLES
 
 SEE ALSO
        list_smargo(1),	 oscam(1),   oscam.ac(5),   oscam.cert(5),   oscam.conf(5),   oscam.guess(5),	oscam.ird(5),
-       oscam.provid(5), oscam.services(5), oscam.srvid(5), oscam.user(5)
+       oscam.provid(5), oscam.services(5), oscam.srvid(5), oscam.tiers(5), oscam.user(5)
 
 
 

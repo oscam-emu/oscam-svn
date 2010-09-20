@@ -4,7 +4,12 @@
 #include "atr.h"
 #include "icc_async_exports.h"
 #include "csctapi/ifd_sc8in1.h"
-
+#ifdef HAVE_PCSC
+#include "csctapi/ifd_pcsc.h"
+#endif
+#ifdef AZBOX
+#include "csctapi/ifd_azbox.h"
+#endif
 #if defined(TUXBOX) && defined(PPC) //dbox2 only
 #include "csctapi/mc_global.h"
 static int reader_device_type(struct s_reader * reader)
@@ -77,16 +82,18 @@ int reader_cmd2icc(struct s_reader * reader, uchar *buf, int l, uchar * cta_res,
 
 #define CMD_LEN 5
 
-int card_write(struct s_reader * reader, uchar *cmd, uchar *data, uchar *response, ushort * response_length)
+int card_write(struct s_reader * reader, const uchar *cmd, const uchar *data, uchar *response, ushort * response_length)
 {
+  uchar buf[260];
+  // always copy to be able to be able to use const buffer without changing all code  
+  memcpy(buf, cmd, CMD_LEN); 
+
   if (data) {
-    uchar buf[256]; //only allocate buffer when its needed
-    memcpy(buf, cmd, CMD_LEN);
     if (cmd[4]) memcpy(buf+CMD_LEN, data, cmd[4]);
     return(reader_cmd2icc(reader, buf, CMD_LEN+cmd[4], response, response_length));
   }
   else
-    return(reader_cmd2icc(reader, cmd, CMD_LEN, response, response_length));
+    return(reader_cmd2icc(reader, buf, CMD_LEN, response, response_length));
 }
 
 int check_sct_len(const uchar *data, int off)
@@ -229,11 +236,17 @@ void reader_card_info(struct s_reader * reader)
       case SC_CONAX:
         conax_card_info(reader); break;
       case SC_VIDEOGUARD2:
-        videoguard_card_info(reader); break;
+        videoguard2_card_info(reader); break;
+      case SC_VIDEOGUARD1:
+        videoguard1_card_info(reader); break;
+      case SC_VIDEOGUARD12:
+        videoguard12_card_info(reader); break;
       case SC_SECA:
          seca_card_info(reader); break;
       case SC_DRE:
     	 dre_card_info(); break;
+      case SC_TONGFANG:
+    	 tongfang_card_info(reader); break;
     }
   }
 }
@@ -253,10 +266,16 @@ static int reader_get_cardsystem(struct s_reader * reader, ATR atr)
 		reader->card_system=SC_SECA;
 	else if (viaccess_card_init(reader, atr))
 		reader->card_system=SC_VIACCESS;
-	else if (videoguard_card_init(reader, atr))
+    else if (videoguard1_card_init(reader, atr))
+            reader->card_system=SC_VIDEOGUARD1;
+    else if (videoguard12_card_init(reader, atr))
+            reader->card_system=SC_VIDEOGUARD12;
+	else if (videoguard2_card_init(reader, atr))
 		reader->card_system=SC_VIDEOGUARD2;
 	else if (dre_card_init(reader, atr)) 
 		reader->card_system=SC_DRE;
+	else if (tongfang_card_init(reader, atr)) 
+		reader->card_system=SC_TONGFANG;
 	else
 		cs_ri_log(reader, "card system not supported");
 
@@ -266,17 +285,39 @@ static int reader_get_cardsystem(struct s_reader * reader, ATR atr)
 
 static int reader_reset(struct s_reader * reader)
 {
-	reader_nullcard(reader);
-	ATR atr;
-	unsigned short int deprecated, ret = ERROR;
+  reader_nullcard(reader);
+  ATR atr;
+  unsigned short int ret = 0;
+#ifdef AZBOX
+  int i;
+  if (reader->typ == R_INTERNAL) {
+    if (reader->mode != -1) {
+      Azbox_SetMode(reader->mode);
+      if (!reader_activate_card(reader, &atr, 0)) return(0);
+      ret = reader_get_cardsystem(reader, atr);
+    } else {
+      for (i = 0; i < AZBOX_MODES; i++) {
+        Azbox_SetMode(i);
+        if (!reader_activate_card(reader, &atr, 0)) return(0);
+        ret = reader_get_cardsystem(reader, atr);
+        if (ret)
+          break;
+      }
+    }
+  } else {
+#endif
+  unsigned short int deprecated;
 	for (deprecated = reader->deprecated; deprecated < 2; deprecated++) {
 		if (!reader_activate_card(reader, &atr, deprecated)) return(0);
-		ret =reader_get_cardsystem(reader, atr);
+		ret = reader_get_cardsystem(reader, atr);
 		if (ret)
 			break;
 		if (!deprecated)
 			cs_log("Normal mode failed, reverting to Deprecated Mode");
 	}
+#ifdef AZBOX
+  }
+#endif
 	return(ret);
 }
 
@@ -387,9 +428,15 @@ int reader_ecm(struct s_reader * reader, ECM_REQUEST *er)
         case SC_SECA:
           rc=(seca_do_ecm(reader, er)) ? 1 : 0; break;
         case SC_VIDEOGUARD2:
-          rc=(videoguard_do_ecm(reader, er)) ? 1 : 0; break;
+          rc=(videoguard2_do_ecm(reader, er)) ? 1 : 0; break;
+        case SC_VIDEOGUARD1:
+          rc=(videoguard1_do_ecm(reader, er)) ? 1 : 0; break;
+        case SC_VIDEOGUARD12:
+          rc=(videoguard12_do_ecm(reader, er)) ? 1 : 0; break;
         case SC_DRE:
           rc=(dre_do_ecm(reader, er)) ? 1: 0; break;
+        case SC_TONGFANG:
+          rc=(tongfang_do_ecm(reader, er)) ? 1: 0; break;
         default:
           rc=0;
       }
@@ -418,9 +465,15 @@ int reader_get_emm_type(EMM_PACKET *ep, struct s_reader * rdr) //rdr differs fro
     case SC_SECA:
       rc=seca_get_emm_type(ep, rdr); break;
     case SC_VIDEOGUARD2:
-      rc=videoguard_get_emm_type(ep, rdr); break;
+      rc=videoguard2_get_emm_type(ep, rdr); break;
+    case SC_VIDEOGUARD1:
+      rc=videoguard1_get_emm_type(ep, rdr); break;
+    case SC_VIDEOGUARD12:
+      rc=videoguard12_get_emm_type(ep, rdr); break;
     case SC_DRE:
       rc=dre_get_emm_type(ep, rdr); break;
+    case SC_TONGFANG:
+      rc=tongfang_get_emm_type(ep, rdr); break;
     default:
       rc=0;
   }
@@ -436,7 +489,12 @@ int get_cardsystem(ushort caid) {
 		case 0x06:
 			return SC_IRDETO;
 		case 0x09:
-			return SC_VIDEOGUARD2;
+			if(caid == 0x0969 ) {
+                          return SC_VIDEOGUARD1;
+                        } 
+                        else {
+                          return SC_VIDEOGUARD2;
+                        };
 		case 0x0B:
 			return SC_CONAX;
 		case 0x0D:
@@ -447,6 +505,8 @@ int get_cardsystem(ushort caid) {
 			return SC_NAGRA;
 		case 0x4A:
 			return SC_DRE;
+		case 0x4B:
+			return SC_TONGFANG;
 		default: 
 			return 0;
 	}
@@ -476,8 +536,14 @@ void get_emm_filter(struct s_reader * rdr, uchar *filter) {
 			seca_get_emm_filter(rdr, filter);
 			break;
 		case SC_VIDEOGUARD2:
-			videoguard_get_emm_filter(rdr, filter);
+			videoguard2_get_emm_filter(rdr, filter);
 			break;
+                case SC_VIDEOGUARD1:
+                        videoguard1_get_emm_filter(rdr, filter);
+                        break;
+                case SC_VIDEOGUARD12:
+                        videoguard12_get_emm_filter(rdr, filter);
+                        break;
 		case SC_DRE:
 			dre_get_emm_filter(rdr, filter);
 			break;
@@ -495,52 +561,6 @@ int reader_emm(struct s_reader * reader, EMM_PACKET *ep)
   rc=reader_checkhealth(reader);
   if (rc)
   {
-    client[cs_idx].last=time((time_t)0);
-    if (reader->b_nano[ep->emm[0]] & 0x02) //should this nano be saved?
-    {
-      char token[256];
-      FILE *fp;
-
-      time_t rawtime;
-      time (&rawtime);
-      struct tm *timeinfo;
-      timeinfo = localtime (&rawtime);	/* to access LOCAL date/time info */
-      char buf[80];
-      strftime (buf, 80, "%Y%m%d_%H_%M_%S", timeinfo);
-
-      sprintf (token, "%swrite_%s_%s.%s", cs_confdir, (ep->emm[0] == 0x82) ? "UNIQ" : "SHARED", buf, "txt");
-      if (!(fp = fopen (token, "w")))
-      {
-        cs_log ("ERROR: Cannot open EMM.txt file '%s' (errno=%d)\n", token, errno);
-      }
-      else
-      {
-    	cs_log ("Succesfully written text EMM to %s.", token);
-    	int emm_length = ((ep->emm[1] & 0x0f) << 8) | ep->emm[2];
-    	fprintf (fp, "%s", cs_hexdump (0, ep->emm, emm_length + 3));
-    	fclose (fp);
-      }
-
-      //sprintf (token, "%s%s.%s", cs_confdir, buf,"emm");
-      sprintf (token, "%swrite_%s_%s.%s", cs_confdir, (ep->emm[0] == 0x82) ? "UNIQ" : "SHARED", buf, "emm");
-      if (!(fp = fopen (token, "wb")))
-      {
-    	cs_log ("ERROR: Cannot open EMM.emm file '%s' (errno=%d)\n", token, errno);
-      }
-      else 
-      {
-    	if (fwrite(ep, sizeof (*ep), 1, fp) == 1)
-        {
-        	cs_log ("Succesfully written binary EMM to %s.", token);
-        }
-        else
-        {
-        	cs_log ("ERROR: Cannot write binary EMM to %s (errno=%d)\n", token, errno);
-        }
-    	fclose (fp);
-      }
-    }
-
     if (reader->b_nano[ep->emm[0]] & 0x01) //should this nano be blcoked?
       return 3;
 
@@ -559,9 +579,15 @@ int reader_emm(struct s_reader * reader, EMM_PACKET *ep)
       case SC_SECA:
         rc=seca_do_emm(reader, ep); break;
       case SC_VIDEOGUARD2:
-        rc=videoguard_do_emm(reader, ep); break;
+        rc=videoguard2_do_emm(reader, ep); break;
+      case SC_VIDEOGUARD1:
+        rc=videoguard1_do_emm(reader, ep); break;
+      case SC_VIDEOGUARD12:
+        rc=videoguard12_do_emm(reader, ep); break;
       case SC_DRE:
-	rc=dre_do_emm(reader, ep); break;
+        rc=dre_do_emm(reader, ep); break;
+      case SC_TONGFANG:
+        rc=tongfang_do_emm(reader, ep); break;
       default: rc=0;
     }
   }
