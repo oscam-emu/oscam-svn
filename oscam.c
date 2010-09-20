@@ -916,7 +916,10 @@ int cs_user_resolve(struct s_auth *account)
 static void start_thread(void * startroutine, char * nameroutine, char typ) {
 	int i,o;
 
-	o=cs_fork(0,97);
+	if (typ == "h")
+		o=cs_fork(0,95);
+	else
+		o=cs_fork(0,97);
 
 	client[o].typ=typ;
 
@@ -973,13 +976,6 @@ void start_anticascader()
   {
     ac_do_stat();
   }
-}
-#endif
-
-#ifdef WEBIF
-static void cs_http()
-{
-	http_srv();
 }
 #endif
 
@@ -3086,7 +3082,7 @@ int main (int argc, char *argv[])
   if(cfg->http_port == 0) 
     cs_log("http disabled"); 
   else 
-    init_service(95); // http 
+    start_thread((void *) &http_srv, "http", 'h');
 #endif
 
 	init_cardreader();
