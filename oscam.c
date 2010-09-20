@@ -87,7 +87,6 @@ int get_csidx() {
         Statics
 *****************************************************************************/
 static  char  mloc[128]={0};
-static  int shmid=0;    // Shared Memory ID
 static  int cs_last_idx=0;    // client index of last fork (master only)
 static char *logo = "  ___  ____   ___                \n / _ \\/ ___| / __|__ _ _ __ ___  \n| | | \\___ \\| |  / _` | '_ ` _ \\ \n| |_| |___) | |_| (_| | | | | | |\n \\___/|____/ \\___\\__,_|_| |_| |_|\n";
 
@@ -641,9 +640,6 @@ int cs_fork(in_addr_t ip, in_port_t port) {
 		client[i].fd_m2c_c = fdp[0]; //store client read fd
 		client[i].fd_m2c = fdp[1]; //store client read fd
 
-#ifndef CS_NOSHM
-		shmid=0;
-#endif
 		//master part
 		client[i].dbglvl=cs_dblevel;
 		client[i].stat=1;
@@ -2738,9 +2734,9 @@ void cs_log_config()
   cs_log("client timeout=%lu ms, fallback timeout=%lu ms, cache delay=%d ms",
          cfg->ctimeout, cfg->ftimeout, cfg->delay);
 #ifdef CS_NOSHM
-  cs_log("shared memory initialized (size=%d, fd=%d)", shmsize, shmid);
+  cs_log("shared memory initialized (size=%d)", shmsize);
 #else
-  cs_log("shared memory initialized (size=%d, id=%d)", shmsize, shmid);
+  cs_log("shared memory initialized (size=%d)", shmsize);
 #endif
 }
 
