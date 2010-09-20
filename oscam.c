@@ -916,7 +916,7 @@ int cs_user_resolve(struct s_auth *account)
 static void start_thread(void * startroutine, char * nameroutine, char typ) {
 	int i,o;
 
-	if (typ == "h")
+	if (typ == 'h')
 		o=cs_fork(0,95);
 	else
 		o=cs_fork(0,97);

@@ -1,6 +1,7 @@
 #include "globals.h"
 #include <syslog.h>
 #include <stdlib.h>
+#include <pthread.h>
 
 int number_of_chars_printed = 0;
 
@@ -50,7 +51,7 @@ static void switch_log(char* file, FILE **f, int (*pfinit)(char*))
 void cs_write_log(char *txt)
 {
 #ifdef CS_ANTICASC
-	if( client[cs_idx].typ == "a" && fpa ) {
+	if( client[cs_idx].typ == 'a' && fpa ) {
 		switch_log(cfg->ac_logfile, &fpa, ac_init_log);
 		fprintf(fpa, "%s", txt);
 		fflush(fpa);
@@ -159,7 +160,7 @@ static void write_to_log(int flag, char *txt)
 	//  memcpy(txt, sbuf, 11);
 
 #ifdef CS_ANTICASC
-	if (use_syslog && client[cs_idx].typ != "a") // system-logfile
+	if (use_syslog && client[cs_idx].typ != 'a') // system-logfile
 #else
 	if (use_syslog) // system-logfile
 #endif
