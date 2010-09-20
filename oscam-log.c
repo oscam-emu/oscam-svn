@@ -1,7 +1,6 @@
 #include "globals.h"
 #include <syslog.h>
 #include <stdlib.h>
-#include <pthread.h>
 
 int number_of_chars_printed = 0;
 
