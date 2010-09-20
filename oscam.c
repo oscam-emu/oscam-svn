@@ -968,7 +968,6 @@ static void cs_logger(void)
 #ifdef CS_ANTICASC
 void start_anticascader()
 {
-  use_ac_log=1;
   set_signal_handler(SIGHUP, 1, ac_init_stat);
 
   ac_init_stat();

@@ -1148,7 +1148,6 @@ extern struct s_module ph[CS_MAX_MOD];
 #ifdef CS_ANTICASC
 extern struct s_acasc_shm *acasc;
 extern FILE *fpa;
-extern int use_ac_log;
 #endif
 extern pthread_mutex_t gethostbyname_lock; 
 
