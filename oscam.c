@@ -86,17 +86,8 @@ int get_csidx() {
 /*****************************************************************************
         Statics
 *****************************************************************************/
-static  char  mloc[128]={0};
 static  int cs_last_idx=0;    // client index of last fork (master only)
 static char *logo = "  ___  ____   ___                \n / _ \\/ ___| / __|__ _ _ __ ___  \n| | | \\___ \\| |  / _` | '_ ` _ \\ \n| |_| |___) | |_| (_| | | | | | |\n \\___/|____/ \\___\\__,_|_| |_| |_|\n";
-
-static void cs_set_mloc(int ato, char *txt)
-{
-  if (ato>=0)
-    //alarm(ato);
-  if (txt)
-    strcpy(mloc, txt);
-}
 
 static void usage()
 {
@@ -285,8 +276,8 @@ void set_signal_handler(int sig, int flags, void (*sighandler)(int))
 
 static void cs_master_alarm()
 {
-  cs_log("PANIC: master deadlock! last location: %s", mloc);
-  fprintf(stderr, "PANIC: master deadlock! last location: %s", mloc);
+  cs_log("PANIC: master deadlock!");
+  fprintf(stderr, "PANIC: master deadlock!");
   fflush(stderr);
 }
 
@@ -2764,7 +2755,6 @@ int accept_connection(int i, int j) {
 	int      fdp[2];
 
 	if (ph[i].type==MOD_CONN_UDP) {
-		//cs_set_mloc(-1, "event: udp-socket");
 
 		if ((n=recvfrom(ph[i].ptab->ports[j].fd, buf+3, sizeof(buf)-3, 0, (struct sockaddr *)&cad, (socklen_t *)&scad))>0) {
 			int idx;
@@ -2806,7 +2796,6 @@ int accept_connection(int i, int j) {
 			}
 		}
 	} else { //TCP
-		//cs_set_mloc(-1, "event: tcp-socket");
 
 		int pfd3;
 		if ((pfd3=accept(ph[i].ptab->ports[j].fd, (struct sockaddr *)&cad, (socklen_t *)&scad))>0) {
@@ -2923,7 +2912,6 @@ int main (int argc, char *argv[])
   init_readerdb();
   init_userdb(&cfg->account);
   init_signal();
-  //cs_set_mloc(30, "init");
   init_srvid();
   init_tierid();
   //Todo #ifdef CCCAM
@@ -3077,16 +3065,12 @@ int main (int argc, char *argv[])
 						if (ph[i].ptab->ports[j].fd)
 							FD_SET(ph[i].ptab->ports[j].fd, &fds);
 			errno=0;
-			//cs_set_mloc(0, "before select");
 			select(gfd, &fds, 0, 0, 0);
-			//cs_set_mloc(60, "after select");
 		} while (errno==EINTR);
-		//cs_set_mloc(-1, "event (global)");
 
 		client[0].last=time((time_t *)0);
 		
 		if (FD_ISSET(mfdr, &fds)) {
-			//cs_set_mloc(-1, "event: master-pipe");
 			process_master_pipe();
 		}
 		for (i=0; i<CS_MAX_MOD; i++) {
