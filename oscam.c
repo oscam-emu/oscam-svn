@@ -283,12 +283,6 @@ void set_signal_handler(int sig, int flags, void (*sighandler)(int))
 #endif
 }
 
-static void cs_alarm()
-{
-  cs_debug("Got alarm signal");
-  cs_log("disconnect from %s by watchdog", cs_inet_ntoa(client[cs_idx].ip));
-}
-
 static void cs_master_alarm()
 {
   cs_log("PANIC: master deadlock! last location: %s", mloc);
