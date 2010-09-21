@@ -49,7 +49,6 @@ struct  s_acasc_shm   *acasc; // anti-cascading table indexed by account.ac_idx
 int     *loghistidx;  // ptr to current entry
 char    *loghist;     // ptr of log-history
 #endif
-int     *mcl=0;       // Master close log?
 
 static  int  shmsize =  CS_ECMCACHESIZE*(sizeof(struct s_ecm)) +
                         CS_MAXPID*(sizeof(struct s_client)) +
@@ -679,8 +678,7 @@ static void init_shm()
 #else
   ecmidx=(int *)&ecmcache[CS_ECMCACHESIZE];
 #endif
-  mcl=(int *)((void *)ecmidx+sizeof(int));
-  logidx=(int *)((void *)mcl+sizeof(int));
+  logidx=(int *)((void *)ecmidx+sizeof(int));
   c_start=(int *)((void *)logidx+sizeof(int));
   oscam_sem=(int *)((void *)c_start+sizeof(int));
   client=(struct s_client *)((void *)oscam_sem+sizeof(int));
@@ -3052,7 +3050,6 @@ int main (int argc, char *argv[])
 				ph[i].s_handler(i);
 
 	//cs_close_log();
-	*mcl=1;
 	while (1) {
 		fd_set fds;
 

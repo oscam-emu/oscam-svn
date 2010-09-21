@@ -1129,7 +1129,6 @@ extern int mfdr,fd_c2m;
 
 extern int *c_start, cs_dblevel;
 extern int *logidx, *loghistidx;
-extern int *mcl;
 
 extern ushort len4caid[256];
 

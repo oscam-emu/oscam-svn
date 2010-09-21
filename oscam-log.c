@@ -19,7 +19,7 @@ FILE *fpa=(FILE *)0;
 
 static void switch_log(char* file, FILE **f, int (*pfinit)(char*))
 {
-	if( cfg->max_log_size && mcl)
+	if( cfg->max_log_size )
 	{
 		struct stat stlog;
 		if( stat(file, &stlog)!=0 )
