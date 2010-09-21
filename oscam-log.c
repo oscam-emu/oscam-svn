@@ -8,10 +8,6 @@ static FILE *fp=(FILE *)0;
 static FILE *fps=(FILE *)0;
 static int use_syslog=0;
 static int use_stdout=0;
-static char log_txt[512];
-static char log_buf[700];
-
-pthread_mutex_t log_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 #ifdef CS_ANTICASC
 FILE *fpa=(FILE *)0;
@@ -151,6 +147,7 @@ static void write_to_log(int flag, char *txt)
 	time_t t;
 	struct tm *lt;
 	char sbuf[16];
+	char log_buf[700];
 
 	//  get_log_header(flag, sbuf);
 	//  memcpy(txt, sbuf, 11);
@@ -209,14 +206,13 @@ static void write_to_log(int flag, char *txt)
 
 void cs_log(char *fmt,...)
 {
-	pthread_mutex_lock(&log_mutex);
+	char log_txt[512];
 	get_log_header(1, log_txt);
 	va_list params;
 	va_start(params, fmt);
 	vsprintf(log_txt+11, fmt, params);
 	va_end(params);
 	write_to_log(-1, log_txt);
-	pthread_mutex_unlock(&log_mutex);
 }
 
 void cs_close_log(void)
@@ -230,7 +226,7 @@ void cs_close_log(void)
 void cs_debug(char *fmt,...)
 {
 	//  cs_log("cs_debug called, cs_ptyp=%d, cs_dblevel=%d, %d", cs_ptyp, client[cs_idx].dbglvl ,client[cs_idx].cs_ptyp & client[cs_idx].dbglvl);
-	pthread_mutex_lock(&log_mutex);
+	char log_txt[512];
 	if (client[cs_idx].dbglvl & client[cs_idx].cs_ptyp)
 	{
 		get_log_header(1, log_txt);
@@ -240,12 +236,11 @@ void cs_debug(char *fmt,...)
 		va_end(params);
 		write_to_log(-1, log_txt);
 	}
-	pthread_mutex_unlock(&log_mutex);
 }
 
 void cs_debug_mask(unsigned short mask, char *fmt,...)
 {
-	pthread_mutex_lock(&log_mutex);
+	char log_txt[512];
 	if (client[cs_idx].dbglvl & mask)
 	{
 		get_log_header(1, log_txt);
@@ -255,12 +250,11 @@ void cs_debug_mask(unsigned short mask, char *fmt,...)
 		va_end(params);
 		write_to_log(-1, log_txt);
 	}
-	pthread_mutex_unlock(&log_mutex);
 }
 
 void cs_debug_nolf(char *fmt,...)
 {
-	pthread_mutex_lock(&log_mutex);
+	char log_txt[512];
 	if (client[cs_idx].dbglvl & client[cs_idx].cs_ptyp)
 	{
 		va_list params;
@@ -274,12 +268,11 @@ void cs_debug_nolf(char *fmt,...)
 			number_of_chars_printed++;
 		write_to_log(number_of_chars_printed, log_txt);
 	}
-	pthread_mutex_unlock(&log_mutex);
 }
 
 void cs_dump(uchar *buf, int n, char *fmt, ...)
 {
-	pthread_mutex_lock(&log_mutex);
+	char log_txt[512];
 	int i;
 
 	if( fmt )
@@ -299,12 +292,11 @@ void cs_dump(uchar *buf, int n, char *fmt, ...)
 		sprintf(log_txt+11, "%s", cs_hexdump(1, buf+i, (n-i>16) ? 16 : n-i));
 		write_to_log(-1, log_txt);
 	}
-	pthread_mutex_unlock(&log_mutex);
 }
 
 void cs_ddump(uchar *buf, int n, char *fmt, ...)
 {
-	pthread_mutex_lock(&log_mutex);
+	char log_txt[512];
 	int i;
 
 	//if (((cs_ptyp & client[cs_idx].dbglvl)==cs_ptyp) && (fmt))
@@ -328,14 +320,13 @@ void cs_ddump(uchar *buf, int n, char *fmt, ...)
 			write_to_log(-1, log_txt);
 		}
 	}
-	pthread_mutex_unlock(&log_mutex);
 }
 
 void cs_ddump_mask(unsigned short mask, uchar *buf, int n, char *fmt, ...)
 {
 
+	char log_txt[512];
 	int i;
-	pthread_mutex_lock(&log_mutex);
 	//if (((cs_ptyp & client[cs_idx].dbglvl)==cs_ptyp) && (fmt))
 	if ((mask & client[cs_idx].dbglvl) && (fmt))
 	{
@@ -357,7 +348,6 @@ void cs_ddump_mask(unsigned short mask, uchar *buf, int n, char *fmt, ...)
 			write_to_log(-1, log_txt);
 		}
 	}
-	pthread_mutex_unlock(&log_mutex);
 }
 
 int cs_init_statistics(char *file) 
