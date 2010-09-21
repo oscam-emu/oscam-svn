@@ -10,6 +10,7 @@
 #ifdef AZBOX
 #include "csctapi/ifd_azbox.h"
 #endif
+
 #if defined(TUXBOX) && defined(PPC) //dbox2 only
 #include "csctapi/mc_global.h"
 static int reader_device_type(struct s_reader * reader)
@@ -62,7 +63,7 @@ int reader_cmd2icc(struct s_reader * reader, uchar *buf, int l, uchar * cta_res,
 #endif
 
 	*p_cta_lr=CTA_RES_LEN-1; //FIXME not sure whether this one is necessary 
-	client[cs_idx].cs_ptyp_orig=client[cs_idx].cs_ptyp;
+	int cs_ptyp_orig=client[cs_idx].cs_ptyp;
 	client[cs_idx].cs_ptyp=D_DEVICE;
 	if (reader->typ == R_SC8in1) {
 		pthread_mutex_lock(&sc8in1);
@@ -76,7 +77,7 @@ int reader_cmd2icc(struct s_reader * reader, uchar *buf, int l, uchar * cta_res,
 		cs_debug("SC8in1: unlocked for CardWrite of slot %i", reader->slot);
 		pthread_mutex_unlock(&sc8in1);
 	}
-	client[cs_idx].cs_ptyp=client[cs_idx].cs_ptyp_orig;
+	client[cs_idx].cs_ptyp=cs_ptyp_orig;
 	return rc;
 }
 
@@ -119,13 +120,13 @@ static int reader_card_inserted(struct s_reader * reader)
 	}
 #endif
 	int card;
-	client[cs_idx].cs_ptyp_orig=client[cs_idx].cs_ptyp;
+	int cs_ptyp_orig=client[cs_idx].cs_ptyp;
 	client[cs_idx].cs_ptyp=D_IFD;
 	if (ICC_Async_GetStatus (reader, &card)) {
 		cs_log("Error getting status of terminal.");
 		return 0; //corresponds with no card inside!!
 	}
-	client[cs_idx].cs_ptyp=client[cs_idx].cs_ptyp_orig;
+	client[cs_idx].cs_ptyp=cs_ptyp_orig;
 	return (card);
 }
 
@@ -146,7 +147,7 @@ static int reader_activate_card(struct s_reader * reader, ATR * atr, unsigned sh
 		return 0;
 
   /* Activate card */
-	client[cs_idx].cs_ptyp_orig=client[cs_idx].cs_ptyp;
+	int cs_ptyp_orig=client[cs_idx].cs_ptyp;
 	client[cs_idx].cs_ptyp=D_DEVICE;
 	if (reader->typ == R_SC8in1) {
 		pthread_mutex_lock(&sc8in1);
@@ -165,7 +166,7 @@ static int reader_activate_card(struct s_reader * reader, ATR * atr, unsigned sh
 		cs_debug_mask(D_ATR, "SC8in1: unlocked for Activation of slot %i", reader->slot);
 		pthread_mutex_unlock(&sc8in1);
 	}
-	client[cs_idx].cs_ptyp=client[cs_idx].cs_ptyp_orig;
+	client[cs_idx].cs_ptyp=cs_ptyp_orig;
   if (i<100) return(0);
 
   reader->init_history_pos=0;
@@ -330,7 +331,7 @@ int reader_device_init(struct s_reader * reader)
 #endif
  
 	int rc = -1; //FIXME
-	client[cs_idx].cs_ptyp_orig=client[cs_idx].cs_ptyp;
+	int cs_ptyp_orig=client[cs_idx].cs_ptyp;
 	client[cs_idx].cs_ptyp=D_DEVICE;
 #if defined(TUXBOX) && defined(PPC)
 	struct stat st;
@@ -342,7 +343,7 @@ int reader_device_init(struct s_reader * reader)
 	else
 		rc = OK;
   cs_debug("ct_init on %s: %d", reader->device, rc);
-  client[cs_idx].cs_ptyp=client[cs_idx].cs_ptyp_orig;
+  client[cs_idx].cs_ptyp=cs_ptyp_orig;
   return((rc!=OK) ? 2 : 0);
 }
 

@@ -381,7 +381,7 @@ char *key_btoa(char *asc, uchar *bin)
   return(asc);
 }
 
-char *cs_hexdump(int m, uchar *buf, int n)
+char *cs_hexdump(int m, const uchar *buf, int n)
 {
   int i;
   static char dump[520];
@@ -627,7 +627,7 @@ void urldecode(char *s){
 
 /* Helper function for urlencode.*/
 char to_hex(char code){
-	static char hex[] = "0123456789abcdef";
+	static const char hex[] = "0123456789abcdef";
 	return hex[(int)code & 15];
 }
 

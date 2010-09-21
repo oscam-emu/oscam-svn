@@ -184,13 +184,14 @@
 #define BOXTYPE_UFS910	3
 #define BOXTYPE_DBOX2	4
 #define BOXTYPE_IPBOX	5
-#define BOXTYPE_IPBOX_PMT	6 
-#define BOXTYPES		6
+#define BOXTYPE_IPBOX_PMT	6
+#define BOXTYPE_DM7000	7
+#define BOXTYPES		7
 extern char *boxdesc[];
 #endif
 
 #ifdef CS_CORE
-char *PIP_ID_TXT[] = { "ECM", "EMM", "LOG", "CIN", "HUP", "RST", "KCL", "STA", "BES", "RES", NULL  };
+char *PIP_ID_TXT[] = { "ECM", "EMM", "LOG", "CIN", "HUP", "RST", "KCL", "STA", "BES", "RES", "CCC", NULL  };
 char *RDR_CD_TXT[] = { "cd", "dsr", "cts", "ring", "none",
 #ifdef USE_GPIO
                        "gpio1", "gpio2", "gpio3", "gpio4", "gpio5", "gpio6", "gpio7", //felix: changed so that gpio can be used 
@@ -210,8 +211,9 @@ extern char *RDR_CD_TXT[];
 #define PIP_ID_STA    7  // Schlocke: Add statistic (param: ADD_READER_STAT)
 #define PIP_ID_BES    8  // Schlocke: Get best reader (param ECM_REQUEST, return to client with data int ridx)
 #define PIP_ID_RES    9  // Schlocke: reset reader statistiks
-#define PIP_ID_DCW    10
-#define PIP_ID_MAX    PIP_ID_RES
+#define PIP_ID_CCC    10 // Schlocke: Request card from reader
+#define PIP_ID_DCW    11
+#define PIP_ID_MAX    PIP_ID_CCC
 
 
 #define PIP_ID_ERR    (-1)
@@ -415,6 +417,7 @@ struct s_module
                          //int ridx (reader to check)
                          //int checktype (0=return connected, 1=return loadbalance-avail) return int
   void (*c_idle)(); //Schlocke: called when reader is idle
+  void (*c_report_cards)(); //Schlocke: report cards (CCCam)
   int  c_port;
   PTAB *ptab;
 };
@@ -560,7 +563,7 @@ struct s_client
   //reader common
   int last_idx;
   ushort idx;
-  int cs_ptyp_orig;
+  //int cs_ptyp_orig;
   int rotate;
 
   uchar	*req;
@@ -1082,7 +1085,7 @@ extern int key_atob(char *, uchar *);
 extern int key_atob14(char *, uchar *);
 extern int key_atob_l(char *, uchar *, int);
 extern char *key_btoa(char *, uchar *);
-extern char *cs_hexdump(int, uchar *, int);
+extern char *cs_hexdump(int, const uchar *, int);
 extern in_addr_t cs_inet_order(in_addr_t);
 extern char *cs_inet_ntoa(in_addr_t);
 extern in_addr_t cs_inet_addr(char *txt);
@@ -1157,7 +1160,7 @@ extern int chk_bcaid(ECM_REQUEST *, CAIDTAB *);
 extern void cs_exit(int sig);
 extern int cs_fork(in_addr_t, in_port_t);
 extern void wait4master(void);
-extern int cs_auth_client(struct s_auth *, char*);
+extern int cs_auth_client(struct s_auth *, const char*);
 extern void cs_disconnect_client(void);
 extern int check_ecmcache1(ECM_REQUEST *, ulong);
 extern int check_ecmcache2(ECM_REQUEST *, ulong);
@@ -1286,7 +1289,7 @@ extern void network_tcp_connection_close(struct s_reader * reader, int);
 // oscam-log
 extern int  cs_init_log(char *);
 extern void cs_write_log(char *);
-extern void cs_log(char *,...);
+extern void cs_log(const char *,...);
 extern void cs_debug(char *,...);
 extern void cs_debug_nolf(char *,...);
 extern void cs_debug_mask(unsigned short, char *,...);
@@ -1295,10 +1298,11 @@ extern void cs_ddump_mask(unsigned short, uchar *, int, char *, ...);
 extern void cs_close_log(void);
 extern int  cs_init_statistics(char *);
 extern void cs_statistics(int);
-extern void cs_dump(uchar *, int, char *, ...);
+extern void cs_dump(const uchar *, int, char *, ...);
 
 // oscam-aes
 extern void aes_set_key(char *);
+extern void add_aes_entry(struct s_reader *rdr, ushort caid, uint32 ident, int keyid, uchar *aesKey);
 extern void aes_encrypt_idx(int, uchar *, int);
 extern void aes_decrypt(uchar *, int);
 extern int aes_decrypt_from_list(AES_ENTRY *list, ushort caid, uint32 provid,int keyid, uchar *buf, int n);

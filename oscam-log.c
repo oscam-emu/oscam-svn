@@ -204,7 +204,7 @@ static void write_to_log(int flag, char *txt)
 	}
 }
 
-void cs_log(char *fmt,...)
+void cs_log(const char *fmt,...)
 {
 	char log_txt[512];
 	get_log_header(1, log_txt);
@@ -270,7 +270,7 @@ void cs_debug_nolf(char *fmt,...)
 	}
 }
 
-void cs_dump(uchar *buf, int n, char *fmt, ...)
+void cs_dump(const uchar *buf, int n, char *fmt, ...)
 {
 	char log_txt[512];
 	int i;

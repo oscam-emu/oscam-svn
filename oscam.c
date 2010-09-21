@@ -50,7 +50,7 @@ int     *loghistidx;  // ptr to current entry
 char    *loghist;     // ptr of log-history
 #endif
 
-static  int  shmsize =  CS_ECMCACHESIZE*(sizeof(struct s_ecm)) +
+static const int  shmsize =  CS_ECMCACHESIZE*(sizeof(struct s_ecm)) +
                         CS_MAXPID*(sizeof(struct s_client)) +
                         CS_MAXREADER*(sizeof(struct s_reader)) +
 #ifdef CS_WITH_GBOX
@@ -86,7 +86,7 @@ int get_csidx() {
         Statics
 *****************************************************************************/
 static  int cs_last_idx=0;    // client index of last fork (master only)
-static char *logo = "  ___  ____   ___                \n / _ \\/ ___| / __|__ _ _ __ ___  \n| | | \\___ \\| |  / _` | '_ ` _ \\ \n| |_| |___) | |_| (_| | | | | | |\n \\___/|____/ \\___\\__,_|_| |_| |_|\n";
+static const char *logo = "  ___  ____   ___                \n / _ \\/ ___| / __|__ _ _ __ ___  \n| | | \\___ \\| |  / _` | '_ ` _ \\ \n| |_| |___) | |_| (_| | | | | | |\n \\___/|____/ \\___\\__,_|_| |_| |_|\n";
 
 static void usage()
 {
@@ -1037,7 +1037,7 @@ static void cs_fake_client(char *usr, int uniq, in_addr_t ip)
 
 }
 
-int cs_auth_client(struct s_auth *account, char *e_txt)
+int cs_auth_client(struct s_auth *account, const char *e_txt)
 {
 	int rc=0;
 	char buf[32];
@@ -1596,11 +1596,11 @@ int hexserialset(int ridx)
                                                                                                                         
 int send_dcw(ECM_REQUEST *er)
 {
-	static char *stxt[]={"found", "cache1", "cache2", "emu",
+	static const char *stxt[]={"found", "cache1", "cache2", "emu",
 			"not found", "timeout", "sleeping",
 			"fake", "invalid", "corrupt", "no card", "expdate", "disabled", "stopped"};
-	static char *stxtEx[]={"", "group", "caid", "ident", "class", "chid", "queue", "peer"};
-	static char *stxtWh[]={"", "user ", "reader ", "server ", "lserver "};
+	static const char *stxtEx[]={"", "group", "caid", "ident", "class", "chid", "queue", "peer"};
+	static const char *stxtWh[]={"", "user ", "reader ", "server ", "lserver "};
 	char sby[32]="", sreason[32]="", schaninfo[32]="";
 	char erEx[32]="";
 	char uname[38]="";
@@ -2053,37 +2053,18 @@ void recv_best_reader(ECM_REQUEST *er, int *reader_avail)
 	}
 	
 	uchar *ptr;
-	fd_set fds;
 	do
 	{
-		struct timeval timeout;
-		timeout.tv_sec = 1;
-		timeout.tv_usec = 500;
-		FD_ZERO(&fds);
-		FD_SET(client[cs_idx].fd_m2c_c, &fds);
-		int res = select(client[cs_idx].fd_m2c_c+1, &fds, 0, 0, &timeout);
-		if (res == 0) {
-			cs_debug_mask(D_TRACE, "get best reader: timeout!");
-			return; //timeout
+		int n = read_from_pipe(client[cs_idx].fd_m2c_c, &ptr, 1);
+		if (n == PIP_ID_BES) {
+			int *best_readers = (int*)ptr;
+			memcpy(reader_avail, best_readers, sizeof(int)*CS_MAXREADER);
+			return;
 		}
-		else if (res < 0) {
-			cs_debug_mask(D_TRACE, "get best reader: failed!");
-			return; //failed
-		}
-			
-		if (FD_ISSET(client[cs_idx].fd_m2c_c, &fds))
-		{
-			int n = read_from_pipe(client[cs_idx].fd_m2c_c, &ptr, 1);
-			if (n == PIP_ID_BES) {
-				int *best_readers = (int*)ptr;
-				memcpy(reader_avail, best_readers, sizeof(int)*CS_MAXREADER);
-				return;
-			}
-			else if (n == PIP_ID_DIR)
-				continue;
-			else //should neven happen
-				cs_debug_mask(D_TRACE, "get best reader: illegal paket? n=%d", n);
-		} 
+		else if (n == PIP_ID_DIR)
+			continue;
+		else //should neven happen
+			cs_debug_mask(D_TRACE, "get best reader: illegal paket? n=%d", n);
 	} while (1);
 }
 
@@ -2689,8 +2670,14 @@ static void process_master_pipe()
         send_best_reader((GET_READER_STAT *)ptr);
         break;
     case PIP_ID_RES: //Reset reader statistics
-	clear_reader_stat(*(int*)ptr);
-	break;
+    	clear_reader_stat(*(int*)ptr);
+    	break;
+    case PIP_ID_CCC: {//Send CCcam cards to clients
+    	int data[2];
+    	data[0] = ((int*)ptr)[0];
+    	data[1] = ((int*)ptr)[1];
+    	write_to_pipe(reader[data[0]].fd, PIP_ID_CCC, (uchar*)&data, sizeof(data));
+    }
   }
 }
 
