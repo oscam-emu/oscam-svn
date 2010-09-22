@@ -34,15 +34,18 @@ OBJECTS1	= $(LIBFILE1)(oscam-simples.o) \
 		  $(LIBFILE1)(oscam-reader.o) \
 		  $(LIBFILE1)(reader-common.o) \
 		  $(LIBFILE1)(reader-irdeto.o) \
-		  $(LIBFILE1)(reader-pcsc.o) \
 		  $(LIBFILE1)(reader-viaccess.o) \
+		  $(LIBFILE1)(reader-videoguard1.o) \
+		  $(LIBFILE1)(reader-videoguard12.o) \
 		  $(LIBFILE1)(reader-videoguard2.o) \
+		  $(LIBFILE1)(reader-videoguard-common.o) \
 		  $(LIBFILE1)(reader-nds.o) \
 		  $(LIBFILE1)(reader-seca.o) \
 		  $(LIBFILE1)(reader-cryptoworks.o) \
 		  $(LIBFILE1)(reader-conax.o) \
 		  $(LIBFILE1)(reader-dre.o) \
 		  $(LIBFILE1)(reader-nagra.o) \
+		  $(LIBFILE1)(reader-tongfang.o) \
 		  $(LIBFILE1)(module-camd33.o) \
 		  $(LIBFILE1)(module-camd35.o) \
 		  $(LIBFILE1)(module-radegast.o) \

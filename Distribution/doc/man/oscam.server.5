@@ -30,7 +30,7 @@ example: 1234:123456:1234:1234:1234:00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E
 .PP
 \fBenable\fP = \fB0\fP|\fB1\fP
 .RS 3n
-0 = deactivate reader, default=1
+0 = deactivate reader, default:1
 .RE
 .PP
 \fBkey\fP = \fBDES key\fP
@@ -51,11 +51,6 @@ for gbox reader
 \fBaccount\fP = \fBuser,password\fP
 .RS 3n
 user and password for remote reader
-.RE
-.PP
-\fBpincode\fP = \fBpincode\fP
-.RS 3n
-pincode for Conax and Cryptoworks SCs
 .RE
 .PP
 \fBservices\fP = \fB[!]services[,[!]<services>]...\fP
@@ -112,30 +107,6 @@ set provider ID to use the right reader for auto AU
 example: auprovid = 123456
 .RE
 .PP
-\fBboxid\fP = \fBNDS box ID\fP
-.RS 3n
-NDS receiver box id
-.RE
-.PP
-\fBaeskey\fP = \fBAES key\fP
-.RS 3n
-16 byte AES key for Viaccess SCs
-.RE
-.PP
-\fBaeskeys\fP = \fBCAID\fP@\fBident\fP:\fBAES key #1\fP[,\fBAES key #2\fP],...[;\fBCAID\fP@\fBident\fP:\fBAES key #2\fP[,\fBAES key #3\fP],...]...
-.RS 3n
-mutiple 16 byte AES keys for Viaccess SCs
-
-special AES keys:
-
- 00 = no AES key specified, do not return any CW
- FF = no AES key specified, return CW received from the SC
-
-example: 
-
- aeskeys = 0100@012345:000102030405060708090a0b0c0d0e0f;0200@543210:0,0,0f0e0d0c0b0a090807060504030201
-.RE
-.PP
 \fBdetect\fP = \fBCD\fP|\fBDSR\fP|\fBCTS\fP|\fBRING\fP|\fBNONE\fP|\fBgpio[1-7]\fP
 .RS 3n
 status detect of card (NONE = no detection), default:CD
@@ -161,6 +132,11 @@ will remain on normal ATR speed of 9600 baud.
 1 = use deprecated SC mode only, default:0
 .RE
 .PP
+\fBmode\fP = \fBmode\fP
+.RS 3n
+set card init mode for AzBox reader, default:none
+.RE
+.PP
 \fBprotocol\fP = \fBreader protocol\fP
 .RS 3n
 reader protocol, \fIrequired\fR:
@@ -180,22 +156,6 @@ reader protocol, \fIrequired\fR:
  \fBconstcw\fP 
 .RE
 .PP
-\fBcccversion\fP = \fB<main version>.<version>.<sub version>\fP
-.RS 3n
-define CCcam version, default:none
-
-example: cccversion = 1.2.34
-.RE
-.PP
-\fBcccmaxhops\fP = \fBhops\fP
-.RS 3n
-define CCcam maximum SC distance hops, default:10
- \fB0\fP = local SCs only
- \fB1\fP = local SCs and + 1 hop
- \fB2\fP = local SCs and + 2 hops
- and so on
-.RE
-.PP
 \fBident\fP = \fB<CAID>:<ident>[,ident]...[,<CAID>:<ident>[,ident]...]...\fP
 .RS 3n
 define CAID and ident for reader
@@ -213,18 +173,6 @@ define provider ID for reader
 define class in hex for reader
 
 example: class = 01,02,!1b,!2b
-.RE
-.PP
-\fBchid\fP = \fBCAID:ChID\fP
-.RS 3n
-define Irdeto ChID for reader
-
-example: chid = 0100:12
-.RE
-.PP
-\fBshowcls\fP = \fBquantity\fP
-.RS 3n
-number of classes subscriptions to show for Viaccess SCs, default=10
 .RE
 .PP
 \fBmaxqlen\fP = \fBsize\fP
@@ -312,6 +260,64 @@ the higher the value the higher the probability for reader selection, default:10
  It's an divider for the average responstime.
 .RE
 .PP
+\fBcccversion\fP = \fB<main version>.<version>.<sub version>\fP
+.RS 3n
+define CCcam version, default:none
+
+example: cccversion = 1.2.34
+.RE
+.PP
+\fBcccmaxhops\fP = \fBhops\fP
+.RS 3n
+define CCcam maximum SC distance hops, default:10
+ \fB0\fP = local SCs only
+ \fB1\fP = local SCs and + 1 hop
+ \fB2\fP = local SCs and + 2 hops
+ and so on
+.RE
+.PP
+\fBcccdisableretryecm\fP = \fB0\fP|\fB1\fP
+.RS 3n
+0 = enables ECM retrying: When an ECM request is denied from an CCCam server, OSCam 
+immediatelly sends a new ECM request, 1= disables ECM retrying: When an ECM request 
+is denied from an CCCam server, OSCam sends no new ECM request, default:0
+.RE
+.PP
+\fBcccdisableautoblock\fP = \fB0\fP|\fB1\fP
+.RS 3n
+0 = enables auto block: When an ECM request is send to an CCCam server, it tries the 
+SC with the lowest hop. If it is denied, the SID is blocked on this SC. When all 
+SC are blocked, the CAID:PROV:SID information is stored in a auto block list and 
+is newer send again, 1= disabled auto block, default:1
+.RE
+.PP
+\fBcccwantemu\fP = \fB0\fP|\fB1\fP
+.RS 3n
+1 = request to provide emu from CCCam server, too, default:0
+.RE
+.PP
+\fBupdateinval\fP = \fBseconds\fP
+.RS 3n
+interval to provide share list update to CCCam clients, default:240
+.RE
+.PP
+\fBccckeepalive\fP = \fB0\fP|\fB1\fP
+.RS 3n
+1 = send keepalive messages to keep connection to remote CCCam server up, default:0
+.RE
+.PP
+\fBpincode\fP = \fBpincode\fP
+.RS 3n
+pincode for Conax and Cryptoworks SCs
+.RE
+.PP
+\fBchid\fP = \fBCAID:ChID\fP
+.RS 3n
+define Irdeto ChID for reader
+
+example: chid = 0100:12
+.RE
+.PP
 \fBforce_irdeto\fP = \fB0\fP|\fB1\fP
 .RS 3n
 1 = force Irdeto SC mode even if RSA key is set for Irdeto tunnled Nagravion SC, default:0
@@ -337,35 +343,44 @@ RSA key for Tiger Nagravision SCs
 IDEA key for Tiger Nagravision SCs
 .RE
 .PP
-\fBcccdisableretryecm\fP = \fB0\fP|\fB1\fP
+\fBaeskey\fP = \fBAES key\fP
 .RS 3n
-0 = enables ECM retrying: When an ECM request is denied from an CCCam server, OSCam 
-immediatelly sends a new ECM request, 1= disables ECM retrying: When an ECM request 
-is denied from an CCCam server, OSCam sends no new ECM request, default:0
+16 byte AES key for Viaccess SCs
 .RE
 .PP
-\fBcccdisableautoblock\fP = \fB0\fP|\fB1\fP
+\fBaeskeys\fP = \fBCAID\fP@\fBident\fP:\fBAES key #1\fP[,\fBAES key #2\fP],...[;\fBCAID\fP@\fBident\fP:\fBAES key #2\fP[,\fBAES key #3\fP],...]...
 .RS 3n
-0 = enables auto block: When an ECM request is send to an CCCam server, it tries the 
-SC with the lowest hop. If it is denied, the SID is blocked on this SC. When all 
-SC are blocked, the CAID:PROV:SID information is stored in a auto block list and 
-is newer send again, 1= disabled auto block, default: 1
+mutiple 16 byte AES keys for Viaccess SCs
+
+special AES keys:
+
+ 00 = no AES key specified, do not return any CW
+ FF = no AES key specified, return CW received from the SC
+
+example: 
+
+ aeskeys = 0100@012345:000102030405060708090a0b0c0d0e0f;0200@543210:0,0,0f0e0d0c0b0a090807060504030201
 .RE
 .PP
-\fBcccforceresendecm\fP = \fB0\fP|\fB1\fP
+\fBshowcls\fP = \fBquantity\fP
 .RS 3n
-1 = activates ECM resending when fallback reader timeout occurs, default: 0
+number of classes subscriptions to show for Viaccess SCs, default=10
 .RE
-
 .PP
-\fBcccwantemu\fP = \fB0\fP|\fB1\fP
+\fBboxid\fP = \fBNDS box ID\fP
 .RS 3n
-1 = request to provide emu from CCCam server, too, default: 0
+NDS receiver box id
 .RE
+.PP
+\fBndsversion\fP = \fB0\fP|\fB1\fP|\fB12\fP|\fB2\fP
+.RS 3n
+set NDS Videoguard version
 
-
-
-
+  0 = autodetection (default)
+  1 = NDS Videoguard 1
+ 12 = NDS Videoguard 1+
+  2 = NDS Videoguard 2
+.RE
 .SH OVERCLOCKING
 .TP 3n
 \(bu
@@ -507,4 +522,5 @@ constant CW
  device   = /var/keys/constant.cw
  group    = 9
 .SH "SEE ALSO"
-\fBlist_smargo\fR(1), \fBoscam\fR(1), \fBoscam.ac\fR(5), \fBoscam.cert\fR(5), \fBoscam.conf\fR(5), \fBoscam.guess\fR(5), \fBoscam.ird\fR(5), \fBoscam.provid\fR(5), \fBoscam.services\fR(5), \fBoscam.srvid\fR(5), \fBoscam.user\fR(5)
+\fBlist_smargo\fR(1), \fBoscam\fR(1), \fBoscam.ac\fR(5), \fBoscam.cert\fR(5), \fBoscam.conf\fR(5), \fBoscam.guess\fR(5), \fBoscam.ird\fR(5), \fBoscam.provid\fR(5), \fBoscam.services\fR(5), \fBoscam.srvid\fR(5), \fBoscam.tiers\fR(5),
+\fBoscam.user\fR(5)

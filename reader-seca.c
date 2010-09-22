@@ -5,7 +5,7 @@
 static int set_provider_info(struct s_reader * reader, int i)
 {
   def_resp;
-  static uchar ins12[] = { 0xc1, 0x12, 0x00, 0x00, 0x19 }; // get provider info
+  uchar ins12[] = { 0xc1, 0x12, 0x00, 0x00, 0x19 }; // get provider info
   int year, month, day;
   struct tm *lt;
   time_t t;
@@ -50,18 +50,18 @@ int seca_card_init(struct s_reader * reader, ATR newatr)
 	get_atr;
 	def_resp;
 	char *card;
-	static unsigned short pmap=0;	// provider-maptable
+	unsigned short pmap=0;	// provider-maptable
 	unsigned long long serial ;
   uchar buf[256];
-  static uchar ins0e[] = { 0xc1, 0x0e, 0x00, 0x00, 0x08 }; // get serial number (UA)
-  static uchar ins16[] = { 0xc1, 0x16, 0x00, 0x00, 0x07 }; // get nr. of prividers
+  static const uchar ins0e[] = { 0xc1, 0x0e, 0x00, 0x00, 0x08 }; // get serial number (UA)
+  static const uchar ins16[] = { 0xc1, 0x16, 0x00, 0x00, 0x07 }; // get nr. of prividers
   int i;
 
 // Unlock parental control
 // c1 30 00 01 09
 // 00 00 00 00 00 00 00 00 ff
-  static uchar ins30[] = { 0xc1, 0x30, 0x00, 0x01, 0x09 };
-  static uchar ins30data[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff };
+  static const uchar ins30[] = { 0xc1, 0x30, 0x00, 0x01, 0x09 };
+  static const uchar ins30data[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff };
 
   buf[0]=0x00;
   if ((atr[10]!=0x0e) || (atr[11]!=0x6c) || (atr[12]!=0xb6) || (atr[13]!=0xd6)) return ERROR;
@@ -129,7 +129,15 @@ int seca_do_ecm(struct s_reader * reader, ECM_REQUEST *er)
   int i;
   i=get_prov_index(reader, (char *) er->ecm+3);
   if ((i == -1) || (reader->availkeys[i][0] == 0)) //if provider not found or expired
+  {
+      if( i == -1 )
+        snprintf( er->msglog, MSGLOGSIZE, "provider not found" );
+      else
+        snprintf( er->msglog, MSGLOGSIZE, "provider expired" );
+
   	return ERROR;
+  }
+
   ins3c[2]=i;
   ins3c[3]=er->ecm[7]; //key nr
   ins3c[4]=(((er->ecm[1]&0x0f) << 8) | er->ecm[2])-0x05;
@@ -141,9 +149,9 @@ int seca_do_ecm(struct s_reader * reader, ECM_REQUEST *er)
     write_cmd(ins30, ins30data);
     write_cmd(ins3c, er->ecm+8); //ecm request
   }
-  if ((cta_res[0] != 0x90) || (cta_res[1] != 0x00)) return ERROR;
+  if ((cta_res[0] != 0x90) || (cta_res[1] != 0x00)) { snprintf( er->msglog, MSGLOGSIZE, "ins3c card response: %02x %02x", cta_res[0] , cta_res[1] ); return ERROR; }
   write_cmd(ins3a, NULL); //get cw's
-  if ((cta_res[16] != 0x90) || (cta_res[17] != 0x00)) return ERROR;//exit if response is not 90 00 //TODO: if response is 9027 ppv mode is possible!
+  if ((cta_res[16] != 0x90) || (cta_res[17] != 0x00)) { snprintf( er->msglog, MSGLOGSIZE, "ins3a card response: %02x %02x", cta_res[16] , cta_res[17] ); return ERROR; };//exit if response is not 90 00 //TODO: if response is 9027 ppv mode is possible!
   memcpy(er->cw,cta_res,16);
   return OK;
 }
@@ -259,9 +267,13 @@ int seca_do_emm(struct s_reader * reader, EMM_PACKET *ep)
 			return ERROR;
   }
 
-  i=get_prov_index(reader, (char *) ep->emm+9);
+  i=get_prov_index(reader, (char *) ep->emm+3);
   if (i==-1) 
+  {
+      cs_log("[seca-reader] EMM: provider id not found.");
     return ERROR;
+  }
+
   ins40[2]=i;
   write_cmd(ins40, ep->emm + ins40data_offset); //emm request
   if (cta_res[0] == 0x97) {
@@ -282,8 +294,8 @@ int seca_card_info (struct s_reader * reader)
 //This module is therefore optical only
 
   def_resp;
-  static unsigned char ins34[] = { 0xc1, 0x34, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00 };				//data following is provider Package Bitmap Records
-  static unsigned char ins32[] = { 0xc1, 0x32, 0x00, 0x00, 0x20 };				// get PBM
+  static const unsigned char ins34[] = { 0xc1, 0x34, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00 };				//data following is provider Package Bitmap Records
+  unsigned char ins32[] = { 0xc1, 0x32, 0x00, 0x00, 0x20 };				// get PBM
   int prov;
 
   for (prov = 0; prov < reader->nprov; prov++) {

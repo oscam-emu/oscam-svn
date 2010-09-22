@@ -43,6 +43,7 @@ typedef struct ECMPIDS
 	unsigned long PROVID;
 	unsigned short ECM_PID;
 	unsigned short EMM_PID;
+	int irdeto_chid;
 	int checked;
 	int status;
 	unsigned char table;
@@ -65,12 +66,12 @@ typedef struct demux_s
 {
 	int demux_index;
 	FILTERTYPE demux_fd[MAX_FILTER];
-	int cadev_index;
-	int ca_fd;
+	int ca_mask;
 	int socket_fd;
 	int ECMpidcount;
 	ECMPIDSTYPE ECMpids[ECM_PIDS];
 	int pidindex;
+	int curindex;
 	int tries;
 	int max_status;
 	unsigned short program_number;
@@ -82,6 +83,7 @@ typedef struct demux_s
 	struct s_reader *rdr;
 	char pmt_file[50];
 	int pmt_time;
+	int irdeto_numchids;
 #ifdef WITH_STAPI
 	uint STREAMhandle[ECM_PIDS];
 #endif
@@ -171,7 +173,7 @@ int stapi_write_cw(int demux_id, uchar *cw);
 
 void dvbapi_stop_descrambling(int);
 void dvbapi_process_input(int demux_id, int filter_num, uchar *buffer, int len);
-int dvbapi_open_device(int, int);
+int dvbapi_open_device(int, int, int);
 int dvbapi_stop_filternum(int demux_index, int num);
 int dvbapi_stop_filter(int demux_index, int type);
 

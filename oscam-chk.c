@@ -48,6 +48,48 @@ int chk_srvid(ECM_REQUEST *er, int idx)
   return(rc);
 }
 
+int chk_srvid_match_by_caid_prov(ushort caid, ulong provid, SIDTAB *sidtab)
+{
+  int i, rc=0;
+
+  if (!sidtab->num_caid)
+    rc|=1;
+  else
+    for (i=0; (i<sidtab->num_caid) && (!(rc&1)); i++)
+      if (caid==sidtab->caid[i]) rc|=1;
+
+  if (!sidtab->num_provid)
+    rc|=2;
+  else
+    for (i=0; (i<sidtab->num_provid) && (!(rc&2)); i++)
+      if (provid==sidtab->provid[i]) rc|=2;
+
+  return(rc==3);
+}
+
+int chk_srvid_by_caid_prov(ushort caid, ulong provid, int idx) {
+  int nr, rc=0;
+  SIDTAB *sidtab;
+
+  if (!client[idx].sidtabok)
+  {
+    if (!client[idx].sidtabno) return(1);
+    rc=1;
+  }
+  for (nr=0, sidtab=cfg->sidtab; sidtab; sidtab=sidtab->next, nr++)
+    if (sidtab->num_caid | sidtab->num_provid | sidtab->num_srvid)
+    {
+      if ((client[idx].sidtabno&(1<<nr)) &&
+          (chk_srvid_match_by_caid_prov(caid, provid, sidtab)))
+        return(0);
+      if ((client[idx].sidtabok&(1<<nr)) &&
+          (chk_srvid_match_by_caid_prov(caid, provid, sidtab)))
+        rc=1;
+    }
+  return(rc);
+
+}
+
 // server filter for newcamd
 int chk_sfilter(ECM_REQUEST *er, PTAB *ptab)
 {
@@ -84,6 +126,9 @@ int chk_sfilter(ECM_REQUEST *er, PTAB *ptab)
     if(!rc)
     {
       cs_debug("no match, %04X:%06X rejected by server filters", caid, prid);
+      snprintf( er->msglog, MSGLOGSIZE, "no server match %04X:%06X",
+        caid, (unsigned int) prid );
+
       if (!er->rcEx) er->rcEx=(E1_LSERVER<<4)|E2_IDENT;
       return(rc);
     }
@@ -152,6 +197,9 @@ int chk_ufilters(ECM_REQUEST *er)
     if( !rc ) {
       cs_debug("no match, %04X:%06X rejected by user '%s' filters",
                 er->caid, er->prid, client[cs_idx].usr);
+        snprintf( er->msglog, MSGLOGSIZE, "no card support %04X:%06X",
+                er->caid, (unsigned int) er->prid );
+
       if( !er->rcEx ) er->rcEx=(E1_USER<<4)|E2_IDENT;
       return (rc);
     }
@@ -279,28 +327,71 @@ int chk_avail_reader(ECM_REQUEST *er, struct s_reader *rdr)
   return 1;
 }
 
+extern struct s_reader *reader;
+
+int chk_ctab(ushort caid, CAIDTAB *ctab) {
+  if (!caid || !ctab->caid[0])
+    return 1;
+    
+  int i;
+  for (i=0;i<CS_MAXCAIDTAB;i++)
+  {
+    if (!ctab->caid[i]) {
+      return 0;
+    }
+    if ((caid & ctab->mask[i]) == ctab->caid[i])
+      return 1;
+  }
+  return 0;
+}
+
 int matching_reader(ECM_REQUEST *er, struct s_reader *rdr) {
+  //Checking connected & group valid:
   if (!((rdr->fd) && (rdr->grp&client[cs_idx].grp)))
     return(0);
 
-  if (!rdr->enable || rdr->deleted)
+  //Checking enabled and not deleted:
+  if (!rdr->enable || rdr->deleted) {
+    cs_debug_mask(D_TRACE, "reader disabled/deleted %s", rdr->label);
     return(0);
+  }
     
-  //Schlocke reader-defined function 
-  if (rdr->ph.c_available && !rdr->ph.c_available(rdr->ridx, AVAIL_CHECK_CONNECTED))
+  //Schlocke reader-defined function, reader-self-check: 
+  if (rdr->ph.c_available && !rdr->ph.c_available(client[rdr->cidx].ridx, AVAIL_CHECK_CONNECTED)) {
+    cs_debug_mask(D_TRACE, "reader unavailable %s", rdr->label);
     return 0;
+  }
+
+  //Checking caids:
+  if (!chk_ctab(er->ocaid, &rdr->ctab) && !chk_ctab(er->caid, &rdr->ctab)) {
+    cs_debug_mask(D_TRACE, "caid %04X not found in caidlist reader %s", er->caid, rdr->label);
+    return 0;
+  }
     
-  if (!chk_srvid(er, rdr->cs_idx))
+  //Checking services:
+  if (!chk_srvid(er, rdr->cidx)) {
+    cs_debug_mask(D_TRACE, "service %04X not matching  reader %s", er->srvid, rdr->label);
     return(0);
+  }
 
-  if (!chk_rfilter(er, rdr))
+  //Checking ident:
+  if (!chk_rfilter(er, rdr)) {
+    cs_debug_mask(D_TRACE, "r-filter reader %s", rdr->label);
     return(0);
+  }
 
-  if (!chk_class(er, &rdr->cltab, "reader", rdr->label))
+  //Check ECM nanos:
+  if (!chk_class(er, &rdr->cltab, "reader", rdr->label)) {
+    cs_debug_mask(D_TRACE, "class filter reader %s", rdr->label);    
     return(0);
+  }
 
-  if (!chk_chid(er, &rdr->fchid, "reader", rdr->label))
+  //Checking chid:
+  if (!chk_chid(er, &rdr->fchid, "reader", rdr->label)) {
+    cs_debug_mask(D_TRACE, "chid filter reader %s", rdr->label);    
     return(0);
+  }
  
+  //All checks done, reader is matching!
   return(1);
 }

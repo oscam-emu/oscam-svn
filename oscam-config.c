@@ -7,22 +7,23 @@ extern struct s_reader * reader;
 
 #define CONFVARWIDTH 30
 
-static char *cs_conf="oscam.conf";
-static char *cs_user="oscam.user";
-static char *cs_srvr="oscam.server";
-static char *cs_srid="oscam.srvid";
-static char *cs_l4ca="oscam.guess";
-static char *cs_cert="oscam.cert";
-static char *cs_sidt="oscam.services";
+static const char *cs_conf="oscam.conf";
+static const char *cs_user="oscam.user";
+static const char *cs_srvr="oscam.server";
+static const char *cs_srid="oscam.srvid";
+static const char *cs_trid="oscam.tiers";
+static const char *cs_l4ca="oscam.guess";
+static const char *cs_cert="oscam.cert";
+static const char *cs_sidt="oscam.services";
 #ifdef CS_ANTICASC
-static char *cs_ac="oscam.ac";
+static const char *cs_ac="oscam.ac";
 #endif
 
 //Todo #ifdef CCCAM
-static char *cs_provid="oscam.provid";
+static const char *cs_provid="oscam.provid";
 
 #ifdef IRDETO_GUESSING
-static char *cs_ird="oscam.ird";
+static const char *cs_ird="oscam.ird";
 #endif
 
 static char token[4096];
@@ -46,7 +47,7 @@ typedef enum cs_proto_type
 	TAG_ANTICASC		// anti-cascading
 } cs_proto_type_t;
 
-static char *cctag[]={"global", "monitor", "camd33", "camd35", "newcamd", "radegast", "serial",
+static const char *cctag[]={"global", "monitor", "camd33", "camd35", "newcamd", "radegast", "serial",
 		      "cs357x", "cs378x", "gbox", "cccam", "constcw", "dvbapi", "webif", "anticasc", NULL};
 
 #ifdef DEBUG_SIDTAB
@@ -236,6 +237,17 @@ void chk_port_tab(char *portasc, PTAB *ptab)
 		if( (ptr2=strchr(trim(ptr1), '@')) ) {
 			*ptr2++ ='\0';
 			ptab->ports[i].s_port = atoi(ptr1);
+
+			//checking for des key for port
+			ptab->ports[i].ncd_key_is_set = 0;   //default to 0
+			if( (ptr3=strchr(trim(ptr1), '{')) ) {
+				*ptr3++='\0';
+				if (key_atob14(ptr3, ptab->ports[i].ncd_key))
+					fprintf(stderr, "newcamd: error in DES Key for port %s -> ignored\n", ptr1);
+				else
+					ptab->ports[i].ncd_key_is_set = 1;
+			}
+
 			ptr[i] = ptr2;
 			port[i] = ptab->ports[i].s_port;
 			ptab->nports++;
@@ -510,7 +522,7 @@ void chk_t_global(char *token, char *value)
 
 	if( !strcmp(token, "waitforcards")) {
 		if (strlen(value) == 0) {
-			cfg->waitforcards = 0;
+			cfg->waitforcards = 1;
 			return;
 		} else {
 			cfg->waitforcards = atoi(value);
@@ -540,7 +552,7 @@ void chk_t_global(char *token, char *value)
 
 	if (!strcmp(token, "readerrestartseconds")) {
 		if (strlen(value) == 0) {
-			cfg->reader_restart_seconds = 0;
+			cfg->reader_restart_seconds = 5;
 			return;
 		} else {
 			cfg->reader_restart_seconds = atoi(value);
@@ -548,25 +560,78 @@ void chk_t_global(char *token, char *value)
 		}
 	}
 
-	if (!strcmp(token, "readerautoloadbalance")) {
+	if (!strcmp(token, "readerautoloadbalance") || !strcmp(token, "lb_mode")) {
 		if (strlen(value) == 0) {
-			cfg->reader_auto_loadbalance = 0;
+			cfg->lb_mode = 0;
 			return;
 		} else {
-			cfg->reader_auto_loadbalance = atoi(value);
+			cfg->lb_mode = atoi(value);
 			return;
 		}
 	}
 
-	if (!strcmp(token, "readerautoloadbalance_save")) {
+	if (!strcmp(token, "readerautoloadbalance_save") || !strcmp(token, "lb_save")) {
 		if (strlen(value) == 0) {
-			cfg->reader_auto_loadbalance_save = 0;
+			cfg->lb_save = 0;
 			return;
 		} else {
-			cfg->reader_auto_loadbalance_save = atoi(value);
+			cfg->lb_save = atoi(value);
 			return;
 		}
 	}
+	
+	if (!strcmp(token, "lb_nbest_readers")) {
+		if (strlen(value))
+			cfg->lb_nbest_readers = atoi(value);
+		return;
+	}
+
+	if (!strcmp(token, "lb_nfb_readers")) {
+		if (strlen(value))
+			cfg->lb_nfb_readers = atoi(value);
+		return;
+	}
+
+	if (!strcmp(token, "lb_min_ecmcount")) {
+		if (strlen(value))
+			cfg->lb_min_ecmcount = atoi(value);
+		return;
+	}
+
+	if (!strcmp(token, "lb_max_ecmcount")) {
+		if (strlen(value))
+			cfg->lb_max_ecmcount = atoi(value);
+		return;
+	}
+
+	if (!strcmp(token, "lb_reopen_seconds")) {
+		if (strlen(value))
+			cfg->lb_reopen_seconds = atoi(value);
+		return;
+	}
+
+	if (!strcmp(token, "resolvegethostbyname")) {
+		if (strlen(value) == 0) {
+			cfg->resolve_gethostbyname = 0;
+			return;
+		} else {
+			cfg->resolve_gethostbyname = atoi(value);
+			return;
+		}
+	}
+	
+#ifdef CS_WITH_DOUBLECHECK
+	if (!strcmp(token, "double_check")) {
+		if (strlen(value) == 0) {
+			cfg->double_check = 0;
+			return;
+		} else {
+			cfg->double_check = atoi(value);
+			return;
+		}
+	}
+#endif
+    
 
 	if (token[0] != '#')
 		fprintf(stderr, "Warning: keyword '%s' in global section not recognized\n", token);
@@ -875,10 +940,10 @@ void chk_t_camd35(char *token, char *value)
 
 	if (!strcmp(token, "serverip")) {
 		if(strlen(value) == 0) {
-			cfg->c35_tcp_srvip = 0;
+			cfg->c35_srvip = 0;
 			return;
 		} else {
-			cfg->c35_tcp_srvip = inet_addr(value);
+			cfg->c35_srvip = inet_addr(value);
 			return;
 		}
 	}
@@ -915,16 +980,6 @@ void chk_t_camd35_tcp(char *token, char *value)
 			return;
 		} else {
 			cfg->c35_tcp_srvip = inet_addr(value);
-			return;
-		}
-	}
-
-	if (!strcmp(token, "suppresscmd08")) {
-		if(strlen(value) == 0) {
-			cfg->c35_suppresscmd08 = 0;
-			return;
-		} else {
-			cfg->c35_suppresscmd08 = atoi(value);
 			return;
 		}
 	}
@@ -1031,6 +1086,24 @@ void chk_t_cccam(char *token, char *value)
 		strncpy((char*)cfg->cc_version, value, sizeof(cfg->cc_version) - 1);
 		return;
 	}
+	// cccam: Update cards interval
+	if (!strcmp(token, "updateinterval")) {
+	        if (strlen(value) == 0) 
+	                cfg->cc_update_interval = 4*60; //4x60s = 4min
+                else
+                        cfg->cc_update_interval = atoi(value);
+                return;
+	}
+	
+	// cccam: Update cards interval
+	if (!strcmp(token, "minimizecards")) {
+	        if (strlen(value) == 0)
+	                cfg->cc_minimize_cards = 0;
+                else
+                        cfg->cc_minimize_cards = atoi(value);
+                return;
+	}
+
 
 	if (token[0] != '#')
 		fprintf(stderr, "Warning: keyword '%s' in cccam section not recognized\n",token);
@@ -1355,6 +1428,7 @@ int init_config()
 	cfg->usrfile = NULL;
 	cfg->cwlogdir = NULL;
 	cfg->reader_restart_seconds = 5;
+	cfg->waitforcards = 1;
 #ifdef WEBIF
 	strcpy(cfg->http_user, "");
 	strcpy(cfg->http_pwd, "");
@@ -1621,6 +1695,25 @@ void chk_account(char *token, char *value, struct s_auth *account)
 		return;
 	}
 
+	if (!strcmp(token, "allowedtimeframe")) {
+		if(strlen(value) == 0) {
+			account->allowedtimeframe[0] = 0;
+			account->allowedtimeframe[1] = 0;
+		} else {
+			int allowed[4];
+			if (sscanf(value, "%d:%d-%d:%d", &allowed[0], &allowed[1], &allowed[2], &allowed[3]) != 4) {
+				account->allowedtimeframe[0] = 0;
+				account->allowedtimeframe[1] = 0;
+				fprintf(stderr, "Warning: value '%s' is not valid for allowedtimeframe (hh:mm-hh:mm)\n", value);
+			} else {
+				account->allowedtimeframe[0] = (allowed[0]*60) + allowed[1];
+				account->allowedtimeframe[1] = (allowed[2]*60) + allowed[3];
+			}
+		}
+		return;
+	}
+
+
 #ifdef CS_ANTICASC
 	if( !strcmp(token, "numusers") ) {
 		account->ac_users = atoi(value);
@@ -1733,8 +1826,21 @@ int write_config()
 	fprintf_conf(f, CONFVARWIDTH, "preferlocalcards", "%d\n", cfg->preferlocalcards);
 	fprintf_conf(f, CONFVARWIDTH, "saveinithistory", "%d\n", cfg->saveinithistory);
 	fprintf_conf(f, CONFVARWIDTH, "readerrestartseconds", "%d\n", cfg->reader_restart_seconds);
-	fprintf_conf(f, CONFVARWIDTH, "readerautoloadbalance", "%d\n", cfg->reader_auto_loadbalance);
-	fprintf_conf(f, CONFVARWIDTH, "readerautoloadbalance_save", "%d\n", cfg->reader_auto_loadbalance_save);
+
+	fprintf_conf(f, CONFVARWIDTH, "lb_mode", "%d\n", cfg->lb_mode);
+	fprintf_conf(f, CONFVARWIDTH, "lb_save", "%d\n", cfg->lb_save);
+	fprintf_conf(f, CONFVARWIDTH, "lb_nbest_readers", "%d\n", cfg->lb_nbest_readers);
+	fprintf_conf(f, CONFVARWIDTH, "lb_nfb_readers", "%d\n", cfg->lb_nfb_readers);
+	fprintf_conf(f, CONFVARWIDTH, "lb_min_ecmcount", "%d\n", cfg->lb_min_ecmcount);
+	fprintf_conf(f, CONFVARWIDTH, "lb_max_ecmcount", "%d\n", cfg->lb_max_ecmcount);
+	fprintf_conf(f, CONFVARWIDTH, "lb_reopen_seconds", "%d\n", cfg->lb_reopen_seconds);
+
+	fprintf_conf(f, CONFVARWIDTH, "resolvegethostbyname", "%d\n", cfg->resolve_gethostbyname);
+
+#ifdef CS_WITH_DOUBLECHECK
+	fprintf_conf(f, CONFVARWIDTH, "double_check", "%d\n", cfg->double_check);
+#endif
+
 	fputc((int)'\n', f);
 
 	/*monitor settings*/
@@ -1766,6 +1872,16 @@ int write_config()
 		dot1 = "";
 		for(i = 0; i < cfg->ncd_ptab.nports; ++i){
 			fprintf(f,"%s%d@%04X", dot1, cfg->ncd_ptab.ports[i].s_port, cfg->ncd_ptab.ports[i].ftab.filts[0].caid);
+
+			// separate DES Key
+			if(cfg->ncd_ptab.ports[i].ncd_key_is_set){
+				int k;
+				fprintf(f,"{");
+				for (k = 0; k < 14; k++)
+					fprintf(f,"%02X", cfg->ncd_ptab.ports[i].ncd_key[k]);
+				fprintf(f,"}");
+			}
+
 			if (cfg->ncd_ptab.ports[i].ftab.filts[0].nprids > 0){
 				fprintf(f,":");
 				dot2 = "";
@@ -1781,7 +1897,7 @@ int write_config()
 		if (cfg->ncd_srvip != 0)
 			fprintf_conf(f, CONFVARWIDTH, "serverip", "%s\n", inet_ntoa(*(struct in_addr *)&cfg->ncd_srvip));
 		fprintf_conf(f, CONFVARWIDTH, "key", "");
-		for (i=0;i<14;i++) fprintf(f,"%02X", cfg->ncd_key[i]);
+		for (i = 0; i < 14; i++) fprintf(f,"%02X", cfg->ncd_key[i]);
 		fprintf(f,"\n");
 		fprintf_conf(f, CONFVARWIDTH, "allowed", "");
 		struct s_ip *cip;
@@ -1820,8 +1936,8 @@ int write_config()
 	if ( cfg->c35_port > 0) {
 		fprintf(f,"[cs357x]\n");
 		fprintf_conf(f, CONFVARWIDTH, "port", "%d\n", cfg->c35_port);
-		if (cfg->c35_tcp_srvip != 0)
-			fprintf_conf(f, CONFVARWIDTH, "serverip", "%s\n", inet_ntoa(*(struct in_addr *)&cfg->c35_tcp_srvip));
+		if (cfg->c35_srvip != 0)
+			fprintf_conf(f, CONFVARWIDTH, "serverip", "%s\n", inet_ntoa(*(struct in_addr *)&cfg->c35_srvip));
 		if (cfg->c35_suppresscmd08)
 			fprintf_conf(f, CONFVARWIDTH, "suppresscmd08", "%d\n", cfg->c35_suppresscmd08);
 		fprintf(f,"\n");
@@ -1911,6 +2027,8 @@ int write_config()
 		fprintf_conf(f, CONFVARWIDTH, "port", "%d\n", cfg->cc_port);
 		fprintf_conf(f, CONFVARWIDTH, "reshare", "%d\n", cfg->cc_reshare);
 		fprintf_conf(f, CONFVARWIDTH, "version", "%s\n", cfg->cc_version);
+		fprintf_conf(f, CONFVARWIDTH, "updateinterval", "%d\n", cfg->cc_update_interval);
+		fprintf_conf(f, CONFVARWIDTH, "minimizecards", "%d\n", cfg->cc_minimize_cards);
 		fprintf(f,"\n");
 	}
 
@@ -2063,6 +2181,14 @@ int write_userdb(struct s_auth *authptr)
 		else
 			fprintf_conf(f, CONFVARWIDTH, "expdate", "\n");
 
+		if(account->allowedtimeframe[0] && account->allowedtimeframe[1]) {
+			fprintf_conf(f, CONFVARWIDTH, "allowedtimeframe", "%02d:%02d-%02d:%02d\n",
+					account->allowedtimeframe[0]/60,
+					account->allowedtimeframe[0]%60,
+					account->allowedtimeframe[1]/60,
+					account->allowedtimeframe[1]%60 );
+		}
+
 		//group
 		char *value = mk_t_group((ulong*)account->grp);
 		fprintf_conf(f, CONFVARWIDTH, "group", "%s\n", value);
@@ -2103,6 +2229,11 @@ int write_userdb(struct s_auth *authptr)
 		//ident
 		value = mk_t_ftab(&account->ftab);
 		fprintf_conf(f, CONFVARWIDTH, "ident", "%s\n", value);
+		free(value);
+
+		//CHID
+		value = mk_t_ftab(&account->fchid);
+		fprintf_conf(f, CONFVARWIDTH, "chid", "%s\n", value);
 		free(value);
 
 		if (account->c35_suppresscmd08)
@@ -2286,6 +2417,14 @@ int write_server()
 				fprintf_conf(f, CONFVARWIDTH, "aeskey", "%s\n", key_btoa(NULL, reader[i].aes_key));
 
 
+			//check for rsa
+			for (j=0;j<64;j++) {
+				if(reader[i].rsa_mod[j] > 0) {
+					reader[i].has_rsa = 1;
+					break;
+				}
+			}
+
 			//check for tiger
 			int tigerkey = 0;
 			for (j=64;j<120;j++) {
@@ -2375,6 +2514,8 @@ int write_server()
 
 			if (reader[i].cachecm)
 				fprintf_conf(f, CONFVARWIDTH, "ecmcache", "%d\n", reader[i].cachecm);
+			else
+				fprintf_conf(f, CONFVARWIDTH, "ecmcache", "%d\n", 0);
 
 			//Todo: write blocknano
 
@@ -2410,9 +2551,9 @@ int write_server()
 
 				if (reader[i].cc_want_emu)
 					fprintf_conf(f, CONFVARWIDTH, "cccwantemu", "%d\n", reader[i].cc_want_emu);
-					
-				if (reader[i].cc_force_resend_ecm)
-					fprintf_conf(f, CONFVARWIDTH, "cccforceresendecm", "%d\n", reader[i].cc_force_resend_ecm);
+
+				if (reader[i].cc_keepalive)
+					fprintf_conf(f, CONFVARWIDTH, "ccckeepalive", "%d\n", reader[i].cc_keepalive);
 			}
 
 			if (reader[i].deprecated && isphysical)
@@ -2423,6 +2564,9 @@ int write_server()
 
 			if (reader[i].auprovid)
 				fprintf_conf(f, CONFVARWIDTH, "auprovid", "%06lX", reader[i].auprovid);
+
+                        if (reader[i].ndsversion && isphysical)
+                                fprintf_conf(f, CONFVARWIDTH, "ndsversion", "%d\n", reader[i].ndsversion);
 
 			fprintf(f, "\n\n");
 		}
@@ -2790,6 +2934,73 @@ int init_srvid()
 		cs_log("%d service-id's loaded", nr);
 	else{
 		cs_log("oscam.srvid loading failed, old format");
+	}
+	return(0);
+}
+
+int init_tierid()
+{
+	int nr;
+	FILE *fp;
+	char *payload;
+	static struct s_tierid *tierid=(struct s_tierid *)0;
+	sprintf(token, "%s%s", cs_confdir, cs_trid);
+
+	if (!(fp=fopen(token, "r"))) {
+		cs_log("can't open file \"%s\" (err=%d), no tier-id's loaded", token, errno);
+		return(0);
+	}
+
+	nr=0;
+	while (fgets(token, sizeof(token), fp)) {
+
+		int l;
+		void *ptr;
+		char *tmp;
+		tmp = trim(token);
+
+		if (tmp[0] == '#') continue;
+		if ((l=strlen(tmp)) < 6) continue;
+		if (!(payload=strchr(token, '|'))) continue;
+		*payload++ = '\0';
+
+		if (!(ptr = malloc(sizeof(struct s_tierid)))) {
+			cs_log("Error allocating memory (errno=%d)", errno);
+			return(1);
+		}
+
+		if (tierid)
+			tierid->next = ptr;
+		else
+			cfg->tierid = ptr;
+
+		tierid = ptr;
+		memset(tierid, 0, sizeof(struct s_tierid));
+
+		int i;
+		char *ptr1 = strtok(payload, "|");
+		if (ptr1)
+			cs_strncpy(tierid->name, trim(ptr1), sizeof(tierid->name));
+
+		char *tieridasc = strchr(token, ':');
+		*tieridasc++ = '\0';
+		tierid->tierid = dyn_word_atob(tieridasc);
+		//printf("tierid %s - %d\n",tieridasc,tierid->tierid );
+
+		tierid->ncaid = 0;
+		for (i = 0, ptr1 = strtok(token, ","); (ptr1) && (i < 10) ; ptr1 = strtok(NULL, ","), i++){
+			tierid->caid[i] = dyn_word_atob(ptr1);
+			tierid->ncaid = i+1;
+			// cs_log("ld caid: %04X tierid: %04X name: %s",tierid->caid[i],tierid->tierid,tierid->name);
+		}
+		nr++;
+	}
+
+	fclose(fp);
+	if (nr>0)
+		cs_log("%d tier-id's loaded", nr);
+	else{
+		cs_log("%s loading failed", cs_trid);
 	}
 	return(0);
 }
@@ -3420,16 +3631,15 @@ void chk_reader(char *token, char *value, struct s_reader *rdr)
 		}
 	}
 
-	if (!strcmp(token, "cccforceresendecm")) {
+	if (!strcmp(token, "ccckeepalive")) {
 		if (strlen(value) == 0) {
-			rdr->cc_force_resend_ecm = 0;
+			rdr->cc_keepalive = 0;
 			return;
 		} else {
-			rdr->cc_force_resend_ecm = atoi(value);
+			rdr->cc_keepalive = atoi(value);
 			return;
 		}
 	}
-
 
 	if (!strcmp(token, "deprecated")) {
 		if (strlen(value) == 0) {
@@ -3470,6 +3680,29 @@ void chk_reader(char *token, char *value, struct s_reader *rdr)
         parse_aes_keys(rdr,value);
 		return;
 	}
+
+        if (!strcmp(token, "ndsversion")) {
+                if (strlen(value) == 0) {
+                        rdr->ndsversion = 0;
+                        return;
+                } else {
+                        rdr->ndsversion = atoi(value);
+                        return;
+                }
+        }
+
+
+#ifdef AZBOX
+  if (!strcmp(token, "mode")) {
+    if(strlen(value) == 0) {
+      rdr->mode = -1;
+      return;
+    } else {
+      rdr->mode = atoi(value);
+      return;
+    }
+  }
+#endif
 
 	if (token[0] != '#')
 		fprintf(stderr, "Warning: keyword '%s' in reader section not recognized\n",token);
@@ -3591,6 +3824,7 @@ int init_readerdb()
 			reader[nr].cc_maxhop = 10;
 			reader[nr].lb_weight = 100;
 			strcpy(reader[nr].pincode, "none");
+                        reader[nr].ndsversion = 0;
 			for (i=1; i<CS_MAXCAIDTAB; reader[nr].ctab.mask[i++]=0xffff);
 			continue;
 		}
@@ -3798,12 +4032,12 @@ char *mk_t_group(ulong *grp){
 		if (grpbit[i] == '1'){
 			if (dot == 0){
 				sprintf(value + pos, "%d", i+1);
-				if (i > 9)pos += 2;
+				if (i > 8)pos += 2;
 				else pos += 1;
 				dot = 1;
 			} else {
 				sprintf(value + pos, ",%d", i+1);
-				if (i > 9)pos += 3;
+				if (i > 8)pos += 3;
 				else pos += 2;
 			}
 		}
@@ -3843,39 +4077,4 @@ char *mk_t_ftab(FTAB *ftab){
 	value[pos] = '\0';
 	return value;
 }
-
-static char tmpdir[200] = {0x00};
-
-/**
- * get tmp dir
- **/
-char * get_tmp_dir()
-{
-  if (tmpdir[0])
-    return tmpdir;
-  
-#ifdef OS_CYGWIN
-  char *d = getenv("TMPDIR");
-  if (!d || !d[0])
-        d = getenv("TMP");
-  if (!d || !d[0])
-        d = getenv("TEMP");
-  if (!d || !d[0]) 
-  	getcwd(tmpdir, sizeof(tmpdir)-1);
-  
-  strcpy(tmpdir, d);
-  char *p = tmpdir;
-  while(*p) p++;
-  p--;
-  if (*p != '/' && *p != '\\')
-    strcat(tmpdir, "/");
-  strcat(tmpdir, ".oscam");
-                          
-#else
-  strcpy(tmpdir, "/tmp/.oscam");
-#endif
-  mkdir(tmpdir, S_IRWXU);
-  return tmpdir;
-}
-
 

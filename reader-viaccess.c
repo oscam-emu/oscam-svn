@@ -133,13 +133,13 @@ int viaccess_card_init(struct s_reader * reader, ATR newatr)
   def_resp;
   int i;
   uchar buf[256];
-  static uchar insac[] = { 0xca, 0xac, 0x00, 0x00, 0x00 }; // select data
-  static uchar insb8[] = { 0xca, 0xb8, 0x00, 0x00, 0x00 }; // read selected data
-  static uchar insa4[] = { 0xca, 0xa4, 0x00, 0x00, 0x00 }; // select issuer
-  static uchar insc0[] = { 0xca, 0xc0, 0x00, 0x00, 0x00 }; // read data item
+  uchar insac[] = { 0xca, 0xac, 0x00, 0x00, 0x00 }; // select data
+  uchar insb8[] = { 0xca, 0xb8, 0x00, 0x00, 0x00 }; // read selected data
+  uchar insa4[] = { 0xca, 0xa4, 0x00, 0x00, 0x00 }; // select issuer
+  uchar insc0[] = { 0xca, 0xc0, 0x00, 0x00, 0x00 }; // read data item
 
-  static uchar insFAC[] = { 0x87, 0x02, 0x00, 0x00, 0x03 }; // init FAC
-  static uchar FacDat[] = { 0x00, 0x00, 0x28 };
+  static const uchar insFAC[] = { 0x87, 0x02, 0x00, 0x00, 0x03 }; // init FAC
+  static const uchar FacDat[] = { 0x00, 0x00, 0x28 };
 
   if ((atr[0]!=0x3f) || (atr[1]!=0x77) || ((atr[2]!=0x18) && (atr[2]!=0x11) && (atr[2]!=0x19)) || (atr[9]!=0x68)) return ERROR;
 
@@ -202,8 +202,8 @@ cs_log("[viaccess-reader] name: %s", cta_res);
 
   /* disabling parental lock. assuming pin "0000" */
   if (cfg->ulparent) {
-      static uchar inDPL[] = {0xca, 0x24, 0x02, 0x00, 0x09};
-      static uchar cmDPL[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F};
+      static const uchar inDPL[] = {0xca, 0x24, 0x02, 0x00, 0x09};
+      static const uchar cmDPL[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F};
       write_cmd(inDPL,cmDPL);
       if( !(cta_res[cta_lr-2]==0x90 && cta_res[cta_lr-1]==0) )
           cs_log("[viaccess-reader] Can't disable parental lock. Wrong PIN? I assumed 0000!");
@@ -219,10 +219,10 @@ cs_log("[viaccess-reader] name: %s", cta_res);
 int viaccess_do_ecm(struct s_reader * reader, ECM_REQUEST *er)
 {
   def_resp;
-  static unsigned char insa4[] = { 0xca,0xa4,0x04,0x00,0x03 }; // set provider id
-  static unsigned char ins88[] = { 0xca,0x88,0x00,0x00,0x00 }; // set ecm
-  static unsigned char insf8[] = { 0xca,0xf8,0x00,0x00,0x00 }; // set geographic info 
-  static unsigned char insc0[] = { 0xca,0xc0,0x00,0x00,0x12 }; // read dcw
+  static const unsigned char insa4[] = { 0xca,0xa4,0x04,0x00,0x03 }; // set provider id
+  unsigned char ins88[] = { 0xca,0x88,0x00,0x00,0x00 }; // set ecm
+  unsigned char insf8[] = { 0xca,0xf8,0x00,0x00,0x00 }; // set geographic info 
+  static const unsigned char insc0[] = { 0xca,0xc0,0x00,0x00,0x12 }; // read dcw
 
   const uchar *ecm88Data=er->ecm+4; //XXX what is the 4th byte for ??
   int ecm88Len=SCT_LEN(er->ecm)-4;
@@ -241,6 +241,12 @@ int viaccess_do_ecm(struct s_reader * reader, ECM_REQUEST *er)
   
   while (ecm88Len && !rc) {
     
+    if(ecm88Data[0] ==0x00 &&  ecm88Data[1] == 0x00) {
+        // nano 0x00  and len 0x00 aren't valid ... something is obviously wrong with this ecm.
+        cs_log("[viaccess-reader] ECM: Invalid ECM structure. Rejecting");
+        return ERROR;
+    }
+    
     // 80 33 nano 80 (ecm) + len (33)
     if(ecm88Data[0]==0x80) { // nano 80, give ecm len
         curEcm88len=ecm88Data[1];
@@ -255,7 +261,7 @@ int viaccess_do_ecm(struct s_reader * reader, ECM_REQUEST *er)
     
     // d2 02 0d 02 -> D2 nano, len 2,  select the AES key to be used
     if(ecm88Data[0]==0xd2) {
-        // FIXME: use the d2 arguments
+        // use the d2 arguments to get the key # to be used
         int len = ecm88Data[1] + 2;
         D2KeyID=ecm88Data[3];
         ecm88Data += len;
@@ -301,6 +307,7 @@ int viaccess_do_ecm(struct s_reader * reader, ECM_REQUEST *er)
         if (!chk_prov(reader, ident, keynr))
         {
           cs_debug("[viaccess-reader] ECM: provider or key not found on card");
+          snprintf( er->msglog, MSGLOGSIZE, "provider(%02x%02x%02x) or key(%d) not found on card", ident[0],ident[1],ident[2], keynr );
           return ERROR;
         }
         
@@ -349,7 +356,10 @@ int viaccess_do_ecm(struct s_reader * reader, ECM_REQUEST *er)
         ins88[2]=ecmf8Len?1:0;
         ins88[3]=keynr;
         ins88[4]= curEcm88len;
-
+        // 
+        // we should check the nano to make sure the ecm is valid
+        // we should look for at least 1 E3 nano, 1 EA nano and the F0 signature nano
+        //
         // DE04
         if (DE04[0]==0xDE)
         {
@@ -377,12 +387,14 @@ int viaccess_do_ecm(struct s_reader * reader, ECM_REQUEST *er)
             ecm88Data=nextEcm;
             ecm88Len-=curEcm88len;
             cs_debug("[viaccess-reader] ECM: key to use is not the current one, trying next ECM");
+            snprintf( er->msglog, MSGLOGSIZE, "key to use is not the current one, trying next ECM" );
         }
     }
     else {
         ecm88Data=nextEcm;
         ecm88Len-=curEcm88len;
         cs_debug("[viaccess-reader] ECM: Unknown ECM type");
+        snprintf( er->msglog, MSGLOGSIZE, "Unknown ECM type" );
     }
   }
 
@@ -390,6 +402,8 @@ int viaccess_do_ecm(struct s_reader * reader, ECM_REQUEST *er)
     if(reader->aes_list) {
         cs_debug("Decoding CW : using AES key id %d for provider %06x",D2KeyID,provid);
         rc=aes_decrypt_from_list(reader->aes_list,0x500, (uint32) provid, D2KeyID,er->cw, 16);
+        if( rc == 0 )
+            snprintf( er->msglog, MSGLOGSIZE, "AES Decrypt : key id %d not found for CAID %04X , provider %06lx", D2KeyID, 0x500, provid );
     }
     else
         aes_decrypt(er->cw, 16);
@@ -473,13 +487,13 @@ void viaccess_get_emm_filter(struct s_reader * rdr, uchar *filter)
 int viaccess_do_emm(struct s_reader * reader, EMM_PACKET *ep)
 {
   def_resp;
-  static unsigned char insa4[] = { 0xca,0xa4,0x04,0x00,0x03 }; // set provider id
-  static unsigned char insf0[] = { 0xca,0xf0,0x00,0x01,0x22 }; // set adf
-  static unsigned char insf4[] = { 0xca,0xf4,0x00,0x01,0x00 }; // set adf, encrypted
-  static unsigned char ins18[] = { 0xca,0x18,0x01,0x01,0x00 }; // set subscription
-  static unsigned char ins1c[] = { 0xca,0x1c,0x01,0x01,0x00 }; // set subscription, encrypted
-  static unsigned char insc8[] = { 0xca,0xc8,0x00,0x00,0x02 }; // read extended status
-  static unsigned char insc8Data[] = { 0x00,0x00 }; // data for read extended status
+  static const unsigned char insa4[] = { 0xca,0xa4,0x04,0x00,0x03 }; // set provider id
+  unsigned char insf0[] = { 0xca,0xf0,0x00,0x01,0x22 }; // set adf
+  unsigned char insf4[] = { 0xca,0xf4,0x00,0x01,0x00 }; // set adf, encrypted
+  unsigned char ins18[] = { 0xca,0x18,0x01,0x01,0x00 }; // set subscription
+  unsigned char ins1c[] = { 0xca,0x1c,0x01,0x01,0x00 }; // set subscription, encrypted
+  static const unsigned char insc8[] = { 0xca,0xc8,0x00,0x00,0x02 }; // read extended status
+  static const unsigned char insc8Data[] = { 0x00,0x00 }; // data for read extended status
 
   int emmLen=SCT_LEN(ep->emm)-7;
   int rc=0;
@@ -516,6 +530,7 @@ int viaccess_do_emm(struct s_reader * reader, EMM_PACKET *ep)
         provider_ok = 1;
       } else {
         cs_debug("[viaccess-reader] EMM: provider or key not found on card (%x, %x)", ident, keynr);
+        cs_log("[viaccess-reader] EMM: provider or key not found on card (%x, %x)", ident, keynr);
         return ERROR;
       }
 
@@ -685,14 +700,14 @@ int viaccess_card_info(struct s_reader * reader)
 {
   def_resp;
   int i, l, scls, show_cls;
-  static uchar insac[] = { 0xca, 0xac, 0x00, 0x00, 0x00 }; // select data
-  static uchar insb8[] = { 0xca, 0xb8, 0x00, 0x00, 0x00 }; // read selected data
-  static uchar insa4[] = { 0xca, 0xa4, 0x00, 0x00, 0x00 }; // select issuer
-  static uchar insc0[] = { 0xca, 0xc0, 0x00, 0x00, 0x00 }; // read data item
-  static uchar ins24[] = { 0xca, 0x24, 0x00, 0x00, 0x09 }; // set pin
+  uchar insac[] = { 0xca, 0xac, 0x00, 0x00, 0x00 }; // select data
+  uchar insb8[] = { 0xca, 0xb8, 0x00, 0x00, 0x00 }; // read selected data
+  uchar insa4[] = { 0xca, 0xa4, 0x00, 0x00, 0x00 }; // select issuer
+  uchar insc0[] = { 0xca, 0xc0, 0x00, 0x00, 0x00 }; // read data item
+  static const uchar ins24[] = { 0xca, 0x24, 0x00, 0x00, 0x09 }; // set pin
 
-  static uchar cls[] = { 0x00, 0x21, 0xff, 0x9f};
-  static uchar pin[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04};
+  static const uchar cls[] = { 0x00, 0x21, 0xff, 0x9f};
+  static const uchar pin[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04};
 
   show_cls=reader->show_cls;
   memset(&reader->last_geo, 0, sizeof(reader->last_geo));

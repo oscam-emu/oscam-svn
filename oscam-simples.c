@@ -1,11 +1,9 @@
 #include <sys/time.h>
 #include "globals.h"
 
-static AES_KEY	aeskey;
-
 void aes_set_key(char *key)
 {
-  AES_set_decrypt_key((const unsigned char *)key, 128, &aeskey);
+  AES_set_decrypt_key((const unsigned char *)key, 128, &client[cs_idx].aeskey_decrypt);
   AES_set_encrypt_key((const unsigned char *)key, 128, &client[cs_idx].aeskey);
 }
 
@@ -13,7 +11,7 @@ void aes_decrypt(uchar *buf, int n)
 {
   int i;
   for(i=0; i<n; i+=16)
-    AES_decrypt(buf+i, buf+i, &aeskey);
+    AES_decrypt(buf+i, buf+i, &client[cs_idx].aeskey_decrypt);
 }
 
 void aes_encrypt_idx(int idx, uchar *buf, int n)
@@ -212,7 +210,7 @@ void aes_clear_entries(struct s_reader *rdr)
 
 char *remote_txt(void)
 {
-  if (is_server)
+  if (client[cs_idx].is_server)
     return("client");
   else
     return("remote server");
@@ -383,7 +381,7 @@ char *key_btoa(char *asc, uchar *bin)
   return(asc);
 }
 
-char *cs_hexdump(int m, uchar *buf, int n)
+char *cs_hexdump(int m, const uchar *buf, int n)
 {
   int i;
   static char dump[520];
@@ -629,7 +627,7 @@ void urldecode(char *s){
 
 /* Helper function for urlencode.*/
 char to_hex(char code){
-	static char hex[] = "0123456789abcdef";
+	static const char hex[] = "0123456789abcdef";
 	return hex[(int)code & 15];
 }
 
@@ -838,6 +836,22 @@ char *get_servicename(int srvid, int caid){
 
 	if (!name[0]) sprintf(name, "%04X:%04X unknown", caid, srvid);
 	if (!srvid) name[0] = '\0';
+	return(name);
+}
+
+char *get_tiername(int tierid, int caid){
+	int i;
+	struct s_tierid *this = cfg->tierid;
+	static char name[83];
+
+	for (name[0] = 0; this && (!name[0]); this = this->next)
+		if (this->tierid == tierid)
+			for (i=0; i<this->ncaid; i++)
+				if (this->caid[i] == caid)
+					cs_strncpy(name, this->name, 32);
+
+	//if (!name[0]) sprintf(name, "%04X:%04X unknown", caid, tierid);
+	if (!tierid) name[0] = '\0';
 	return(name);
 }
 

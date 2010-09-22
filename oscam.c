@@ -12,21 +12,17 @@
 /*****************************************************************************
         Globals
 *****************************************************************************/
-int ridx=0;
-int pfd=0;      // Primary FD, must be closed on exit
-int mfdr=0;     // Master FD (read)
-int fd_c2m=0;   // FD Client -> Master (for clients / write )
-int fd_c2l=0;   // FD Client -> Logger (for clients / write )
-int cs_dblevel=0;   // Debug Level (TODO !!)
-int cs_idx=0;   // client index (0=master, ...)
-int cs_ptyp=0; // process-type
 struct s_module ph[CS_MAX_MOD]; // Protocols
 struct s_cardsystem cardsystem[CS_MAX_MOD]; // Protocols
-int is_server=0;    // used in modules to specify function
-pid_t master_pid=0;   // master pid OUTSIDE shm
+
+int mfdr=0;     // Master FD (read)
+int fd_c2m=0;
+
 ushort  len4caid[256];    // table for guessing caid (by len)
 char  cs_confdir[128]=CS_CONFDIR;
-uchar mbuf[1024];   // global buffer
+int cs_dblevel=0;   // Debug Level (TODO !!)
+char  cs_tmpdir[200]={0x00};
+pthread_mutex_t gethostbyname_lock;
 ECM_REQUEST *ecmtask;
 #ifdef CS_ANTICASC
 struct s_acasc ac_stat[CS_MAXPID];
@@ -39,7 +35,6 @@ int     *ecmidx;  // Shared Memory
 int     *logidx;  // Shared Memory
 int     *oscam_sem; // sem (multicam.o)
 int     *c_start; // idx of 1st client
-int     *log_fd;  // log-process is running
 struct  s_ecm     *ecmcache;  // Shared Memory
 struct  s_client  *client;    // Shared Memory
 struct  s_reader  *reader;    // Shared Memory
@@ -58,9 +53,8 @@ struct  s_acasc_shm   *acasc; // anti-cascading table indexed by account.ac_idx
 int     *loghistidx;  // ptr to current entry
 char    *loghist;     // ptr of log-history
 #endif
-int     *mcl=0;       // Master close log?
 
-static  int  shmsize =  CS_ECMCACHESIZE*(sizeof(struct s_ecm)) +
+static const int  shmsize =  CS_ECMCACHESIZE*(sizeof(struct s_ecm)) +
                         CS_MAXPID*(sizeof(struct s_client)) +
                         CS_MAXREADER*(sizeof(struct s_reader)) +
 #ifdef CS_WITH_GBOX
@@ -80,21 +74,23 @@ static  int  shmsize =  CS_ECMCACHESIZE*(sizeof(struct s_ecm)) +
 char  cs_memfile[128]=CS_MMAPFILE;
 #endif
 
+int get_csidx() {
+	int i;
+
+	for (i=1; i<CS_MAXPID; i++) {
+		if (pthread_equal(client[i].thread, pthread_self())) {
+			return i;
+		}
+	}
+
+	return 0; // main process
+}
+
 /*****************************************************************************
         Statics
 *****************************************************************************/
-static  char  mloc[128]={0};
-static  int shmid=0;    // Shared Memory ID
 static  int cs_last_idx=0;    // client index of last fork (master only)
-static char *logo = "  ___  ____   ___                \n / _ \\/ ___| / __|__ _ _ __ ___  \n| | | \\___ \\| |  / _` | '_ ` _ \\ \n| |_| |___) | |_| (_| | | | | | |\n \\___/|____/ \\___\\__,_|_| |_| |_|\n";
-
-static void cs_set_mloc(int ato, char *txt)
-{
-  if (ato>=0)
-    alarm(ato);
-  if (txt)
-    strcpy(mloc, txt);
-}
+static const char *logo = "  ___  ____   ___                \n / _ \\/ ___| / __|__ _ _ __ ___  \n| | | \\___ \\| |  / _` | '_ ` _ \\ \n| |_| |___) | |_| (_| | | | | | |\n \\___/|____/ \\___\\__,_|_| |_| |_|\n";
 
 static void usage()
 {
@@ -140,6 +136,12 @@ static void usage()
   fprintf(stderr, "\n\n\t-b         : start in background\n");
   fprintf(stderr, "\t-c <dir>   : read configuration from <dir>\n");
   fprintf(stderr, "\t             default = %s\n", CS_CONFDIR);
+  fprintf(stderr, "\t-t <dir>   : tmp dir <dir>\n");
+#ifdef CS_CYGWIN32
+  fprintf(stderr, "\t             default = (OS-TMP)\n");
+#else
+  fprintf(stderr, "\t             default = /tmp/.oscam\n");
+#endif
   fprintf(stderr, "\t-d <level> : debug level mask\n");
   fprintf(stderr, "\t               0 = no debugging (default)\n");
   fprintf(stderr, "\t               1 = detailed error messages\n");
@@ -197,15 +199,15 @@ static int daemon(int nochdir, int noclose)
 int recv_from_udpipe(uchar *buf)
 {
   unsigned short n;
-  if (!pfd) return(-9);
-  if (!read(pfd, buf, 3)) cs_exit(1);
+  if (!client[cs_idx].pfd) return(-9);
+  if (!read(client[cs_idx].pfd, buf, 3)) cs_exit(1);
   if (buf[0]!='U')
   {
     cs_log("INTERNAL PIPE-ERROR");
     cs_exit(1);
   }
   memcpy(&n, buf+1, 2);
-  return(read(pfd, buf, n));
+  return(read(client[cs_idx].pfd, buf, n));
 }
 
 char *username(int idx)
@@ -281,35 +283,23 @@ void set_signal_handler(int sig, int flags, void (*sighandler)(int))
 #endif
 }
 
-static void cs_alarm()
-{
-  cs_debug("Got alarm signal");
-  cs_log("disconnect from %s by watchdog", cs_inet_ntoa(client[cs_idx].ip));
-  cs_exit(0);
-}
-
 static void cs_master_alarm()
 {
-  cs_log("PANIC: master deadlock! last location: %s", mloc);
-  fprintf(stderr, "PANIC: master deadlock! last location: %s", mloc);
+  cs_log("PANIC: master deadlock!");
+  fprintf(stderr, "PANIC: master deadlock!");
   fflush(stderr);
-  cs_exit(0);
 }
 
 static void cs_sigpipe()
 {
-  if ((cs_idx) && (master_pid!=getppid()))
-    cs_exit(0);
+
   cs_log("Got sigpipe signal -> captured");
 }
 
 void cs_exit(int sig)
 {
-	
-//#ifdef ST_LINUX
-//  Fortis_STSMART_Close();
-//  Fortis_STPTI_Close();
-//#endif
+	set_signal_handler(SIGCHLD, 1, SIG_IGN);
+	set_signal_handler(SIGHUP , 1, SIG_IGN);
 
   set_signal_handler(SIGCHLD, 1, SIG_IGN);
   set_signal_handler(SIGHUP , 1, SIG_IGN);
@@ -324,48 +314,71 @@ void cs_exit(int sig)
     	cs_statistics(cs_idx);
     	break;
     case 'm': break;
-    case 'n': *log_fd=0;
-              break;
+    case 'n': break;
     case 'r':
         // free AES entries allocated memory
-        if(reader[ridx].aes_list) {
-            aes_clear_entries(&reader[ridx]);
+        if(reader[client[cs_idx].ridx].aes_list) {
+            aes_clear_entries(&reader[client[cs_idx].ridx]);
         }
         // close the device
-        reader_device_close(&reader[ridx]);
+        reader_device_close(&reader[client[cs_idx].ridx]);
         break;
-    case 's': *log_fd=0;
+    case 'h':
+    case 's': { 
               int i;
               for (i=1; i<CS_MAXPID; i++)
                 if (client[i].pid)
                   kill(client[i].pid, SIGQUIT);
+              }
 #ifdef CS_LED
               cs_switch_led(LED1B, LED_OFF);
-              cs_switch_led(LED1A, LED_ON);
               cs_switch_led(LED2, LED_OFF);
               cs_switch_led(LED3, LED_OFF);
+              cs_switch_led(LED1A, LED_ON);
 #endif
-              if (cfg->pidfile != NULL) {
-                if (unlink(cfg->pidfile) < 0)
-                  cs_log("cannot remove pid file %s errno=(%d)", cfg->pidfile, errno);
-              }
+			if (cfg->pidfile != NULL) {
+				if (unlink(cfg->pidfile) < 0)
+					cs_log("cannot remove pid file %s errno=(%d)", cfg->pidfile, errno);
+			}
 #ifndef OS_CYGWIN32
-              if (unlink("/tmp/oscam.version") < 0)
-            	  cs_log("cannot remove /tmp/oscam.version errno=(%d)", errno);
+ 			if (unlink("/tmp/oscam.version") < 0)
+				cs_log("cannot remove /tmp/oscam.version errno=(%d)", errno);
 #endif
-              cs_log("cardserver down");
-#ifndef CS_NOSHM
-              if (ecmcache) shmdt((void *)ecmcache);
-#endif
-              break;
-  }
-  if (pfd) close(pfd);
-#ifdef CS_NOSHM
-  munmap((void *)ecmcache, (size_t)shmsize);
-  if (shmid) close(shmid);
-  unlink(CS_MMAPFILE);    // ignore errors, last process must succeed
-#endif
-  exit(sig);
+			cs_log("cardserver down");
+			break;
+	}
+
+	int i;
+	for (i=1; i<CS_MAXPID; i++) {
+		if (pthread_equal(client[i].thread, pthread_self())) {
+			client[i].pid=0;
+			if(client[i].ecmtask) 	free(client[i].ecmtask);
+			if(client[i].ecmtask) 	free(client[i].emmcache);
+			if(client[i].req) 		free(client[i].req);
+			if(client[i].prefix) 	free(client[i].prefix);
+			if(client[i].cc) 		free(client[i].cc);
+			cs_log("thread %d ended!", i);
+			pthread_exit(NULL);
+			return;
+		}
+	}
+
+
+
+	for (i=0; i<CS_MAXPID; i++) {
+		if(client[i].ecmtask) 	free(client[i].ecmtask);
+		if(client[i].ecmtask) 	free(client[i].emmcache);
+		if(client[i].req) 		free(client[i].req);
+		if(client[i].prefix) 	free(client[i].prefix);
+		if(client[i].cc) 		free(client[i].cc);
+	}
+	cs_log("memory freed");
+
+	cs_close_log();
+
+	if (ecmcache) free((void *)ecmcache);
+
+	exit(sig);
 }
 
 void cs_reinit_clients()
@@ -384,6 +397,8 @@ void cs_reinit_clients()
 				client[i].au		= account->au;
 				client[i].autoau	= account->autoau;
 				client[i].expirationdate = account->expirationdate;
+				client[i].allowedtimeframe[0] = account->allowedtimeframe[0];
+				client[i].allowedtimeframe[1] = account->allowedtimeframe[1];
 				client[i].ncd_keepalive = account->ncd_keepalive;
 				client[i].c35_suppresscmd08 = account->c35_suppresscmd08;
 				client[i].tosleep	= (60*account->tosleep);
@@ -411,7 +426,7 @@ void cs_reinit_clients()
 			} else {
 				if (ph[client[i].ctyp].type & MOD_CONN_NET) {
 					cs_debug("client '%s', pid=%d not found in db (or password changed)", client[i].usr, client[i].pid);
-					kill(client[i].pid, SIGQUIT);
+					pthread_cancel(client[i].thread);
 				}
 			}
 		}
@@ -432,7 +447,7 @@ static void cs_accounts_chk()
   for (i=0; i<CS_MAXPID; i++)
     if (client[i].typ=='a')
     {
-      kill(client[i].pid, SIGHUP);
+      //kill(client[i].pid, SIGHUP);
       break;
     }
 #endif
@@ -463,12 +478,12 @@ static void cs_debug_level()
 
 	cfg->debuglvl = cs_dblevel;
 
-	if (master_pid == getpid())
-		for (i=0; i<CS_MAXPID && client[i].pid; i++)
+	
+		for (i=0; i<CS_MAXPID && client[i].pid; i++) 
 			client[i].dbglvl = cs_dblevel;
-		else
-			client[cs_idx].dbglvl = cs_dblevel;
-		cs_log("%sdebug_level=%d", (master_pid == getpid())?"all ":"", cs_dblevel);
+		
+		client[cs_idx].dbglvl = cs_dblevel;
+		cs_log("%sdebug_level=%d", "all", cs_dblevel);
 }
 
 static void cs_card_info(int i)
@@ -483,328 +498,45 @@ static void cs_card_info(int i)
       //kill(client[i].pid, SIGUSR2);
 }
 
-static void prepare_reader_restart(int ridx, int cs_idx)
-{
-  reader[ridx].pid = 0;
-  reader[ridx].cc = NULL;
-  reader[ridx].tcp_connected = 0;
-  reader[ridx].fd=0;
-  reader[ridx].cs_idx=0;
-  reader[ridx].last_s = 0;
-  reader[ridx].last_g = 0;
-  cs_debug_mask(D_TRACE, "reader %s closed (index=%d)", reader[ridx].label, ridx);
-  if (client[cs_idx].ufd) close(client[cs_idx].ufd);
-  if (client[cs_idx].fd_m2c_c) close(client[cs_idx].fd_m2c_c);
-  memset(&client[cs_idx], 0, sizeof(struct s_client));
-  client[cs_idx].au=(-1);
-}
+int cs_fork(in_addr_t ip, in_port_t port) {
+	int i;
 
-//Schlocke: restart cardreader after 5 seconds:
-static void restart_cardreader(int pridx, int force_now) {
-	ridx = pridx;
-	if (reader[ridx].cs_idx) {
-		if (reader[ridx].pid==client[reader[ridx].cs_idx].pid) {
-			int pid = reader[ridx].pid;
-			prepare_reader_restart(ridx, reader[ridx].cs_idx);
-			kill(pid, SIGKILL);
-		}
-	}
-	reader[ridx].ridx = ridx; //FIXME
-	if ((reader[ridx].device[0]) && (reader[ridx].enable == 1) && (!reader[ridx].deleted)) {
-		switch (cs_fork(0, 99)) {
-		case -1:
+	pid_t pid=getpid();
+	for (i=1; (i<CS_MAXPID) && (client[i].pid); i++); //find next available client index i
+	if (i<CS_MAXPID) {
+		int fdp[2];
+		memset(&client[i], 0, sizeof(struct s_client));
+		client[i].au=(-1);
+		if (pipe(fdp)) {
+			cs_log("Cannot create pipe (errno=%d)", errno);
 			cs_exit(1);
-		case 0:
-			break;
-		default:
-			if (!force_now)
-				cs_sleepms(cfg->reader_restart_seconds * 1000); // SS: wait
-			cs_log("restarting reader %s (index=%d)", reader[ridx].label, ridx);
-
-			wait4master();
-			start_cardreader(&reader[ridx]);
 		}
+		//client part
+
+		//make_non_blocking(fdp[0]);
+		//make_non_blocking(fdp[1]);
+
+		client[i].is_server=((ip) || (port<90)) ? 1 : 0; //FIXME global should be local per thread
+		   
+		client[i].cs_ptyp=D_CLIENT;
+		client[i].fd_m2c_c = fdp[0]; //store client read fd
+		client[i].fd_m2c = fdp[1]; //store client read fd
+
+		//master part
+		client[i].dbglvl=cs_dblevel;
+		client[i].stat=1;
+
+		client[i].login=client[i].last=time((time_t *)0);
+		client[i].pid=pid;    // MUST be last -> wait4master()
+
+		cs_last_idx=i;
+
+		
+	} else {
+		cs_log("max connections reached -> reject client %s", cs_inet_ntoa(ip));
+		i=(-1);
 	}
-}
-
-
-static void cs_child_chk(int i)
-{
-  while (waitpid(0, NULL, WNOHANG)>0);
-  for (i=1; i<CS_MAXPID; i++)
-    if (client[i].pid)
-      if (kill(client[i].pid, 0)) {
-        if ((client[i].typ!='c') && (client[i].typ!='m'))
-        {
-          char *txt="";
-          switch(client[i].typ)
-          {
-#ifdef CS_ANTICASC
-            case 'a': txt="anticascader"; break;
-#endif
-            case 'l': txt="logger"; break;
-            case 'p': txt="proxy";  break;
-            case 'r': txt="reader"; break;
-            case 'n': txt="resolver"; break;
-#ifdef WEBIF
-            case 'h': txt="http";	break;
-#endif
-          }
-          cs_log("PANIC: %s lost !! (pid=%d)", txt, client[i].pid);
-          if (cfg->reader_restart_seconds && (client[i].typ == 'r' || client[i].typ == 'p'))
-          {
-            int old_pid = client[i].pid;
-            client[i].pid = 0;
-            for (ridx = 0; ridx < CS_MAXREADER; ridx++) 
-            {
-              if (reader[ridx].pid == old_pid)
-              {
-                prepare_reader_restart(ridx, i);
-                cs_log("restarting %s %s in %d seconds (index=%d)", reader[ridx].label, txt,
-                		cfg->reader_restart_seconds, ridx);
-                write_to_pipe(fd_c2m, PIP_ID_RST, (uchar*)&ridx, sizeof(ridx));
-                break;
-              }
-            }
-          }
-          else {
-              *log_fd=0;
-              cs_exit(1);
-          }
-        }
-        else
-        {
-#ifdef CS_ANTICASC
-          char usr[32];
-          ushort    ac_idx=0;
-          ushort    ac_limit=0;
-          uchar     ac_penalty=0;
-          if( cfg->ac_enabled )
-          {
-            cs_strncpy(usr, client[i].usr, sizeof(usr));
-            ac_idx = client[i].ac_idx;
-            ac_limit = client[i].ac_limit;
-            ac_penalty = client[i].ac_penalty;
-          }
-#endif
-          if (client[i].fd_m2c) close(client[i].fd_m2c);
-          if (client[i].ufd) close(client[i].ufd);
-          memset(&client[i], 0, sizeof(struct s_client));
-#ifdef CS_ANTICASC
-          if( cfg->ac_enabled )
-          {
-            client[i].ac_idx = ac_idx;
-            client[i].ac_limit = ac_limit;
-            client[i].ac_penalty = ac_penalty;
-            strcpy(client[i].usr, usr);
-          }
-#endif
-          client[i].au=(-1);
-
-#ifdef HAVE_DVBAPI
-          int phi = client[i].ctyp;
-          if (client[i].typ == 'c' && ph[phi].type & MOD_CONN_SERIAL) //Schlocke: dvbapi killed? restart
-          {
-              if (ph[phi].s_handler)
-                ph[phi].s_handler(phi);
-          }
-#endif
-        }
-      }
-  return;
-}
-
-int cs_fork(in_addr_t ip, in_port_t port)
-{
-  int i;
-  pid_t pid;
-  for (i=1; (i<CS_MAXPID) && (client[i].pid); i++); //find next available client index i
-  if (i<CS_MAXPID)
-  {
-    int fdp[2];
-    memset(&client[i], 0, sizeof(struct s_client));
-    client[i].au=(-1);
-    if (pipe(fdp))
-    {
-      cs_log("Cannot create pipe (errno=%d)", errno);
-      cs_exit(1);
-    }
-
-    make_non_blocking(fdp[0]);
-    make_non_blocking(fdp[1]);
-
-		if (reader[ridx].typ == R_SC8in1 && port == 99) { //SC8in1 reader gets threaded, not forked
-                        if (reader[ridx].handle == 0)
-				reader_device_init(&reader[ridx]); 
-			cs_log("creating thread for device %s slot %i with ridx %i=%i", reader[ridx].device, reader[ridx].slot, reader[ridx].ridx, ridx);
-			int rc;
-			pthread_t dummy;
-			rc = pthread_create(&dummy, NULL, start_cardreader, (void *)&reader[ridx]);
- 			if (rc)
-   			cs_log("ERROR; return code from pthread_create() is %d\n", rc);
-			//client part
-     	is_server=((ip) || (port<90)) ? 1 : 0; //FIXME global should be local per thread
-     	//cs_ptyp=D_CLIENT;
-			client[i].fd_m2c_c = fdp[0]; //store client read fd
-			cs_idx=i; //although thread runs in master process, reserve an cs_idx slot
-#ifndef CS_NOSHM
-			shmid=0;
-#endif
-			//master part
-			client[i].fd_m2c=fdp[1];
-			client[i].dbglvl=cs_dblevel;
-			client[i].stat=1;
-			client[i].typ='r';   // reader
-			client[i].sidtabok=reader[ridx].sidtabok;
-			client[i].sidtabno=reader[ridx].sidtabno;
-			reader[ridx].fd=client[i].fd_m2c;
-			reader[ridx].cs_idx=i; //although thread runs in master process, reserve an cs_idx slot
-			pid=getpid();
-			reader[ridx].pid=pid;
-      if (reader[ridx].r_port)
-				cs_log("proxy thread started (pid=%d, server=%s)",pid, reader[ridx].device);
-			else {
-				switch(reader[ridx].typ) {
-					case R_MOUSE:
-					case R_SMART:
-						cs_log("reader thread started (pid=%d, device=%s, detect=%s%s, mhz=%d, cardmhz=%d)",pid, 
-								reader[ridx].device,reader[ridx].detect&0x80 ? "!" : "",RDR_CD_TXT[reader[ridx].detect&0x7f],
-								reader[ridx].mhz,reader[ridx].cardmhz);
-						break;
-					case R_SC8in1:
-						cs_log("reader thread started (pid=%d, device=%s:%i, detect=%s%s, mhz=%d, cardmhz=%d)",pid, 
-								reader[ridx].device,reader[ridx].slot,reader[ridx].detect&0x80 ? "!" : "",
-								RDR_CD_TXT[reader[ridx].detect&0x7f],reader[ridx].mhz,reader[ridx].cardmhz);
-						break;
-					default:
-						cs_log("reader thread started (pid=%d, device=%s)",pid, reader[ridx].device);
-				}
-				client[i].ip=client[0].ip;
-				strcpy(client[i].usr, client[0].usr);
-			}
-			cdiff=i;
-			client[i].login=client[i].last=time((time_t *)0);
-			client[i].pid=pid;    // MUST be last -> wait4master()
-			cs_last_idx=i;
-			i=0;
-		}
-		else {
-     pid=fork();
-     switch(pid)
-     {
-      case -1:
-        cs_log("PANIC: Cannot fork() (errno=%d)", errno);
-        cs_exit(1);
-      case  0:          // HERE is client
-        alarm(0);
-        set_signal_handler(SIGALRM, 0, cs_alarm);
-        set_signal_handler(SIGCHLD, 1, SIG_IGN);
-        set_signal_handler(SIGHUP , 1, SIG_IGN);
-        set_signal_handler(SIGINT , 1, SIG_IGN);
-        set_signal_handler(SIGUSR1, 1, cs_debug_level);
-        is_server=((ip) || (port<90)) ? 1 : 0;
-	    client[i].fd_m2c_c=fdp[0];
-        close(fdp[1]);
-        close(mfdr);
-        //cs_log("FORK-CLIENT: fd_m2c_c=%d", client[i].fd_m2c_c);
-        //SS:if( port!=97 ) cs_close_log();
-        mfdr=0;
-        cs_ptyp=D_CLIENT;
-        cs_idx=i;
-#ifndef CS_NOSHM
-        shmid=0;
-#endif
-        break;
-      default:          // HERE is master
-        client[i].fd_m2c=fdp[1];
-        client[i].dbglvl=cs_dblevel;
-        close(fdp[0]);
-        //cs_log("FORK-MASTER: fd_m2c=%d", client[i].fd_m2c);
-        if (ip)
-        {
-          client[i].typ='c';      // dynamic client
-          client[i].ip=ip;
-          client[i].port=port;
-          cs_log("client(%d) connect from %s (pid=%d, pipfd=%d)",
-                  i-cdiff, cs_inet_ntoa(ip), pid, client[i].fd_m2c);
-        }
-        else
-        {
-          client[i].stat=1;
-          switch(port)
-          {
-            case 99: client[i].typ='r';   // reader that is not Sc8in1 gets forked, not threaded
-                     client[i].sidtabok=reader[ridx].sidtabok;
-                     client[i].sidtabno=reader[ridx].sidtabno;
-                     reader[ridx].fd=client[i].fd_m2c;
-                     reader[ridx].cs_idx=i;
-                     reader[ridx].pid=pid;
-                     if (reader[ridx].r_port)
-                       cs_log("proxy started (pid=%d, server=%s)",
-                              pid, reader[ridx].device);
-                     else
-                     {
-                       if (reader[ridx].typ==R_MOUSE || reader[ridx].typ==R_SMART)
-                         cs_log("reader started (pid=%d, device=%s, detect=%s%s, mhz=%d, cardmhz=%d)",
-                                pid, reader[ridx].device,
-                                reader[ridx].detect&0x80 ? "!" : "",
-                                RDR_CD_TXT[reader[ridx].detect&0x7f],
-                                reader[ridx].mhz,
-				reader[ridx].cardmhz);
-                        else
-                         cs_log("reader started (pid=%d, device=%s)",
-                                pid, reader[ridx].device);
-                       client[i].ip=client[0].ip;
-                       strcpy(client[i].usr, client[0].usr);
-                     }
-                     cdiff=i;
-                     break;
-            case 97: client[i].typ='l';   // logger
-                     client[i].ip=client[0].ip;
-                     strcpy(client[i].usr, client[0].usr);
-                     cs_log("logger started (pid=%d)", pid);
-                     cdiff=i;
-                     break;
-#ifdef CS_ANTICASC
-            case 96: client[i].typ='a';
-                     client[i].ip=client[0].ip;
-                     strcpy(client[i].usr, client[0].usr);
-                     cs_log("anticascader started (pid=%d, delay=%d min)",
-                            pid, cfg->ac_stime);
-                     cdiff=i;
-                     break;
-#endif
-
-#ifdef WEBIF
-            case 95: client[i].typ='h';		// http
-                     client[i].ip=client[0].ip;
-                     strcpy(client[i].usr, client[0].usr);
-                     cs_log("http started (pid=%d)",pid);
-                     cdiff=i;
-                     break;
-#endif
-
-            default: client[i].typ='c';   // static client
-                     client[i].ip=client[0].ip;
-                     client[i].ctyp=port;
-                     cs_log("%s: initialized (pid=%d%s)", ph[port].desc,
-                            pid, ph[port].logtxt ? ph[port].logtxt : "");
-                     break;
-          }
-        }
-        client[i].login=client[i].last=time((time_t *)0);
-        client[i].pid=pid;    // MUST be last -> wait4master()
-        cs_last_idx=i;
-        i=0;
-     }//switch
-		}//else
-  }
-  else
-  {
-    cs_log("max connections reached -> reject client %s", cs_inet_ntoa(ip));
-    i=(-1);
-  }
-  return(i);
+	return(i);
 }
 
 static void init_signal()
@@ -817,7 +549,7 @@ static void init_signal()
 		set_signal_handler(SIGPIPE , 0, cs_sigpipe);
 		//  set_signal_handler(SIGALRM , 0, cs_alarm);
 		set_signal_handler(SIGALRM , 0, cs_master_alarm);
-		set_signal_handler(SIGCHLD , 1, cs_child_chk);
+		// set_signal_handler(SIGCHLD , 1, cs_child_chk);
 		//  set_signal_handler(SIGHUP  , 1, cs_accounts_chk);
 		set_signal_handler(SIGHUP , 1, cs_sighup);
 		set_signal_handler(SIGUSR1, 1, cs_debug_level);
@@ -835,50 +567,18 @@ static void init_signal()
 
 static void init_shm()
 {
-#ifdef CS_NOSHM
-  //int i, fd;
-  char *buf;
-  if ((shmid=open(cs_memfile, O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR))<0)
-  {
-    fprintf(stderr, "Cannot create mmaped file (errno=%d)", errno);
-    cs_exit(1);
-  }
+	ecmcache=(struct s_ecm *)malloc(shmsize);
+	memset(ecmcache, 0, shmsize);
 
-  buf=(char *)malloc(shmsize);
-  memset(buf, 0, shmsize);
-  if (!write(shmid, buf, shmsize)) cs_exit(1);
-  free(buf);
-
-  ecmcache=(struct s_ecm *)mmap((void *)0, (size_t) shmsize,
-                                PROT_READ|PROT_WRITE, MAP_SHARED, shmid, 0);
-#else
-  struct shmid_ds sd;
-  char *shmerr_txt="Cannot %s shared memory (errno=%d)\n";
-  if ((shmid=shmget(IPC_PRIVATE, shmsize, IPC_CREAT | 0600))<0)
-  {
-    fprintf(stderr, shmerr_txt, "create", errno);
-    shmid=0;
-    cs_exit(1);
-  }
-  if ((ecmcache=(struct s_ecm *)shmat(shmid, 0, 0))==(void *)(-1))
-  {
-    fprintf(stderr, shmerr_txt, "attach", errno);
-    cs_exit(1);
-  }
-  memset(ecmcache, 0, shmsize);
-  shmctl(shmid, IPC_RMID, &sd);
-#endif
 #ifdef CS_ANTICASC
   acasc=(struct s_acasc_shm *)&ecmcache[CS_ECMCACHESIZE];
   ecmidx=(int *)&acasc[CS_MAXPID];
 #else
   ecmidx=(int *)&ecmcache[CS_ECMCACHESIZE];
 #endif
-  mcl=(int *)((void *)ecmidx+sizeof(int));
-  logidx=(int *)((void *)mcl+sizeof(int));
+  logidx=(int *)((void *)ecmidx+sizeof(int));
   c_start=(int *)((void *)logidx+sizeof(int));
-  log_fd=(int *)((void *)c_start+sizeof(int));
-  oscam_sem=(int *)((void *)log_fd+sizeof(int));
+  oscam_sem=(int *)((void *)c_start+sizeof(int));
   client=(struct s_client *)((void *)oscam_sem+sizeof(int));
   reader=(struct s_reader *)&client[CS_MAXPID];
 #ifdef CS_WITH_GBOX
@@ -894,19 +594,6 @@ static void init_shm()
   loghist=(char *)((void *)loghistidx+sizeof(int));
 #endif
 
-#ifdef DEBUG_SHM_POINTER
-  printf("SHM ALLOC: %x\n", shmsize);
-  printf("SHM START: %p\n", (void *) ecmcache);
-  printf("SHM ST1: %p %x (%x)\n", (void *) ecmidx, ((void *) ecmidx) - ((void *) ecmcache), CS_ECMCACHESIZE*(sizeof(struct s_ecm)));
-  printf("SHM ST2: %p %x (%x)\n", (void *) oscam_sem, ((void *) oscam_sem) - ((void *) ecmidx), sizeof(int));
-  printf("SHM ST3: %p %x (%x)\n", (void *) client, ((void *) client) - ((void *) oscam_sem), sizeof(int));
-  printf("SHM ST4: %p %x (%x)\n", (void *) reader, ((void *) reader) - ((void *) client), CS_MAXPID*(sizeof(struct s_client)));
-  printf("SHM ST5: %p %x (%x)\n", (void *) cfg, ((void *) cfg) - ((void *) reader), CS_MAXREADER*(sizeof(struct s_reader)));
-  printf("SHM ST6: %p %x (%x)\n", ((void *) cfg)+sizeof(struct s_config), sizeof(struct s_config), sizeof(struct s_config));
-  printf("SHM ENDE: %p\n", ((void *) cfg)+sizeof(struct s_config));
-  printf("SHM SIZE: %x\n", ((void *) cfg)-((void *) ecmcache) + sizeof(struct s_config));
-  fflush(stdout);
-#endif
 
   *ecmidx=0;
   *logidx=0;
@@ -925,7 +612,7 @@ static void init_shm()
   else
     strcpy(client[0].usr, "root");
 
-  init_stat();
+  pthread_mutex_init(&gethostbyname_lock, NULL); 
 
 #ifdef CS_LOGHISTORY
   *loghistidx=0;
@@ -1052,185 +739,175 @@ static int start_listener(struct s_module *ph, int port_idx)
   return(ph->ptab->ports[port_idx].fd);
 }
 
-static void cs_client_resolve()
+int cs_user_resolve(struct s_auth *account)
 {
-  while (1)
-  {
-    struct addrinfo hints, *res = NULL;
-    struct s_auth *account;
-       
-    for (account=cfg->account; account; account=account->next)
-      if (account->dyndns[0])
-      {
+    struct hostent *rht;
+    struct sockaddr_in udp_sa;
+    int result=0;  
+    if (account->dyndns[0])
+    {
+      pthread_mutex_lock(&gethostbyname_lock);
+      in_addr_t lastip = account->dynip;
+      //Resolve with gethostbyname:
+      if (cfg->resolve_gethostbyname) {
+        rht = gethostbyname((char*)account->dyndns);
+	if (!rht)
+	  cs_log("can't resolve %s", account->dyndns);
+	else {
+          memcpy(&udp_sa.sin_addr, rht->h_addr, sizeof(udp_sa.sin_addr));
+          account->dynip=cs_inet_order(udp_sa.sin_addr.s_addr);
+          result=1;
+	}
+      } 
+      else { //Resolve with getaddrinfo:
+  	struct addrinfo hints, *res = NULL;
         memset(&hints, 0, sizeof(hints));
         hints.ai_socktype = SOCK_STREAM;
         hints.ai_family = AF_INET;
         hints.ai_protocol = IPPROTO_TCP;
-                
+             
         int err = getaddrinfo((const char*)account->dyndns, NULL, &hints, &res);
         if (err != 0 || !res || !res->ai_addr) {
-	  cs_log("can't resolve %s, error: %s", account->dyndns, err ? gai_strerror(err) : "unknown");
+     	  cs_log("can't resolve %s, error: %s", account->dyndns, err ? gai_strerror(err) : "unknown");
 	}
         else {
           account->dynip=cs_inet_order(((struct sockaddr_in *)(res->ai_addr))->sin_addr.s_addr);
+          result=1;
         }
         if (res) freeaddrinfo(res);
       }
-    sleep(cfg->resolvedelay);
-  }
-}
-
-static void start_thread(void * startroutine, char * nameroutine)
-{
-  int i;
-  pthread_t tid;
-
-  i=pthread_create(&tid, (pthread_attr_t *)0, startroutine, (void *) 0);
-  if (i)
-    cs_log("ERROR: can't create %s thread (err=%d)", i, nameroutine);
-  else
-  {
-    cs_log("%s thread started", nameroutine);
-    pthread_detach(tid);
-  }
-}
-
-static void cs_logger(void)
-{
-  *log_fd=client[cs_idx].fd_m2c;
-  while(1)
-  {
-    uchar *ptr;
-    //struct timeval tv;
-    fd_set fds;
-
-    FD_ZERO(&fds);
-    FD_SET(client[cs_idx].fd_m2c_c, &fds);
-    select(client[cs_idx].fd_m2c_c+1, &fds, 0, 0, 0);
-
-    if (master_pid!=getppid())
-      cs_exit(0);
-
-    if (FD_ISSET(client[cs_idx].fd_m2c_c, &fds))
-    {
-      int n;
-//    switch(n=read_from_pipe(client[cs_idx].fd_m2c_c, &ptr, 1))
-      n=read_from_pipe(client[cs_idx].fd_m2c_c, &ptr, 1);
-//if (n!=PIP_ID_NUL) printf("received %d bytes\n", n); fflush(stdout);
-      switch(n)
-      {
-        case PIP_ID_LOG:
-          cs_write_log((char *)ptr);
-          break;
+      if (lastip != account->dynip)  {
+        uchar *ip = (uchar*) &account->dynip;
+        cs_log("%s: resolved ip=%d.%d.%d.%d", (char*)account->dyndns, ip[3], ip[2], ip[1], ip[0]);
       }
+      pthread_mutex_unlock(&gethostbyname_lock);
     }
-  }
+    if (!result)
+    	account->dynip=0;
+    return result;
+}
+
+static void start_thread(void * startroutine, char * nameroutine, char typ) {
+	int i,o;
+
+	if (typ == 'h')
+		o=cs_fork(0,95);
+	else
+		o=cs_fork(0,97);
+
+	client[o].typ=typ;
+
+	client[o].ip=client[0].ip;
+	strcpy(client[o].usr, client[0].usr);
+
+	i=pthread_create(&client[o].thread, (pthread_attr_t *)0, startroutine, (void *) 0);
+
+	if (i)
+		cs_log("ERROR: can't create %s thread (err=%d)", i, nameroutine);
+	else {
+		cs_log("%s thread started", nameroutine);
+		pthread_detach(client[o].thread);
+	}
 }
 
 #ifdef CS_ANTICASC
-static void start_anticascader()
+void start_anticascader()
 {
-  int i;
-
-  use_ac_log=1;
   set_signal_handler(SIGHUP, 1, ac_init_stat);
 
   ac_init_stat();
   while(1)
   {
-    for( i=0; i<cfg->ac_stime*60; i++ )
-      if( master_pid!=getppid() )
-        cs_exit(0);
-      else
-        cs_sleepms(1000);
-
-    if (master_pid!=getppid())
-      cs_exit(0);
-
     ac_do_stat();
   }
 }
 #endif
 
-#ifdef WEBIF
-static void cs_http()
-{
-	http_srv();
-}
-#endif
+static void restart_cardreader(int reader_idx, int restart) {
+	int i,n;
+	if ((reader[reader_idx].device[0]) && (reader[reader_idx].enable == 1) && (!reader[reader_idx].deleted)) {
 
+		if (restart) {
+			cs_sleepms(cfg->reader_restart_seconds * 1000); // SS: wait
+			cs_log("restarting reader %s (index=%d)", reader[reader_idx].label, reader_idx);
+		}
 
-static void init_cardreader()
-{
-	int n,i;
-	for (ridx=0; ridx<CS_MAXREADER; ridx++) {
-		reader[ridx].ridx = ridx; //FIXME
-		if ((reader[ridx].device[0]) && (reader[ridx].enable == 1)) {
-
-			if ((reader[ridx].typ & R_IS_CASCADING)) {
-				n=0;
-				for (i=0; i<CS_MAX_MOD; i++) {
-					if (ph[i].num) {
-						if (reader[ridx].typ==ph[i].num) {
-							cs_log("reader %s protocol: %s", reader[ridx].label, ph[i].desc);
-							reader[ridx].ph=ph[i];
-							n=1;
-							break;
-						}
+		if ((reader[reader_idx].typ & R_IS_CASCADING)) {
+			n=0;
+			for (i=0; i<CS_MAX_MOD; i++) {
+				if (ph[i].num) {
+					if (reader[reader_idx].typ==ph[i].num) {
+						cs_debug("reader %s protocol: %s", reader[reader_idx].label, ph[i].desc);
+						reader[reader_idx].ph=ph[i];
+						n=1;
+						break;
 					}
 				}
-
-				if (!n) {
-					cs_log("Protocol Support missing.");
-					continue;
-				}
 			}
-
-			switch(cs_fork(0, 99)) {
-				case -1:
-					cs_exit(1);
-				case  0:
-					break;
-				default:
-				wait4master();
-				start_cardreader(&reader[ridx]);
+			if (!n) {
+				cs_log("Protocol Support missing.");
+				return;
 			}
 		}
+
+		i=cs_fork(0, 99);
+		reader[reader_idx].fd=client[i].fd_m2c;
+		client[i].ridx=reader_idx;
+		cs_log("creating thread for device %s slot %i with ridx %i cs_idx %i", reader[reader_idx].device, reader[reader_idx].slot, reader_idx, i);
+             	
+		client[i].sidtabok=reader[reader_idx].sidtabok;
+		client[i].sidtabno=reader[reader_idx].sidtabno;
+   
+		reader[reader_idx].pid=getpid();
+
+		reader[reader_idx].cidx=i;
+
+		client[i].typ='r';
+		//client[i].ctyp=99;
+		pthread_create(&client[i].thread, NULL, start_cardreader, (void *)&reader[reader_idx]);
+
+       	if (reader[reader_idx].r_port)
+			cs_log("proxy thread started (pid=%d, server=%s)",reader[reader_idx].pid, reader[reader_idx].device);
+		else {
+			switch(reader[reader_idx].typ) {
+				case R_MOUSE:
+				case R_SMART:
+					cs_log("reader thread started (pid=%d, device=%s, detect=%s%s, mhz=%d, cardmhz=%d)",reader[reader_idx].pid, 
+						reader[reader_idx].device,reader[reader_idx].detect&0x80 ? "!" : "",RDR_CD_TXT[reader[reader_idx].detect&0x7f],
+						reader[reader_idx].mhz,reader[reader_idx].cardmhz);
+					break;
+				case R_SC8in1:
+					cs_log("reader thread started (pid=%d, device=%s:%i, detect=%s%s, mhz=%d, cardmhz=%d)",reader[reader_idx].pid, 
+						reader[reader_idx].device,reader[reader_idx].slot,reader[reader_idx].detect&0x80 ? "!" : "",
+						RDR_CD_TXT[reader[reader_idx].detect&0x7f],reader[reader_idx].mhz,reader[reader_idx].cardmhz);
+					break;
+				default:
+					cs_log("reader thread started (pid=%d, device=%s)",reader[reader_idx].pid, reader[reader_idx].device);
+			}
+			client[i].ip=client[0].ip;
+			strcpy(client[i].usr, client[0].usr);
+		}  
 	}
 }
 
-static void init_service(int srv)
-{
-	switch(cs_fork(0, srv))
-	{
-	case -1:
-	cs_exit(1);
-	case  0:
-		break;
-	default:
-		wait4master();
-		switch(srv)
-		{
-#ifdef CS_ANTICASC
-		case 96: start_anticascader();
-#endif
-		case 97: cs_logger();
-#ifdef WEBIF
-		case 95: cs_http();
-#endif
+static void init_cardreader() {
+	int reader_idx;
+	for (reader_idx=0; reader_idx<CS_MAXREADER; reader_idx++) {
+		if ((reader[reader_idx].device[0]) && (reader[reader_idx].enable == 1)) {
+			restart_cardreader(reader_idx, 0);
 		}
 	}
 }
 
 void wait4master()
 {
-  int i;
-  for (i=0; (i<1000) && (client[cs_idx].pid!=getpid()); i++)
-    cs_sleepms(1);
+  //int i;
+  //for (i=0; (i<1000) && (client[cs_idx].pid!=getpid()); i++)
+    //cs_sleepms(1);
   if (client[cs_idx].pid!=getpid())
   {
     cs_log("PANIC: client not found in shared memory");
-    cs_exit(1);
+    //cs_exit(1);
   }
   cs_debug("starting client %d with ip %s",
             cs_idx-cdiff, cs_inet_ntoa(client[cs_idx].ip));
@@ -1276,7 +953,7 @@ static void cs_fake_client(char *usr, int uniq, in_addr_t ip)
 
 }
 
-int cs_auth_client(struct s_auth *account, char *e_txt)
+int cs_auth_client(struct s_auth *account, const char *e_txt)
 {
 	int rc=0;
 	char buf[32];
@@ -1306,6 +983,8 @@ int cs_auth_client(struct s_auth *account, char *e_txt)
 	default:            // grant/check access
 		if (client[cs_idx].ip && account->dyndns[0]) {
 			if (cfg->clientdyndns) {
+				if (client[cs_idx].ip != account->dynip)
+					cs_user_resolve(account);
 				if (client[cs_idx].ip != account->dynip)
 					rc=2;
 			}
@@ -1447,7 +1126,7 @@ int check_ecmcache1(ECM_REQUEST *er, ulong grp)
 int check_ecmcache2(ECM_REQUEST *er, ulong grp)
 {
 	// disable cache2
-	if (!reader[ridx].cachecm) return(0);
+	if (!reader[client[get_csidx()].ridx].cachecm) return(0);
 	
 	int i;
 	//cs_ddump(ecmd5, CS_ECMSTORESIZE, "ECM search");
@@ -1468,6 +1147,10 @@ int check_ecmcache2(ECM_REQUEST *er, ulong grp)
 
 static void store_ecm(ECM_REQUEST *er)
 {
+#ifdef CS_WITH_DOUBLECHECK
+	if (cfg->double_check && er->checked < 2)
+		return;
+#endif
 	int rc;
 	rc=*ecmidx;
 	*ecmidx=(*ecmidx+1) % CS_ECMCACHESIZE;
@@ -1519,6 +1202,11 @@ int write_to_pipe(int fd, int id, uchar *data, int n)
 //n=write(fd, buf, n);
 //printf("WRITE_END pid=%d", getpid()); fflush(stdout);
 //return(n);
+
+  if( !fd ) {
+    cs_log("write_to_pipe: fd==0");
+    return(PIP_ID_ERR);
+  }
 
   return(write(fd, buf, n));
 }
@@ -1643,7 +1331,7 @@ void logCWtoFile(ECM_REQUEST *er)
 	/* calc log file name */
 	time(&t);
 	timeinfo = localtime(&t);
-	strftime(date, sizeof(date), "%y%m%d", timeinfo);
+	strftime(date, sizeof(date), "%Y%m%d", timeinfo);
 	sprintf(buf, "%s/%s_I%04X_%s.cwl", cfg->cwlogdir, date, er->srvid, srvname);
 
 	/* open failed, assuming file does not exist, yet */
@@ -1694,7 +1382,7 @@ int write_ecm_answer(struct s_reader * reader, int fd, ECM_REQUEST *er)
     }
   }
 
-  er->reader[0]=reader->ridx;
+  er->reader[0]=client[reader->cidx].ridx;
 //cs_log("answer from reader %d (rc=%d)", er->reader[0], er->rc);
   er->caid=er->ocaid;
 
@@ -1724,12 +1412,12 @@ static int cs_read_timer(int fd, uchar *buf, int l, int msec)
   tv.tv_sec = msec / 1000;
   tv.tv_usec = (msec % 1000) * 1000;
   FD_ZERO(&fds);
-  FD_SET(pfd, &fds);
+  FD_SET(client[cs_idx].pfd, &fds);
 
   select(fd+1, &fds, 0, 0, &tv);
 
   rc=0;
-  if (FD_ISSET(pfd, &fds))
+  if (FD_ISSET(client[cs_idx].pfd, &fds))
     if (!(rc=read(fd, buf, l)))
       rc=-1;
 
@@ -1741,15 +1429,15 @@ ECM_REQUEST *get_ecmtask()
 	int i, n;
 	ECM_REQUEST *er=0;
 
-	if (!ecmtask)
+	if (!client[cs_idx].ecmtask)
 	{
 		n=(ph[client[cs_idx].ctyp].multi)?CS_MAXPENDING:1;
-		if( (ecmtask=(ECM_REQUEST *)malloc(n*sizeof(ECM_REQUEST))) )
-			memset(ecmtask, 0, n*sizeof(ECM_REQUEST));
+		if( (client[cs_idx].ecmtask=(ECM_REQUEST *)malloc(n*sizeof(ECM_REQUEST))) )
+			memset(client[cs_idx].ecmtask, 0, n*sizeof(ECM_REQUEST));
 	}
 
 	n=(-1);
-	if (!ecmtask)
+	if (!client[cs_idx].ecmtask)
 	{
 		cs_log("Cannot allocate memory (errno=%d)", errno);
 		n=(-2);
@@ -1758,11 +1446,11 @@ ECM_REQUEST *get_ecmtask()
 		if (ph[client[cs_idx].ctyp].multi)
 		{
 			for (i=0; (n<0) && (i<CS_MAXPENDING); i++)
-				if (ecmtask[i].rc<100)
-					er=&ecmtask[n=i];
+				if (client[cs_idx].ecmtask[i].rc<100)
+					er=&client[cs_idx].ecmtask[n=i];
 		}
 		else
-			er=&ecmtask[n=0];
+			er=&client[cs_idx].ecmtask[n=0];
 
 	if (n<0)
 		cs_log("WARNING: ecm pending table overflow !");
@@ -1777,9 +1465,9 @@ ECM_REQUEST *get_ecmtask()
 	return(er);
 }
 
-void send_reader_stat(int ridx, ECM_REQUEST *er, int rc)
+void send_reader_stat(int ridx9, ECM_REQUEST *er, int rc)
 {
-	if (!cfg->reader_auto_loadbalance || rc == 100)
+	if (!cfg->lb_mode || rc == 100)
 		return;
 	struct timeb tpe;
 	cs_ftime(&tpe);
@@ -1787,7 +1475,7 @@ void send_reader_stat(int ridx, ECM_REQUEST *er, int rc)
 
 	ADD_READER_STAT add_stat;
 	memset(&add_stat, 0, sizeof(ADD_READER_STAT));
-	add_stat.ridx = ridx;
+	add_stat.ridx = ridx9;
 	add_stat.time = time;
 	add_stat.rc   = rc;
 	add_stat.caid = er->caid;
@@ -1805,21 +1493,37 @@ int hexserialset(int ridx)
 	return 0;
 }
 
+// rc codes:
+// 0 = found
+// 1 = cache1
+// 2 = cache2
+// 3 = emu
+// 4 = not found
+// 5 = timeout
+// 6 = sleeping
+// 7 = fake
+// 8 = invalid
+// 9 = corrupt
+// 10= no card
+// 11= expdate
+// 12= disabled
+// 13= stopped
+// 100=unhandled
+                                                                                                                        
 int send_dcw(ECM_REQUEST *er)
 {
-	static char *stxt[]={"found", "cache1", "cache2", "emu",
+	static const char *stxt[]={"found", "cache1", "cache2", "emu",
 			"not found", "timeout", "sleeping",
 			"fake", "invalid", "corrupt", "no card", "expdate", "disabled", "stopped"};
-	static char *stxtEx[]={"", "group", "caid", "ident", "class", "chid", "queue", "peer"};
-	static char *stxtWh[]={"", "user ", "reader ", "server ", "lserver "};
-	char sby[32]="";
+	static const char *stxtEx[]={"", "group", "caid", "ident", "class", "chid", "queue", "peer"};
+	static const char *stxtWh[]={"", "user ", "reader ", "server ", "lserver "};
+	char sby[32]="", sreason[32]="", schaninfo[32]="";
 	char erEx[32]="";
 	char uname[38]="";
 	struct timeb tpe;
 	ushort lc, *lp;
 	for (lp=(ushort *)er->ecm+(er->l>>2), lc=0; lp>=(ushort *)er->ecm; lp--)
 		lc^=*lp;
-	cs_ftime(&tpe);
 
 #ifdef CS_WITH_GBOX
 	if(er->gbxFrom)
@@ -1845,6 +1549,13 @@ int send_dcw(ECM_REQUEST *er)
 		snprintf(erEx, sizeof(erEx)-1, "rejected %s%s", stxtWh[er->rcEx>>4],
 				stxtEx[er->rcEx&0xf]);
 
+	if(cfg->mon_appendchaninfo)
+		snprintf(schaninfo, sizeof(schaninfo)-1, " - %s", get_servicename(er->srvid, er->caid));
+
+	if(er->msglog[0])
+		snprintf(sreason, sizeof(sreason)-1, " (%s)", er->msglog);
+
+	cs_ftime(&tpe);
 	client[cs_idx].cwlastresptime = 1000*(tpe.time-er->tps.time)+tpe.millitm-er->tps.millitm;
 
 #ifdef CS_LED
@@ -1852,15 +1563,11 @@ int send_dcw(ECM_REQUEST *er)
 #endif
 
 	send_reader_stat(er->reader[0], er, er->rc);
-	
-	if(cfg->mon_appendchaninfo)
-		cs_log("%s (%04X&%06X/%04X/%02X:%04X): %s (%d ms)%s - %s",
-				uname, er->caid, er->prid, er->srvid, er->l, lc,
-				er->rcEx?erEx:stxt[er->rc], client[cs_idx].cwlastresptime, sby, get_servicename(er->srvid, er->caid));
-	else
-		cs_log("%s (%04X&%06X/%04X/%02X:%04X): %s (%d ms)%s",
-				uname, er->caid, er->prid, er->srvid, er->l, lc,
-				er->rcEx?erEx:stxt[er->rc], client[cs_idx].cwlastresptime, sby);
+
+	cs_log("%s (%04X&%06X/%04X/%02X:%04X): %s (%d ms)%s%s%s",
+			uname, er->caid, er->prid, er->srvid, er->l, lc,
+			er->rcEx?erEx:stxt[er->rc], client[cs_idx].cwlastresptime, sby, schaninfo, sreason);
+
 #ifdef WEBIF
 	if(er->rc == 0)
 		snprintf(client[cs_idx].lastreader, sizeof(client[cs_idx].lastreader)-1, "%s", sby);
@@ -1957,6 +1664,34 @@ int send_dcw(ECM_REQUEST *er)
 
 	cs_ddump_mask (D_ATR, er->cw, 16, "cw:");
 	if (er->rc==7) er->rc=0;
+
+#ifdef CS_WITH_DOUBLECHECK
+	if (cfg->double_check && er->rc < 4) {
+	  if (er->checked == 0) {//First CW, save it and wait for next one
+	    er->checked = 1;
+	    er->origin_reader = er->reader[0]; //contains ridx
+	    memcpy(er->cw_checked, er->cw, sizeof(er->cw));
+	    cs_log("DOUBLE CHECK FIRST CW by %s idx %d cpti %d", reader[er->origin_reader].label, er->idx, er->cpti);
+	  }
+	  else if (er->origin_reader != er->reader[0]) { //Second (or third and so on) cw. We have to compare
+	    if (memcmp(er->cw_checked, er->cw, sizeof(er->cw)) == 0) {
+	    	er->checked++;
+	    	cs_log("DOUBLE CHECKED! %d. CW by %s idx %d cpti %d", er->checked, reader[er->reader[0]].label, er->idx, er->cpti);
+	    }
+	    else {
+	    	cs_log("DOUBLE CHECKED NONMATCHING! %d. CW by %s idx %d cpti %d", er->checked, reader[er->reader[0]].label, er->idx, er->cpti);
+	    }
+	  }
+	  
+	  if (er->checked < 2) { //less as two same cw? mark as pending!
+	    er->rc = 100; 
+	    return 0;
+	  }
+
+	  store_ecm(er); //Store in cache!
+	}
+#endif
+	
 	ph[client[cs_idx].ctyp].send_dcw(er);
 	return 0;
 }
@@ -1967,14 +1702,16 @@ void chk_dcw(int fd)
   if (read_from_pipe(fd, (uchar **)(void *)&er, 0) != PIP_ID_ECM)
 	  return;
   //cs_log("dcw check from reader %d for idx %d (rc=%d)", er->reader[0], er->cpti, er->rc);
-  ert=&ecmtask[er->cpti];
+  ert=&client[cs_idx].ecmtask[er->cpti];
   if (ert->rc<100) {
-	send_reader_stat(er->reader[0], er, (er->rc==0)?4:((er->rc==1)?0:er->rc));
+	//cs_debug_mask(D_TRACE, "chk_dcw: already done rc=%d %s", er->rc, reader[er->reader[0]].label);
+	send_reader_stat(er->reader[0], er, (er->rc <= 0)?4:0);
 	return; // already done
   }
   if( (er->caid!=ert->caid) || memcmp(er->ecm , ert->ecm , sizeof(er->ecm)) )
     return; // obsolete
   ert->rcEx=er->rcEx;
+  strcpy(ert->msglog, er->msglog);
   if (er->rc>0) // found
   {
     switch(er->rc)
@@ -2175,7 +1912,7 @@ void request_cw(ECM_REQUEST *er, int flag, int reader_types)
           default:
           case 0:
               if (er->reader[i]&flag){
-                  //cs_debug_mask(D_TRACE, "request_cw1 to reader %s ridx=%d fd=%d", reader[i].label, i, reader[i].fd);
+                  cs_debug_mask(D_TRACE, "request_cw1 to reader %s ridx=%d fd=%d", reader[i].label, i, reader[i].fd);
                   status = write_ecm_request(reader[i].fd, er);
               }
               break;
@@ -2183,7 +1920,7 @@ void request_cw(ECM_REQUEST *er, int flag, int reader_types)
           case 1:
               if (!(reader[i].typ & R_IS_NETWORK))
                   if (er->reader[i]&flag) {
-                	  //cs_debug_mask(D_TRACE, "request_cw2 to reader %s ridx=%d fd=%d", reader[i].label, i, reader[i].fd);
+                	  cs_debug_mask(D_TRACE, "request_cw2 to reader %s ridx=%d fd=%d", reader[i].label, i, reader[i].fd);
                     status = write_ecm_request(reader[i].fd, er);
                   }
               break;
@@ -2192,18 +1929,18 @@ void request_cw(ECM_REQUEST *er, int flag, int reader_types)
         	  //cs_log("request_cw3 ridx=%d fd=%d", i, reader[i].fd);
               if ((reader[i].typ & R_IS_NETWORK))
                   if (er->reader[i]&flag) {
-                	  //cs_debug_mask(D_TRACE, "request_cw3 to reader %s ridx=%d fd=%d", reader[i].label, i, reader[i].fd);
+                	  cs_debug_mask(D_TRACE, "request_cw3 to reader %s ridx=%d fd=%d", reader[i].label, i, reader[i].fd);
                     status = write_ecm_request(reader[i].fd, er);
                   }
               break;
       }
       if (status == -1) {
                 cs_log("request_cw() failed on reader %s (%d) errno=%d, %s", reader[i].label, i, errno, strerror(errno));
-      		if (reader[i].fd && reader[i].pid) {
+      		if (reader[i].fd) {
  	     		reader[i].fd_error++;
       			if (reader[i].fd_error > 5) {
       				reader[i].fd_error = 0;
-      				kill(client[reader[i].cs_idx].pid, 1); //Schlocke: This should restart the reader!
+      				send_restart_cardreader(i, 1); //Schlocke: This restarts the reader!
       			} 
 		}
       }
@@ -2232,39 +1969,18 @@ void recv_best_reader(ECM_REQUEST *er, int *reader_avail)
 	}
 	
 	uchar *ptr;
-	fd_set fds;
 	do
 	{
-		struct timeval timeout;
-		timeout.tv_sec = 1;
-		timeout.tv_usec = 500;
-		FD_ZERO(&fds);
-		FD_SET(client[cs_idx].fd_m2c_c, &fds);
-		int res = select(client[cs_idx].fd_m2c_c+1, &fds, 0, 0, &timeout);
-		if (res == 0) {
-			cs_debug_mask(D_TRACE, "get best reader: timeout!");
-			return; //timeout
+		int n = read_from_pipe(client[cs_idx].fd_m2c_c, &ptr, 1);
+		if (n == PIP_ID_BES) {
+			int *best_readers = (int*)ptr;
+			memcpy(reader_avail, best_readers, sizeof(int)*CS_MAXREADER);
+			return;
 		}
-		else if (res < 0) {
-			cs_debug_mask(D_TRACE, "get best reader: failed!");
-			return; //failed
-		}
-			
-		if (master_pid!=getppid())
-			cs_exit(0);
-		if (FD_ISSET(client[cs_idx].fd_m2c_c, &fds))
-		{
-			int n = read_from_pipe(client[cs_idx].fd_m2c_c, &ptr, 1);
-			if (n == PIP_ID_BES) {
-				int *best_readers = (int*)ptr;
-				memcpy(reader_avail, best_readers, sizeof(int)*CS_MAXREADER);
-				return;
-			}
-			else if (n == PIP_ID_DIR)
-				continue;
-			else //should neven happen
-				cs_debug_mask(D_TRACE, "get best reader: illegal paket? n=%d", n);
-		} 
+		else if (n == PIP_ID_DIR)
+			continue;
+		else //should neven happen
+			cs_debug_mask(D_TRACE, "get best reader: illegal paket? n=%d", n);
 	} while (1);
 }
 
@@ -2312,11 +2028,25 @@ void get_cw(ECM_REQUEST *er)
 	if (!er->caid) {
 		er->rc = 8;
 		er->rcEx = E2_CAID;
+		snprintf( er->msglog, MSGLOGSIZE, "CAID not supported or found" );
 	}
 
 	// user expired
 	if(client[cs_idx].expirationdate && client[cs_idx].expirationdate < client[cs_idx].lastecm)
 		er->rc = 11;
+
+	// out of timeframe
+	if(client[cs_idx].allowedtimeframe[0] && client[cs_idx].allowedtimeframe[1]) {
+		struct tm *acttm;
+		acttm = localtime(&now);
+		int curtime = (acttm->tm_hour * 60) + acttm->tm_min;
+		int mintime = client[cs_idx].allowedtimeframe[0];
+		int maxtime = client[cs_idx].allowedtimeframe[1];
+		if(!((mintime <= maxtime && curtime > mintime && curtime < maxtime) || (mintime > maxtime && (curtime > mintime || curtime < maxtime)))) {
+			er->rc = 11;
+		}
+		cs_debug("Check Timeframe - result: %d, start: %d, current: %d, end: %d\n",er->rc, mintime, curtime, maxtime);
+	}
 
 	// user disabled
 	if(client[cs_idx].disabled != 0)
@@ -2362,13 +2092,18 @@ void get_cw(ECM_REQUEST *er)
 					if (!chk_bcaid(er, &client[cs_idx].ctab)) {
 						er->rc = 8;
 						er->rcEx = E2_CAID;
+						snprintf( er->msglog, MSGLOGSIZE, "invalid caid %x",er->caid );
 						}
 					break;
 
 				case 2:
 					// invalid (srvid)
 					if (!chk_srvid(er, cs_idx))
+					{
 						er->rc = 8;
+					    snprintf( er->msglog, MSGLOGSIZE, "invalid SID" );
+					}
+
 					break;
 
 				case 3:
@@ -2423,7 +2158,7 @@ void get_cw(ECM_REQUEST *er)
 
 	if(er->rc > 99) {
 
-		if (cfg->reader_auto_loadbalance) {
+		if (cfg->lb_mode) {
 			int reader_avail[CS_MAXREADER];
 			for (i =0; i < CS_MAXREADER; i++)
 				reader_avail[i] = matching_reader(er, &reader[i]);
@@ -2472,10 +2207,9 @@ void get_cw(ECM_REQUEST *er)
 
 void log_emm_request(int auidx)
 {
-//  cs_log("%s send emm-request (reader=%s, caid=%04X)",
-//         cs_inet_ntoa(client[cs_idx].ip), reader[auidx].label, reader[auidx].caid[0]);
-  cs_log("%s emm-request sent (reader=%s, caid=%04X)",
-         username(cs_idx), reader[auidx].label, reader[auidx].caid[0]);
+	cs_log("%s emm-request sent (reader=%s, caid=%04X, auprovid=%06lX)",
+			username(cs_idx), reader[auidx].label, reader[auidx].caid[0],
+			reader[auidx].auprovid ? reader[auidx].auprovid : b2i(4, reader[auidx].prid[0]));
 }
 
 void do_emm(EMM_PACKET *ep)
@@ -2517,9 +2251,62 @@ void do_emm(EMM_PACKET *ep)
 		return;
 	}
 
+	//test: EMM becomes skipped if auprivid doesn't match with provid from EMM
+	if(reader[au].auprovid) {
+		if(reader[au].auprovid != b2i(4, ep->provid)) {
+			cs_debug_mask(D_EMM, "emm skipped, reader %s (%d) auprovid doesn't match %06lX != %06lX!", reader[au].label, au, reader[au].auprovid, b2i(4, ep->provid));
+			return;
+		}
+	}
+
 	cs_debug_mask(D_EMM, "emmtype %s. Reader %s has serial %s.", typtext[ep->type], reader[au].label, cs_hexdump(0, reader[au].hexserial, 8)); 
 	cs_ddump_mask(D_EMM, ep->hexserial, 8, "emm UA/SA:");
 	cs_ddump_mask(D_EMM, ep->emm, ep->l, "emm:");
+
+	client[cs_idx].last=time((time_t)0);
+	if (reader[au].b_nano[ep->emm[0]] & 0x02) //should this nano be saved?
+	{
+		char token[256];
+		FILE *fp;
+		time_t rawtime;
+		time (&rawtime);
+		struct tm *timeinfo;
+		timeinfo = localtime (&rawtime);	/* to access LOCAL date/time info */
+		char buf[80];
+		strftime (buf, 80, "%Y/%m/%d %H:%M:%S", timeinfo);
+		sprintf (token, "%s%s_emm.log", cs_confdir, reader[au].label);
+		int emm_length = ((ep->emm[1] & 0x0f) << 8) | ep->emm[2];
+
+		if (!(fp = fopen (token, "a")))
+		{
+			cs_log ("ERROR: Cannot open file '%s' (errno=%d)\n", token, errno);
+		}
+		else
+		{
+			fprintf (fp, "%s   %s   ", buf, cs_hexdump(0, ep->hexserial, 8)); 
+			fprintf (fp, "%s\n", cs_hexdump(0, ep->emm, emm_length + 3));
+			fclose (fp);
+			cs_log ("Succesfully added EMM to %s.", token);
+		}
+
+		sprintf (token, "%s%s_emm.bin", cs_confdir, reader[au].label);
+		if (!(fp = fopen (token, "ab")))
+		{
+			cs_log ("ERROR: Cannot open file '%s' (errno=%d)\n", token, errno);
+		}
+		else 
+		{
+			if ((int)fwrite(ep->emm, 1, emm_length+3, fp) == emm_length+3)
+			{
+				cs_log ("Succesfully added binary EMM to %s.", token);
+			}
+			else
+			{
+				cs_log ("ERROR: Cannot write binary EMM to %s (errno=%d)\n", token, errno);
+			}
+			fclose (fp);
+		}
+	}
 
 	switch (ep->type) {
 		case UNKNOWN:
@@ -2595,7 +2382,7 @@ struct timeval *chk_pending(struct timeb tp_ctimeout)
 	cs_ftime(&tpn);
 	tpe=tp_ctimeout;    // latest delay -> disconnect
 
-	if (ecmtask)
+	if (client[cs_idx].ecmtask)
 		i=(ph[client[cs_idx].ctyp].multi)?CS_MAXPENDING:1;
 	else
 		i=0;
@@ -2603,16 +2390,16 @@ struct timeval *chk_pending(struct timeb tp_ctimeout)
 	//cs_log("num pend=%d", i);
 
 	for (--i; i>=0; i--) {
-		if (ecmtask[i].rc>=100) { // check all pending ecm-requests 
-			er=&ecmtask[i];
+		if (client[cs_idx].ecmtask[i].rc>=100) { // check all pending ecm-requests 
+			er=&client[cs_idx].ecmtask[i];
 			if (check_ecmcache1(er, client[cs_idx].grp)) { //Schlocke: caching dupplicate requests from different clients
 				er->rc = 1;
 				send_dcw(er);
 			}
 		}
-		if (ecmtask[i].rc>=100) { // check all pending ecm-requests 
+		if (client[cs_idx].ecmtask[i].rc>=100) { // check all pending ecm-requests 
 			int act, j;
-			er=&ecmtask[i];
+			er=&client[cs_idx].ecmtask[i];
 			tpc=er->tps;
 			tpc.millitm += (er->stage) ? cfg->ctimeout : cfg->ftimeout;
 			tpc.time += tpc.millitm / 1000;
@@ -2665,7 +2452,7 @@ struct timeval *chk_pending(struct timeb tp_ctimeout)
 				//cs_log("           %d.%03d", tpc.time, tpc.millitm);
 				if (er->stage) {
 					er->rc=5; // timeout
-					if (cfg->reader_auto_loadbalance) {
+					if (cfg->lb_mode) {
 						int r;
 						for (r=0; r<CS_MAXREADER; r++)
 							if (er->reader[r])
@@ -2702,8 +2489,7 @@ int process_input(uchar *buf, int l, int timeout)
   fd_set fds;
   struct timeb tp;
 
-  if (master_pid!=getppid()) cs_exit(0);
-  if (!pfd) return(-1);
+  if (!client[cs_idx].pfd) return(-1);
   cs_ftime(&tp);
   tp.time+=timeout;
   if (ph[client[cs_idx].ctyp].watchdog)
@@ -2711,11 +2497,10 @@ int process_input(uchar *buf, int l, int timeout)
   while (1)
   {
     FD_ZERO(&fds);
-    FD_SET(pfd, &fds);
+    FD_SET(client[cs_idx].pfd, &fds);
     FD_SET(client[cs_idx].fd_m2c_c, &fds);
 
-    rc=select(((pfd>client[cs_idx].fd_m2c_c)?pfd:client[cs_idx].fd_m2c_c)+1, &fds, 0, 0, chk_pending(tp));
-    if (master_pid!=getppid()) cs_exit(0);
+    rc=select(((client[cs_idx].pfd>client[cs_idx].fd_m2c_c)?client[cs_idx].pfd:client[cs_idx].fd_m2c_c)+1, &fds, 0, 0, chk_pending(tp));
     if (rc<0)
     {
       if (errno==EINTR) continue;
@@ -2725,7 +2510,7 @@ int process_input(uchar *buf, int l, int timeout)
     if (FD_ISSET(client[cs_idx].fd_m2c_c, &fds))   // read from pipe
       chk_dcw(client[cs_idx].fd_m2c_c);
 
-    if (FD_ISSET(pfd, &fds))    // read from client
+    if (FD_ISSET(client[cs_idx].pfd, &fds))    // read from client
     {
       rc=ph[client[cs_idx].ctyp].recv(buf, l);
       break;
@@ -2747,7 +2532,7 @@ static void restart_clients()
 	cs_log("restarting clients");
 	for (i=0; i<CS_MAXPID; i++) {
 		if (client[i].pid && client[i].typ=='c' && ph[client[i].ctyp].type & MOD_CONN_NET) {
-			kill(client[i].pid, SIGKILL);
+			pthread_cancel(client[i].thread);
 			cs_log("killing client c%02d pid %d", i, client[i].pid);
 		}
 	}
@@ -2769,9 +2554,12 @@ void send_clear_reader_stat(int ridx)
   write_to_pipe(fd_c2m, PIP_ID_RES, (uchar*)&ridx, sizeof(ridx)); 
 }
 
-void send_restart_cardreader(int ridx)
+void send_restart_cardreader(int ridx, int force_now)
 {
-  write_to_pipe(fd_c2m, PIP_ID_RST, (uchar*)&ridx, sizeof(ridx)); 
+  int restart_info[2];
+  restart_info[0] = ridx;
+  restart_info[1] = force_now;
+  write_to_pipe(fd_c2m, PIP_ID_RST, (uchar*)&restart_info, sizeof(restart_info)); 
 }
 
 static void process_master_pipe()
@@ -2781,15 +2569,13 @@ static void process_master_pipe()
 
   switch(n=read_from_pipe(mfdr, &ptr, 1))
   {
-    case PIP_ID_LOG:
-    	cs_write_log((char *)ptr);
-    	break;
     case PIP_ID_HUP:
     	cs_accounts_chk();
     	break;
-    case PIP_ID_RST: //Restart Cardreader with ridx=prt[0]
-    	restart_cardreader(*(int*)ptr, 1);
-    	break;
+    case PIP_ID_RST:{ //Restart Cardreader with ridx=prt[0] 
+        int *restart_info = (int *)ptr;
+    	restart_cardreader(restart_info[0], restart_info[1]);
+    	break; }
     case PIP_ID_KCL: //Kill all clients
     	restart_clients();
     	break;
@@ -2800,8 +2586,15 @@ static void process_master_pipe()
         send_best_reader((GET_READER_STAT *)ptr);
         break;
     case PIP_ID_RES: //Reset reader statistics
-	clear_reader_stat(*(int*)ptr);
-	break;
+    	clear_reader_stat(*(int*)ptr);
+    	break;
+    case PIP_ID_CCC: {//Send CCcam cards to clients
+    	int data[2];
+    	data[0] = ((int*)ptr)[0];
+    	data[1] = ((int*)ptr)[1];
+    	write_to_pipe(reader[data[0]].fd, PIP_ID_CCC, (uchar*)data, sizeof(data));
+    	break;
+    }
   }
 }
 
@@ -2828,9 +2621,9 @@ void cs_log_config()
   cs_log("client timeout=%lu ms, fallback timeout=%lu ms, cache delay=%d ms",
          cfg->ctimeout, cfg->ftimeout, cfg->delay);
 #ifdef CS_NOSHM
-  cs_log("shared memory initialized (size=%d, fd=%d)", shmsize, shmid);
+  cs_log("shared memory initialized (size=%d)", shmsize);
 #else
-  cs_log("shared memory initialized (size=%d, id=%d)", shmsize, shmid);
+  cs_log("shared memory initialized (size=%d)", shmsize);
 #endif
 }
 
@@ -2856,24 +2649,132 @@ void cs_waitforcardinit()
 	}
 }
 
-void cs_resolve()
-{
-  int i;
-  for (i=0; i<CS_MAXREADER; i++)
-    if (reader[i].enable && !reader[i].deleted && (reader[i].cs_idx) && (reader[i].typ & R_IS_NETWORK) && (reader[i].typ!=R_CONSTCW))
-      hostResolve(i);
-}
+int accept_connection(int i, int j) {
+	struct   sockaddr_in cad;
+	int scad,n,o;
+	scad = sizeof(cad);
+	uchar    buf[2048];
+	int      fdp[2];
 
-static void loop_resolver()
-{
-  cs_sleepms(1000); // wait for reader
-  while(cfg->resolvedelay > 0)
-  {
-    cs_resolve();
-    cs_sleepms(1000*cfg->resolvedelay);
-  }
+	if (ph[i].type==MOD_CONN_UDP) {
+
+		if ((n=recvfrom(ph[i].ptab->ports[j].fd, buf+3, sizeof(buf)-3, 0, (struct sockaddr *)&cad, (socklen_t *)&scad))>0) {
+			int idx;
+			idx=idx_from_ip(cs_inet_order(cad.sin_addr.s_addr), ntohs(cad.sin_port));
+
+			if (!idx) {
+				if (pipe(fdp)) {
+					cs_log("Cannot create pipe (errno=%d)", errno);
+					return 0;
+				}
+				o=cs_fork(cs_inet_order(cad.sin_addr.s_addr), ntohs(cad.sin_port));
+
+				client[o].ufd=fdp[1];
+				client[o].pfd=fdp[0];
+
+				client[o].is_server=1; //FIXME global should be local per thread
+
+				client[o].ctyp=i;
+				client[o].port_idx=j;
+				client[o].udp_fd=ph[i].ptab->ports[j].fd;
+				client[o].udp_sa=cad;
+
+             	       	client[o].ip=cs_inet_order(cad.sin_addr.s_addr);
+				client[o].port=ntohs(cad.sin_port);
+				client[o].typ='c';
+
+				//if (ph[client[o].ctyp].watchdog)
+				//	alarm(cfg->cmaxidle + cfg->ctimeout / 1000 + 1);
+
+				//ph[i].s_handler(cad);   // never return
+				pthread_create(&client[o].thread, NULL, (void *)ph[i].s_handler, (void *) o);
+				pthread_detach(client[o].thread);
+			} else {
+				unsigned short rl;
+				rl=n;
+				buf[0]='U';
+				memcpy(buf+1, &rl, 2);
+				if (!write(client[idx].ufd, buf, n+3)) return 0;
+			}
+		}
+	} else { //TCP
+
+		int pfd3;
+		if ((pfd3=accept(ph[i].ptab->ports[j].fd, (struct sockaddr *)&cad, (socklen_t *)&scad))>0) {
+			o=cs_fork(cs_inet_order(cad.sin_addr.s_addr), ntohs(cad.sin_port));
+			
+			client[o].ctyp=i;
+			client[o].udp_fd=pfd3;
+			client[o].port_idx=j;
+
+			client[o].pfd=pfd3;
+
+			client[o].is_server=1; //FIXME global should be local per thread
+
+			client[o].ip=cs_inet_order(cad.sin_addr.s_addr);
+			client[o].port=ntohs(cad.sin_port);
+			client[o].typ='c';
+
+			//if (ph[client[o].ctyp].watchdog)
+			//	alarm(cfg->cmaxidle + cfg->ctimeout / 1000 + 1);
+
+			pthread_create(&client[o].thread, NULL, (void *)ph[i].s_handler, (void*) o);
+			pthread_detach(client[o].thread);
+		}
+	}
+	return 0;
 }
-              
+//void cs_resolve()
+//{
+//  int i;
+//  for (i=0; i<CS_MAXREADER; i++)
+//    if (reader[i].enable && !reader[i].deleted && (reader[i].cs_idx) && (reader[i].typ & R_IS_NETWORK) && (reader[i].typ!=R_CONSTCW))
+//      hostResolve(i);
+//}
+
+//static void loop_resolver(void *dummy __attribute__ ((unused)))
+//{
+//  cs_sleepms(1000); // wait for reader
+//  while(cfg->resolvedelay > 0)
+//  {
+//    cs_resolve();
+//    cs_sleepms(1000*cfg->resolvedelay);
+//  }
+//}
+
+
+/**
+ * get tmp dir
+  **/
+char * get_tmp_dir()
+{
+  if (cs_tmpdir[0])
+    return cs_tmpdir;
+      
+#ifdef OS_CYGWIN32
+  char *d = getenv("TMPDIR");
+  if (!d || !d[0])
+    d = getenv("TMP");
+  if (!d || !d[0])
+    d = getenv("TEMP");
+  if (!d || !d[0])
+    getcwd(cs_tmpdir, sizeof(cs_tmpdir)-1);
+                                        
+  strcpy(cs_tmpdir, d);
+  char *p = cs_tmpdir;
+  while(*p) p++;
+  p--;
+  if (*p != '/' && *p != '\\')
+    strcat(cs_tmpdir, "/");
+  strcat(cs_tmpdir, "_oscam");
+#else
+  strcpy(cs_tmpdir, "/tmp/.oscam");
+#endif
+  mkdir(cs_tmpdir, S_IRWXU);
+  return cs_tmpdir;
+}
+                                                              
+                                                                            
 int main (int argc, char *argv[])
 {
 
@@ -2882,14 +2783,14 @@ int main (int argc, char *argv[])
   cs_switch_led(LED1A, LED_ON);
 #endif
 
-  struct   sockaddr_in cad;     /* structure to hold client's address */
-  int      scad;                /* length of address */
+  //struct   sockaddr_in cad;     /* structure to hold client's address */
+  //int      scad;                /* length of address */
   //int      fd;                  /* socket descriptors */
-  int      i, j, n;
+  int      i, j;
   int      bg=0;
   int      gfd; //nph,
   int      fdp[2];
-  uchar    buf[2048];
+  //uchar    buf[2048];
   void (*mod_def[])(struct s_module *)=
   {
 #ifdef MODULE_MONITOR
@@ -2949,15 +2850,18 @@ int main (int argc, char *argv[])
 	reader_viaccess,
 #endif
 #ifdef READER_VIDEOGUARD
-	reader_videoguard,
+	reader_videoguard1,
+	reader_videoguard2,
+	reader_videoguard12,
 #endif
 #ifdef READER_DRE
 	reader_dre,
 #endif
+	reader_tongfang,
 	0
   };
 
-  while ((i=getopt(argc, argv, "bc:d:hm:"))!=EOF)
+  while ((i=getopt(argc, argv, "bc:t:d:hm:"))!=EOF)
   {
     switch(i)
     {
@@ -2967,6 +2871,7 @@ int main (int argc, char *argv[])
                 break;
       case 'd': cs_dblevel=atoi(optarg);
                 break;
+      case 't': cs_strncpy(cs_tmpdir, optarg, sizeof(cs_tmpdir));
       case 'm':
 #ifdef CS_NOSHM
                 cs_strncpy(cs_memfile, optarg, sizeof(cs_memfile));
@@ -2979,6 +2884,7 @@ int main (int argc, char *argv[])
   if (cs_confdir[strlen(cs_confdir)]!='/') strcat(cs_confdir, "/");
   init_shm();
   init_config();
+  init_stat();
   cfg->debuglvl = cs_dblevel; // give static debuglevel to outer world
   for (i=0; mod_def[i]; i++)  // must be later BEFORE init_config()
   {
@@ -2998,8 +2904,8 @@ int main (int argc, char *argv[])
   init_readerdb();
   init_userdb(&cfg->account);
   init_signal();
-  cs_set_mloc(30, "init");
   init_srvid();
+  init_tierid();
   //Todo #ifdef CCCAM
   init_provid();
 
@@ -3027,7 +2933,7 @@ int main (int argc, char *argv[])
     cs_log("Error starting in background (errno=%d)", errno);
     cs_exit(1);
   }
-  master_pid=client[0].pid=getpid();
+
   if (cfg->pidfile != NULL)
   {
     FILE *fp;
@@ -3074,6 +2980,11 @@ int main (int argc, char *argv[])
 #else
 	  fprintf(fp, "anticascsupport: no\n");
 #endif
+#ifdef CS_WITH_DOUBLECHECK
+	  fprintf(fp, "ECM doublecheck: yes\n");
+#else
+	  fprintf(fp, "ECM doublecheck: no\n");
+#endif
 	  fclose(fp);
   }
 #endif
@@ -3099,151 +3010,70 @@ int main (int argc, char *argv[])
 	//set time for server to now to avoid 0 in monitor/webif
 	client[0].last=time((time_t *)0);
 
-	if(cfg->clientdyndns)
-		start_thread((void *) &cs_client_resolve, "client resolver");
+	//start_thread((void *) &cs_logger, "logger", 'l'); //97;
 
-  init_service(97); // logger
-
-  if (cfg->resolvedelay > 0)
-    start_thread(&loop_resolver, "Resolver");
 #ifdef WEBIF
-  init_service(95); // http
+  if(cfg->http_port == 0) 
+    cs_log("http disabled"); 
+  else 
+    start_thread((void *) &http_srv, "http", 'h');
 #endif
-  init_cardreader();
 
-  cs_waitforcardinit();
+	init_cardreader();
+
+	//cs_waitforcardinit();
+
 #ifdef CS_LED
-  cs_switch_led(LED1A, LED_OFF);
-  cs_switch_led(LED1B, LED_ON);
+	cs_switch_led(LED1A, LED_OFF);
+	cs_switch_led(LED1B, LED_ON);
 #endif
 
 #ifdef CS_ANTICASC
-  if( !cfg->ac_enabled )
-    cs_log("anti cascading disabled");
-  else
-  {
-    init_ac();
-    init_service(96);
-  }
+	if( !cfg->ac_enabled )
+		cs_log("anti cascading disabled");
+	else {
+		init_ac();
+		start_thread((void *) &start_anticascader, "anticascader", 'a'); // 96
+		
+	}
 #endif
 
-  for (i=0; i<CS_MAX_MOD; i++)
-    if (ph[i].type & MOD_CONN_SERIAL)   // for now: oscam_ser only
-      if (ph[i].s_handler)
-        ph[i].s_handler(i);
+	for (i=0; i<CS_MAX_MOD; i++)
+		if (ph[i].type & MOD_CONN_SERIAL)   // for now: oscam_ser only
+			if (ph[i].s_handler)
+				ph[i].s_handler(i);
 
-  //cs_close_log();
-  *mcl=1;
-  while (1)
-  {
-    fd_set fds;
+	//cs_close_log();
+	while (1) {
+		fd_set fds;
 
-    do
-    {
-      FD_ZERO(&fds);
-      FD_SET(mfdr, &fds);
-      for (i=0; i<CS_MAX_MOD; i++)
-        if ( (ph[i].type & MOD_CONN_NET) && ph[i].ptab )
-          for (j=0; j<ph[i].ptab->nports; j++)
-            if (ph[i].ptab->ports[j].fd)
-              FD_SET(ph[i].ptab->ports[j].fd, &fds);
-      errno=0;
-      cs_set_mloc(0, "before select");
-      select(gfd, &fds, 0, 0, 0);
-      cs_set_mloc(60, "after select");
-    } while (errno==EINTR);
-    cs_set_mloc(-1, "event (global)");
+		do {
+			FD_ZERO(&fds);
+			FD_SET(mfdr, &fds);
+			for (i=0; i<CS_MAX_MOD; i++)
+				if ( (ph[i].type & MOD_CONN_NET) && ph[i].ptab )
+					for (j=0; j<ph[i].ptab->nports; j++)
+						if (ph[i].ptab->ports[j].fd)
+							FD_SET(ph[i].ptab->ports[j].fd, &fds);
+			errno=0;
+			select(gfd, &fds, 0, 0, 0);
+		} while (errno==EINTR);
 
-    client[0].last=time((time_t *)0);
-    scad = sizeof(cad);
-    if (FD_ISSET(mfdr, &fds))
-    {
-      cs_set_mloc(-1, "event: master-pipe");
-      process_master_pipe();
-    }
-    for (i=0; i<CS_MAX_MOD; i++)
-    {
-      if( (ph[i].type & MOD_CONN_NET) && ph[i].ptab )
-      {
-        for( j=0; j<ph[i].ptab->nports; j++ )
-        {
-          if( ph[i].ptab->ports[j].fd && FD_ISSET(ph[i].ptab->ports[j].fd, &fds) )
-          {
-            if (ph[i].type==MOD_CONN_UDP)
-            {
-              cs_set_mloc(-1, "event: udp-socket");
-              if ((n=recvfrom(ph[i].ptab->ports[j].fd, buf+3, sizeof(buf)-3, 0, (struct sockaddr *)&cad, (socklen_t *)&scad))>0)
-              {
-                int idx;
-                idx=idx_from_ip(cs_inet_order(cad.sin_addr.s_addr), ntohs(cad.sin_port));
-                if (!idx)
-                {
-                  if (pipe(fdp))
-                  {
-                    cs_log("Cannot create pipe (errno=%d)", errno);
-                    cs_exit(1);
-                  }
-                  switch(cs_fork(cs_inet_order(cad.sin_addr.s_addr), ntohs(cad.sin_port)))
-                  {
-                  case -1:
-                    close(fdp[0]);
-                    close(fdp[1]);
-                    break;
-                  case  0:
-                    client[idx=cs_last_idx].ufd=fdp[1];
-                    close(fdp[0]);
-                    break;
-                  default:
-//                    close(fdp[1]);  // now used to simulate event
-                    pfd=fdp[0];
-                    wait4master();
-                    client[cs_idx].ctyp=i;
-                    client[cs_idx].port_idx=j;
-                    client[cs_idx].udp_fd=ph[i].ptab->ports[j].fd;
-                    client[cs_idx].udp_sa=cad;
-                    if (ph[client[cs_idx].ctyp].watchdog)
-                        alarm(cfg->cmaxidle + cfg->ctimeout / 1000 + 1);
-                    ph[i].s_handler(cad);   // never return
-                  }
-                }
-                if (idx)
-                {
-                  unsigned short rl;
-                  rl=n;
-                  buf[0]='U';
-                  memcpy(buf+1, &rl, 2);
-                  if (!write(client[idx].ufd, buf, n+3)) cs_exit(1);
-                }
-              }
-            }
-            else
-            {
-              cs_set_mloc(-1, "event: tcp-socket");
-              if ((pfd=accept(ph[i].ptab->ports[j].fd, (struct sockaddr *)&cad, (socklen_t *)&scad))>0)
-              {
-                switch(cs_fork(cs_inet_order(cad.sin_addr.s_addr), ntohs(cad.sin_port)))
-                {
-                case -1:
-                case  0:
-                  close(pfd);
-                  break;
-                default:
-                  wait4master();
-                  client[cs_idx].ctyp=i;
-                  client[cs_idx].udp_fd=pfd;
-                  client[cs_idx].port_idx=j;
-                  if (ph[client[cs_idx].ctyp].watchdog)
-                      alarm(cfg->cmaxidle + cfg->ctimeout / 1000 + 1);
-                  ph[i].s_handler();
-                }
-              }
-            }
-          }
-        }
-      } // if (ph[i].type & MOD_CONN_NET)
-    }
-  }
-
+		client[0].last=time((time_t *)0);
+		
+		if (FD_ISSET(mfdr, &fds)) {
+			process_master_pipe();
+		}
+		for (i=0; i<CS_MAX_MOD; i++) {
+			if( (ph[i].type & MOD_CONN_NET) && ph[i].ptab ) {
+				for( j=0; j<ph[i].ptab->nports; j++ ) {
+					if( ph[i].ptab->ports[j].fd && FD_ISSET(ph[i].ptab->ports[j].fd, &fds) ) {
+						accept_connection(i,j);
+					}
+				}
+			} // if (ph[i].type & MOD_CONN_NET)
+		}
+	}
 
 #ifdef AZBOX
   if (openxcas_close() < 0) {
@@ -3251,7 +3081,7 @@ int main (int argc, char *argv[])
   }
 #endif
 
-  cs_exit(1);
+	cs_exit(1);
 }
 
 #ifdef CS_LED
@@ -3261,16 +3091,29 @@ void cs_switch_led(int led, int action) {
 		char ledfile[256];
 		FILE *f;
 
-		switch(led){
-		case LED1A:snprintf(ledfile, 255, "/sys/class/leds/nslu2:red:status/brightness");
-		break;
-		case LED1B:snprintf(ledfile, 255, "/sys/class/leds/nslu2:green:ready/brightness");
-		break;
-		case LED2:snprintf(ledfile, 255, "/sys/class/leds/nslu2:green:disk-1/brightness");
-		break;
-		case LED3:snprintf(ledfile, 255, "/sys/class/leds/nslu2:green:disk-2/brightness");
-		break;
-		}
+		#ifdef DOCKSTAR
+			switch(led){
+			case LED1A:snprintf(ledfile, 255, "/sys/class/leds/dockstar:orange:misc/brightness");
+			break;
+			case LED1B:snprintf(ledfile, 255, "/sys/class/leds/dockstar:green:health/brightness");
+			break;
+			case LED2:snprintf(ledfile, 255, "/sys/class/leds/dockstar:green:health/brightness");
+			break;
+			case LED3:snprintf(ledfile, 255, "/sys/class/leds/dockstar:orange:misc/brightness");
+			break;
+			}
+		#else		
+			switch(led){
+			case LED1A:snprintf(ledfile, 255, "/sys/class/leds/nslu2:red:status/brightness");
+			break;
+			case LED1B:snprintf(ledfile, 255, "/sys/class/leds/nslu2:green:ready/brightness");
+			break;
+			case LED2:snprintf(ledfile, 255, "/sys/class/leds/nslu2:green:disk-1/brightness");
+			break;
+			case LED3:snprintf(ledfile, 255, "/sys/class/leds/nslu2:green:disk-2/brightness");
+			break;
+			}
+		#endif
 
 		if (!(f=fopen(ledfile, "w"))){
 			// FIXME: sometimes cs_log was not available when calling cs_switch_led -> signal 11

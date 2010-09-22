@@ -3,20 +3,14 @@
 int logfd=0;
 extern struct s_reader * reader;
 
-static int proxy;
-static struct s_emm *emmcache;
-static int last_idx=1;
-static ushort idx=1;
-
 void reader_do_idle(struct s_reader * reader);
 
 void cs_ri_brk(struct s_reader * reader, int flag)
 {
-  static int brk_pos=0;
   if (flag)
-    brk_pos=reader->init_history_pos;
+    reader->brk_pos=reader->init_history_pos;
   else
-    reader->init_history_pos=brk_pos;
+    reader->init_history_pos=reader->brk_pos;
 }
 
 void cs_ri_log(struct s_reader * reader, char *fmt,...)
@@ -38,7 +32,7 @@ void cs_ri_log(struct s_reader * reader, char *fmt,...)
 		FILE *fp;
 		char filename[32];
 		char *buffer;
-		sprintf(filename, "%s/reader%d", get_tmp_dir(), reader->ridx);
+		sprintf(filename, "%s/reader%d", get_tmp_dir(), client[cs_idx].ridx);
 		int size = reader->init_history_pos+strlen(txt)+1;
 		buffer = malloc(size+1);
 
@@ -70,39 +64,39 @@ static void casc_check_dcw(struct s_reader * reader, int idx, int rc, uchar *cw)
   int i;
   for (i=1; i<CS_MAXPENDING; i++)
   {
-    if ((ecmtask[i].rc>=10) &&
-        (!memcmp(ecmtask[i].ecmd5, ecmtask[idx].ecmd5, CS_ECMSTORESIZE)))
+    if ((client[cs_idx].ecmtask[i].rc>=10) &&
+        (!memcmp(client[cs_idx].ecmtask[i].ecmd5, client[cs_idx].ecmtask[idx].ecmd5, CS_ECMSTORESIZE)))
     {
       if (rc)
       {
-        ecmtask[i].rc=(i==idx) ? 1 : 2;
+        client[cs_idx].ecmtask[i].rc=(i==idx) ? 1 : 2;
 #ifdef CS_WITH_GBOX
-        if(ecmtask[i].gbxRidx)ecmtask[i].rc=0;
+        if(client[cs_idx].ecmtask[i].gbxRidx)client[cs_idx].ecmtask[i].rc=0;
 #endif
-        memcpy(ecmtask[i].cw, cw, 16);
+        memcpy(client[cs_idx].ecmtask[i].cw, cw, 16);
       }
       else
-        ecmtask[i].rc=0;    
-      write_ecm_answer(reader, fd_c2m, &ecmtask[i]);
-      ecmtask[i].idx=0;
+        client[cs_idx].ecmtask[i].rc=0;    
+      write_ecm_answer(reader, fd_c2m, &client[cs_idx].ecmtask[i]);
+      client[cs_idx].ecmtask[i].idx=0;
     }
   }
 }
 
-static int casc_recv_timer(struct s_reader * reader, uchar *buf, int l, int msec)
+int casc_recv_timer(struct s_reader * reader, uchar *buf, int l, int msec)
 {
   struct timeval tv;
   fd_set fds;
   int rc;
 
-  if (!pfd) return(-1);
+  if (!client[cs_idx].pfd) return(-1);
   tv.tv_sec = msec/1000;
   tv.tv_usec = (msec%1000)*1000;
   FD_ZERO(&fds);
-  FD_SET(pfd, &fds);
-  select(pfd+1, &fds, 0, 0, &tv);
+  FD_SET(client[cs_idx].pfd, &fds);
+  select(client[cs_idx].pfd+1, &fds, 0, 0, &tv);
   rc=0;
-  if (FD_ISSET(pfd, &fds))
+  if (FD_ISSET(client[cs_idx].pfd, &fds))
     if (!(rc=reader->ph.recv(buf, l)))
       rc=-1;
 
@@ -140,38 +134,61 @@ int network_select(int forRead, int timeout)
 // according to documentation getaddrinfo() is thread safe
 int hostResolve(int ridx)
 {
-   struct addrinfo hints, *res = NULL;
-  
-   int cs_idx = reader[ridx].cs_idx;
+   int result = 0;
+   //int cs_idx = reader[ridx].cs_idx;
    
-   memset(&hints, 0, sizeof(hints));
-   hints.ai_socktype = SOCK_STREAM;
-   hints.ai_family = client[cs_idx].udp_sa.sin_family;
-   hints.ai_protocol = IPPROTO_TCP;
-  
-   int err = getaddrinfo(reader[ridx].device, NULL, &hints, &res);
-   if (err != 0 || !res || !res->ai_addr) {
-      client[cs_idx].udp_sa.sin_addr.s_addr = 0;
-      cs_log("can't resolve %s, error: %s", reader[ridx].device, err ? gai_strerror(err) : "unknown");
+   pthread_mutex_lock(&gethostbyname_lock);
+   
+   in_addr_t last_ip = client[cs_idx].ip;
+   
+   if (cfg->resolve_gethostbyname) { //Resolve with gethostbyname:
+     struct hostent *rht = gethostbyname(reader[ridx].device);
+     if (!rht) {
+       cs_log("can't resolve %s", reader[ridx].device);
+       result = 0;
+     } else {
+       memcpy(&client[cs_idx].udp_sa.sin_addr, rht->h_addr, sizeof(client[cs_idx].udp_sa.sin_addr));
+       client[cs_idx].ip=cs_inet_order(client[cs_idx].udp_sa.sin_addr.s_addr);
+       result = 1;
+     }
    }
-   else {
-      in_addr_t last_ip = client[cs_idx].ip;
-      client[cs_idx].udp_sa.sin_addr.s_addr = ((struct sockaddr_in *)(res->ai_addr))->sin_addr.s_addr;
-      client[cs_idx].ip = cs_inet_order(client[cs_idx].udp_sa.sin_addr.s_addr);
-      if (client[cs_idx].ip != last_ip) {
-         uchar *ip = (uchar*) &client[cs_idx].ip;
-         cs_log("%s: resolved ip=%d.%d.%d.%d", reader[ridx].device, ip[3], ip[2], ip[1], ip[0]);
-      }
+   else { //Resolve with getaddrinfo:
+     struct addrinfo hints, *res = NULL;
+     memset(&hints, 0, sizeof(hints));
+     hints.ai_socktype = SOCK_STREAM;
+     hints.ai_family = client[cs_idx].udp_sa.sin_family;
+     hints.ai_protocol = IPPROTO_TCP;
+
+     int err = getaddrinfo(reader[ridx].device, NULL, &hints, &res);
+     if (err != 0 || !res || !res->ai_addr) {
+       cs_log("can't resolve %s, error: %s", reader[ridx].device, err ? gai_strerror(err) : "unknown");
+       result = 0;
+     } else {
+       client[cs_idx].udp_sa.sin_addr.s_addr = ((struct sockaddr_in *)(res->ai_addr))->sin_addr.s_addr;
+       client[cs_idx].ip = cs_inet_order(client[cs_idx].udp_sa.sin_addr.s_addr);
+       result = 1;
+     }
+     if (res) freeaddrinfo(res);
    }
-   if (res) freeaddrinfo(res);
-   return (client[cs_idx].udp_sa.sin_addr.s_addr) ? 1 : 0;
+
+   if (!result) {
+     client[cs_idx].udp_sa.sin_addr.s_addr = 0;
+     client[cs_idx].ip = 0;
+   } else if (client[cs_idx].ip != last_ip) {
+     uchar *ip = (uchar*) &client[cs_idx].ip;
+     cs_log("%s: resolved ip=%d.%d.%d.%d", reader[ridx].device, ip[3], ip[2], ip[1], ip[0]);
+   }
+
+   pthread_mutex_unlock(&gethostbyname_lock);
+
+   return result;
 }
 
 int network_tcp_connection_open()
 {
-  cs_log("connecting to %s", reader[ridx].device);
+  cs_log("connecting to %s", reader[client[cs_idx].ridx].device);
 
-  if (!hostResolve(ridx))
+  if (!hostResolve(client[cs_idx].ridx))
      return -1;
  
   int sd = client[cs_idx].udp_fd;
@@ -218,20 +235,20 @@ int network_tcp_connection_open()
 
 void network_tcp_connection_close(struct s_reader * reader, int fd)
 {
-  cs_debug("tcp_conn_close(): fd=%d, is_server=%d", fd, is_server);
+  cs_debug("tcp_conn_close(): fd=%d, client[cs_idx].is_server=%d", fd, client[cs_idx].is_server);
   close(fd);
   client[cs_idx].udp_fd = 0;
 
-  if (!is_server)
+  if (!client[cs_idx].is_server)
   {
     int i;
-    pfd = 0;
+    client[cs_idx].pfd = 0;
     reader->tcp_connected = 0;
 
-    if (ecmtask) {
+    if (client[cs_idx].ecmtask) {
 	for (i = 0; i < CS_MAXPENDING; i++) {
-	   ecmtask[i].idx = 0;
-	   ecmtask[i].rc = 0;
+	   client[cs_idx].ecmtask[i].idx = 0;
+	   client[cs_idx].ecmtask[i].rc = 0;
 	}
     }
 
@@ -268,13 +285,13 @@ static void casc_do_sock_log(struct s_reader * reader)
 
   for (i=1; i<CS_MAXPENDING; i++)
   {
-    if (  (ecmtask[i].rc>=10)
-       && (ecmtask[i].idx==idx)
-       && (ecmtask[i].caid==caid)
-       && (ecmtask[i].prid==provid)
-       && (ecmtask[i].srvid==srvid))
+    if (  (client[cs_idx].ecmtask[i].rc>=10)
+       && (client[cs_idx].ecmtask[i].idx==idx)
+       && (client[cs_idx].ecmtask[i].caid==caid)
+       && (client[cs_idx].ecmtask[i].prid==provid)
+       && (client[cs_idx].ecmtask[i].srvid==srvid))
     {
-      casc_check_dcw(reader, i, 0, ecmtask[i].cw);  // send "not found"
+      casc_check_dcw(reader, i, 0, client[cs_idx].ecmtask[i].cw);  // send "not found"
       break;
     }
   }
@@ -305,12 +322,12 @@ static void casc_do_sock(struct s_reader * reader, int w)
   if (idx<0) return;  // no dcw received
   reader->last_g=time((time_t*)0); // for reconnect timeout
 //cs_log("casc_do_sock: last_s=%d, last_g=%d", reader->last_s, reader->last_g);
-  if (!idx) idx=last_idx;
+  if (!idx) idx=client[cs_idx].last_idx;
   j=0;
   for (i=1; i<CS_MAXPENDING; i++)
   {
 
-   if (ecmtask[i].idx==idx)
+   if (client[cs_idx].ecmtask[i].idx==idx)
     {
       casc_check_dcw(reader, i, rc, dcw);
       j=1;
@@ -323,7 +340,7 @@ static void casc_get_dcw(struct s_reader * reader, int n)
 {
   int w;
   struct timeb tps, tpe;
-  tpe=ecmtask[n].tps;
+  tpe=client[cs_idx].ecmtask[n].tps;
   //tpe.millitm+=1500;    // TODO: timeout of 1500 should be config
   tpe.millitm+=cfg->srtimeout;
   tpe.time+=(tpe.millitm/1000);
@@ -331,13 +348,13 @@ static void casc_get_dcw(struct s_reader * reader, int n)
   
   cs_ftime(&tps);
   while (((w=1000*(tpe.time-tps.time)+tpe.millitm-tps.millitm)>0)
-          && (ecmtask[n].rc>=10))
+          && (client[cs_idx].ecmtask[n].rc>=10))
   {
     casc_do_sock(reader, w);
     cs_ftime(&tps);
   }
-  if (ecmtask[n].rc>=10)
-    casc_check_dcw(reader, n, 0, ecmtask[n].cw);  // simulate "not found"
+  if (client[cs_idx].ecmtask[n].rc>=10)
+    casc_check_dcw(reader, n, 0, client[cs_idx].ecmtask[n].cw);  // simulate "not found"
 }
 
 
@@ -352,16 +369,16 @@ int casc_process_ecm(struct s_reader * reader, ECM_REQUEST *er)
   t=time((time_t *)0);
   for (n=0, i=sflag=1; i<CS_MAXPENDING; i++)
   {
-    if ((t-(ulong)ecmtask[i].tps.time > ((cfg->ctimeout + 500) / 1000) + 1) &&
-        (ecmtask[i].rc>=10))      // drop timeouts
+    if ((t-(ulong)client[cs_idx].ecmtask[i].tps.time > ((cfg->ctimeout + 500) / 1000) + 1) &&
+        (client[cs_idx].ecmtask[i].rc>=10))      // drop timeouts
         {
-          ecmtask[i].rc=0;
+          client[cs_idx].ecmtask[i].rc=0;
         }
-    if ((!n) && (ecmtask[i].rc<10))   // free slot found
+    if ((!n) && (client[cs_idx].ecmtask[i].rc<10))   // free slot found
       n=i;
-    if ((ecmtask[i].rc>=10) &&      // ecm already pending
-        (!memcmp(er->ecmd5, ecmtask[i].ecmd5, CS_ECMSTORESIZE)) &&
-        (er->level<=ecmtask[i].level))    // ... this level at least
+    if ((client[cs_idx].ecmtask[i].rc>=10) &&      // ecm already pending
+        (!memcmp(er->ecmd5, client[cs_idx].ecmtask[i].ecmd5, CS_ECMSTORESIZE)) &&
+        (er->level<=client[cs_idx].ecmtask[i].level))    // ... this level at least
       sflag=0;
   }
   if (!n)
@@ -369,14 +386,14 @@ int casc_process_ecm(struct s_reader * reader, ECM_REQUEST *er)
     cs_log("WARNING: ecm pending table overflow !!");
     return(-2);
   }
-  memcpy(&ecmtask[n], er, sizeof(ECM_REQUEST));
+  memcpy(&client[cs_idx].ecmtask[n], er, sizeof(ECM_REQUEST));
   if( reader->typ == R_NEWCAMD )
-    ecmtask[n].idx=(reader->ncd_msgid==0)?2:reader->ncd_msgid+1;
+    client[cs_idx].ecmtask[n].idx=(reader->ncd_msgid==0)?2:reader->ncd_msgid+1;
   else
-    ecmtask[n].idx=idx++;
-  ecmtask[n].rc=10;
+    client[cs_idx].ecmtask[n].idx=client[cs_idx].idx++;
+  client[cs_idx].ecmtask[n].rc=10;
   cs_debug("---- ecm_task %d, idx %d, sflag=%d, level=%d", 
-           n, ecmtask[n].idx, sflag, er->level);
+           n, client[cs_idx].ecmtask[n].idx, sflag, er->level);
 
   if( reader->ph.type==MOD_CONN_TCP && reader->tcp_rto )
   {
@@ -396,10 +413,10 @@ int casc_process_ecm(struct s_reader * reader, ECM_REQUEST *er)
   rc=0;
   if (sflag)
   {
-    if ((rc=reader->ph.c_send_ecm(&ecmtask[n], buf)))
-      casc_check_dcw(reader, n, 0, ecmtask[n].cw);  // simulate "not found"
+    if ((rc=reader->ph.c_send_ecm(&client[cs_idx].ecmtask[n], buf)))
+      casc_check_dcw(reader, n, 0, client[cs_idx].ecmtask[n].cw);  // simulate "not found"
     else
-      last_idx = ecmtask[n].idx;
+      client[cs_idx].last_idx = client[cs_idx].ecmtask[n].idx;
     reader->last_s = t;   // used for inactive_timeout and reconnect_timeout in TCP reader
 
     if (!reader->ph.c_multi)
@@ -408,20 +425,19 @@ int casc_process_ecm(struct s_reader * reader, ECM_REQUEST *er)
 
 //cs_log("casc_process_ecm 1: last_s=%d, last_g=%d", reader->last_s, reader->last_g);
 
-  if (idx>0x1ffe) idx=1;
+  if (client[cs_idx].idx>0x1ffe) client[cs_idx].idx=1;
   return(rc);
 }
 
 static int reader_store_emm(uchar *emm, uchar type)
 {
-  static int rotate=0;
   int rc;
-  memcpy(emmcache[rotate].emm, emm, emm[2]);
-  emmcache[rotate].type=type;
-  emmcache[rotate].count=1;
+  memcpy(client[cs_idx].emmcache[client[cs_idx].rotate].emm, emm, emm[2]);
+  client[cs_idx].emmcache[client[cs_idx].rotate].type=type;
+  client[cs_idx].emmcache[client[cs_idx].rotate].count=1;
 //  cs_debug("EMM stored (index %d)", rotate);
-  rc=rotate;
-  rotate=(rotate+1) % CS_EMMCACHESIZE;
+  rc=client[cs_idx].rotate;
+  client[cs_idx].rotate=(client[cs_idx].rotate+1) % CS_EMMCACHESIZE;
   return(rc);
 }
 
@@ -449,7 +465,7 @@ static void reader_get_ecm(struct s_reader * reader, ECM_REQUEST *er)
     write_ecm_answer(reader, fd_c2m, er);
     return;
   }
-  if (proxy)
+  if (reader->typ & R_IS_CASCADING)
   {
     client[cs_idx].last_srvid=er->srvid;
     client[cs_idx].last_caid=er->caid;
@@ -458,6 +474,7 @@ static void reader_get_ecm(struct s_reader * reader, ECM_REQUEST *er)
   }
 #ifdef WITH_CARDREADER
   cs_ddump_mask(D_ATR, er->ecm, er->l, "ecm:");
+  er->msglog[0] = 0;
   er->rc=reader_ecm(reader, er);
   write_ecm_answer(reader, fd_c2m, er);
   reader_post_process(reader);
@@ -478,7 +495,7 @@ static void reader_send_DCW(ECM_REQUEST *er)
 static int reader_do_emm(struct s_reader * reader, EMM_PACKET *ep)
 {
   int i, no, rc, ecs;
-  char *rtxt[] = { "error", proxy ? "sent" : "written", "skipped", "blocked" };
+  char *rtxt[] = { "error", (reader->typ & R_IS_CASCADING) ? "sent" : "written", "skipped", "blocked" };
   char *typedesc[]= { "unknown", "unique", "shared", "global" };
   struct timeb tps, tpe;
 
@@ -486,29 +503,29 @@ static int reader_do_emm(struct s_reader * reader, EMM_PACKET *ep)
 
   no=0;
   for (i=ecs=0; (i<CS_EMMCACHESIZE) && (!ecs); i++)
-          if (!memcmp(emmcache[i].emm, ep->emm, ep->emm[2]))
+          if (!memcmp(client[cs_idx].emmcache[i].emm, ep->emm, ep->emm[2]))
           {
                   if (reader->cachemm)
-                          ecs=(reader->rewritemm > emmcache[i].count) ? 1 : 2;
+                          ecs=(reader->rewritemm > client[cs_idx].emmcache[i].count) ? 1 : 2;
                   else
                           ecs=1;
-                  no=++emmcache[i].count;
+                  no=++client[cs_idx].emmcache[i].count;
                   i--;
           }
 
   if ((rc=ecs)<2)
   {
-	if (proxy) {
-		cs_debug("network emm reader: %s" ,reader->label);
+          if (reader->typ & R_IS_CASCADING) {
+                  cs_debug("network emm reader: %s" ,reader->label);
 
-			if (reader[ridx].ph.c_send_emm) {
-				rc=reader[ridx].ph.c_send_emm(ep);
+			if (reader[client[cs_idx].ridx].ph.c_send_emm) {
+				rc=reader[client[cs_idx].ridx].ph.c_send_emm(ep);
 			} else {
 				cs_debug("send_emm() support missing");
 				rc=0;
 			}
 		} else {
-			cs_debug("local emm reader: %s" ,reader[ridx].label);
+			cs_debug("local emm reader: %s" ,reader[client[cs_idx].ridx].label);
 #ifdef WITH_CARDREADER
     			rc=reader_emm(reader, ep);
 #else
@@ -535,7 +552,7 @@ static int reader_do_emm(struct s_reader * reader, EMM_PACKET *ep)
     cs_ftime(&tpe);
 
     cs_log("%s emmtype=%s, len=%d, idx=%d, cnt=%d: %s (%d ms) by %s",
-           username(ep->cidx), typedesc[emmcache[i].type], ep->emm[2],
+           username(ep->cidx), typedesc[client[cs_idx].emmcache[i].type], ep->emm[2],
            i, no, rtxt[rc], 1000*(tpe.time-tps.time)+tpe.millitm-tps.millitm, reader->label);
   }
 
@@ -562,7 +579,7 @@ static int reader_do_emm(struct s_reader * reader, EMM_PACKET *ep)
 
 static int reader_listen(struct s_reader * reader, int fd1, int fd2)
 {
-  int fdmax, tcp_toflag, use_tv=(!proxy);
+  int fdmax, tcp_toflag, use_tv=(!(reader->typ & R_IS_CASCADING));
   int is_tcp=(reader->ph.type==MOD_CONN_TCP);
   fd_set fds;
   struct timeval tv;
@@ -574,18 +591,16 @@ static int reader_listen(struct s_reader * reader, int fd1, int fd2)
     ulong ms;
     cs_ftime(&tpe);
     for(x=0;x<CS_MAXPENDING;x++){
-      ms=1000*(tpe.time-ecmtask[x].tps.time)+tpe.millitm-ecmtask[x].tps.millitm;
-      if(ecmtask[x].rc == 10 && ms > cfg->ctimeout && reader->ridx == ecmtask[x].gbxRidx) {
-        //cs_log("hello rc=%d idx:%d x:%d ridx%d ridx:%d",ecmtask[x].rc,ecmtask[x].idx,x,ridx,ecmtask[x].gbxRidx);
-        ecmtask[x].rc=5;
-        send_dcw(&ecmtask[x]);
+      ms=1000*(tpe.time-client[cs_idx].ecmtask[x].tps.time)+tpe.millitm-client[cs_idx].ecmtask[x].tps.millitm;
+      if(client[cs_idx].ecmtask[x].rc == 10 && ms > cfg->ctimeout && client[cs_idx].ridx == client[cs_idx].ecmtask[x].gbxRidx) {
+        //cs_log("hello rc=%d idx:%d x:%d ridx%d ridx:%d",client[cs_idx].ecmtask[x].rc,client[cs_idx].ecmtask[x].idx,x,ridx,client[cs_idx].ecmtask[x].gbxRidx);
+        client[cs_idx].ecmtask[x].rc=5;
+        send_dcw(&client[cs_idx].ecmtask[x]);
       }
     }
   }
 #endif
-  if (reader->typ != R_SC8in1) {
-    if (master_pid!=getppid()) cs_exit(0);
-  }
+
   tcp_toflag=(fd2 && is_tcp && reader->tcp_ito && reader->tcp_connected);
   tv.tv_sec = 0;
   tv.tv_usec = 100000L;
@@ -603,9 +618,6 @@ static int reader_listen(struct s_reader * reader, int fd1, int fd2)
   fdmax=(fdmax>logfd) ? fdmax : logfd;
   if (select(fdmax+1, &fds, 0, 0, (use_tv) ? &tv : 0)<0) return(0);
 
-  if (reader->typ != R_SC8in1) {
-    if (master_pid!=getppid()) cs_exit(0);
-  }
   if ((logfd) && (FD_ISSET(logfd, &fds)))
   {
     cs_debug("select: log-socket ist set");
@@ -653,20 +665,22 @@ static int reader_listen(struct s_reader * reader, int fd1, int fd2)
     return(0);
   }
 #ifdef WITH_CARDREADER
-  if (!proxy) reader_checkhealth(reader);
+  if (!(reader->typ & R_IS_CASCADING)) reader_checkhealth(reader);
 #endif
   return(0);
+}
+
+void reader_ext_card_info(struct s_reader * reader, int *data) {
+	//data[0] = ridx, data[1] = dest_cs_idx
+	if (reader->ph.c_report_cards)
+		reader->ph.c_report_cards(data[1]);
 }
 
 static void reader_do_pipe(struct s_reader * reader)
 {
   uchar *ptr;
-  int pipeCmd = read_from_pipe(client[reader->cs_idx].fd_m2c_c, &ptr, 0);
+  int pipeCmd = read_from_pipe(client[cs_idx].fd_m2c_c, &ptr, 0);
 
-  /* FIXME: this breaks camd35/newcamd cascading as this modules does not set tcp_connected = 2 */
-  if (reader->typ == R_CCCAM && reader->tcp_connected != 2 && client[cs_idx].typ == 'p')
-    return;
- 
   switch(pipeCmd)
   {
     case PIP_ID_ECM:
@@ -683,6 +697,9 @@ static void reader_do_pipe(struct s_reader * reader)
       reader_card_info(reader); 
 #endif
       break;
+    case PIP_ID_CCC:
+      reader_ext_card_info(reader, (int*)ptr);
+      break;
   }
 }
 
@@ -696,18 +713,7 @@ static void reader_main(struct s_reader * reader)
 {
   while (1)
   {
-    /* FIXME: this breaks newcamd/camd3 cascading as newcamd/camd35 only connects if server sends ecm/emm to client */
-    if (reader->typ == R_CCCAM && !reader->tcp_connected && client[cs_idx].typ == 'p') {
-    	 if (!cfg->reader_restart_seconds)
-    	 	  cs_exit(1);
-       cs_log("%s not connected! Reconection in %d sec", reader->label, cfg->reader_restart_seconds);
-       cs_sleepms(1000 * cfg->reader_restart_seconds);
-       if (reader->ph.c_init() && reader->ph.cleanup) {
-    	    reader->ph.cleanup();
-    	    continue;
-       }
-    }    
-    switch(reader_listen(reader, client[reader->cs_idx].fd_m2c_c, pfd))
+    switch(reader_listen(reader, client[reader->cidx].fd_m2c_c, client[cs_idx].pfd))
     {
       case 0: reader_do_idle(reader); break;
       case 1: reader_do_pipe(reader)  ; break;
@@ -720,9 +726,11 @@ static void reader_main(struct s_reader * reader)
 void * start_cardreader(void * rdr)
 {
 	struct s_reader * reader = (struct s_reader *) rdr; //FIXME can be made simpler
-  cs_ptyp=D_READER;
 
-  if ((proxy=reader->typ & R_IS_CASCADING))
+	client[reader->cidx].thread=pthread_self();
+	client[cs_idx].cs_ptyp=D_READER;
+
+  if (reader->typ & R_IS_CASCADING)
   {
     client[cs_idx].typ='p';
     client[cs_idx].port=reader->r_port;
@@ -753,21 +761,21 @@ void * start_cardreader(void * rdr)
       	cs_sleepms(60000); // wait 60 secs and try again
   }
 #endif
-  emmcache=(struct s_emm *)malloc(CS_EMMCACHESIZE*(sizeof(struct s_emm)));
-  if (!emmcache)
+  client[cs_idx].emmcache=(struct s_emm *)malloc(CS_EMMCACHESIZE*(sizeof(struct s_emm)));
+  if (!client[cs_idx].emmcache)
   {
     cs_log("Cannot allocate memory (errno=%d)", errno);
     cs_exit(1);
   }
-  memset(emmcache, 0, CS_EMMCACHESIZE*(sizeof(struct s_emm)));
+  memset(client[cs_idx].emmcache, 0, CS_EMMCACHESIZE*(sizeof(struct s_emm)));
 
-  ecmtask=(ECM_REQUEST *)malloc(CS_MAXPENDING*(sizeof(ECM_REQUEST)));
-  if (!ecmtask)
+  client[cs_idx].ecmtask=(ECM_REQUEST *)malloc(CS_MAXPENDING*(sizeof(ECM_REQUEST)));
+  if (!client[cs_idx].ecmtask)
   {
     cs_log("Cannot allocate memory (errno=%d)", errno);
     cs_exit(1);
   }
-  memset(ecmtask, 0, CS_MAXPENDING*(sizeof(ECM_REQUEST)));
+  memset(client[cs_idx].ecmtask, 0, CS_MAXPENDING*(sizeof(ECM_REQUEST)));
   reader_main(reader);
   cs_exit(0);
 	return NULL; //dummy to prevent compiler error

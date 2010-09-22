@@ -4,8 +4,12 @@
 #include "atr.h"
 #include "icc_async_exports.h"
 #include "csctapi/ifd_sc8in1.h"
-
-static int cs_ptyp_orig; //reinit=1, 
+#ifdef HAVE_PCSC
+#include "csctapi/ifd_pcsc.h"
+#endif
+#ifdef AZBOX
+#include "csctapi/ifd_azbox.h"
+#endif
 
 
 #if defined(TUXBOX) && defined(PPC) //dbox2 only
@@ -60,8 +64,8 @@ int reader_cmd2icc(struct s_reader * reader, uchar *buf, int l, uchar * cta_res,
 #endif
 
 	*p_cta_lr=CTA_RES_LEN-1; //FIXME not sure whether this one is necessary 
-	cs_ptyp_orig=cs_ptyp;
-	cs_ptyp=D_DEVICE;
+	int cs_ptyp_orig=client[cs_idx].cs_ptyp;
+	client[cs_idx].cs_ptyp=D_DEVICE;
 	if (reader->typ == R_SC8in1) {
 		pthread_mutex_lock(&sc8in1);
 		cs_debug("SC8in1: locked for CardWrite of slot %i", reader->slot);
@@ -74,22 +78,24 @@ int reader_cmd2icc(struct s_reader * reader, uchar *buf, int l, uchar * cta_res,
 		cs_debug("SC8in1: unlocked for CardWrite of slot %i", reader->slot);
 		pthread_mutex_unlock(&sc8in1);
 	}
-	cs_ptyp=cs_ptyp_orig;
+	client[cs_idx].cs_ptyp=cs_ptyp_orig;
 	return rc;
 }
 
 #define CMD_LEN 5
 
-int card_write(struct s_reader * reader, uchar *cmd, uchar *data, uchar *response, ushort * response_length)
+int card_write(struct s_reader * reader, const uchar *cmd, const uchar *data, uchar *response, ushort * response_length)
 {
+  uchar buf[260];
+  // always copy to be able to be able to use const buffer without changing all code  
+  memcpy(buf, cmd, CMD_LEN); 
+
   if (data) {
-    uchar buf[256]; //only allocate buffer when its needed
-    memcpy(buf, cmd, CMD_LEN);
     if (cmd[4]) memcpy(buf+CMD_LEN, data, cmd[4]);
     return(reader_cmd2icc(reader, buf, CMD_LEN+cmd[4], response, response_length));
   }
   else
-    return(reader_cmd2icc(reader, cmd, CMD_LEN, response, response_length));
+    return(reader_cmd2icc(reader, buf, CMD_LEN, response, response_length));
 }
 
 int check_sct_len(const uchar *data, int off)
@@ -115,13 +121,13 @@ static int reader_card_inserted(struct s_reader * reader)
 	}
 #endif
 	int card;
-	cs_ptyp_orig=cs_ptyp;
-	cs_ptyp=D_IFD;
+	int cs_ptyp_orig=client[cs_idx].cs_ptyp;
+	client[cs_idx].cs_ptyp=D_IFD;
 	if (ICC_Async_GetStatus (reader, &card)) {
 		cs_log("Error getting status of terminal.");
 		return 0; //corresponds with no card inside!!
 	}
-	cs_ptyp=cs_ptyp_orig;
+	client[cs_idx].cs_ptyp=cs_ptyp_orig;
 	return (card);
 }
 
@@ -142,8 +148,8 @@ static int reader_activate_card(struct s_reader * reader, ATR * atr, unsigned sh
 		return 0;
 
   /* Activate card */
-	cs_ptyp_orig=cs_ptyp;
-	cs_ptyp=D_DEVICE;
+	int cs_ptyp_orig=client[cs_idx].cs_ptyp;
+	client[cs_idx].cs_ptyp=D_DEVICE;
 	if (reader->typ == R_SC8in1) {
 		pthread_mutex_lock(&sc8in1);
 		cs_debug_mask(D_ATR, "SC8in1: locked for Activation of slot %i", reader->slot);
@@ -161,7 +167,7 @@ static int reader_activate_card(struct s_reader * reader, ATR * atr, unsigned sh
 		cs_debug_mask(D_ATR, "SC8in1: unlocked for Activation of slot %i", reader->slot);
 		pthread_mutex_unlock(&sc8in1);
 	}
-	cs_ptyp=cs_ptyp_orig;
+	client[cs_idx].cs_ptyp=cs_ptyp_orig;
   if (i<100) return(0);
 
   reader->init_history_pos=0;
@@ -238,6 +244,10 @@ static int reader_get_cardsystem(struct s_reader * reader, ATR atr)
 			}
 		}
 	}
+
+	if (reader->card_system==0)
+		cs_ri_log(reader, "card system not supported");
+
 	cs_ri_brk(reader, 1);
 
 	return(reader->card_system);
@@ -245,17 +255,39 @@ static int reader_get_cardsystem(struct s_reader * reader, ATR atr)
 
 static int reader_reset(struct s_reader * reader)
 {
-	reader_nullcard(reader);
-	ATR atr;
-	unsigned short int deprecated, ret = ERROR;
+  reader_nullcard(reader);
+  ATR atr;
+  unsigned short int ret = 0;
+#ifdef AZBOX
+  int i;
+  if (reader->typ == R_INTERNAL) {
+    if (reader->mode != -1) {
+      Azbox_SetMode(reader->mode);
+      if (!reader_activate_card(reader, &atr, 0)) return(0);
+      ret = reader_get_cardsystem(reader, atr);
+    } else {
+      for (i = 0; i < AZBOX_MODES; i++) {
+        Azbox_SetMode(i);
+        if (!reader_activate_card(reader, &atr, 0)) return(0);
+        ret = reader_get_cardsystem(reader, atr);
+        if (ret)
+          break;
+      }
+    }
+  } else {
+#endif
+  unsigned short int deprecated;
 	for (deprecated = reader->deprecated; deprecated < 2; deprecated++) {
 		if (!reader_activate_card(reader, &atr, deprecated)) return(0);
-		ret =reader_get_cardsystem(reader, atr);
+		ret = reader_get_cardsystem(reader, atr);
 		if (ret)
 			break;
 		if (!deprecated)
 			cs_log("Normal mode failed, reverting to Deprecated Mode");
 	}
+#ifdef AZBOX
+  }
+#endif
 	return(ret);
 }
 
@@ -268,8 +300,8 @@ int reader_device_init(struct s_reader * reader)
 #endif
  
 	int rc = -1; //FIXME
-	cs_ptyp_orig=cs_ptyp;
-	cs_ptyp=D_DEVICE;
+	int cs_ptyp_orig=client[cs_idx].cs_ptyp;
+	client[cs_idx].cs_ptyp=D_DEVICE;
 #if defined(TUXBOX) && defined(PPC)
 	struct stat st;
 	if (!stat(DEV_MULTICAM, &st))
@@ -280,7 +312,7 @@ int reader_device_init(struct s_reader * reader)
 	else
 		rc = OK;
   cs_debug("ct_init on %s: %d", reader->device, rc);
-  cs_ptyp=cs_ptyp_orig;
+  client[cs_idx].cs_ptyp=cs_ptyp_orig;
   return((rc!=OK) ? 2 : 0);
 }
 
@@ -299,7 +331,7 @@ int reader_checkhealth(struct s_reader * reader)
       }
       else
       {
-        client[cs_idx].au = reader->ridx;
+        client[cs_idx].au = client[cs_idx].ridx;
         reader_card_info(reader);
         reader->card_status = CARD_INSERTED;
       }
@@ -307,7 +339,7 @@ int reader_checkhealth(struct s_reader * reader)
       int i;
       for( i=1; i<CS_MAXPID; i++ ) {
         if( client[i].pid && client[i].typ=='c' && client[i].usr[0] && ph[client[i].ctyp].type & MOD_CONN_NET) {
-          kill(client[i].pid, SIGQUIT);
+          //kill(client[i].pid, SIGQUIT);
         }
       }
     }
@@ -410,52 +442,6 @@ int reader_emm(struct s_reader * reader, EMM_PACKET *ep)
   rc=reader_checkhealth(reader);
   if (rc)
   {
-    client[cs_idx].last=time((time_t)0);
-    if (reader->b_nano[ep->emm[0]] & 0x02) //should this nano be saved?
-    {
-      char token[256];
-      FILE *fp;
-
-      time_t rawtime;
-      time (&rawtime);
-      struct tm *timeinfo;
-      timeinfo = localtime (&rawtime);	/* to access LOCAL date/time info */
-      char buf[80];
-      strftime (buf, 80, "%Y%m%d_%H_%M_%S", timeinfo);
-
-      sprintf (token, "%swrite_%s_%s.%s", cs_confdir, (ep->emm[0] == 0x82) ? "UNIQ" : "SHARED", buf, "txt");
-      if (!(fp = fopen (token, "w")))
-      {
-        cs_log ("ERROR: Cannot open EMM.txt file '%s' (errno=%d)\n", token, errno);
-      }
-      else
-      {
-    	cs_log ("Succesfully written text EMM to %s.", token);
-    	int emm_length = ((ep->emm[1] & 0x0f) << 8) | ep->emm[2];
-    	fprintf (fp, "%s", cs_hexdump (0, ep->emm, emm_length + 3));
-    	fclose (fp);
-      }
-
-      //sprintf (token, "%s%s.%s", cs_confdir, buf,"emm");
-      sprintf (token, "%swrite_%s_%s.%s", cs_confdir, (ep->emm[0] == 0x82) ? "UNIQ" : "SHARED", buf, "emm");
-      if (!(fp = fopen (token, "wb")))
-      {
-    	cs_log ("ERROR: Cannot open EMM.emm file '%s' (errno=%d)\n", token, errno);
-      }
-      else 
-      {
-    	if (fwrite(ep, sizeof (*ep), 1, fp) == 1)
-        {
-        	cs_log ("Succesfully written binary EMM to %s.", token);
-        }
-        else
-        {
-        	cs_log ("ERROR: Cannot write binary EMM to %s (errno=%d)\n", token, errno);
-        }
-    	fclose (fp);
-      }
-    }
-
     if (reader->b_nano[ep->emm[0]] & 0x01) //should this nano be blcoked?
       return 3;
 

@@ -77,6 +77,26 @@ DhwgICAgICAgICAgICD/AiD/AiAgICAgICAgICAg/xog/xogICAgICAgICAgIP8CIP8CICAgICAg\
 ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIMHDYQDAA2UA4AcuAMADbQBAAgAAAAACAAAA\
 0QKAAW4AwAF3AMABbQDgA1wA4ANpAPAHZADwB3MA+A9hAPwfYgA="
 
+#define ICSTA "data:image/png;base64,\
+iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABmJLR0QAAAAAAAD5Q7t/AAAACXBI\
+WXMAAABIAAAASABGyWs+AAAACXZwQWcAAAAQAAAAEABcxq3DAAAC3UlEQVQ4y31QTWhUVxg93733\
+3ffeZPIymczoZGISMRi1kh+zEAKiCxfZBrqwpS0yIhFcxH0GFBWDFEQR3NhC7cZAFxU1+JdKsQtL\
+N63Q2lYRNZkkxozOm2TG+Xtz73VhRFqNB87uO+d85xBWkBoZwXd79uCb8fHOiO8PWZXKDlavt4Oo\
+pKT8qxwO35xOJH5dm8+X901MAIkEAIAA4OzgIJZc1+l+9uwzN58/xIrFrSYILBjz5ohzYxzHr3ve\
+pB+JfJ2KRu+nZmdx4eFD8FN9fchz7nySyaTdxcUTVCi0Qyn+VgwA0JpQrbq8VOqzlNpwlYnJpEH1\
+5ossyAD4obNzJOz7Z6hWc0GE1aCENe+vj4w7X3oz8zlM1QOq8HVdXd2xYvG0VCrJOMeHyDkHbGch\
+195ytHVEDzTLl+mQZR7s7in8LVpqtWGHaBNJ+bHk5/lE07Gug+gP0XKKjOFSBAeu/Ob9JBqIdtlS\
+8lXFXGT9ePj4llHR43F/P4zkgI2Qpm2bW4Me4VpWu71Kb8VYPuc1HNl4KLSuxc5/zmCXDRwQAGVA\
+Ta7pENJxgtUMysb8ebuPbq2vyF12tSVt3mwOADDGmKVXpT8Ec90HEhj4oEVdB5fbMr1FMXcYRBLA\
+WwOCRgWEWRE4zg1hzDAH3PcMmIYSdTvgqhUM/1mZ1dm8CMS8mBHielyIu45Su/+v16QR9cJwowAY\
+reQbEBFYSdwNnrJ/xHA0mr1XqYy7Wm+WWre9+xGoG4V4swe1xgKxlQIEUMAXdImdkyleZqcLBQxm\
+Mj9nbXs0kPIx4xyMMdAKY5FGJGMRJGPNSMabkWyKZeM6ml7cS7/QbRtsbGoKY21tZmBu7scnlvXp\
+kpTf1oSY0ZwrQ0w32A6anAYVkeFcRHvXwrnGL15dEN/3nlyjr6fv4N34jY24ODSEaaXkdsa6o0C/\
+qgbl83ur952N4Z2mxP6tPDL3Or4KLV/qmMbvmTsAgNduAx7n+HHZEQAAACV0RVh0Y3JlYXRlLWRh\
+dGUAMjAwOS0wOS0yOFQxMToyNzo1NC0wNDowMEqLuj0AAAAldEVYdG1vZGlmeS1kYXRlADIwMDkt\
+MDUtMThUMTY6MTA6MDAtMDQ6MDAci9a9AAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5\
+ccllPAAAAABJRU5ErkJggg=="
+
 #define ICDEL "data:image/png;base64,\
 iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAACXBIWXMAAAsTAAALEwEAmpwYAAAA\
 BGdBTUEAALGeYUxB9wAAACBjSFJNAAB6JQAAgIMAAPn/AACA6AAAUggAARVYAAA6lwAAF2/XWh+Q\
@@ -241,6 +261,7 @@ c3fmBuFft/Ff8xMd0s65SXIb/gAAAABJRU5ErkJggg=="
 		<TABLE border=0 class=\"configmenu\">\n\
 		<TR>\n\
 		<TD CLASS=\"configmenu\"><A HREF=\"config.html?part=global\">Global</TD>\n\
+		<TD CLASS=\"configmenu\"><A HREF=\"config.html?part=loadbalancer\">Loadbalancer</TD>\n\
 		<TD CLASS=\"configmenu\"><A HREF=\"config.html?part=camd33\">Camd3.3</TD>\n\
 		<TD CLASS=\"configmenu\"><A HREF=\"config.html?part=camd35\">Camd3.5</TD>\n\
 		<TD CLASS=\"configmenu\"><A HREF=\"config.html?part=camd35tcp\">Camd3.5 TCP</TD>\n\
@@ -434,6 +455,7 @@ c3fmBuFft/Ff8xMd0s65SXIb/gAAAABJRU5ErkJggg=="
     <TR><TD>Password:</TD><TD><input name=\"pwd\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##PASSWORD##\"></TD></TR>\n\
     <TR><TD>Disabled:</TD><TD><SELECT NAME=\"disabled\"><OPTION VALUE=\"0\">NO</OPTION><OPTION VALUE=\"1\" ##DISABLEDCHECKED##>YES</OPTION></SELECT></TD></TR>\n\
     <TR><TD>Exp. Date:</TD><TD><input name=\"expdate\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##EXPDATE##\"></TD></TR>\n\
+    <TR><TD>Allowed Timeframe:</TD><TD><input name=\"allowedtimeframe\" type=\"text\" size=\"15\" maxlength=\"11\" value=\"##ALLOWEDTIMEFRAME##\">&nbsp;(hh:mm-hh:mm)</TD></TR>\n\
     <TR><TD>Group:</TD><TD><input name=\"group\" type=\"text\" size=\"20\" maxlength=\"20\" value=\"##GROUPS##\"></TD></TR>\n\
     <TR><TD>Hostname:</TD><TD><input name=\"hostname\" type=\"text\" size=\"60\" maxlength=\"50\" value=\"##DYNDNS##\"></TD></TR>\n\
     <TR><TD>Uniq:</TD><TD><select name=\"uniq\">\n\
@@ -463,6 +485,7 @@ c3fmBuFft/Ff8xMd0s65SXIb/gAAAABJRU5ErkJggg=="
         </TABLE>\n\
     <TR><TD>CAID:</TD><TD><input name=\"caid\" type=\"text\" size=\"60\" maxlength=\"50\" value=\"##CAIDS##\"></TD></TR>\n\
     <TR><TD>Ident:</TD>     <TD><textarea name=\"ident\"      cols=\"58\" rows=\"3\" class=\"bt\">##IDENTS##</textarea></TD></TR>\n\
+    <TR><TD>CHID:</TD>     <TD><textarea name=\"chid\"      cols=\"58\" rows=\"3\" class=\"bt\">##CHIDS##</textarea></TD></TR>\n\
     <TR><TD>Betatunnel:</TD><TD><textarea name=\"betatunnel\" cols=\"58\" rows=\"3\" class=\"bt\">##BETATUNNELS##</textarea></TD></TR>\n\
     <TR><TD>Suppresscmd08:</TD><TD><SELECT NAME=\"suppresscmd08\"><OPTION VALUE=\"0\">OFF</OPTION><OPTION VALUE=\"1\" ##SUPPRESSCMD08##>ON</OPTION></SELECT></TD></TR>\n\
     <TR><TD>Sleepsend:</TD><TD><input name=\"sleepsend\" type=\"text\" size=\"3\" maxlength=\"3\" value=\"##SLEEPSEND##\"> 0 or 255</TD></TR>\n\
@@ -522,7 +545,7 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
       <TH>EMM written<br><span title=\"unknown EMM\"> UK </span>/<span title=\"global EMM\"> G </span>/<span title=\"shared EMM\"> S </span>/<span title=\"unique EMM\"> UQ </span></TH>\n\
       <TH>EMM skipped<br><span title=\"unknown EMM\"> UK </span>/<span title=\"global EMM\"> G </span>/<span title=\"shared EMM\"> S </span>/<span title=\"unique EMM\"> UQ </span></TH>\n\
       <TH>EMM blocked<br><span title=\"unknown EMM\"> UK </span>/<span title=\"global EMM\"> G </span>/<span title=\"shared EMM\"> S </span>/<span title=\"unique EMM\"> UQ </span></TH>\n\
-      <TH COLSPAN=\"3\">Action</TH>\n\
+      <TH COLSPAN=\"4\">Action</TH>\n\
     </TR>\n\
     ##READERLIST##\
     <TR>\
@@ -546,7 +569,7 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 			<option>pcsc</option>\
 			<option>constcw</option>\
 		</select></TD>\
-		<TD COLSPAN=\"3\" align=\"center\"><input type=\"submit\" name=\"action\" value=\"Add\" ##BTNDISABLED##></TD></TR>\
+		<TD COLSPAN=\"4\" align=\"center\"><input type=\"submit\" name=\"action\" value=\"Add\" ##BTNDISABLED##></TD></TR>\
 		</form>\
   </TABLE>\n\
 ##TPLFOOTER##"
@@ -563,11 +586,31 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
       <TD align=\"center\"><A HREF=\"readerconfig.html?reader=##READERNAMEENC##\" TITLE=\"Edit this Reader\"><IMG SRC=\"##EDIICO##\" BORDER=\"0\" ALT=\"Edit Reader\"/></A></TD>\
       <TD align=\"center\">##ENTITLEMENT##</TD>\n\
 	  <TD align=\"center\">##READERREFRESH##</TD>\n\
+	  <TD align=\"center\"><A HREF=\"readerstats.html?reader=##READERID##\" TITLE=\"Show loadbalancer statistics\"><IMG SRC=\"##STATICO##\" BORDER=\"0\" ALT=\"Loadbalancer statistics\"/></A></TD>\n\
       </TR>\n"
 
 #define TPLREADERENTITLEBIT "<A HREF=\"entitlements.html?reader=##READERNAMEENC##\" TITLE=\"Show Entitlement\"><IMG SRC=\"##ENTICO##\" BORDER=\"0\" ALT=\"Show Entitlement\"/></A>\n"
 
 #define TPLREADERREFRESHBIT "<A HREF=\"readers.html?action=reread&ridx=##RIDX##\" TITLE=\"Refresh Entitlement\"><IMG SRC=\"##REFRICO##\" BORDER=\"0\" ALT=\"Reset and reload Entitlement\"/></A>"
+
+#define TPLREADERSTATS "\
+##TPLHEADER##\
+##TPLMENU##\n\
+<BR><BR>\n\
+	<TABLE cellspacing=\"0\" cellpadding=\"10\">\n\
+	<TR><TH colspan=\"6\"> Loadbalance statistics for reader ##READERNAME##</TH></TR>\n\
+	<TR><TH>Channel</TH><TH>Channelname</TH><TH>Result</TH><TH>Time</TH><TH>Count</TH><TH>Last checked/ found</TH></TR>\n\
+    ##READERSTATSROW##\n\
+	</TABLE>\n\
+##TPLFOOTER##"
+
+#define TPLREADERSTATSBIT "\
+	<TR><TD>##CHANNEL##</TD>\
+	<TD>##CHANNELNAME##</TD>\
+	<TD align=\"center\">##RC##</TD>\
+	<TD align=\"center\">##TIME##</TD>\
+	<TD align=\"center\">##COUNT##</TD>\
+	<TD align=\"center\">##LAST##</TD></TR>\n"
 
 #define TPLSCANUSB "\
 ##TPLHEADER##\
@@ -610,6 +653,7 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
     <TR><TD>Device:</TD><TD><input name=\"device\" type=\"text\" size=\"60\" maxlength=\"150\" value=\"##DEVICE##\"></TD></TR>\n\
     <TR><TD>Caid:</TD><TD><input name=\"caid\" type=\"text\" size=\"60\" maxlength=\"100\" value=\"##CAIDS##\"></TD></TR>\n\
     <TR><TD>Ident:</TD>     <TD><textarea name=\"ident\"      cols=\"58\" rows=\"3\" class=\"bt\">##IDENTS##</textarea></TD></TR>\n\
+    <TR><TD>CHID:</TD>     <TD><textarea name=\"chid\"      cols=\"58\" rows=\"3\" class=\"bt\">##CHIDS##</textarea></TD></TR>\n\
     <TR><TD>Emmcache:</TD><TD><input name=\"emmcache\" type=\"text\" size=\"10\" maxlength=\"10\" value=\"##EMMCACHE##\"></TD></TR>\n\
     <TR><TD>Blockemm:</TD><TD>\n<TABLE cellspacing=\"0\" class=\"invisible\">\
 		<TR><TD align=\"center\">unknown</TD><TD align=\"center\">unique</TD><TD align=\"center\">shared</TD><TD align=\"center\">global</TD></TR>\
@@ -640,7 +684,7 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
           </TR>\n"
 
 #define TPLREADERCONFIGSTDHWREADERBIT "\
-	<TR><TD>Smargopatch:<input name=\"smargopatch\" type=\"hidden\" value=\"0\"></TD><TD><input name=\"smargopatch\" type=\"checkbox\" value=\"1\" ##SMARGOPATCHCHECKED##></TD></TR>\n\
+    <TR><TD>Smargopatch:<input name=\"smargopatch\" type=\"hidden\" value=\"0\"></TD><TD><input name=\"smargopatch\" type=\"checkbox\" value=\"1\" ##SMARGOPATCHCHECKED##></TD></TR>\n\
     <TR><TD>Pincode:</TD><TD><input name=\"pincode\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##PINCODE##\"></TD></TR>\n\
     <TR><TD>Disableserverfilter:</TD><TD><input name=\"disableserverfilter\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##DISABLESERVERFILTER##\"></TD></TR>\n\
     <TR><TD>Force Irdeto:<input name=\"force_irdeto\" type=\"hidden\" value=\"0\"></TD><TD><input name=\"force_irdeto\" type=\"checkbox\" value=\"1\" ##FORCEIRDETOCHECKED##></TD></TR>\n\
@@ -655,7 +699,13 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
     <TR><TD>Deprecated:<input name=\"deprecated\" type=\"hidden\" value=\"0\"></TD><TD><input name=\"deprecated\" type=\"checkbox\" value=\"1\" ##DEPRECATEDCHCHECKED##></TD></TR>\n\
     <TR><TD>Readnano:</TD><TD><input name=\"readnano\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##EMMFILE##\"></TD></TR>\n\
     <TR><TD>Blocknano:</TD><TD><input name=\"blocknano\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"##BLOCKNANO##\"></TD></TR>\n\
-    <TR><TD>Savenano:</TD><TD><input name=\"savenano\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"##SAVENANO##\"></TD></TR>\n"
+    <TR><TD>Savenano:</TD><TD><input name=\"savenano\" type=\"text\" size=\"50\" maxlength=\"50\" value=\"##SAVENANO##\"></TD></TR>\n\
+    <TR><TD>Force NDS Version:</TD><TD><SELECT name=\"ndsversion\">\
+                        <OPTION  value=\"0\" ##NDSVERSION0##>0 - AUTO</OPTION>\
+                        <OPTION  value=\"1\" ##NDSVERSION1##>1 - NDS1 Forced</OPTION>\
+                        <OPTION  value=\"12\" ##NDSVERSION21##>12 - NDS1+ Forced</OPTION>\
+                        <OPTION  value=\"2\" ##NDSVERSION2##>2 - NDS2 Forced</OPTION>\
+                </SELECT></TD></TR>\n"
 #define TPLREADERCONFIGCAMD35BIT "\
     <TR><TD>Account:</TD><TD><input name=\"account\" type=\"text\" size=\"60\" maxlength=\"50\" value=\"##ACCOUNT##\"></TD></TR>\n\
     <TR><TD>Reconnect timeout:</TD><TD><input name=\"reconnecttimeout\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##RECEIVETIMEOUT##\"></TD></TR>\n\
@@ -696,7 +746,8 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
     <TR><TD>Disable retry ECM: <input name=\"cccdisableretryecm\" type=\"hidden\" value=\"0\"></TD><TD><input name=\"cccdisableretryecm\" type=\"checkbox\" value=\"1\" ##CCCDISABLERETRYECMCHECKED##></TD></TR>\n\
     <TR><TD>Disable auto blocking of undecodable channels: <input name=\"cccdisableautoblock\" type=\"hidden\" value=\"0\"></TD><TD><input name=\"cccdisableautoblock\" type=\"checkbox\" value=\"1\" ##CCCDISABLEAUTOBLOCKCHECKED##></TD></TR>\n\
     <TR><TD>Reconnect-timeout:</TD><TD><input name=\"reconnecttimeout\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##RECEIVETIMEOUT##\"></TD></TR>\n\
-    <TR><TD>Disable server filter:</TD><TD><input name=\"disableserverfilter\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##DISABLESERVERFILTER##\"></TD></TR>\n"
+    <TR><TD>Disable server filter:</TD><TD><input name=\"disableserverfilter\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##DISABLESERVERFILTER##\"></TD></TR>\n\
+    <TR><TD>Keep alive:</TD><TD><SELECT NAME=\"ccckeepalive\"><OPTION VALUE=\"0\">NO</OPTION><OPTION VALUE=\"1\" ##KEEPALIVECHECKED##>YES</OPTION></SELECT></TD></TR>\n"
 #ifdef CS_WITH_GBOX
 #define TPLREADERCONFIGGBOXBIT "\
 	<TR><TD>Account:</TD><TD><input name=\"account\" type=\"text\" size=\"30\" maxlength=\"50\" value=\"##ACCOUNT##\"></TD></TR>\n\
@@ -772,6 +823,12 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 			<OPTION ##VERSIONSELECTED2##>2.1.2</OPTION>\
 			<OPTION ##VERSIONSELECTED3##>2.1.3</OPTION>\
 			<OPTION ##VERSIONSELECTED4##>2.1.4</OPTION>\
+		</SELECT></TD></TR>\n\
+		<TR><TD>Update Interval:</TD><TD><input name=\"updateinterval\" type=\"text\" size=\"5\" maxlength=\"4\" value=\"##UPDATEINTERVAL##\"></TD></TR>\n\
+		<TR><TD>Minimize cards:</TD><TD><SELECT name=\"minimizecards\">\
+			<OPTION value=\"0\" ##MINIMIZECARDSELECTED0##>0 - legacy (default)</OPTION>\
+			<OPTION value=\"1\" ##MINIMIZECARDSELECTED1##>1 - smallest hop</OPTION>\
+			<OPTION value=\"2\" ##MINIMIZECARDSELECTED2##>2 - via caid</OPTION>\
 		</SELECT></TD></TR>\n\
 		<TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\" ##BTNDISABLED##>\n</TD></TR>\n\
 	</TABLE>\n\
@@ -909,15 +966,47 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 		<TR><TD>Wait for cards:</TD><TD><input name=\"waitforcards\" type=\"checkbox\" value=\"1\" ##WAITFORCARDS##></TD></TR>\n\
 		<TR><TD>Prefer local cards:</TD><TD><input name=\"preferlocalcards\" type=\"checkbox\" value=\"1\" ##PREFERLOCALCARDS##></TD></TR>\n\
 		<TR><TD>Save init history:</TD><TD><input name=\"saveinithistory\" type=\"checkbox\" value=\"1\" ##SAVEINITHISTORY##></TD></TR>\n\
-		<TR><TD>Reader autoloadbalance:</TD>\n\
-		<TD><select name=\"readerautoloadbalance\">\n\
-				<option value=\"0\" ##READERAUTOLOADBALANCE0##>0 - Loadbalancer disabled (send to all readers)</option>\n\
-				<option value=\"1\" ##READERAUTOLOADBALANCE1##>1 - Fastest reader first</option>\n\
-				<option value=\"2\" ##READERAUTOLOADBALANCE2##>2 - Oldest reader first</option>\n\
-				<option value=\"3\" ##READERAUTOLOADBALANCE3##>3 - Lowest usagelevel</option>\n\
-			</select></TD></TR>\n\
-		<TR><TD>Reader autoloadbalance save:</TD><TD><input name=\"readerautoloadbalance_save\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##READERAUTOLOADBALANCES##\"></TD></TR>\n\
 		<TR><TD>Reader restart seconds:</TD><TD><input name=\"readerrestartseconds\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##READERRESTARTSECONDS##\"></TD></TR>\n\
+		<TR><TD>Resolver:</TD>\n\
+		<TD><select name=\"resolvegethostbyname\">\n\
+			<option value=\"0\" ##RESOLVER0##>0 - getadressinfo()</option>\n\
+			<option value=\"1\" ##RESOLVER1##>1 - gethostbyname()</option>\n\
+		</select></TD></TR>\n\
+		##TPLDOUBLECHECKBIT##\
+		<TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\" ##BTNDISABLED##>\n</TD></TR>\n\
+	</TABLE>\n\
+</form>\n\
+##TPLFOOTER##"
+
+#ifdef CS_WITH_DOUBLECHECK
+#define TPLDOUBLECHECKBIT "\
+	<TR><TD>ECM Doublecheck:</TD><TD><SELECT NAME=\"double_check\"><OPTION VALUE=\"0\">NO</OPTION><OPTION VALUE=\"1\" ##DCHECKCSELECTED##>YES</OPTION></SELECT></TD></TR>\n"
+#endif
+
+#define TPLCONFIGLOADBALANCER "\
+##TPLHEADER##\
+##TPLMENU##\n\
+##TPLCONFIGMENU##\n\
+<BR><BR>\n\
+##MESSAGE##\
+<form action=\"config.html\" method=\"get\">\n\
+	<input name=\"part\" type=\"hidden\" value=\"loadbalancer\">\n\
+	<input name=\"action\" type=\"hidden\" value=\"execute\">\n\
+	<TABLE class=\"config\" cellspacing=\"0\">\n\
+		<TR><TH>&nbsp;</TH><TH>Edit Loadbalancer Config</TH></TR>\n\
+		<TR><TD>Loadbalance Mode:</TD>\n\
+			<TD><select name=\"lb_mode\">\n\
+					<option value=\"0\" ##LBMODE0##>0 - Loadbalancer disabled (send to all readers)</option>\n\
+					<option value=\"1\" ##LBMODE1##>1 - Fastest reader first</option>\n\
+					<option value=\"2\" ##LBMODE2##>2 - Oldest reader first</option>\n\
+					<option value=\"3\" ##LBMODE3##>3 - Lowest usagelevel</option>\n\
+				</select></TD></TR>\n\
+		<TR><TD>Loadbalance save every:</TD><TD><input name=\"lb_save\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##LBSAVE##\"></TD></TR>\n\
+		<TR><TD>Number of best readers:</TD><TD><input name=\"lb_nbest_readers\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##LBNBESTREADERS##\"></TD></TR>\n\
+		<TR><TD>Number of fallback readers:</TD><TD><input name=\"lb_nfb_readers\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##LBNFBREADERS##\"></TD></TR>\n\
+		<TR><TD>Min ECM count:</TD><TD><input name=\"lb_min_ecmcount\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##LBMINECMCOUNT##\"></TD></TR>\n\
+		<TR><TD>Max ECM count:</TD><TD><input name=\"lb_max_ecmcount\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##LBMAXECEMCOUNT##\"></TD></TR>\n\
+		<TR><TD>Time to reopen:</TD><TD><input name=\"lb_reopen_seconds\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##LBREOPENSECONDS##\"></TD></TR>\n\
 		<TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\" ##BTNDISABLED##>\n</TD></TR>\n\
 	</TABLE>\n\
 </form>\n\
@@ -974,12 +1063,10 @@ services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 <form action=\"config.html\" method=\"get\">\n\
 	<input name=\"part\" type=\"hidden\" value=\"camd35tcp\">\n\
 	<input name=\"action\" type=\"hidden\" value=\"execute\">\n\
-	<input name=\"suppresscmd08\" type=\"hidden\" value=\"0\">\n\
 	<TABLE class=\"config\" cellspacing=\"0\">\n\
 		<TR><TH>&nbsp;</TH><TH>Edit Camd35 TCP Config</TH></TR>\n\
 		<TR><TD>Port:</TD><TD><input name=\"port\" type=\"text\" size=\"50\" maxlength=\"100\" value=\"##PORT##\"></TD></TR>\n\
 		<TR><TD>Serverip:</TD><TD><input name=\"serverip\" type=\"text\" size=\"30\" maxlength=\"30\" value=\"##SERVERIP##\"></TD></TR>\n\
-    	<TR><TD>Suppress cmd08:</TD><TD><input name=\"suppresscmd08\" type=\"checkbox\" value=\"1\" ##SUPPRESSCMD08##></TD></TR>\n\
     	<TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"OK\" ##BTNDISABLED##>\n</TD></TR>\n\
 	</TABLE>\n\
 </form>\n\
@@ -1141,6 +1228,8 @@ char *tpl[]={
 	"READERSBIT",
 	"READERENTITLEBIT",
 	"READERREFRESHBIT",
+	"READERSTATS",
+	"READERSTATSBIT",
 	"SCANUSB",
 	"SCANUSBBIT",
 	"ENTITLEMENTS",
@@ -1168,6 +1257,7 @@ char *tpl[]={
 	"CONFIGRADEGAST",
 	"CONFIGNEWCAMD",
 	"CONFIGGLOBAL",
+	"CONFIGLOADBALANCER",
 	"CONFIGCAMD33",
 	"CONFIGCAMD35",
 	"CONFIGCAMD35TCP",
@@ -1194,6 +1284,9 @@ char *tpl[]={
 	,"CONFIGMENUGBOX"
 	,"READERCONFIGGBOXBIT"
 #endif
+#ifdef CS_WITH_DOUBLECHECK
+	,"DOUBLECHECKBIT"
+#endif
 };
 
 char *tplmap[]={
@@ -1212,6 +1305,8 @@ char *tplmap[]={
 	TPLREADERSBIT,
 	TPLREADERENTITLEBIT,
 	TPLREADERREFRESHBIT,
+	TPLREADERSTATS,
+	TPLREADERSTATSBIT,
 	TPLSCANUSB,
 	TPLSCANUSBBIT,
 	TPLENTITLEMENTS,
@@ -1239,6 +1334,7 @@ char *tplmap[]={
 	TPLCONFIGRADEGAST,
 	TPLCONFIGNEWCAMD,
 	TPLCONFIGGLOBAL,
+	TPLCONFIGLOADBALANCER,
 	TPLCONFIGCAMD33,
 	TPLCONFIGCAMD35,
 	TPLCONFIGCAMD35TCP,
@@ -1264,6 +1360,9 @@ char *tplmap[]={
 #ifdef CS_WITH_GBOX
 	,TPLCONFIGMENUGBOX
 	,TPLREADERCONFIGGBOXBIT
+#endif
+#ifdef CS_WITH_DOUBLECHECK
+	,TPLDOUBLECHECKBIT
 #endif
 };
 

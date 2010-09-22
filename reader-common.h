@@ -18,6 +18,9 @@
 #define SC_VIDEOGUARD2 6
 #define SC_DRE 7
 #define SC_NAGRA 8
+#define SC_TONGFANG 9
+#define SC_VIDEOGUARD1 10
+#define SC_VIDEOGUARD12 11
 
 // reader-irdeto
 int irdeto_card_init(struct s_reader * reader, ATR atr);
@@ -35,13 +38,29 @@ int viaccess_get_emm_type(EMM_PACKET *, struct s_reader *);
 int viaccess_card_info(struct s_reader * reader);
 void viaccess_get_emm_filter(struct s_reader * rdr, uchar *filter);
 
-// reader-videoguard
-int videoguard_card_init(struct s_reader * reader, ATR atr);
-int videoguard_do_ecm(struct s_reader * reader, ECM_REQUEST *);
-int videoguard_do_emm(struct s_reader * reader, EMM_PACKET *);
-int videoguard_get_emm_type(EMM_PACKET *, struct s_reader *);
-int videoguard_card_info(struct s_reader * reader);
-void videoguard_get_emm_filter(struct s_reader * rdr, uchar *filter);
+// reader-videoguard2
+int videoguard2_card_init(struct s_reader * reader, ATR atr);
+int videoguard2_do_ecm(struct s_reader * reader, ECM_REQUEST *);
+int videoguard2_do_emm(struct s_reader * reader, EMM_PACKET *);
+int videoguard2_get_emm_type(EMM_PACKET *, struct s_reader *);
+int videoguard2_card_info(struct s_reader * reader);
+void videoguard2_get_emm_filter(struct s_reader * rdr, uchar *filter);
+
+// reader-videoguard1
+int videoguard1_card_init(struct s_reader * reader, ATR atr);
+int videoguard1_do_ecm(struct s_reader * reader, ECM_REQUEST *);
+int videoguard1_do_emm(struct s_reader * reader, EMM_PACKET *);
+int videoguard1_get_emm_type(EMM_PACKET *, struct s_reader *);
+int videoguard1_card_info(struct s_reader * reader);
+void videoguard1_get_emm_filter(struct s_reader * rdr, uchar *filter);
+
+// reader-videoguard12
+int videoguard12_card_init(struct s_reader * reader, ATR atr);
+int videoguard12_do_ecm(struct s_reader * reader, ECM_REQUEST *);
+int videoguard12_do_emm(struct s_reader * reader, EMM_PACKET *);
+int videoguard12_get_emm_type(EMM_PACKET *, struct s_reader *);
+int videoguard12_card_info(struct s_reader * reader);
+void videoguard12_get_emm_filter(struct s_reader * rdr, uchar *filter);
 
 // reader-cryptoworks
 int cryptoworks_card_init(struct s_reader * reader, ATR atr);
@@ -83,6 +102,14 @@ int dre_do_emm(struct s_reader * reader, EMM_PACKET *);
 int dre_get_emm_type(EMM_PACKET *, struct s_reader *);
 int dre_card_info(void);
 void dre_get_emm_filter(struct s_reader * rdr, uchar *filter);
+
+// reader tongfang
+int tongfang_card_init(struct s_reader * reader, ATR atr);
+int tongfang_do_ecm(struct s_reader * reader, ECM_REQUEST *);
+int tongfang_do_emm(struct s_reader * reader, EMM_PACKET *);
+int tongfang_get_emm_type(EMM_PACKET *, struct s_reader *);
+int tongfang_card_info(struct s_reader * reader);
+void tongfang_get_emm_filter(struct s_reader * rdr, uchar *filter);
 
 int check_emm_cardsystem(struct s_reader * rdr, EMM_PACKET *ep);
 void reader_device_close(struct s_reader * reader);

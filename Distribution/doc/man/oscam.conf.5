@@ -92,6 +92,14 @@ value to wait for bind request to complete, default:120
 network priority, default:system given
 .RE
 .PP
+\fBresolvegethostbyname\fP = \fB0\fP|\fB1\fP
+.RS 3n
+set mode for DNS resolving:
+
+  0 = getadressinfo (default)
+  1 = gethostbyname
+.RE
+.PP
 \fBresolvedelay\fP = \fBseconds\fP
 .RS 3n
 delay for DNS resolving, default:30
@@ -131,7 +139,7 @@ max log file size, default:10
 .PP
 \fBwaitforcards\fP = \fB0\fP|\fB1\fP 
 .RS 3n
-1 = wait for local SCs on startup before opening network ports, default:0
+1 = wait for local SCs on startup before opening network ports, default:1
 .RE
 .PP
 \fBpreferlocalcards\fP = \fB0\fP|\fB1\fP
@@ -149,9 +157,14 @@ seconds beetween restarts, 0 = disable reader restart, default:5
 1 = save SC init history to /tmp/.oscam/reader<number>, default:0
 .RE
 .PP
-\fBreaderautoloadbalance\fP = \fB0\fP|\fB1\fP 
+\fBdouble_check\fP = \fB0\fP|\fB1\fP \fI(only if CW double check enabled)\fR
 .RS 3n
-loadbalance level:
+1 = ECM will be send to two or more readers with the same SC and the CWs will be verified against each other, \fBlb_nbest_readers\fP must be set to 2 or higher, default:0
+.RE
+.PP
+\fBlb_mode\fP = \fBmode\fP 
+.RS 3n
+loadbalance mode:
 
  0 = loadbalance disabled, ECMs go to all readers (default)
  1 = fastest reader first, after 5 ECMs the reader with the fastest 
@@ -162,14 +175,39 @@ loadbalance level:
      higher is usage level
 .RE
 .PP
-\fBreaderautoloadbalance_save\fP = \fB0\fP|\fBcounts\fP 
+\fBlb_save\fP = \fB0\fP|\fBcounts\fP 
 .RS 3n
 save autoloadbalance statistics:
 
       0 = saving of autoloadbalance statistics disabled (default)
  counts = save autoloadbalance statistics every \fBcounts\fP ECMs
- 
+
 To save CPU power a minimum counts of 100 is recommended.
+.RE
+.PP
+\fBlb_nbest_readers\fP = \fBcounts\fP
+.RS 3n
+set count of best readers for loadbalancing, default:1
+.RE
+.PP
+\fBlb_nfb_readers\fP = \fBcounts\fP
+.RS 3n
+set count of fallback readers for loadbalancing, default:1
+.RE
+.PP
+\fBlb_min_ecmcount\fP = \fBcounts\fP
+.RS 3n
+minimal ECM count to evaluate loadbalancing values, default:5
+.RE
+.PP
+\fBlb_max_ecmcount\fP = \fBcounts\fP
+.RS 3n
+maximum ECM count before resetting loadbalancing values, default:500
+.RE
+.PP
+\fBlb_reopen_seconds\fP = \fBseconds\fP
+.RS 3n
+time between retrying failed readers/CAIDs/providers/services, default:900
 .RE
 .SS "The [monitor] section"
 .PP
@@ -327,13 +365,20 @@ bind service to specified IP address, default:all
 1 = enable mgcamd extended newcamd protocol,  allowing for a single connection to work with mutliple providers, default:0
 .RE
 .PP
-\fBport\fP = \fBport@CAID[:ident][,ident]...[;port@CAID[:ident][,ident]...]...\fP
+\fBkey\fP = \fBDES key\fP
 .RS 3n
-TCP port/CAID/ident definitions, default:none
+default key for newcamd client encryption, default:none
 
- example: port = 10000@0100:100000;20000@0200:200000,300000,400000
- 
-Each CAID requires a separate port.
+ example key = 0102030405060708091011121314
+.RE
+.PP
+\fBport\fP = \fBport[{DES key}]@CAID[:ident][,ident]...[;port[{DES key}]@CAID[:ident][,ident]...]...\fP
+.RS 3n
+TCP port/DES key/CAID/ident definitions, default:none
+
+ example: port = 10000@0100:100000;20000{0102030405060708091011121314}@0200:200000,300000,400000
+
+Each CAID requires a separate port. If you don't specify a DES key for a port, the default DES Key will be used.
 .RE
 .PP
 \fBserverip\fP = \fBIP address\fP
@@ -351,13 +396,6 @@ client connections allowed from, default:none
 \fBkeepalive\fP = \fB0\fP|\fB1\fP
 .RS 3n
 0 = disable keepalive, default:1
-.RE
-.PP
-\fBkey\fP = \fBDES key\fP
-.RS 3n
-key for newcamd client encryption, default:none
-
- example key = 0102030405060708091011121314
 .RE
 .SS "The [radegast] section"
 .PP
@@ -459,12 +497,23 @@ define CCcam build, default:none
 .PP
 \fBreshare\fP = \fBlevel\fP
 .RS 3n
-reshare level for CCcam clients, default:none
+reshare level for CCcam clients:
 
- 0 = no resharing
+ 0 = no resharing (default)
  1 = resharing for direct peer only
  2 = resharing for direct peer and next level
  x = resharing for direct peer and next x level
+.RE
+.PP
+\fBminimizecards\fP = \fBmode\fP
+.RS 3n
+mode how to provide CCCam servers to CCCam clients:
+
+ 0 = no aggregation, remove duplicates only (default)
+ 1 = based on minimum hop: two SCs with different hops are 
+     summarized, new SCs get a smaller hop
+ 2 = aggregation based on CAIDs: all SCs with the same CAIDs 
+     will be merged, provider will be removed
 .RE
 .SS "The [gbox] section"
 .PP
@@ -539,7 +588,7 @@ PMT mode:
  3 = read PMT file on startup only
 .RE
 .PP
-\fBboxtype\fP = \fBdbox2\fP|\fBdreambox\fP|\fBduckbox\fP|\fBufs910\fP|\fBipbox\fP|\fBipbox-pmt\fP|\fBfortis\fP
+\fBboxtype\fP = \fBdbox2\fP|\fBdreambox\fP|\fBdm7000\fP|\fBduckbox\fP|\fBufs910\fP|\fBipbox\fP|\fBipbox-pmt\fP
 .RS 3n
 set boxtype, auto detection of DVB API will be aspired, default:dreambox
 
@@ -725,7 +774,7 @@ be a workaround, but also a small security risk.
  
  [newcamd]
  key          = 0102030405060708091011121314
- port         = 10000@0100:100000;20000@0200:200000,300000,400000
+ port         = 10000@0100:100000;20000{0102030405060708091011121314}@0200:200000,300000,400000
  
  [radegast]
  port         = 30000
@@ -740,4 +789,4 @@ be a workaround, but also a small security risk.
  [cs378x]
  port         = 50000@0300:600000
 .SH "SEE ALSO"
-\fBlist_smargo\fR(1), \fBoscam\fR(1), \fBoscam.ac\fR(5), \fBoscam.cert\fR(5), \fBoscam.guess\fR(5), \fBoscam.ird\fR(5), \fBoscam.provid\fR(5), \fBoscam.server\fR(5), \fBoscam.services\fR(5), \fBoscam.srvid\fR(5), \fBoscam.user\fR(5)
+\fBlist_smargo\fR(1), \fBoscam\fR(1), \fBoscam.ac\fR(5), \fBoscam.cert\fR(5), \fBoscam.guess\fR(5), \fBoscam.ird\fR(5), \fBoscam.provid\fR(5), \fBoscam.server\fR(5), \fBoscam.services\fR(5), \fBoscam.srvid\fR(5), \fBoscam.tiers\fR(5), \fBoscam.user\fR(5)
