@@ -20,6 +20,7 @@ int fd_c2m=0;
 ushort  len4caid[256];    // table for guessing caid (by len)
 char  cs_confdir[128]=CS_CONFDIR;
 int cs_dblevel=0;   // Debug Level (TODO !!)
+char  cs_tmpdir[200]={0x00};
 pthread_mutex_t gethostbyname_lock;
 ECM_REQUEST *ecmtask;
 #ifdef CS_ANTICASC
@@ -132,6 +133,12 @@ static void usage()
   fprintf(stderr, "\n\n\t-b         : start in background\n");
   fprintf(stderr, "\t-c <dir>   : read configuration from <dir>\n");
   fprintf(stderr, "\t             default = %s\n", CS_CONFDIR);
+  fprintf(stderr, "\t-t <dir>   : tmp dir <dir>\n");
+#ifdef CS_CYGWIN32
+  fprintf(stderr, "\t             default = (OS-TMP)\n");
+#else
+  fprintf(stderr, "\t             default = /tmp/.oscam\n");
+#endif
   fprintf(stderr, "\t-d <level> : debug level mask\n");
   fprintf(stderr, "\t               0 = no debugging (default)\n");
   fprintf(stderr, "\t               1 = detailed error messages\n");
@@ -2676,7 +2683,8 @@ static void process_master_pipe()
     	int data[2];
     	data[0] = ((int*)ptr)[0];
     	data[1] = ((int*)ptr)[1];
-    	write_to_pipe(reader[data[0]].fd, PIP_ID_CCC, (uchar*)&data, sizeof(data));
+    	write_to_pipe(reader[data[0]].fd, PIP_ID_CCC, (uchar*)data, sizeof(data));
+    	break;
     }
   }
 }
@@ -2824,7 +2832,40 @@ int accept_connection(int i, int j) {
 //    cs_sleepms(1000*cfg->resolvedelay);
 //  }
 //}
-              
+
+
+/**
+ * get tmp dir
+  **/
+char * get_tmp_dir()
+{
+  if (cs_tmpdir[0])
+    return cs_tmpdir;
+      
+#ifdef OS_CYGWIN32
+  char *d = getenv("TMPDIR");
+  if (!d || !d[0])
+    d = getenv("TMP");
+  if (!d || !d[0])
+    d = getenv("TEMP");
+  if (!d || !d[0])
+    getcwd(cs_tmpdir, sizeof(cs_tmpdir)-1);
+                                        
+  strcpy(cs_tmpdir, d);
+  char *p = cs_tmpdir;
+  while(*p) p++;
+  p--;
+  if (*p != '/' && *p != '\\')
+    strcat(cs_tmpdir, "/");
+  strcat(cs_tmpdir, "_oscam");
+#else
+  strcpy(cs_tmpdir, "/tmp/.oscam");
+#endif
+  mkdir(cs_tmpdir, S_IRWXU);
+  return cs_tmpdir;
+}
+                                                              
+                                                                            
 int main (int argc, char *argv[])
 {
 
@@ -2861,7 +2902,7 @@ int main (int argc, char *argv[])
            0
   };
 
-  while ((i=getopt(argc, argv, "bc:d:hm:"))!=EOF)
+  while ((i=getopt(argc, argv, "bc:t:d:hm:"))!=EOF)
   {
     switch(i)
     {
@@ -2871,6 +2912,7 @@ int main (int argc, char *argv[])
                 break;
       case 'd': cs_dblevel=atoi(optarg);
                 break;
+      case 't': cs_strncpy(cs_tmpdir, optarg, sizeof(cs_tmpdir));
       case 'm':
 #ifdef CS_NOSHM
                 cs_strncpy(cs_memfile, optarg, sizeof(cs_memfile));
