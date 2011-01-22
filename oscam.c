@@ -15,8 +15,6 @@ void coolapi_close_all();
 void coolapi_open_all();
 #endif
 
-pthread_mutex_t coolstream; //semaphore for COOLSTREAM
-
 extern void cs_statistics(struct s_client * client);
 extern int ICC_Async_Close (struct s_reader *reader);
 

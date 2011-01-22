@@ -746,7 +746,6 @@ struct ecmrl {
 	time_t	last;
 };
 #define MAXECMRATELIMIT	20
-extern pthread_mutex_t coolstream; //semaphore for COOLSTREAM
 
 struct s_reader  //contains device info, reader info and card info
 {

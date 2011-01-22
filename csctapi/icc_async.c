@@ -180,10 +180,7 @@ int ICC_Async_Device_Init (struct s_reader *reader)
 #endif
 		case R_INTERNAL:
 #if defined(COOL)
-			pthread_mutex_lock(&coolstream);
-			int ret = Cool_Init(reader->device);
-			pthread_mutex_unlock(&coolstream);
-			return ret;
+			return Cool_Init(reader->device);
 #elif defined(AZBOX)
 			return Azbox_Init(reader);
 #elif defined(SCI_DEV)
@@ -614,9 +611,7 @@ int ICC_Async_Close (struct s_reader *reader)
 #elif defined(WITH_STAPI)
 			call(STReader_Close(reader->stsmart_handle));
 #elif defined(COOL)
-			pthread_mutex_lock(&coolstream);
-			call (Cool_Close()); //FIXME also unlock on error
-			pthread_mutex_unlock(&coolstream);
+			call (Cool_Close());
 #endif
 			break;
 #ifdef HAVE_PCSC
