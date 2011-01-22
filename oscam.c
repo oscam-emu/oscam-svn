@@ -14,6 +14,8 @@
 void coolapi_close_all();
 #endif
 
+pthread_mutex_t coolstream; //semaphore for COOLSTREAM
+
 extern void cs_statistics(struct s_client * client);
 extern int ICC_Async_Close (struct s_reader *reader);
 
@@ -905,6 +907,30 @@ static void init_first_client()
 #ifdef CS_LOGHISTORY
   loghistidx=0;
   memset(loghist, 0, CS_MAXLOGHIST*CS_LOGHISTSIZE);
+#endif
+
+#ifdef COOL
+cs_log("DINGO checkpoint 0a");
+pthread_mutex_lock(&coolstream);
+cs_log("DINGO checkpoint 0b");
+ 	cnxt_kal_initialize ();
+ 	//if (cnxt_kal_initialize ())
+cs_log("DINGO checkpoint 1");
+//		return FALSE;
+
+cs_log("DINGO checkpoint 2");
+	cnxt_drv_init ();
+	//if (cnxt_drv_init ())
+//		return FALSE;
+
+cs_log("DINGO checkpoint 3");
+	cnxt_smc_init (NULL);
+//	if (cnxt_smc_init (NULL) != 1)
+//		return FALSE;
+
+cs_log("DINGO checkpoint 4");
+pthread_mutex_unlock(&coolstream);
+
 #endif
 }
 

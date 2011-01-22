@@ -746,6 +746,7 @@ struct ecmrl {
 	time_t	last;
 };
 #define MAXECMRATELIMIT	20
+extern pthread_mutex_t coolstream; //semaphore for COOLSTREAM
 
 struct s_reader  //contains device info, reader info and card info
 {
@@ -765,6 +766,9 @@ struct s_reader  //contains device info, reader info and card info
   char      device[128];
   ushort    slot;   //in case of multiple slots like sc8in1; first slot = 1
   int       handle;   //device handle
+  void      *cool_handle; //device handle for coolstream
+  char      cardbuffer[256];
+  int				cardbuflen;
   int       fdmc;     //device handle for multicam
 #ifdef WITH_STAPI
   unsigned int stsmart_handle; //device handle for stsmart driver
