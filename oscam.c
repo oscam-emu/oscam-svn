@@ -12,6 +12,7 @@
 #endif
 #ifdef COOL
 void coolapi_close_all();
+void coolapi_open_all();
 #endif
 
 pthread_mutex_t coolstream; //semaphore for COOLSTREAM
@@ -910,27 +911,7 @@ static void init_first_client()
 #endif
 
 #ifdef COOL
-cs_log("DINGO checkpoint 0a");
-pthread_mutex_lock(&coolstream);
-cs_log("DINGO checkpoint 0b");
- 	cnxt_kal_initialize ();
- 	//if (cnxt_kal_initialize ())
-cs_log("DINGO checkpoint 1");
-//		return FALSE;
-
-cs_log("DINGO checkpoint 2");
-	cnxt_drv_init ();
-	//if (cnxt_drv_init ())
-//		return FALSE;
-
-cs_log("DINGO checkpoint 3");
-	cnxt_smc_init (NULL);
-//	if (cnxt_smc_init (NULL) != 1)
-//		return FALSE;
-
-cs_log("DINGO checkpoint 4");
-pthread_mutex_unlock(&coolstream);
-
+  coolapi_open_all();
 #endif
 }
 

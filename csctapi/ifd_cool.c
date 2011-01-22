@@ -15,6 +15,7 @@ static int nr_of_cool_readers_running = 0;
 
 int Cool_Init (char *device)
 {
+	cnxt_smc_init (NULL);
 	int reader_nb = 0;
     // this is to stay compatible with olfer config.
     if(strlen(device))
