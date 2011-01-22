@@ -11,26 +11,22 @@
 #include"../globals.h"
 #include"icc_async.h"
 
-static int nr_of_cool_readers_running = 0;
-
 int Cool_Init (char *device)
 {
-	cnxt_smc_init (NULL);
+	cnxt_smc_init (NULL); //not sure whether this should be in coolapi_open_all
 	int reader_nb = 0;
-    // this is to stay compatible with olfer config.
-    if(strlen(device))
-        reader_nb=atoi((const char *)device);
-    if(reader_nb>1) {
-        // there are only 2 readers in the coolstream : 0 or 1
-        cs_log("Coolstream reader device can only be 0 or 1");
-        return FALSE;
-    }
-cs_log("DINGO checkpoint 5");
+	// this is to stay compatible with olfer config.
+	if(strlen(device))
+	reader_nb=atoi((const char *)device);
+	if(reader_nb>1) {
+		// there are only 2 readers in the coolstream : 0 or 1
+		cs_log("Coolstream reader device can only be 0 or 1");
+		return FALSE;
+	}
 	cur_client()->reader->cool_handle = malloc(16) ; //FIXME just allocating some memory for this
 	if (cnxt_smc_open (&cur_client()->reader->cool_handle, &reader_nb))
 		return FALSE;
   cur_client()->reader->cardbuflen = 0;
-cs_log("DINGO checkpoint 6");
 	return OK;
 }
 
@@ -143,11 +139,8 @@ int Cool_FastReset ()
 int Cool_Close (void)
 {
 	call(cnxt_smc_close (&cur_client()->reader->cool_handle));
-	nr_of_cool_readers_running--;
-	if (!nr_of_cool_readers_running) { //FIXME this could clash with DVBAPI
-		call(cnxt_kal_terminate()); //should call this only once in a thread
-	 cnxt_drv_term();
-	}
+	call(cnxt_kal_terminate()); //should call this only once in a thread
+	cnxt_drv_term();
 	return OK;
 }
 
