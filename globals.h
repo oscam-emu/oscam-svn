@@ -763,11 +763,9 @@ struct s_reader  //contains device info, reader info and card info
   int       card_system;
   char      label[64];
   char      device[128];
+  void			*spec_dev;  //pointer to structure that contains specific device data
   ushort    slot;   //in case of multiple slots like sc8in1; first slot = 1
   int       handle;   //device handle
-  void      *cool_handle; //device handle for coolstream
-  char      cardbuffer[256];
-  int				cardbuflen;
   int       fdmc;     //device handle for multicam
 #ifdef WITH_STAPI
   unsigned int stsmart_handle; //device handle for stsmart driver
