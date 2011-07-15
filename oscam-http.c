@@ -4090,10 +4090,7 @@ void http_srv() {
 		CRYPTO_set_dynlock_lock_callback(NULL);
 		CRYPTO_set_dynlock_destroy_callback(NULL);
 		CRYPTO_set_locking_callback(NULL);
-		CRYPTO_set_id_callback(NULL); 
-		for (i = 0; i < num; ++i) {
-			pthread_mutex_destroy(&lock_cs[i]);
-		}
+		CRYPTO_set_id_callback(NULL);
 		OPENSSL_free(lock_cs);
 		lock_cs = NULL;
 	}

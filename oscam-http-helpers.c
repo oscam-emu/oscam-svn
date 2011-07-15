@@ -839,7 +839,6 @@ struct CRYPTO_dynlock_value *SSL_dyn_create_function(const char *file, int32_t l
 			free(l);
 			return (NULL);
 		}
-    pthread_mutex_init(&l->mutex, NULL);
     // just to remove compiler warnings...
 		if(file || line) return l;
     return l;
@@ -879,7 +878,7 @@ SSL_CTX *SSL_Webif_Init() {
 	
 	// set locking callbacks for SSL
 	int32_t i, num = CRYPTO_num_locks();
-	lock_cs = (pthread_mutex_t*) OPENSSL_malloc(num * sizeof(CS_MUTEX_LOCK));
+	lock_cs = (CS_MUTEX_LOCK*) OPENSSL_malloc(num * sizeof(CS_MUTEX_LOCK));
 	
 	for (i = 0; i < num; ++i) {
 		cs_lock_create(&lock_cs[i], 10, "ssl_lock_cs");
