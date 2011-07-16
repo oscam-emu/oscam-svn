@@ -2250,38 +2250,6 @@ static char *send_oscam_entitlement(struct templatevars *vars, struct uriparams 
 				}
 			}
 
-			if (rdr->ll_entitlements) {
-
-				char *typetxt[] = {"", "package", "PPV-Event", "chid", "tier", "class", "PBM" };
-				time_t now = time((time_t)0);
-
-				struct tm start_t, end_t;
-				LL_ITER itr = ll_iter_create(rdr->ll_entitlements);
-				S_ENTITLEMENT *item;
-
-				tpl_addVar(vars, TPLAPPEND, "LOGHISTORY", "<BR><BR>New Structure:<BR>");
-				while ((item = ll_iter_next(&itr))) {
-
-					localtime_r(&item->start, &start_t);
-					localtime_r(&item->end, &end_t);
-					// to be able to display correctly on 32bit systems, uint64 has to be split in 2 uint32 values and used as 2 params
-					tpl_printf(vars, TPLAPPEND, "LOGHISTORY", "<SPAN CLASS=\"%s\">entitlement %s: caid %04X provid %06X id %08X%08X class %08X valid ",
-							item->end > now ? "e_valid" : "e_expired" , typetxt[item->type], item->caid, item->provid, (uint32_t)(item->id >> 32), (uint32_t)item->id, item->class);
-
-					if ( item->start != 0 ){
-						tpl_printf(vars, TPLAPPEND, "LOGHISTORY", "%02d.%02d.%04d - %02d.%02d.%04d</SPAN><BR>\n",
-								start_t.tm_mday, start_t.tm_mon + 1, start_t.tm_year + 1900,
-								end_t.tm_mday, end_t.tm_mon + 1, end_t.tm_year + 1900);
-					} else {
-						tpl_printf(vars, TPLAPPEND, "LOGHISTORY", " until %02d.%02d.%04d</SPAN><BR>\n",
-								end_t.tm_mday, end_t.tm_mon + 1, end_t.tm_year + 1900);
-					}
-
-					//char tbuffer[30];
-					//strftime(tbuffer, 30, "%Y-%m-%dT%H:%M:%S%z", &start_t);
-				}
-			}
-
 			tpl_addVar(vars, TPLADD, "READERNAME", rdr->label);
 			tpl_addVar(vars, TPLADD, "ENTITLEMENTCONTENT", tpl_getTpl(vars, "ENTITLEMENTGENERICBIT"));
 		}
@@ -2610,7 +2578,6 @@ static char *send_oscam_status(struct templatevars *vars, struct uriparams *para
 						struct s_reader *rdr = cl->reader;
 						if (rdr->ll_entitlements)
 						{
-							//char *typetxt[] = {"Id", "Package", "PPV-Event", "Chid", "Tier", "Class", "PBM" };
 							LL_ITER itr = ll_iter_create(rdr->ll_entitlements);
 							S_ENTITLEMENT *ent;
 							uint16_t total_ent = 0;
@@ -2619,6 +2586,7 @@ static char *send_oscam_status(struct templatevars *vars, struct uriparams *para
 							struct tm end_t;
 							
 							tpl_printf(vars, TPLADD, "TMPSPAN", "<SPAN>");
+							
 							while((ent = ll_iter_next(&itr)))
 							{
 								total_ent++;
@@ -2627,33 +2595,40 @@ static char *send_oscam_status(struct templatevars *vars, struct uriparams *para
 									if (active_ent) tpl_printf(vars, TPLAPPEND, "TMPSPAN", "<BR><BR>");
 									active_ent++;
 									localtime_r(&ent->end, &end_t);
-									/*
-									tpl_printf(vars, TPLAPPEND, "TMPSPAN", "%s:", 
-										typetxt[ent->type]);
-									// Attention: to be able to display correctly on 32bit systems, uint64 has to be split
-									// in 2 uint32 values and used as 2 params
-									if (ent->type == 6)
-									{
-									    tpl_printf(vars, TPLAPPEND, "TMPSPAN", "%08X", (uint32_t)(ent->id>>32));
-									}
-									tpl_printf(vars, TPLAPPEND, "TMPSPAN", (ent->type == 6)?"%08X<BR>":"%04X<BR>", 
-										(uint32_t)ent->id);
-									*/
 									tpl_printf(vars, TPLAPPEND, "TMPSPAN", "%04X:%06X<BR>exp:%04d/%02d/%02d",
 									    ent->caid, ent->provid, 
 									    end_t.tm_year + 1900, end_t.tm_mon + 1, end_t.tm_mday);
 								}
 							}
+							
+							if (((total_ent) && (active_ent == 0)) || (total_ent == 0))
+							{
+								tpl_printf(vars, TPLAPPEND, "TMPSPAN", "No active entitlements found");
+							}
+							
 							tpl_printf(vars, TPLAPPEND, "TMPSPAN", "</SPAN>");
 							
-							tpl_printf(vars, TPLADD, "TMP", "(%d of %d entitlements)", active_ent, total_ent);
-							
+							if (active_ent)
+							{
+								tpl_printf(vars, TPLADD, "TMP", "(%d entitlement%s)", active_ent, (active_ent != 1)?"s":"");
+							}
+							else
+							{
+								tpl_printf(vars, TPLADD, "TMP", "(no entitlements)");
+								
+							}
 							
 							tpl_printf(vars, TPLAPPEND, "CLIENTCON", " <A HREF=\"entitlements.html?label=%s\" class=\"tooltip%s\">%s%s</A>",
-														urlencode(vars, cl->reader->label),
-														active_ent > 0 ? "1": "",
-														tpl_getVar(vars, "TMP"),
-														active_ent > 0 ? tpl_getVar(vars, "TMPSPAN") : "");
+													urlencode(vars, cl->reader->label),
+													active_ent > 0 ? "": "1",
+													tpl_getVar(vars, "TMP"),
+													tpl_getVar(vars, "TMPSPAN"));
+						}
+						else
+						{
+							tpl_printf(vars, TPLAPPEND, "CLIENTCON", " <A HREF=\"entitlements.html?label=%s\" class=\"tooltip\">(no entitlements)"
+												    "<SPAN>No active entitlements found</SPAN></A>",
+													urlencode(vars, cl->reader->label));
 						}
 					}
 
