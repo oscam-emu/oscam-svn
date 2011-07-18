@@ -103,10 +103,6 @@ DESCRIPTIONS
        disabled = 0|1
 	  1 = account disabled, default:0
 
-       allowedprotocols 	   =		[camd33][,][camd35][,][cs357x][,][cs378x][,][new‐
-       camd][,][cccam][,][gbox][,][radegast]
-	  list of all allowed connection protocols, default:all connection protocols
-
        allowedtimeframe = hh:mm-hh:mm
 	  account enabled from hh:mm to hh:mm, default:none
 
@@ -129,11 +125,11 @@ DESCRIPTIONS
 	   4 = block IP of a sleeping account while sleeping comes up
 
        suppresscmd08 = 0|1
-	  0  =	tell  camd  3.5x, 3.57x and 3.78x clients not to request again for rejected CAID,
+	  0 = tell camd 3.5x, 3.57x and 3.78x clients not to request  again  for  rejected  CAID,
 	  service ID and provider ID combination, 1 =  disable, default:0
 
        keepalive = 0|1
-	  0 = disable keepalive  between  server  and  client  for  newcamd  or  CCcam	protocol,
+	  0  =	disable  keepalive  between  server  and  client  for  newcamd or CCcam protocol,
 	  default:1
 
        cccmaxhops = hops
