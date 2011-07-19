@@ -4059,7 +4059,6 @@ void http_srv() {
 	cs_sleepms(300);
 #ifdef WITH_SSL
 	if (ssl_active){
-		int32_t i, num = CRYPTO_num_locks();;
 		SSL_CTX_free(ctx);
 		CRYPTO_set_dynlock_create_callback(NULL);
 		CRYPTO_set_dynlock_lock_callback(NULL);
