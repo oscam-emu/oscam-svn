@@ -633,7 +633,7 @@ char *urlencode(struct templatevars *vars, char *str){
 	char buf[strlen(str) * 3 + 1];
 	char *pstr = str, *pbuf = buf;
 	while (*pstr) {
-		if (isalnum(*pstr) || *pstr == '-' || *pstr == '_' || *pstr == '.' || *pstr == '~') *pbuf++ = *pstr;
+		if (*pstr == '-' || *pstr == '_' || *pstr == '.' || *pstr == '~') *pbuf++ = *pstr;
 		else if (*pstr == ' ') *pbuf++ = '+';
 		else {
 			*pbuf++ = '%';
