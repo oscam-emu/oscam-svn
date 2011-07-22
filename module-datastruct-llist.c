@@ -72,7 +72,7 @@ void *ll_iter_next_nolock(LL_ITER *it)
         } else if (it->l->initial && !it->prv)
             it->cur = it->l->initial;
         
-        if (it->cur->obj)
+        if (it->cur)
             return it->cur->obj;
     }
 
