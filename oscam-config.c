@@ -76,15 +76,14 @@ static const char *cctag[]={"global", "monitor", "camd33", "camd35", "newcamd", 
 /* Returns the default value if string length is zero, otherwise atoi is called*/
 static int32_t strToIntVal(char *value, int32_t defaultvalue){
 	if (strlen(value) == 0) return defaultvalue;
-	errno = 0; // errno should be set to 0 before calling strtol
 	int32_t i = strtol(value, NULL, 10);
-	return (errno == 0) ? i : defaultvalue;
-}
+    if (i < 0) return defaultvalue;
+	else return i; 
+	}
 
 /* Returns the default value if string length is zero, otherwise strtoul is called*/
 static uint32_t strToUIntVal(char *value, uint32_t defaultvalue){
 	if (strlen(value) == 0) return defaultvalue;
-	errno = 0; // errno should be set to 0 before calling strtoul
 	uint32_t i = strtoul(value, NULL, 10);
 	return (errno == 0) ? i : defaultvalue;
 }
@@ -1742,6 +1741,8 @@ void chk_account(const char *token, char *value, struct s_auth *account)
 
 	if (!strcmp(token, "cccreshare")) {
 		account->cccreshare = strToIntVal(value, -1);
+		if (account->cccreshare == cfg.cc_reshare)
+		account->cccreshare = -1;
 		return;
 	}
 
@@ -1754,6 +1755,8 @@ void chk_account(const char *token, char *value, struct s_auth *account)
 
 	if (!strcmp(token, "cccstealth")) {
 		account->cccstealth = strToIntVal(value, -1);
+		if (account->cccstealth == cfg.cc_stealth)
+		account->cccstealth = -1;
 		return;
 	}
 #endif
@@ -2487,13 +2490,13 @@ int32_t write_userdb()
 		if (account->cccmaxhops != 10 || cfg.http_full_cfg)
 			fprintf_conf(f, "cccmaxhops", "%d\n", account->cccmaxhops);
 
-		if ((account->cccreshare != -1) || cfg.http_full_cfg)
+		if ((account->cccreshare != cfg.cc_reshare && account->cccreshare != -1) || cfg.http_full_cfg)
 			fprintf_conf(f, "cccreshare", "%d\n", account->cccreshare);
 
 		if ((account->cccignorereshare != cfg.cc_ignore_reshare && account->cccignorereshare != -1) || cfg.http_full_cfg)
 			fprintf_conf(f, "cccignorereshare", "%d\n", account->cccignorereshare);
 
-		if ((account->cccstealth != -1) || cfg.http_full_cfg)
+		if ((account->cccstealth != cfg.cc_stealth && account->cccstealth != -1 ) || cfg.http_full_cfg)
 			fprintf_conf(f, "cccstealth", "%d\n", account->cccstealth);
 #endif
 
