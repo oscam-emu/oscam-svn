@@ -762,28 +762,26 @@ void chk_t_ac(char *token, char *value)
 
 	if (!strcmp(token, "numusers")) {
 		cfg.ac_users = strToIntVal(value, 0);
-		if ( cfg.ac_users < 0 )
-			cfg.ac_users = 0;
 		return;
 	}
 
 	if (!strcmp(token, "sampletime")) {
-		cfg.ac_stime = strToIntVal(value, 2);
+		cfg.ac_stime = atoi(value);
 		if( cfg.ac_stime < 0 )
 			cfg.ac_stime = 2;
 		return;
 	}
 
 	if (!strcmp(token, "samples")) {
-		cfg.ac_samples = strToIntVal(value, 10);
+		cfg.ac_samples = atoi(value);
 		if( cfg.ac_samples < 2 || cfg.ac_samples > 10)
 			cfg.ac_samples = 10;
 		return;
 	}
 
 	if (!strcmp(token, "penalty")) {
-		cfg.ac_penalty = strToIntVal(value, 0);
-		if( cfg.ac_penalty < 0  || cfg.ac_penalty > 3 )
+		cfg.ac_penalty = atoi(value);
+		if( cfg.ac_penalty < 0 )
 			cfg.ac_penalty = 0;
 		return;
 	}
@@ -794,14 +792,14 @@ void chk_t_ac(char *token, char *value)
 	}
 
 	if( !strcmp(token, "fakedelay") ) {
-		cfg.ac_fakedelay = strToIntVal(value, 1000);
+		cfg.ac_fakedelay = atoi(value);
 		if( cfg.ac_fakedelay < 100 || cfg.ac_fakedelay > 1000 )
 			cfg.ac_fakedelay = 1000;
 		return;
 	}
 
 	if( !strcmp(token, "denysamples") ) {
-		cfg.ac_denysamples = strToIntVal(value, 8);
+		cfg.ac_denysamples = atoi(value);
 		if( cfg.ac_denysamples < 2 || cfg.ac_denysamples > cfg.ac_samples - 1 )
 			cfg.ac_denysamples=cfg.ac_samples-1;
 		return;
@@ -1126,7 +1124,7 @@ void chk_t_newcamd(char *token, char *value)
 	}
 
 	if (!strcmp(token, "keepalive")) {
-		cfg.ncd_keepalive = strToIntVal(value, DEFAULT_NCD_KEEPALIVE);
+		cfg.ncd_keepalive = strToIntVal(value, 1);
 		return;
 	}
 
@@ -1568,7 +1566,7 @@ int32_t init_config()
 	cfg.mon_hideclient_to = 15;
 	cs_strncpy(cfg.http_tpl, "", sizeof(cfg.http_tpl));
 #endif
-	cfg.ncd_keepalive = DEFAULT_NCD_KEEPALIVE;
+	cfg.ncd_keepalive = 1;
 #ifdef CS_ANTICASC
 	cfg.ac_enabled = 0;
 	cfg.ac_users = 0;
@@ -1738,12 +1736,12 @@ void chk_account(const char *token, char *value, struct s_auth *account)
 
 #ifdef MODULE_CCCAM
 	if (!strcmp(token, "cccmaxhops")) {
-		account->cccmaxhops = strToIntVal(value, DEFAULT_CC_MAXHOP);
+		account->cccmaxhops = strToIntVal(value, 10);
 		return;
 	}
 
 	if (!strcmp(token, "cccreshare")) {
-		account->cccreshare = strToIntVal(value, DEFAULT_CC_RESHARE);
+		account->cccreshare = strToIntVal(value, -1);
 		return;
 	}
 
@@ -1755,13 +1753,13 @@ void chk_account(const char *token, char *value, struct s_auth *account)
 	}
 
 	if (!strcmp(token, "cccstealth")) {
-		account->cccstealth = strToIntVal(value, DEFAULT_CC_STEALTH);
+		account->cccstealth = strToIntVal(value, -1);
 		return;
 	}
 #endif
 
 	if (!strcmp(token, "keepalive")) {
-		account->ncd_keepalive = strToIntVal(value, DEFAULT_NCD_KEEPALIVE);
+		account->ncd_keepalive = strToIntVal(value, 1);
 		return;
 	}
 	/*
@@ -1878,16 +1876,12 @@ void chk_account(const char *token, char *value, struct s_auth *account)
 
 #ifdef CS_ANTICASC
 	if( !strcmp(token, "numusers") ) {
-		account->ac_users = strToIntVal(value, DEFAULT_AC_USERS);
-		if ( account->ac_users < -1 )
-			account->ac_users = DEFAULT_AC_USERS;
+		account->ac_users = strToIntVal(value, 0);
 		return;
 	}
 
 	if( !strcmp(token, "penalty") ) {
-		account->ac_penalty = strToIntVal(value, DEFAULT_AC_PENALTY);
-		if ( account->ac_penalty < -1 )
-			account->ac_penalty = DEFAULT_AC_PENALTY;
+		account->ac_penalty = strToIntVal(value, 0);
 		return;
 	}
 #endif
@@ -2139,7 +2133,7 @@ int32_t write_config()
 		if(strlen(value) > 0 || cfg.http_full_cfg)
 			fprintf_conf(f, "allowed", "%s\n", value);
 		free_mk_t(value);
-		if(cfg.ncd_keepalive != DEFAULT_NCD_KEEPALIVE || cfg.http_full_cfg)
+		if(cfg.ncd_keepalive != 1 || cfg.http_full_cfg)
 			fprintf_conf(f, "keepalive", "%d\n", cfg.ncd_keepalive);
 		if(cfg.ncd_mgclient != 0 || cfg.http_full_cfg)
 			fprintf_conf(f, "mgclient", "%d\n", cfg.ncd_mgclient);
@@ -2490,16 +2484,16 @@ int32_t write_userdb()
 			fprintf_conf(f, "suppresscmd08", "%d\n", account->c35_suppresscmd08);
 
 #ifdef MODULE_CCCAM
-		if (account->cccmaxhops != DEFAULT_CC_MAXHOP || cfg.http_full_cfg)
+		if (account->cccmaxhops != 10 || cfg.http_full_cfg)
 			fprintf_conf(f, "cccmaxhops", "%d\n", account->cccmaxhops);
 
-		if ((account->cccreshare != DEFAULT_CC_RESHARE) || cfg.http_full_cfg)
+		if ((account->cccreshare != -1) || cfg.http_full_cfg)
 			fprintf_conf(f, "cccreshare", "%d\n", account->cccreshare);
 
 		if ((account->cccignorereshare != cfg.cc_ignore_reshare && account->cccignorereshare != -1) || cfg.http_full_cfg)
 			fprintf_conf(f, "cccignorereshare", "%d\n", account->cccignorereshare);
 
-		if ((account->cccstealth != DEFAULT_CC_STEALTH) || cfg.http_full_cfg)
+		if ((account->cccstealth != -1) || cfg.http_full_cfg)
 			fprintf_conf(f, "cccstealth", "%d\n", account->cccstealth);
 #endif
 
@@ -2509,13 +2503,13 @@ int32_t write_userdb()
 		if (account->failban || cfg.http_full_cfg)
 			fprintf_conf(f, "failban", "%d\n", account->failban);
 
-		if ((account->ncd_keepalive != DEFAULT_NCD_KEEPALIVE) || cfg.http_full_cfg)
+		if ((account->ncd_keepalive != cfg.ncd_keepalive) || cfg.http_full_cfg)
 			fprintf_conf(f, "keepalive", "%d\n", account->ncd_keepalive);
 
 #ifdef CS_ANTICASC
-		if (account->ac_users != DEFAULT_AC_USERS || cfg.http_full_cfg)
+		if (account->ac_users || cfg.http_full_cfg)
 			fprintf_conf(f, "numusers", "%d\n", account->ac_users);
-		if (account->ac_penalty != DEFAULT_AC_PENALTY || cfg.http_full_cfg)
+		if (account->ac_penalty || cfg.http_full_cfg)
 			fprintf_conf(f, "penalty", "%d\n", account->ac_penalty);
 #endif
 		fputc((int)'\n', f);
@@ -2612,7 +2606,7 @@ int32_t write_server()
 			if ((rdr->tcp_ito || cfg.http_full_cfg) && !isphysical && rdr->typ != R_CCCAM)
 				fprintf_conf(f, "inactivitytimeout", "%d\n", rdr->tcp_ito);
 
-			if ((rdr->tcp_rto != DEFAULT_TCP_RECONNECT_TIMEOUT || cfg.http_full_cfg) && !isphysical)
+			if ((rdr->tcp_rto != 30 || cfg.http_full_cfg) && !isphysical)
 				fprintf_conf(f, "reconnecttimeout", "%d\n", rdr->tcp_rto);
 
 			if ((rdr->ncd_disable_server_filt || cfg.http_full_cfg) && rdr->typ == R_NEWCAMD)
@@ -2769,7 +2763,7 @@ int32_t write_server()
 				if (rdr->cc_version[0] || cfg.http_full_cfg)
 					fprintf_conf(f, "cccversion", "%s\n", rdr->cc_version);
 
-				if (rdr->cc_maxhop != DEFAULT_CC_MAXHOP || cfg.http_full_cfg)
+				if (rdr->cc_maxhop != 10 || cfg.http_full_cfg)
 					fprintf_conf(f, "cccmaxhops", "%d\n", rdr->cc_maxhop);
 
 				if (rdr->cc_mindown > 0 || cfg.http_full_cfg)
@@ -2778,10 +2772,10 @@ int32_t write_server()
 				if (rdr->cc_want_emu || cfg.http_full_cfg)
 					fprintf_conf(f, "cccwantemu", "%d\n", rdr->cc_want_emu);
 
-				if (rdr->cc_keepalive != DEFAULT_CC_KEEPALIVE || cfg.http_full_cfg)
+				if (rdr->cc_keepalive || cfg.http_full_cfg)
 					fprintf_conf(f, "ccckeepalive", "%d\n", rdr->cc_keepalive);
 
-				if (rdr->cc_reshare != DEFAULT_CC_RESHARE || cfg.http_full_cfg)
+				if ((rdr->cc_reshare != cfg.cc_reshare && rdr->cc_reshare != -1) || cfg.http_full_cfg)
 					fprintf_conf(f, "cccreshare", "%d\n", rdr->cc_reshare);
 			}
 			else if (rdr->cc_hop > 0 || cfg.http_full_cfg)
@@ -3065,10 +3059,10 @@ struct s_auth *init_userdb()
 			account->monlvl = cfg.mon_level;
 			account->tosleep = cfg.tosleep;
 			account->c35_suppresscmd08 = cfg.c35_suppresscmd08;
-			account->cccmaxhops = DEFAULT_CC_MAXHOP;
-			account->cccreshare = DEFAULT_CC_RESHARE; // default: use global cfg
+			account->cccmaxhops = 10;
+			account->cccreshare = -1; //-1 = use cfg.
 			account->cccignorereshare = -1;
-			account->cccstealth = DEFAULT_CC_STEALTH; // default: use global cfg
+			account->cccstealth = -1;
 			account->ncd_keepalive = cfg.ncd_keepalive;
 			account->firstlogin = 0;
 			for (i = 1; i < CS_MAXCAIDTAB; account->ctab.mask[i++] = 0xffff);
@@ -3076,8 +3070,8 @@ struct s_auth *init_userdb()
 			nr++;
 
 #ifdef CS_ANTICASC
-			account->ac_users   = DEFAULT_AC_USERS;   // use ac_users global value
-			account->ac_penalty = DEFAULT_AC_PENALTY; // use ac_penalty global value
+			account->ac_users = cfg.ac_users;
+			account->ac_penalty = cfg.ac_penalty;
 #endif
 			continue;
 		}
@@ -3795,7 +3789,7 @@ void chk_reader(char *token, char *value, struct s_reader *rdr)
 	}
 
 	if (!strcmp(token, "reconnecttimeout")) {
-		rdr->tcp_rto  = strToIntVal(value, DEFAULT_TCP_RECONNECT_TIMEOUT);
+		rdr->tcp_rto  = strToIntVal(value, 30);
 		return;
 	}
 
@@ -4303,7 +4297,7 @@ void chk_reader(char *token, char *value, struct s_reader *rdr)
 
 	if (!strcmp(token, "cccmaxhop") || !strcmp(token, "cccmaxhops")) { //Schlocke: cccmaxhops is better!
 		// cccam max card distance
-		rdr->cc_maxhop  = strToIntVal(value, DEFAULT_CC_MAXHOP);
+		rdr->cc_maxhop  = strToIntVal(value, 10);
 		return;
 	}
 
@@ -4319,12 +4313,14 @@ void chk_reader(char *token, char *value, struct s_reader *rdr)
 	}
 
 	if (!strcmp(token, "ccckeepalive")) {
-		rdr->cc_keepalive  = strToIntVal(value, DEFAULT_CC_KEEPALIVE);
+		rdr->cc_keepalive  = strToIntVal(value, 0);
 		return;
 	}
 
 	if (!strcmp(token, "ccchopsaway") || !strcmp(token, "cccreshar")  || !strcmp(token, "cccreshare")) {
-		rdr->cc_reshare = strToIntVal(value, DEFAULT_CC_RESHARE);
+		rdr->cc_reshare = atoi(value);
+		if (rdr->cc_reshare == cfg.cc_reshare)
+			rdr->cc_reshare = -1;
 		return;
 	}
 
@@ -4545,7 +4541,7 @@ int32_t init_readerdb()
 				}
 			}
 			rdr->enable = 1;
-			rdr->tcp_rto = DEFAULT_TCP_RECONNECT_TIMEOUT;
+			rdr->tcp_rto = 30;
 			rdr->show_cls = 10;
 			rdr->nagra_read = 0;
 			rdr->mhz = 357;
@@ -4553,8 +4549,8 @@ int32_t init_readerdb()
 			rdr->deprecated = 0;
 			rdr->force_irdeto = 0;
 #ifdef MODULE_CCCAM
-			rdr->cc_reshare = DEFAULT_CC_RESHARE;
-			rdr->cc_maxhop  = DEFAULT_CC_MAXHOP;
+			rdr->cc_reshare = -1;
+			rdr->cc_maxhop = 10;
 			rdr->cc_mindown = 0;
 #endif
 #ifdef WITH_LB

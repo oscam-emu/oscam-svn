@@ -372,24 +372,6 @@ extern void cs_switch_led(int32_t led, int32_t action);
 #define LB_MAX_STAT_TIME		10
 
 /* ===========================
- *      Default Values
- * =========================== */
-#define DEFAULT_TCP_RECONNECT_TIMEOUT 30
-#define DEFAULT_NCD_KEEPALIVE 1
-
-#ifdef MODULE_CCCAM
-#define DEFAULT_CC_MAXHOP   10
-#define DEFAULT_CC_RESHARE  -1 // Use global cfg
-#define DEFAULT_CC_STEALTH  -1 // Use global cfg
-#define DEFAULT_CC_KEEPALIVE 0
-#endif
-
-#ifdef CS_ANTICASC
-#define DEFAULT_AC_USERS   -1 // Use global cfg
-#define DEFAULT_AC_PENALTY -1 // Use global cfg
-#endif
-
-/* ===========================
  *      global structures
  * =========================== */
 typedef struct cs_mutexlock {
@@ -740,7 +722,6 @@ struct s_client {
 
 #ifdef CS_ANTICASC
 	uint16_t		ac_limit;
-	int8_t          ac_penalty;
 	struct s_acasc_shm acasc;
 #endif
 
@@ -922,7 +903,6 @@ struct s_reader  									//contains device info, reader info and card info
 	uint32_t		cc_id;
 	int8_t			cc_keepalive;
 	int8_t			cc_hop;							// For non-cccam reader: hop for virtual cards
-	int8_t			cc_reshare;
 #endif
 	int8_t			tcp_connected;
 	int32_t			tcp_ito;						// inactivity timeout
@@ -997,6 +977,9 @@ struct s_reader  									//contains device info, reader info and card info
 	BIGNUM			ucpk;
 	////variables from reader-viaccess.c
 	struct geo_cache	last_geo;
+#ifdef MODULE_CCCAM
+	int32_t			cc_reshare;
+#endif
 #ifdef WITH_LB
 	int32_t			lb_weight;						//loadbalance weight factor, if unset, weight=100. The higher the value, the higher the usage-possibility
 	int32_t			lb_usagelevel;					//usagelevel for loadbalancer
@@ -1060,7 +1043,7 @@ struct s_auth
 	TUNTAB			ttab;
 #ifdef CS_ANTICASC
 	int32_t			ac_users;						// 0 - unlimited
-	int8_t			ac_penalty;						// 0 - log, >0 - fake dw
+	uchar			ac_penalty;						// 0 - log, >0 - fake dw
 	struct s_acasc	ac_stat;
 #endif
 	in_addr_t		dynip;
@@ -1072,7 +1055,7 @@ struct s_auth
 	uint8_t			c35_sleepsend;
 	int8_t			ncd_keepalive;
 	int32_t			cccmaxhops;
-	int8_t			cccreshare;
+	int32_t			cccreshare;
 	int8_t			cccignorereshare;
 	int8_t			cccstealth;
 	int8_t			disabled;
@@ -1203,7 +1186,7 @@ struct s_config
 	PTAB			ncd_ptab;
 	in_addr_t		ncd_srvip;
 	uchar			ncd_key[16];
-	int8_t			ncd_keepalive;
+	int32_t			ncd_keepalive;
 	int8_t			ncd_mgclient;
 	struct s_ip 	*ncd_allowed;
 	int32_t			rad_port;
@@ -1286,7 +1269,7 @@ struct s_config
 	int32_t		ac_users;							// num of users for account (0 - default)
 	int32_t		ac_stime;							// time to collect AC statistics (3 min - default)
 	int32_t		ac_samples;							// qty of samples
-	int8_t		ac_penalty;							// 0 - write to log
+	int32_t		ac_penalty;							// 0 - write to log
 	int32_t		ac_fakedelay;						// 100-1000 ms
 	int32_t		ac_denysamples;
 	char		ac_logfile[128];

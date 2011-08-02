@@ -935,11 +935,6 @@ static char *send_oscam_reader_config(struct templatevars *vars, struct uriparam
 			}
 		}
 		reader_ = newrdr->label;
-		newrdr->tcp_rto = DEFAULT_TCP_RECONNECT_TIMEOUT; // default value
-#ifdef MODULE_CCCAM
-		newrdr->cc_maxhop  = DEFAULT_CC_MAXHOP;  // default value
-		newrdr->cc_reshare = DEFAULT_CC_RESHARE; // default value
-#endif
 	} else if(strcmp(getParam(params, "action"), "Save") == 0) {
 
 		rdr = get_reader_by_label(getParam(params, "label"));
@@ -1244,11 +1239,9 @@ static char *send_oscam_reader_config(struct templatevars *vars, struct uriparam
 	tpl_addVar(vars, TPLADD, tpl_getVar(vars, "TMP"), "selected");
 
 #ifdef MODULE_CCCAM
-	tpl_printf(vars, TPLADD, "CCCMAXHOP",  "%d", rdr->cc_maxhop);
+	tpl_printf(vars, TPLADD, "CCCMAXHOP", "%d", rdr->cc_maxhop);
 	tpl_printf(vars, TPLADD, "CCCMINDOWN", "%d", rdr->cc_mindown);
-	tpl_printf(vars, TPLADD, "CCCRESHARE", "%d", rdr->cc_reshare);
-	tpl_printf(vars, TPLADD, "RESHARE",    "%d", cfg.cc_reshare);
-
+	tpl_printf(vars, TPLADD, "CCCRESHARE", "%d", (rdr->cc_reshare==-1)?cfg.cc_reshare:rdr->cc_reshare);
 	if(rdr->cc_want_emu)
 		tpl_addVar(vars, TPLADD, "CCCWANTEMUCHECKED", "checked");
 	if(rdr->cc_keepalive)
@@ -1558,14 +1551,9 @@ static char *send_oscam_user_config_edit(struct templatevars *vars, struct uripa
 		for (i=1; i<CS_MAXCAIDTAB; account->ctab.mask[i++]=0xffff);
 		for (i=1; i<CS_MAXTUNTAB; account->ttab.bt_srvid[i++]=0x0000);
 		account->expirationdate=(time_t)NULL;
-#ifdef MODULE_CCCAM
-		account->cccmaxhops = DEFAULT_CC_MAXHOP;  // default value
-		account->cccreshare = DEFAULT_CC_RESHARE; // default use global conf
-		account->cccstealth = DEFAULT_CC_STEALTH; // default use global conf
-#endif
 #ifdef CS_ANTICASC
-		account->ac_users   = DEFAULT_AC_USERS;   // by default create the new user with global ac_users value
-		account->ac_penalty = DEFAULT_AC_PENALTY; // by default create the new user with global penality value
+		account->ac_users=cfg.ac_users;
+		account->ac_penalty=cfg.ac_penalty;
 #endif
 		tpl_addVar(vars, TPLAPPEND, "MESSAGE", "<b>New user has been added with default settings</b><BR>");
 
@@ -1732,18 +1720,9 @@ static char *send_oscam_user_config_edit(struct templatevars *vars, struct uripa
 
 #ifdef CS_ANTICASC
 	tpl_printf(vars, TPLADD, "AC_USERS", "%d", account->ac_users);
-	tpl_printf(vars, TPLADD, "CFGNUMUSERS", "%d", cfg.ac_users);
 	if(!apicall){
 		tpl_printf(vars, TPLADD, "TMP", "PENALTY%d", account->ac_penalty);
 		tpl_addVar(vars, TPLADD, tpl_getVar(vars, "TMP"), "selected");
-		char *tmp = NULL;
-		switch(cfg.ac_penalty) {
-			case 0: tmp = "(0) Only write to log"; break;
-			case 1: tmp = "(1) Fake DW delayed"; break;
-			case 2: tmp = "(2) Ban"; break;
-			case 3: tmp = "(3) Real DW delayed"; break;
-		}
-		tpl_printf(vars, TPLADD, "CFGPENALTY", "%s", tmp);
 	} else {
 		tpl_printf(vars, TPLADD, "PENALTYVALUE", "%d", account->ac_penalty);
 	}
@@ -1761,6 +1740,7 @@ static char *send_oscam_user_config_edit(struct templatevars *vars, struct uripa
 	tpl_addVar(vars, TPLADD, tpl_getVar(vars, "TMP"), "selected");
 
 	tpl_printf(vars, TPLADD, "STEALTH", "%s", cfg.cc_stealth ? "enable" : "disable");
+
 #endif
 
 	//Failban

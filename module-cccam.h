@@ -209,8 +209,6 @@ struct cc_data {
 	int32_t num_reshare1;
 	int32_t num_reshare2;
 	int32_t num_resharex;
-
-	char* nok_message;
 };
 
 int32_t cc_cli_init();

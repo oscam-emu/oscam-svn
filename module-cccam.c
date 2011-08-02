@@ -1894,7 +1894,7 @@ int32_t cc_parse_msg(struct s_client *cl, uint8_t *buf, int32_t l) {
 		card->origin_reader = rdr;
 		card->origin_id = card->id;
 		card->grp = rdr->grp;
-		card->rdr_reshare = rdr->cc_reshare > -1 ? rdr->cc_reshare : cfg.cc_reshare;
+		card->rdr_reshare = rdr->cc_reshare;
 
 		//Check if this card is from us:
 		LL_ITER it = ll_iter_create(card->remote_nodes);
@@ -1996,16 +1996,7 @@ int32_t cc_parse_msg(struct s_client *cl, uint8_t *buf, int32_t l) {
 						CS_VERSION, CS_SVN_VERSION, CS_OSTYPE, param);
 					cc_cmd_send(cl, token, strlen((char *)token) + 1, MSG_CW_NOK1);
 				}
-			} else {
-				size_t msg_size = l-4;
-				char last_char = msg[msg_size-1];
-				if (last_char == 0) { // verify if the payload is a null terminated string
-					cs_realloc(&cc->nok_message, msg_size, -1);
-					memcpy(cc->nok_message, msg, msg_size);
-				} else
-					NULLFREE(cc->nok_message);
 			}
-
 			return ret;
 		}
 
@@ -2575,11 +2566,7 @@ int32_t cc_recv(struct s_client *cl, uchar *buf, int32_t l) {
 	cl->last = time((time_t *) 0);
 
 	if (n <= 0) {
-		struct cc_data *cc = cl->cc;
-		if (cc->nok_message)
-			cs_log("%s connection closed by %s. Reason: %s", getprefix(), remote_txt(), cc->nok_message);
-		else
-			cs_log("%s connection closed by %s.", getprefix(), remote_txt());
+		cs_log("%s connection closed by %s", getprefix(), remote_txt());
 		n = -1;
 	} else if (n < 4) {
 		cs_log("%s packet to small (%d bytes)", getprefix(), n);
@@ -3010,7 +2997,6 @@ int32_t cc_cli_connect(struct s_client *cl) {
 	cc->num_resharex = 0;	
 	memset(&cc->cmd05_data, 0, sizeof(cc->cmd05_data));
 	memset(&cc->receive_buffer, 0, sizeof(cc->receive_buffer));
-	NULLFREE(cc->nok_message);
 	cc->cmd0c_mode = MODE_CMD_0x0C_NONE;
 
 	cs_ddump_mask(D_CLIENT, data, 16, "cccam: server init seed:");
@@ -3153,7 +3139,7 @@ int32_t cc_cli_init_int(struct s_client *cl) {
                 	
 	rdr->tcp_ito = 1; //60sec...This now invokes ph_idle()
 	if (rdr->cc_maxhop < 0)
-		rdr->cc_maxhop = DEFAULT_CC_MAXHOP;
+		rdr->cc_maxhop = 10;
 
 	memset((char *) &cl->udp_sa, 0, sizeof(cl->udp_sa));
 	cl->udp_sa.sin_family = AF_INET;
