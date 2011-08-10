@@ -873,6 +873,8 @@ O0uYJpimxX62v2BbRMVWNfAHT997IDXV+VUAAAAASUVORK5CYII="
 	provider(##PROVIDNUM##)=##PROVIDS##<BR>\n\
 	services(##SRVIDNUM##)=##SRVIDS##<BR><BR>\n"
 
+//#ifdef MODULE_SERIAL
+
 #define TPLREADERS "\
 ##TPLHEADER##\
 ##TPLMENU##\
@@ -901,14 +903,6 @@ O0uYJpimxX62v2BbRMVWNfAHT997IDXV+VUAAAAASUVORK5CYII="
 						<option>smartreader</option>\n\
 						<option>internal</option>\n\
 						<option>sc8in1</option>\n\
-						<option>serial</option>\n\
-						<option>camd35</option>\n\
-						<option>cs378x</option>\n\
-						<option>radegast</option>\n\
-						<option>newcamd</option>\n\
-						<option>newcamd524</option>\n\
-						<option>cccam</option>\n\
-						<option>constcw</option>\n\
 ##ADDPROTOCOL##\n\
 					</select>\n\
 				</TD>\n\
@@ -917,6 +911,10 @@ O0uYJpimxX62v2BbRMVWNfAHT997IDXV+VUAAAAASUVORK5CYII="
 		</TABLE>\n\
 	</form>\n\
 ##TPLFOOTER##"
+
+
+
+
 
 #define TPLREADERSBIT "\
 			<TR CLASS =\"##READERCLASS##\">\n\
