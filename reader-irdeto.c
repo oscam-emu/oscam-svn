@@ -386,6 +386,11 @@ static int32_t irdeto_card_init(struct s_reader * reader, ATR newatr)
 		}
 	}
 
+	if (reader->caid == 0x0648) { // acs 6.08
+		camkey = 4;
+		sc_Acs57CamKey[2] = 0;
+	}
+
 	cs_debug_mask(D_READER, "[irdeto-reader] set camkey for type=%d", camkey);
 
 	switch (camkey)
