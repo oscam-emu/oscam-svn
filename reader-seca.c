@@ -223,13 +223,7 @@ static int32_t seca_do_ecm(struct s_reader * reader, ECM_REQUEST *er)
      snprintf( er->msglog, MSGLOGSIZE, "provider expired" );
      return ERROR;
   }
-  
- if(er->ecm[5] != 0x00) 
- {
-   snprintf( er->msglog, MSGLOGSIZE, "Invalid ECM nano %02x Rejecting", er->ecm[5] );
-   return ERROR;
- } 
-  
+
   ins3c[2]=i;
   ins3c[3]=er->ecm[7]; //key nr
   ins3c[4]=(((er->ecm[1]&0x0f) << 8) | er->ecm[2])-0x05;
