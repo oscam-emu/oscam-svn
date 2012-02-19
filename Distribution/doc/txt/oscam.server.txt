@@ -62,8 +62,7 @@ DESCRIPTIONS
        password = password
 	  password for remote reader, overrides password of account, first come first serve
 
-       mg-encrypted  =	D:  {  <IP|hostname>  { <local port> <remote port> { <password> { <level> <level> }}}}[,<local MAC
-       address>]
+       mg-encrypted = D: { <IP|hostname> { <local port> <remote port> { <password> { <level> <level> }}}}[,<local MAC address>]
 	  mgcamd encrypted gbox line, default MAC address = eth0
 
        services = [!]services[,[!]<services>]...
@@ -76,7 +75,13 @@ DESCRIPTIONS
 	  reconnect if missing answers for all TCP based remote readers, default:30
 
        disableserverfilter = 0|1
-	  1 = ignore caid and ident settings of reader due faulty clients, default:0
+	  1 = ignore caid and provid settings of reader due faulty clients, default:0
+
+       smargopatch = 0|1
+	  1 = enable workaround for Smartreader+ reader until native mode works, default:0
+
+       sc8in1_dtrrts_patch = 0|1
+	  1 = enable fix for SC8in1/MCR DTR/RTS kernel bug, default:0
 
        label = name
 	  name for reader, required
@@ -92,15 +97,15 @@ DESCRIPTIONS
 
 	   0: disable cache exchange mode (default)
 	   1: enable cache exchange pull mode
-	   2: enable cache exchange push mode for camd 3.5x and CCcam protocol
-	   3: enable reverse cache exchange push mode for camd 3.5x and
-	      CCcam protocol
+	   2: enable cache exchange push mode for camd 3.5x / 3.57x and CCcam
+	      protocol
+	   3: enable reverse cache exchange push mode for camd camd
+	      3.5x / 3.57x and CCcam protocol
 
 	  Identical cache exchange modes must be set on local OSCam server and remote OSCam user asccount.
 
        logport = 0|port
-	  camd 3.x reader logport, camd 3.x UDP must be activated, only works if there's no camd 3.x cascading, 0  =  dis‐
-	  abled, default=0
+	  camd 3.x reader logport, camd 3.x UDP must be activated, only works if there's no camd 3.x cascading, 0 = disabled, default=0
 
        caid = <CAID>[&<mask>][:<target CAID>][,<CAID>[&<mask>][:target <CAID>]]...
 	  define and mapping of CAIDs for reader, default:all CAIDs with mask FFFF
@@ -119,8 +124,8 @@ DESCRIPTIONS
 
 	  example: auprovid = 123456
 
-       ecmwhitelist = [CAID[@ident]:]length[,length]...[;[CAID[@ident]:]length[,length]...]...
-	  set valid ECM length per CAID and ident in hex, default:none,ident=000000
+       ecmwhitelist = [CAID[@provid]:]length[,length]...[;[CAID[@provid]:]length[,length]...]...
+	  set valid ECM length per CAID and provid in hex, default:none,provid=000000
 
 	  example: ecmwhitelist = 10,20,0a,0b
 		   ecmwhitelist = 0100:10,20;0200@123456:0a,4b
@@ -134,8 +139,7 @@ DESCRIPTIONS
 	  set standard SC frequency in units of 10 kHz, for Irdeto SC set to 600, refer to OVERCLOCKING, default:357
 
        mhz = frequency
-	  set  reader  frequency in units of 10 kHz, if mhz > cardmhz you are in overclocking mode, refer to OVERCLOCKING,
-	  default:357
+	  set reader frequency in units of 10 kHz, if mhz > cardmhz you are in overclocking mode, refer to OVERCLOCKING, default:357
 
        deprecated = 0|1
 	  First  the SC will be initialized in normal mode. If it fails, the SC will be automatically reverted to deprecated mode, so that
@@ -170,7 +174,7 @@ DESCRIPTIONS
 	   constcw
 	   sc8in1
 
-       ident = <CAID>:<ident>[,ident]...[;<CAID>:<ident>[,ident]...]...
+       ident = <CAID>:<provid>[,provid]...[;<CAID>:<provid>[,provid]...]...
 	  set CAID and SC specific ident for reader
 
 	  example: ident = 0100:123456,234567;0200:345678,456789
@@ -325,9 +329,6 @@ DESCRIPTIONS
        ins7e11 = TA1 byte
 	  set TA1 byte for NDS Videoguard 2 SCs, valid for physical readers only, default:none
 
-       sc8in1_dtrrts_patch = SC8in1 DTR/RTS Patch
-	  Fix for DTR/RTS Bug in some Kernels
-
        force_irdeto = 0|1
 	  1 = force Irdeto SC mode even if RSA key is set for Irdeto tunnled Nagravion SC, default:0
 
@@ -347,10 +348,8 @@ DESCRIPTIONS
        boxkey = box key
 	  box key for Nagravision SCs / CAM key for Irdeto SCs
 
-       aeskeys = CAID #0@ident:AES key #0 CAID #0[,AES key #1 CAID #0],...[;CAID #1@ident:AES key #0 CAID #1[,AES  key	#1
-       CAID #1],...]...
-	  multiple 16 bytes AES keys for Viaccess SCs (the used postprocessing AES key is specified through the D2 nano of
-	  the ECM)
+       aeskeys = CAID #0@provid:AES key #0 CAID #0[,AES key #1 CAID #0],...[;CAID #1@provid:AES key #0 CAID #1[,AES key #1 CAID #1],...]...
+	  multiple 16 bytes AES keys for Viaccess SCs (the used postprocessing AES key is specified through the D2 nano of the ECM)
 
 	  special AES keys:
 
@@ -414,13 +413,13 @@ CACHE EXCHANGE
 
        ·  push mode (continuous: cache exchange from remote to local OSCam)
 
-	  CWs  from  the  remote cache exchange partner will be forwarded to the local cache. Forwarding only works while the camd 3.5x or
-	  CCcam protocol connection between the local and remote OSCam has been established.
+	  CWs  from the remote cache exchange partner will be forwarded to the local cache. Forwarding only works while the camd camd 3.5x
+	  / 3.57x or CCcam protocol connection between the local and remote OSCam has been established.
 
        ·  reverse push mode (continuous: cache exchange from local to remote OSCam)
 
-	  CWs from the local cache will be forwarded to the remote cache exchange partner. Forwarding only works while the  camd  3.5x	or
-	  CCcam protocol connection between the remote and local OSCam has been established.
+	  CWs from the local cache will be forwarded to the remote cache exchange partner. Forwarding only works while the camd camd  3.5x
+	  / 3.57x or CCcam protocol connection between the remote and local OSCam has been established.
 
 EXAMPLES
        ·  serial mouse compatible reader

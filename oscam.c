@@ -45,6 +45,10 @@ pid_t server_pid=0;
 #if defined(LIBUSB)
 CS_MUTEX_LOCK sr_lock;
 #endif
+#ifdef ARM
+pthread_t	arm_led_thread = 0;
+LLIST		*arm_led_actions = NULL;
+#endif
 CS_MUTEX_LOCK system_lock;
 CS_MUTEX_LOCK gethostbyname_lock;
 CS_MUTEX_LOCK clientlist_lock;
@@ -456,7 +460,7 @@ static struct s_client * idx_from_ip(in_addr_t ip, in_port_t port)
 {
   struct s_client *cl;
   for (cl=first_client; cl ; cl=cl->next)
-    if ((cl->ip==ip) && (cl->port==port) && ((cl->typ=='c') || (cl->typ=='m')))
+    if (!cl->kill && (cl->ip==ip) && (cl->port==port) && ((cl->typ=='c') || (cl->typ=='m')))
       return cl;
   return NULL;
 }
@@ -576,7 +580,7 @@ static void free_ecm(ECM_REQUEST *ecm) {
 static void cleanup_ecmtasks(struct s_client *cl)
 {
 	ECM_REQUEST *ecm;
-	struct s_ecm_answer *ea_list, *ea_prev=NULL;
+	struct s_ecm_answer *ea_list, *ea_prev;
 
 	if (cl->ecmtask) {
 		int32_t i;
@@ -589,7 +593,7 @@ static void cleanup_ecmtasks(struct s_client *cl)
 	}
 	
 	if (cl->cascadeusers) {
-		ll_clear_data(cl->cascadeusers);
+		ll_destroy_data(cl->cascadeusers);
 		cl->cascadeusers = NULL;
 	}
 	
@@ -603,7 +607,7 @@ static void cleanup_ecmtasks(struct s_client *cl)
 			ecm->cacheex_src = NULL;
 #endif
 		//cl is a reader, remove from matching_rdr:
-		for(ea_list = ecm->matching_rdr; ea_list; ea_prev = ea_list, ea_list = ea_list->next) {
+		for(ea_list = ecm->matching_rdr, ea_prev=NULL; ea_list; ea_prev = ea_list, ea_list = ea_list->next) {
 			if (ea_list->reader->client == cl) {
 				if (ea_prev)
 					ea_prev->next = ea_list->next;
@@ -661,7 +665,7 @@ void cleanup_thread(void *var)
 			ICC_Async_Close(rdr);
 #endif
 		if (cl->typ == 'p')
-			network_tcp_connection_close(rdr, "close");
+			network_tcp_connection_close(rdr, "cleanup");
 		cl->reader = NULL;
 	}
 
@@ -955,6 +959,7 @@ void cs_exit(int32_t sig)
 			cs_switch_led(LED3, LED_OFF);
 			cs_switch_led(LED1A, LED_ON);
 		}
+		arm_led_stop_thread();
 #endif
 #ifdef QBOXHD
 		if(cfg.enableled == 2){
@@ -1348,8 +1353,9 @@ void start_thread(void * startroutine, char * nameroutine) {
 	pthread_attr_setstacksize(&attr, PTHREAD_STACK_SIZE);
 #endif
 	cs_writelock(&system_lock);
-	if (pthread_create(&temp, &attr, startroutine, NULL))
-		cs_log("ERROR: can't create %s thread", nameroutine);
+	int32_t ret = pthread_create(&temp, &attr, startroutine, NULL);
+	if (ret)
+		cs_log("ERROR: can't create %s thread (errno=%d %s)", nameroutine, ret, strerror(ret));
 	else {
 		cs_log("%s thread started", nameroutine);
 		pthread_detach(temp);
@@ -1527,7 +1533,9 @@ static void init_cardreader() {
 	cs_writelock(&system_lock);
 	struct s_reader *rdr;
 
+#ifdef WITH_CARDREADER
 	ICC_Async_Init_Locks();
+#endif
 
 	LL_ITER itr = ll_iter_create(configured_readers);
 	while((rdr = ll_iter_next(&itr))) {
@@ -1942,11 +1950,12 @@ void cs_add_cache(struct s_client *cl, ECM_REQUEST *er, int8_t csp)
 		return;
 	}
 
-	int8_t i, c;
+	uint8_t i, c;
 	for (i = 0; i < 16; i += 4) {
 		c = ((er->cw[i] + er->cw[i + 1] + er->cw[i + 2]) & 0xff);
 		if (er->cw[i + 3] != c) {
-			cs_debug_mask(D_TRACE, "push received cw with chksum error from %s", csp?"csp":username(cl));
+			cs_ddump_mask(D_TRACE, er->cw, 16,
+					"push received cw with chksum error from %s", csp?"csp":username(cl));
 			return;
 		}
 	}
@@ -2028,17 +2037,30 @@ int32_t write_ecm_answer(struct s_reader * reader, ECM_REQUEST *er, int8_t rc, u
 {
 	int32_t i;
 	uchar c;
-	struct s_ecm_answer *ea = NULL, *ea_list;
+	struct s_ecm_answer *ea = NULL, *ea_list, *ea_org = NULL;
+	time_t now = time(NULL);
 
-	for(ea_list = er->matching_rdr; reader && ea_list && !ea; ea_list = ea_list->next) {
+	if (er->tps.time <= now-(time_t)(cfg.ctimeout/1000+2)) { // drop real old answers, because er->parent is dropped !
+#ifdef WITH_DEBUG
+		if (er->tps.time <= now-(time_t)(cfg.max_cache_time))
+			cs_log("dropped old reader answer rc=%d from %s time %ds",
+				rc, reader?reader->label:"undef", (int32_t)(now-er->tps.time));
+#endif
+#ifdef WITH_LB
+		send_reader_stat(reader, er, E_TIMEOUT);
+#endif
+		return 0;
+	}
+
+	for(ea_list = er->matching_rdr; reader && ea_list && !ea_org; ea_list = ea_list->next) {
 		if (ea_list->reader == reader)
-			ea = ea_list;
+			ea_org = ea_list;
 	}
 
-	if (!ea) {
-		ea = cs_malloc(&ea, sizeof(struct s_ecm_answer), -1); //Free by ACTION_CLIENT_ECM_ANSWER!
-		ea->status |= READER_EA_FREE;
-	}
+	if (!ea_org)
+		ea = cs_malloc(&ea, sizeof(struct s_ecm_answer), 0); //Free by ACTION_CLIENT_ECM_ANSWER!
+	else
+		ea = ea_org;
 
 	if (cw)
 		memcpy(ea->cw, cw, 16);
@@ -2049,6 +2071,7 @@ int32_t write_ecm_answer(struct s_reader * reader, ECM_REQUEST *er, int8_t rc, u
 	ea->rc = rc;
 	ea->rcEx = rcEx;
 	ea->reader = reader;
+	ea->status |= REQUEST_ANSWERED;
 
 	if (er->parent) {
 		// parent is only set on reader->client->ecmtask[], but we want client->ecmtask[]
@@ -2089,11 +2112,16 @@ int32_t write_ecm_answer(struct s_reader * reader, ECM_REQUEST *er, int8_t rc, u
 	int32_t res = 0;
 	struct s_client *cl = er->client;
 	if (cl && !cl->kill) {
+		if (ea_org) { //duplicate for queue
+			ea = cs_malloc(&ea, sizeof(struct s_ecm_answer), 0);
+			memcpy(ea, ea_org, sizeof(struct s_ecm_answer));
+		}
 		add_job(cl, ACTION_CLIENT_ECM_ANSWER, ea, sizeof(struct s_ecm_answer));
 		res = 1;
 	} else { //client has disconnected. Distribute ecms to other waiting clients
 		chk_dcw(NULL, ea);
-		if (ea->status & READER_EA_FREE) free(ea);
+		if (!ea_org)
+			free(ea);
 	}
 
 	if (reader && rc == E_FOUND && reader->resetcycle > 0)
@@ -2139,6 +2167,9 @@ void send_reader_stat(struct s_reader *rdr, ECM_REQUEST *er, int32_t rc)
 	if (!rdr || rc>=E_99 || !rdr->client)
 		return;
 #endif
+	if (er->ecmcacheptr) //ignore cache answer
+		return;
+
 	struct timeb tpe;
 	cs_ftime(&tpe);
 	int32_t time = 1000*(tpe.time-er->tps.time)+tpe.millitm-er->tps.millitm;
@@ -2412,30 +2443,40 @@ static void request_cw(ECM_REQUEST *er)
 
 		for(ea = er->matching_rdr; ea; ea = ea->next) {
 
+			switch(er->stage) {
 #ifdef CS_CACHEEX
-			if (er->stage == 1) {
+			case 1:
 				// Cache-Echange
 				if ((ea->status & REQUEST_SENT) ||
 						(ea->status & (READER_CACHEEX|READER_ACTIVE)) != (READER_CACHEEX|READER_ACTIVE))
 					continue;
-			} else
+				break;
 #endif
-			if (er->stage == 2) {
+			case 2:
 				// only local reader
 				if ((ea->status & REQUEST_SENT) ||
 						(ea->status & (READER_ACTIVE|READER_FALLBACK|READER_LOCAL)) != (READER_ACTIVE|READER_LOCAL))
 					continue;
-			} else if (er->stage == 3) {
+				break;
+
+			case 3:
 				// any non fallback reader not asked yet
 				if ((ea->status & REQUEST_SENT) ||
 						(ea->status & (READER_ACTIVE|READER_FALLBACK)) != READER_ACTIVE)
 					continue;
-			} else {
+				break;
+
+			default:
 				// only fallbacks
-				// always send requests, regardless if asked
-				if ((ea->status & READER_ACTIVE) != READER_ACTIVE)
-					continue;
+				if ((ea->status & REQUEST_SENT) ||
+						(ea->status & READER_ACTIVE) != READER_ACTIVE)
+				{
+					if (er->reader_avail > 1) //do not resend to the same reader(s) if we have more than one reader
+						continue;
+				}
+				break;
 			}
+
 			struct s_reader *rdr = ea->reader;
 			cs_debug_mask(D_TRACE, "request_cw stage=%d to reader %s ecm=%04X", er->stage, rdr?rdr->label:"", htons(er->checksum));
 			write_ecm_request(ea->reader, er);
@@ -2549,31 +2590,33 @@ static void chk_dcw(struct s_client *cl, struct s_ecm_answer *ea)
 			ert->rcEx=ea->rcEx;
 			cs_strncpy(ert->msglog, ea->msglog, sizeof(ert->msglog));
 			ert->selected_reader = eardr;
+			if (!ert->ecmcacheptr) {
 #ifdef CS_CACHEEX
-			uchar has_cacheex = 0;
+				uchar has_cacheex = 0;
 #endif
-			for(ea_list = ert->matching_rdr; ea_list; ea_list = ea_list->next) {
+				for(ea_list = ert->matching_rdr; ea_list; ea_list = ea_list->next) {
 #ifdef CS_CACHEEX
-				if (((ea_list->status & READER_CACHEEX)) == READER_CACHEEX)
-					has_cacheex = 1;
-				if (((ea_list->status & (REQUEST_SENT|REQUEST_ANSWERED|READER_CACHEEX|READER_ACTIVE)) == (REQUEST_SENT|READER_CACHEEX|READER_ACTIVE)))
-					cacheex_left++;
+					if (((ea_list->status & READER_CACHEEX)) == READER_CACHEEX)
+						has_cacheex = 1;
+					if (((ea_list->status & (REQUEST_SENT|REQUEST_ANSWERED|READER_CACHEEX|READER_ACTIVE)) == (REQUEST_SENT|READER_CACHEEX|READER_ACTIVE)))
+						cacheex_left++;
 #endif
-				if (((ea_list->status & (REQUEST_SENT|REQUEST_ANSWERED|READER_LOCAL|READER_ACTIVE)) == (REQUEST_SENT|READER_LOCAL|READER_ACTIVE)))
-					local_left++;
-				if (((ea_list->status & (REQUEST_ANSWERED|READER_ACTIVE)) == (READER_ACTIVE)))
-					reader_left++;
-			}
+					if (((ea_list->status & (REQUEST_SENT|REQUEST_ANSWERED|READER_LOCAL|READER_ACTIVE)) == (REQUEST_SENT|READER_LOCAL|READER_ACTIVE)))
+						local_left++;
+					if (((ea_list->status & (REQUEST_ANSWERED|READER_ACTIVE)) == (READER_ACTIVE)))
+						reader_left++;
+				}
 
 #ifdef CS_CACHEEX
-			if (has_cacheex && !cacheex_left && !ert->cacheex_done) {
-				ert->cacheex_done = 1;
-				request_cw(ert);
-			} else
+				if (has_cacheex && !cacheex_left && !ert->cacheex_done) {
+					ert->cacheex_done = 1;
+					request_cw(ert);
+				} else
 #endif
-			if (cfg.preferlocalcards && !local_left && !ert->locals_done) {
-				ert->locals_done = 1;
-				request_cw(ert);
+				if (cfg.preferlocalcards && !local_left && !ert->locals_done) {
+					ert->locals_done = 1;
+					request_cw(ert);
+				}
 			}
 
 			break;
@@ -2593,13 +2636,14 @@ static void chk_dcw(struct s_client *cl, struct s_ecm_answer *ea)
 #endif
 
 #ifdef CS_CACHEEX
-	if (ea->rc < E_NOTFOUND)
+	if (ea->rc < E_NOTFOUND && !ert->ecmcacheptr)
 		cs_cache_push(ert);
 #endif
 
 	if (ert->rc < E_99) {
 		if (cl) send_dcw(cl, ert);
-		distribute_ecm(ert, (ert->rc == E_FOUND)?E_CACHE2:ert->rc);
+		if (!ert->ecmcacheptr)
+			distribute_ecm(ert, (ert->rc == E_FOUND)?E_CACHE2:ert->rc);
 	}
 
 	return;
@@ -2851,11 +2895,8 @@ void get_cw(struct s_client * client, ECM_REQUEST *er)
 	else
 	{
 		if (prid && prid != er->prid) {
-			cs_debug_mask(D_TRACE, "wrong provider found: %04X:%06X to %04X:%06X",er->caid, er->prid, er->caid, prid);
-			//er->prid = prid;
-			er->rc = E_INVALID;
-			er->rcEx = E2_IDENT;
-			snprintf( er->msglog, MSGLOGSIZE, "Wrong provider found in ECM" );
+			cs_debug_mask(D_TRACE, "provider fixed: %04X:%06X to %04X:%06X",er->caid, er->prid, er->caid, prid);
+			er->prid = prid;
 		}
 	}
 
@@ -3521,25 +3562,30 @@ void * work_thread(void *ptr) {
 	uchar *mbuf = cs_malloc(&mbuf, bufsize, 0);
 	int32_t n=0, rc=0, i, idx, s;
 	uchar dcw[16];
+	time_t now;
+	int8_t restart_reader=0;
 
 	while (1) {
-		if (!cl || !is_valid_client(cl)) {
-			if (data && data!=&tmp_data)
-				free(data);
-			data = NULL;
-			free(mbuf);
-			return NULL;
-		}
+//		if (!cl || !is_valid_client(cl)) { // corsair: I think this is not necessary anymore and causes memleaks
+//			if (data && data!=&tmp_data)
+//				free(data);
+//			data = NULL;
+//			free(mbuf);
+//			pthread_exit(NULL);
+//			return NULL;
+//		}
 		
-		if (cl->kill) {
+		if (cl->kill && ll_count(cl->joblist) == 0) { //we need to process joblist to free data->ptr
 			cs_debug_mask(D_TRACE, "ending thread");
 			if (data && data!=&tmp_data)
 				free(data);
 
 			data = NULL;
 			cleanup_thread(cl);
-			pthread_exit(NULL);
+			if (restart_reader)
+				restart_cardreader(reader, 0);
 			free(mbuf);
+			pthread_exit(NULL);
 			return NULL;
 		}
 		
@@ -3582,8 +3628,11 @@ void * work_thread(void *ptr) {
 				if (reader)
 					data->action = ACTION_READER_REMOTE;
 				else {
-					if (cl->is_udp)
+					if (cl->is_udp) {
 						data->action = ACTION_CLIENT_UDP;
+						data->ptr = mbuf;
+						data->len = bufsize;
+					}
 					else
 						data->action = ACTION_CLIENT_TCP;
 					if (pfd[0].revents & (POLLHUP | POLLNVAL))
@@ -3605,6 +3654,14 @@ void * work_thread(void *ptr) {
 		if (!data->action)
 			break;
 	
+		now = time(NULL);
+		if (data != &tmp_data && data->time < now-(time_t)(cfg.ctimeout/1000)) {
+			cs_log("dropping client data for %s time %ds", username(cl), (int32_t)(now-data->time));
+			free(data);
+			data = NULL;
+			continue;
+		}
+
 		switch(data->action) {
 			case ACTION_READER_IDLE:
 				reader_do_idle(reader);
@@ -3628,13 +3685,13 @@ void * work_thread(void *ptr) {
 					break;
 				}
 
-				cl->last=time((time_t*)0);
+				cl->last=now;
 				idx=reader->ph.c_recv_chk(cl, dcw, &rc, mbuf, rc);
 
 				if (idx<0) break;  // no dcw received
 				if (!idx) idx=cl->last_idx;
 
-				reader->last_g=time((time_t*)0); // for reconnect timeout
+				reader->last_g=now; // for reconnect timeout
 
 				for (i=0, n=0; i<CS_MAXPENDING && n == 0; i++) {
 					if (cl->ecmtask[i].idx==idx) {
@@ -3667,16 +3724,8 @@ void * work_thread(void *ptr) {
 					reader_init(reader);
 				break;
 			case ACTION_READER_RESTART:
-				cleanup_thread(cl); //should close connections
-				restart_cardreader(reader, 0);
-				//original cl struct was destroyed by restart reader, so we exit here
-				//init is done by a new thread
-
-				if (data!=&tmp_data)
-					free(data);
-				data = NULL;
-				free(mbuf);
-				return NULL;
+				cl->kill = 1;
+				restart_reader = 1;
 				break;
 #ifdef WITH_CARDREADER
 			case ACTION_READER_RESET_FAST:
@@ -3692,11 +3741,13 @@ void * work_thread(void *ptr) {
 			case ACTION_CLIENT_UDP:
 				n = ph[cl->ctyp].recv(cl, data->ptr, data->len);
 				if (n<0) {
-					free(data->ptr);
+					if (data->ptr != mbuf)
+						free(data->ptr);
 					break;
 				}
 				ph[cl->ctyp].s_handler(cl, data->ptr, n);
-				free(data->ptr); // allocated in accept_connection()
+				if (data->ptr != mbuf)
+					free(data->ptr); // allocated in accept_connection()
 				break;
 			case ACTION_CLIENT_TCP:
 				s = check_fd_for_data(cl->pfd);
@@ -3717,8 +3768,7 @@ void * work_thread(void *ptr) {
 				break;
 			case ACTION_CLIENT_ECM_ANSWER:
 				chk_dcw(cl, data->ptr);
-				if (!((struct s_ecm_answer*)data->ptr)->status & READER_EA_FREE)
-					free(data->ptr);
+				free(data->ptr);
 				break;
 			case ACTION_CLIENT_INIT:
 				if (ph[cl->ctyp].s_init)
@@ -3779,8 +3829,8 @@ void * work_thread(void *ptr) {
 	
 	cs_debug_mask(D_TRACE, "ending thread");
 	cl->thread_active = 0;
-	pthread_exit(NULL);
 	free(mbuf);
+	pthread_exit(NULL);
 	return NULL;
 }
 
@@ -3796,6 +3846,7 @@ void add_job(struct s_client *cl, int8_t action, void *ptr, int32_t len) {
 	data->ptr = ptr;
 	data->cl = cl;
 	data->len = len;
+	data->time = time(NULL);
 
 	pthread_mutex_lock(&cl->thread_lock);
 	if (cl->thread_active) {
@@ -3822,8 +3873,12 @@ void add_job(struct s_client *cl, int8_t action, void *ptr, int32_t len) {
 
 	cs_debug_mask(D_TRACE, "start %s thread action %d", action > ACTION_CLIENT_FIRST ? "client" : "reader", action);
 
-	if (pthread_create(&cl->thread, &attr, work_thread, (void *)data)) {
-		cs_log("ERROR: can't create thread for %s", action > ACTION_CLIENT_FIRST ? "client" : "reader");
+	int32_t ret = pthread_create(&cl->thread, &attr, work_thread, (void *)data);
+	if (ret) {
+		cs_log("ERROR: can't create thread for %s (errno=%d %s)", action > ACTION_CLIENT_FIRST ? "client" : "reader", ret, strerror(ret));
+		if (data->ptr && len>0)
+			free(data->ptr);
+		free(data);
 	} else
 		pthread_detach(cl->thread);
 
@@ -3841,7 +3896,8 @@ static void * check_thread(void) {
 	struct timeb ac_time;
 #endif
 	ECM_REQUEST *er = NULL;
-	time_t ecm_timeout, now;
+	time_t ecm_timeout;
+	time_t ecm_mintimeout;
 	struct timespec ts;
 	struct s_client *cl = create_client(first_client->ip);
 	cl->typ = 's';
@@ -3906,13 +3962,14 @@ static void * check_thread(void) {
 						write_ecm_answer(NULL, er, E_TIMEOUT, 0, NULL, NULL);
 					}
 #ifdef WITH_LB		
-						
-					//because of lb, send E_TIMEOUT for all readers:
-					struct s_ecm_answer *ea_list;
+					if (!er->ecmcacheptr) { //do not add stat for cache entries:
+						//because of lb, send E_TIMEOUT for all readers:
+						struct s_ecm_answer *ea_list;
 
-					for(ea_list = er->matching_rdr; ea_list; ea_list = ea_list->next) {
-						if ((ea_list->status & (REQUEST_SENT|REQUEST_ANSWERED)) == REQUEST_SENT) //Request send, but no answer!
-							send_reader_stat(ea_list->reader, er, E_TIMEOUT);
+						for(ea_list = er->matching_rdr; ea_list; ea_list = ea_list->next) {
+							if ((ea_list->status & (REQUEST_SENT|REQUEST_ANSWERED)) == REQUEST_SENT) //Request send, but no answer!
+								send_reader_stat(ea_list->reader, er, E_TIMEOUT);
+						}
 					}
 #endif
 
@@ -3934,14 +3991,14 @@ static void * check_thread(void) {
 #endif
 
 		if ((ecmc_next = comp_timeb(&ecmc_time, &t_now)) <= 10) {
-			now = time(NULL);
-			ecm_timeout = now-cfg.max_cache_time;
+			ecm_timeout = t_now.time-cfg.max_cache_time;
+			ecm_mintimeout = t_now.time-(cfg.ctimeout/1000+2);
 			uint32_t count = 0;
 
 			struct ecm_request_t *ecm, *ecmt=NULL, *prv;
 			cs_readlock(&ecmcache_lock);
 			for (ecm = ecmcwcache, prv = NULL; ecm; prv = ecm, ecm = ecm->next, count++) {
-				if (ecm->tps.time < ecm_timeout || count > cfg.max_cache_count) {
+				if (ecm->tps.time < ecm_timeout || (ecm->tps.time<ecm_mintimeout && count>cfg.max_cache_count)) {
 					cs_readunlock(&ecmcache_lock);
 					cs_writelock(&ecmcache_lock);
 					ecmt = ecm;
@@ -4196,8 +4253,10 @@ int32_t accept_connection(int32_t i, int32_t j) {
 			buf[0]='U';
 			memcpy(buf+1, &rl, 2);
 
-			if (cs_check_violation((uint32_t)cad.sin_addr.s_addr, ph[i].ptab->ports[j].s_port))
+			if (cs_check_violation((uint32_t)cad.sin_addr.s_addr, ph[i].ptab->ports[j].s_port)) {
+				free(buf);
 				return 0;
+			}
 
 			cs_debug_mask(D_TRACE, "got %d bytes from ip %s:%d", n, cs_inet_ntoa(cad.sin_addr.s_addr), cad.sin_port);
 
@@ -4413,11 +4472,12 @@ int32_t main (int32_t argc, char *argv[])
 		  case 'd':
 			  cs_dblevel=atoi(optarg);
 			  break;
-#ifdef WEBIF
 		  case 'r':
+		  
+#ifdef WEBIF		  
 			  cs_restart_mode=atoi(optarg);
-			  break;
-#endif
+#endif			
+			break;
 		  case 't':
 			  mkdir(optarg, S_IRWXU);
 			  j = open(optarg, O_RDONLY);
@@ -4510,6 +4570,10 @@ int32_t main (int32_t argc, char *argv[])
   write_versionfile();
   server_pid = getpid();
 
+#ifdef ARM
+  arm_led_start_thread();
+#endif
+
 #if defined(AZBOX) && defined(HAVE_DVBAPI)
   openxcas_debug_message_onoff(1);  // debug
 
@@ -4596,9 +4660,10 @@ int32_t main (int32_t argc, char *argv[])
   }
 #endif
 
-		cs_cleanup();
-
-        stop_garbage_collector();
+	cs_cleanup();
+	while(ll_count(log_list) > 0)
+		cs_sleepms(1);
+	stop_garbage_collector();
 
 	return exit_oscam;
 }
@@ -4623,7 +4688,7 @@ int32_t cs_get_restartmode() {
 #endif
 
 #ifdef ARM
-void cs_switch_led(int32_t led, int32_t action) {
+static void cs_switch_led_from_thread(int32_t led, int32_t action) {
 
 	if(action < 2) { // only LED_ON and LED_OFF
 		char ledfile[256];
@@ -4666,7 +4731,7 @@ void cs_switch_led(int32_t led, int32_t action) {
 
 		if (!(f=fopen(ledfile, "w"))){
 			// FIXME: sometimes cs_log was not available when calling cs_switch_led -> signal 11
-			//cs_log("Cannot open file \"%s\" (errno=%d %s)", ledfile, errno, strerror(errno));
+			// cs_log("Cannot open file \"%s\" (errno=%d %s)", ledfile, errno, strerror(errno));
 			return;
 		}
 		fprintf(f,"%d", action);
@@ -4674,22 +4739,97 @@ void cs_switch_led(int32_t led, int32_t action) {
 	} else { // LED Macros
 		switch(action){
 		case LED_DEFAULT:
-			cs_switch_led(LED1A, LED_OFF);
-			cs_switch_led(LED1B, LED_OFF);
-			cs_switch_led(LED2, LED_ON);
-			cs_switch_led(LED3, LED_OFF);
+			cs_switch_led_from_thread(LED1A, LED_OFF);
+			cs_switch_led_from_thread(LED1B, LED_OFF);
+			cs_switch_led_from_thread(LED2, LED_ON);
+			cs_switch_led_from_thread(LED3, LED_OFF);
 			break;
 		case LED_BLINK_OFF:
-			cs_switch_led(led, LED_OFF);
+			cs_switch_led_from_thread(led, LED_OFF);
 			cs_sleepms(100);
-			cs_switch_led(led, LED_ON);
+			cs_switch_led_from_thread(led, LED_ON);
 			break;
 		case LED_BLINK_ON:
-			cs_switch_led(led, LED_ON);
+			cs_switch_led_from_thread(led, LED_ON);
 			cs_sleepms(300);
-			cs_switch_led(led, LED_OFF);
+			cs_switch_led_from_thread(led, LED_OFF);
 			break;
 		}
+	}
+}
+
+static void* arm_led_thread_main() {
+	uint8_t running = 1;
+	while (running) {
+		LL_ITER iter = ll_iter_create(arm_led_actions);
+		struct s_arm_led *arm_led;
+		while ((arm_led = ll_iter_next(&iter))) {
+			int32_t led, action;
+			time_t now, start;
+			led = arm_led->led;
+			action = arm_led->action;
+			now = time((time_t)0);
+			start = arm_led->start_time;
+			ll_iter_remove_data(&iter);
+			if (action == LED_STOP_THREAD) {
+				running = 0;
+				break;
+			}
+			if (now - start < ARM_LED_TIMEOUT) {
+				cs_switch_led_from_thread(led, action);
+			}
+		}
+		if (running) {
+			sleep(60);
+		}
+	}
+	ll_clear_data(arm_led_actions);
+	pthread_exit(NULL);
+	return NULL;
+}
+
+void arm_led_start_thread() {
+	// call this after signal handling is done
+	if ( ! arm_led_actions ) {
+		arm_led_actions = ll_create("arm_led_actions");
+	}
+	pthread_attr_t attr;
+	pthread_attr_init(&attr);
+	cs_log("starting thread arm_led_thread");
+#ifndef TUXBOX
+	pthread_attr_setstacksize(&attr, PTHREAD_STACK_SIZE);
+#endif
+	int32_t ret = pthread_create(&arm_led_thread, &attr, arm_led_thread_main, NULL);
+	if (ret)
+		cs_log("ERROR: can't create arm_led_thread thread (errno=%d %s)", ret, strerror(ret));
+	else {
+		cs_log("arm_led_thread thread started");
+		pthread_detach(arm_led_thread);
+	}
+	pthread_attr_destroy(&attr);
+}
+
+void arm_led_stop_thread() {
+	cs_switch_led(0, LED_STOP_THREAD);
+}
+
+void cs_switch_led(int32_t led, int32_t action) {
+	struct s_arm_led *arm_led = (struct s_arm_led *)malloc(sizeof(struct s_arm_led));
+	if (arm_led == NULL) {
+		cs_log("ERROR: cs_switch_led out of memory");
+		return;
+	}
+	arm_led->start_time = time((time_t)0);
+	arm_led->led = led;
+	arm_led->action = action;
+	if ( ! arm_led_actions ) {
+		arm_led_actions = ll_create("arm_led_actions");
+	}
+	ll_append(arm_led_actions, (void *)arm_led);
+	if (arm_led_thread) {
+		// arm_led_thread_main is not started at oscam startup
+		// when first cs_switch_led calls happen
+		pthread_kill(arm_led_thread, OSCAM_SIGNAL_WAKEUP);
 	}
 }
 #endif

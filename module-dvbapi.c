@@ -722,10 +722,14 @@ void dvbapi_read_priority() {
 
 		memset(str1, 0, 128);
 
+		for (i=0; i<(int)strlen(token) && token[i]==' '; i++);
+		if (i  == (int)strlen(token) - 1) //empty line or all spaces
+			continue;
+		
 		for (i=0;i<(int)strlen(token);i++) {
-			if ((token[i]==':' || token[i]==' ') && token[i+1]==':') {
-				memmove(token+i+2, token+i+1, strlen(token)-i+1);
-				token[i+1]='0';
+			if ((token[i]==':' || token[i]==' ') && token[i+1]==':') { 	// if "::" or " :"
+				memmove(token+i+2, token+i+1, strlen(token)-i+1); //insert extra position 
+				token[i+1]='0';		//and fill it with NULL 
 			}
 			if (token[i]=='#' || token[i]=='/') {
 				token[i]='\0';
@@ -742,8 +746,14 @@ void dvbapi_read_priority() {
 #endif
 		type = tolower(type);
 
-		if (ret<1 || (type != 'p' && type != 'i' && type != 'm' && type != 'd' && type != 's' && type != 'l'))
+		if (ret<1 || (type != 'p' && type != 'i' && type != 'm' && type != 'd' && type != 's' && type != 'l')) {
+			//fprintf(stderr, "Warning: line containing %s in %s not recognized, ignoring line\n", token, cs_prio); 
+			//fprintf would issue the warning to the command line, which is more consistent with other config warnings
+			//however it takes OSCam a long time (>4 seconds) to reach this part of the program, so the warnings are reaching tty rather late
+			//which leads to confusion. So send the warnings to log file instead
+			cs_log("Warning: line containing %s in %s not recognized, ignoring line\n", token, cs_prio);
 			continue;
+		}
 
 		struct s_dvbapi_priority *entry;
 		if(!cs_malloc(&entry,sizeof(struct s_dvbapi_priority), -1)){
@@ -1779,8 +1789,12 @@ static void * dvbapi_main_local(void *cli) {
 		}
 	} else {
 		pthread_t event_thread;
-		pthread_create(&event_thread, NULL, dvbapi_event_thread, (void*) dvbapi_client);
-		pthread_detach(event_thread);
+		int32_t ret = pthread_create(&event_thread, NULL, dvbapi_event_thread, (void*) dvbapi_client);
+		if(ret){
+			cs_log("ERROR: can't create dvbapi event thread (errno=%d %s)", ret, strerror(ret));
+			return NULL;
+		} else
+			pthread_detach(event_thread);
 	}
 
 
@@ -2065,11 +2079,15 @@ static void * dvbapi_handler(struct s_client * cl, uchar* UNUSED(mbuf), int32_t 
 		cl->ctyp = len;
 		cl->typ='c';
 #ifdef AZBOX
-		pthread_create(&cl->thread, NULL, azbox_main, (void*) cl);
+		int32_t ret = pthread_create(&cl->thread, NULL, azbox_main, (void*) cl);
 #else
-		pthread_create(&cl->thread, NULL, dvbapi_main_local, (void*) cl);
+		int32_t ret = pthread_create(&cl->thread, NULL, dvbapi_main_local, (void*) cl);
 #endif
-		pthread_detach(cl->thread);
+		if(ret){
+			cs_log("ERROR: can't create dvbapi handler thread (errno=%d %s)", ret, strerror(ret));
+			return NULL;
+		} else
+			pthread_detach(cl->thread);
 	}
 
 	return NULL;
@@ -2201,8 +2219,12 @@ static int32_t stapi_open() {
 		para->id=i;
 		para->cli=cur_client();
 
-		pthread_create(&dev_list[i].thread, NULL, stapi_read_thread, (void *)para);
-		pthread_detach(dev_list[i].thread);
+		int32_t ret = pthread_create(&dev_list[i].thread, NULL, stapi_read_thread, (void *)para);
+		if(ret){
+			cs_log("ERROR: can't create stapi read thread (errno=%d %s)", ret, strerror(ret));
+			return FALSE;
+		} else
+			pthread_detach(dev_list[i].thread);
 	}
 
 	atexit(stapi_off);

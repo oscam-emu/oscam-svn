@@ -95,7 +95,17 @@ reconnect if missing answers for all TCP based remote readers, default:30
 .PP
 \fBdisableserverfilter\fP = \fB0\fP|\fB1\fP
 .RS 3n
-1 = ignore \fBcaid\fP and \fBident\fP settings of reader due faulty clients, default:0
+1 = ignore \fBcaid\fP and \fBprovid\fP settings of reader due faulty clients, default:0
+.RE
+.PP
+\fBsmargopatch\fP = \fB0\fP|\fB1\fP
+.RS 3n
+1 = enable workaround for Smartreader+ reader until native mode works, default:0
+.RE
+.PP
+\fBsc8in1_dtrrts_patch\fP = \fB0\fP|\fB1\fP
+.RS 3n
+1 = enable fix for SC8in1/MCR DTR/RTS kernel bug, default:0
 .RE
 .PP
 \fBlabel\fP = \fBname\fP
@@ -119,9 +129,10 @@ set cache exchange mode
 
  \fB0\fP: disable cache exchange mode (default)
  \fB1\fP: enable cache exchange pull mode
- \fB2\fP: enable cache exchange push mode for camd 3.5x and CCcam protocol
- \fB3\fP: enable reverse cache exchange push mode for camd 3.5x and
-    CCcam protocol
+ \fB2\fP: enable cache exchange push mode for camd 3.5x / 3.57x and CCcam 
+    protocol
+ \fB3\fP: enable reverse cache exchange push mode for camd camd 
+    3.5x / 3.57x and CCcam protocol
 
 \fIIdentical cache exchange modes must be set on local OSCam server and remote OSCam user asccount.\fR
 .RE
@@ -154,9 +165,9 @@ set provider ID to use the right reader for auto AU
 example: auprovid = 123456
 .RE
 .PP
-\fBecmwhitelist\fP = [\fBCAID\fP[@\fBident\fP]:]\fBlength\fP[,\fBlength\fP]...[;[\fBCAID\fP[@\fBident\fP]:]\fBlength\fP[,\fBlength\fP]...]...
+\fBecmwhitelist\fP = [\fBCAID\fP[@\fBprovid\fP]:]\fBlength\fP[,\fBlength\fP]...[;[\fBCAID\fP[@\fBprovid\fP]:]\fBlength\fP[,\fBlength\fP]...]...
 .RS 3n
-set valid ECM length per CAID and ident in hex, default:none,ident=000000
+set valid ECM length per CAID and provid in hex, default:none,provid=000000
 
 example: ecmwhitelist = 10,20,0a,0b
          ecmwhitelist = 0100:10,20;0200@123456:0a,4b
@@ -224,7 +235,7 @@ reader protocol, \fIrequired\fR:
  \fBsc8in1\fP
 .RE
 .PP
-\fBident\fP = \fB<CAID>:<ident>[,ident]...[;<CAID>:<ident>[,ident]...]...\fP
+\fBident\fP = \fB<CAID>:<provid>[,provid]...[;<CAID>:<provid>[,provid]...]...\fP
 .RS 3n
 set CAID and SC specific ident for reader
 
@@ -476,7 +487,7 @@ RSA key for Nagravision/Tiger SCs / CAM key data for Irdeto SCs
 box key for Nagravision SCs / CAM key for Irdeto SCs
 .RE
 .PP
-\fBaeskeys\fP = \fBCAID #0\fP@\fBident\fP:\fBAES key #0 CAID #0\fP[,\fBAES key #1 CAID #0\fP],...[;\fBCAID #1\fP@\fBident\fP:\fBAES key #0 CAID #1\fP[,\fBAES key #1 CAID #1\fP],...]...
+\fBaeskeys\fP = \fBCAID #0\fP@\fBprovid\fP:\fBAES key #0 CAID #0\fP[,\fBAES key #1 CAID #0\fP],...[;\fBCAID #1\fP@\fBprovid\fP:\fBAES key #0 CAID #1\fP[,\fBAES key #1 CAID #1\fP],...]...
 .RS 3n
 multiple 16 bytes AES keys for Viaccess SCs (the used postprocessing AES key is specified through the D2 nano of the ECM)
 
@@ -565,15 +576,15 @@ re-initiated after the wait time defined in \fBcacheexwaittime\fR.
 push mode (continuous: cache exchange from remote to local OSCam)
 
 CWs from the remote cache exchange partner will be forwarded to the local 
-cache. Forwarding only works while the camd 3.5x or CCcam protocol connection 
-between the local and remote OSCam has been established.
+cache. Forwarding only works while the camd camd 3.5x / 3.57x or CCcam 
+protocol connection between the local and remote OSCam has been established.
 .TP 3n
 \(bu
 reverse push mode (continuous: cache exchange from local to remote OSCam)
 
 CWs from the local cache will be forwarded to the remote cache exchange 
-partner. Forwarding only works while the camd 3.5x or CCcam protocol connection 
-between the remote and local OSCam has been established.
+partner. Forwarding only works while the camd camd 3.5x / 3.57x or CCcam 
+protocol connection between the remote and local OSCam has been established.
 .SH EXAMPLES
 .TP 3n
 \(bu

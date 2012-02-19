@@ -399,7 +399,7 @@ READER_STAT *get_add_stat(struct s_reader *rdr, ECM_REQUEST *er, uint32_t prid)
  */
 void add_stat(struct s_reader *rdr, ECM_REQUEST *er, int32_t ecm_time, int32_t rc)
 {
-	if (!rdr || !er || !cfg.lb_mode ||!er->l)
+	if (!rdr || !er || !cfg.lb_mode ||!er->l || !er->client)
 		return;
 	struct s_client *cl = rdr->client;
 	if (!cl)
@@ -433,6 +433,9 @@ void add_stat(struct s_reader *rdr, ECM_REQUEST *er, int32_t ecm_time, int32_t r
 	
 	if (rc == E_NOTFOUND && (uint32_t)ecm_time >= cfg.ctimeout) //Map "not found" to "timeout" if ecm_time>client time out
 		rc = E_TIMEOUT;
+
+	if ((uint32_t)ecm_time >= 3*cfg.ctimeout) //ignore too old ecms
+		return;
 
 	time_t ctime = time(NULL);
 	
@@ -1209,7 +1212,7 @@ void housekeeping_stat_thread()
 void housekeeping_stat(int32_t force)
 {
 	time_t now = time(NULL);
-	if (!force && now/60/60 == last_housekeeping/60/60) //only clean once in an hour
+	if (!force && last_housekeeping + 60*60 > now) //only clean once in an hour
 		return;
 	
 	last_housekeeping = now;

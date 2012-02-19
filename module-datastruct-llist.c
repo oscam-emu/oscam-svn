@@ -77,8 +77,11 @@ static void *ll_iter_next_nolock(LL_ITER *it)
 					break;
 				}
 			}
-			if (!ptr) 
-				it->cur = prvnxt;
+			if (!ptr) {
+				//it->cur = prvnxt;
+				ll_iter_reset(it); // restart iteration
+				it->cur = it->l->initial;
+			}
 		}
 		it->ll_version = it->l->version;
 		//cs_readunlock(&it->l->lock);

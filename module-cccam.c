@@ -542,7 +542,6 @@ int32_t cc_cmd_send(struct s_client *cl, uint8_t *buf, int32_t len, cc_msg_type_
 	struct s_reader *rdr = (cl->typ == 'c') ? NULL : cl->reader;
 
 	int32_t n;
-	uint8_t *netbuf = cs_malloc(&netbuf, len + 4, 0);
 	struct cc_data *cc = cl->cc;
 
 	if (!cl->cc || cl->kill) return -1;
@@ -551,8 +550,10 @@ int32_t cc_cmd_send(struct s_client *cl, uint8_t *buf, int32_t len, cc_msg_type_
 		cs_writeunlock(&cc->lockcmd);
 		return -1;
 	}
+  
+  uint8_t *netbuf = cs_malloc(&netbuf, len + 4, 0);	
 	
-	if (cmd == MSG_NO_HEADER) {
+  if (cmd == MSG_NO_HEADER) {
 		memcpy(netbuf, buf, len);
 	} else {
 		// build command message
@@ -734,8 +735,8 @@ int32_t cc_get_nxt_ecm(struct s_client *cl) {
 		if ((t - (uint32_t) er->tps.time > ((cfg.ctimeout + 500)
 				/ 1000) + 1) && (er->rc >= 10)) // drop timeouts
 		{
-			write_ecm_answer(cl->reader, &cl->ecmtask[i], E_TIMEOUT, 0, NULL, NULL);
-			er->rc = 0;
+			er->rc = E_TIMEOUT;
+			write_ecm_answer(cl->reader, er, E_TIMEOUT, 0, NULL, NULL);
 		}
 
 		else if (er->rc >= 10 && er->rc <= 100) { // stil active and waiting
@@ -743,7 +744,9 @@ int32_t cc_get_nxt_ecm(struct s_client *cl) {
 			if (loop_check(cc->peer_node_id, er->client)) {
 				cs_debug_mask(D_READER, "%s ecm loop detected! client %s (%8lX)", 
 						getprefix(), er->client->account->usr, (unsigned long)er->client->thread);
-				write_ecm_answer(cl->reader, &cl->ecmtask[i], E_NOTFOUND, E2_CCCAM_LOOP, NULL, NULL);
+				er->rc = E_NOTFOUND;
+				er->rcEx = E2_CCCAM_LOOP;
+				write_ecm_answer(cl->reader, er, E_NOTFOUND, E2_CCCAM_LOOP, NULL, NULL);
 			}
 			else 		
 			// search for the ecm with the lowest time, this should be the next to go
@@ -1181,6 +1184,8 @@ int32_t cc_send_ecm(struct s_client *cl, ECM_REQUEST *er, uchar *buf) {
 		if (er) {
 			cs_debug_mask(D_READER, "%s server not init! ccinit=%d pfd=%d",
 					rdr->label, cc ? 1 : 0, cl->pfd);
+			er->rc = E_NOTFOUND;
+			er->rcEx = E2_CCCAM_NOCARD;
 			write_ecm_answer(rdr, er, E_NOTFOUND, E2_CCCAM_NOCARD, NULL, NULL);
 		}
 		//cc_cli_close(cl);
@@ -1248,6 +1253,7 @@ int32_t cc_send_ecm(struct s_client *cl, ECM_REQUEST *er, uchar *buf) {
 					rdr->available = 1;
 					cc->ecm_busy = 0;
 				}
+				cur_er->rc = E_STOPPED;
 				write_ecm_answer(rdr, cur_er, E_STOPPED, 0, NULL, NULL);
 				return 0;
 			} else {
@@ -1358,8 +1364,9 @@ int32_t cc_send_ecm(struct s_client *cl, ECM_REQUEST *er, uchar *buf) {
 				cs_debug_mask(D_READER,
 						"%s no suitable card on server", getprefix());
 
-				write_ecm_answer(rdr, cur_er, E_NOTFOUND, E2_CCCAM_NOCARD, NULL,
-						NULL);
+				cur_er->rc = E_NOTFOUND;
+				cur_er->rcEx = E2_CCCAM_NOCARD;
+				write_ecm_answer(rdr, cur_er, E_NOTFOUND, E2_CCCAM_NOCARD, NULL, NULL);
 				//cur_er->rc = 1;
 				//cur_er->rcEx = 0;
 				//cs_sleepms(300);
@@ -1708,7 +1715,7 @@ void cc_idle() {
 		//check inactivity timeout:
 		if (abs(rdr->last_s - now) > rdr->tcp_ito*60) {
 			cs_debug_mask(D_READER, "%s inactive_timeout, close connection (fd=%d)", rdr->ph.desc, rdr->client->pfd);
-			network_tcp_connection_close(rdr, "inavtivity");
+			network_tcp_connection_close(rdr, "inactivity");
 			return;
 		}
 			
@@ -1984,18 +1991,18 @@ int32_t cc_parse_msg(struct s_client *cl, uint8_t *buf, int32_t l) {
 		data = cc->receive_buffer;
 
 		if (l == 0x48) { //72 bytes: normal server data
-			//cs_writelock(&cc->cards_busy);
-			//cc_free_cardlist(cc->cards, FALSE);
+			cs_writelock(&cc->cards_busy);
+			cc_free_cardlist(cc->cards, FALSE);
 			free_extended_ecm_idx(cc); 
 			cc->last_emm_card = NULL;
-			//cc->num_hop1 = 0;
-			//cc->num_hop2 = 0;
-			//cc->num_hopx = 0;
-			//cc->num_reshare0 = 0;
-			//cc->num_reshare1 = 0;
-			//cc->num_reshare2 = 0;
-			//cc->num_resharex = 0;
-            //cs_writeunlock(&cc->cards_busy);
+			cc->num_hop1 = 0;
+			cc->num_hop2 = 0;
+			cc->num_hopx = 0;
+			cc->num_reshare0 = 0;
+			cc->num_reshare1 = 0;
+			cc->num_reshare2 = 0;
+			cc->num_resharex = 0;
+            cs_writeunlock(&cc->cards_busy);
                 			
 			memcpy(cc->peer_node_id, data, 8);
 			memcpy(cc->peer_version, data + 8, 8);
@@ -2319,6 +2326,7 @@ int32_t cc_parse_msg(struct s_client *cl, uint8_t *buf, int32_t l) {
 								cs_debug_mask(D_TRACE, "%s forward card: %s", getprefix(), (buf[1]==MSG_CW_NOK1)?"NOK1":"NOK2");
 								ECM_REQUEST *er = &cl->ecmtask[i];
 								cl->pending--;
+								er->rc = E_NOTFOUND;
 								write_ecm_answer(rdr, er, E_NOTFOUND,
 										(buf[1] == MSG_CW_NOK1) ? E2_CCCAM_NOK1 : E2_CCCAM_NOK2,
 										NULL, NULL);
@@ -2337,6 +2345,7 @@ int32_t cc_parse_msg(struct s_client *cl, uint8_t *buf, int32_t l) {
 									cs_debug_mask(D_TRACE, "%s ext NOK %s", getprefix(), (buf[1]==MSG_CW_NOK1)?"NOK1":"NOK2");
 									ECM_REQUEST *er = &cl->ecmtask[i];
 									cl->pending--;
+									er->rc = E_NOTFOUND;
 									write_ecm_answer(rdr, er, E_NOTFOUND, 0, NULL, NULL);
 									break;
 								}
@@ -2871,7 +2880,7 @@ int32_t cc_recv(struct s_client *cl, uchar *buf, int32_t l) {
 
 	if (n <= 0) {
 		struct cc_data *cc = cl->cc;
-		if (cc->nok_message)
+		if (cc && cc->nok_message)
 			cs_log("%s connection closed by %s. Reason: %s", getprefix(), remote_txt(), cc->nok_message);
 		else
 			cs_log("%s connection closed by %s.", getprefix(), remote_txt());
@@ -3184,7 +3193,7 @@ int32_t cc_cli_connect(struct s_client *cl) {
 		cc->pending_emms = ll_create("pending_emms");
 		cc->extended_ecm_idx = ll_create("extended_ecm_idx");
 	} else {
-		//cc_free_cardlist(cc->cards, FALSE);
+		cc_free_cardlist(cc->cards, FALSE);
 		free_extended_ecm_idx(cc);
 	}
 	if (!cc->prefix)
