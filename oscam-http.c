@@ -1353,6 +1353,12 @@ static char *send_oscam_reader_config(struct templatevars *vars, struct uriparam
 		tpl_addVar(vars, TPLADD, "SC8IN1DTRRTSPATCHVALUE", (rdr->sc8in1_dtrrts_patch == 1) ? "1" : "0");
 	}
 
+	// sc8in1_time_ecm
+	if (rdr->sc8in1_time_ecm.max)
+		tpl_printf(vars, TPLAPPEND, "SC8IN1TIMEECMMAX", "%d", rdr->sc8in1_time_ecm.max);
+	if (rdr->sc8in1_time_ecm.min)
+			tpl_printf(vars, TPLAPPEND, "SC8IN1TIMEECMMIN", "%d", rdr->sc8in1_time_ecm.min);
+
 	// Detect
 	if (rdr->detect&0x80)
 		tpl_printf(vars, TPLADD, "DETECT", "!%s", RDR_CD_TXT[rdr->detect&0x7f]);

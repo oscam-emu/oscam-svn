@@ -1021,22 +1021,11 @@ struct ecmrl {
 #define MAXECMRATELIMIT	20
 
 //sc8in1
-#define LOCK_SC8IN1 \
-{ \
-	if (reader->typ == R_SC8in1) { \
-		cs_writelock(&reader->sc8in1_config->sc8in1_lock); \
-		cs_debug_mask(D_ATR, "SC8in1: locked for access of slot %i", reader->slot); \
-		Sc8in1_Selectslot(reader, reader->slot); \
-	} \
-}
+#ifdef WITH_CARDREADER
 
-#define UNLOCK_SC8IN1 \
-{	\
-	if (reader->typ == R_SC8in1) { \
-		cs_writeunlock(&reader->sc8in1_config->sc8in1_lock); \
-		cs_debug_mask(D_ATR, "SC8in1: unlocked for access of slot %i", reader->slot); \
-	} \
-}
+#define SC8IN1_LOCK_DEFAULT 0
+#define SC8IN1_LOCK_ECM 1
+
 struct s_sc8in1_display {
 	char *text;
 	uint16_t text_length;
@@ -1057,7 +1046,20 @@ struct s_sc8in1_config {
 	CS_MUTEX_LOCK sc8in1_display_lock;
 	unsigned char display_running;
 	pthread_t display_thread;
+	struct s_sc8in1_request *request;
+	uint16_t slot_max_change_time;
 };
+struct s_sc8in1_time {
+	uint16_t min;
+	uint16_t max;
+};
+struct s_sc8in1_request {
+	struct timeval start_time;
+	struct s_sc8in1_time duration;
+	struct s_reader *reader;
+	struct s_sc8in1_request *next;
+};
+#endif
 
 struct s_reader  									//contains device info, reader info and card info
 {
@@ -1271,11 +1273,15 @@ struct s_reader  									//contains device info, reader info and card info
 	time_t			cooldowntime;
 	struct ecmrl	rlecmh[MAXECMRATELIMIT];
 	int8_t			fix_9993;
+#ifdef WITH_CARDREADER
 	uint8_t			ins7E[0x1A+1];
 	uint8_t			ins7E11[0x01+1];
 	int8_t			ins7e11_fast_reset;
 	struct s_sc8in1_config *sc8in1_config;
 	uint8_t			sc8in1_dtrrts_patch; // fix for kernel commit 6a1a82df91fa0eb1cc76069a9efe5714d087eccd
+	struct s_sc8in1_time sc8in1_time_ecm;
+	uint8_t			sc8in1_interrupt;
+#endif
 
 #ifdef MODULE_PANDORA
 	int8_t			pand_send_ecm;

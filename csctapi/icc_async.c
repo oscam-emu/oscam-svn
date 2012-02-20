@@ -84,10 +84,10 @@ int32_t ICC_Async_Device_Init (struct s_reader *reader)
 
 	switch(reader->typ) {
 		case R_SC8in1:
-			cs_writelock(&reader->sc8in1_config->sc8in1_lock);
+			LOCK_SC8IN1
 			if (reader->handle != 0) {//this reader is already initialized
 				cs_debug_mask(D_DEVICE, "ICC_Async_Device_Init Sc8in1 already open.");
-				cs_writeunlock(&reader->sc8in1_config->sc8in1_lock);
+				UNLOCK_SC8IN1
 				return OK;
 			}
 
@@ -108,14 +108,14 @@ int32_t ICC_Async_Device_Init (struct s_reader *reader)
 				if (reader->handle < 0) {
 					cs_log("ERROR opening device %s with real device %s (errno=%d %s)",reader->device, deviceName, errno, strerror(errno));
 					reader->handle = 0;
-					cs_writeunlock(&reader->sc8in1_config->sc8in1_lock);
+					UNLOCK_SC8IN1
 					return ERROR;
 				}
 			}
 			else {
 				// serial port already initialized
 				cs_debug_mask(D_DEVICE, "ICC_Async_Device_Init Another Sc8in1 already open.");
-				cs_writeunlock(&reader->sc8in1_config->sc8in1_lock);
+				UNLOCK_SC8IN1
 				return OK;
 			}
 			break;
@@ -196,13 +196,13 @@ int32_t ICC_Async_Device_Init (struct s_reader *reader)
 		if (Phoenix_Init(reader)) {
 			cs_log("ERROR: Phoenix_Init returns error");
 			Phoenix_Close (reader);
-			cs_writeunlock(&reader->sc8in1_config->sc8in1_lock);
+			UNLOCK_SC8IN1
 			return ERROR;
 		}
 
 	if (reader->typ == R_SC8in1) {
 		int32_t ret  = Sc8in1_Init(reader);
-		cs_writeunlock(&reader->sc8in1_config->sc8in1_lock);
+		UNLOCK_SC8IN1
 		if (ret) {
 			cs_log("ERROR: Sc8in1_Init returns error");
 			return ERROR;
@@ -258,9 +258,9 @@ int32_t ICC_Async_GetStatus (struct s_reader *reader, int32_t * card)
 			break;
 #endif
 		case R_SC8in1:
-			cs_writelock(&reader->sc8in1_config->sc8in1_lock);
+			LOCK_SC8IN1
 			int32_t ret = Sc8in1_GetStatus(reader, &in);
-			cs_writeunlock(&reader->sc8in1_config->sc8in1_lock);
+			UNLOCK_SC8IN1
 			if (ret == ERROR) return ERROR;
 			break;
 		case R_MP35:
@@ -322,7 +322,7 @@ int32_t ICC_Async_Activate (struct s_reader *reader, ATR * atr, uint16_t depreca
 			case R_DB2COM2:
 			case R_SC8in1:
 			case R_MOUSE:
-				LOCK_SC8IN1
+				LOCK_SC8IN1_WITH_SLOT
 				int32_t retval = Phoenix_Reset(reader, atr);
 				UNLOCK_SC8IN1
 				if (retval) {
@@ -403,7 +403,7 @@ int32_t ICC_Async_Activate (struct s_reader *reader, ATR * atr, uint16_t depreca
 
 	reader->protocol_type = ATR_PROTOCOL_TYPE_T0;
 
-	LOCK_SC8IN1;
+	LOCK_SC8IN1_WITH_SLOT;
 	int32_t ret = Parse_ATR(reader, atr, deprecated);
 	UNLOCK_SC8IN1; //Parse_ATR and InitCard need to be included in lock because they change parity of serial port
 	if (ret)
@@ -425,7 +425,7 @@ int32_t ICC_Async_CardWrite (struct s_reader *reader, unsigned char *command, ui
 
 	int32_t ret;
 
-	LOCK_SC8IN1;
+	LOCK_SC8IN1_WITH_SLOT;
 
 	int32_t try = 1;
 	do {
@@ -603,9 +603,9 @@ int32_t ICC_Async_Close (struct s_reader *reader)
 		case R_DB2COM1:
 		case R_DB2COM2:
 		case R_SC8in1:
-			cs_writelock(&reader->sc8in1_config->sc8in1_lock);
+			LOCK_SC8IN1
 			int ret = Sc8in1_Close(reader);
-			cs_writeunlock(&reader->sc8in1_config->sc8in1_lock);
+			UNLOCK_SC8IN1
 			if (ret) {
 				return 1;
 			}

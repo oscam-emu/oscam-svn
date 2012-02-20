@@ -356,6 +356,8 @@ static int32_t Protocol_T0_ExchangeTPDU (struct s_reader *reader, unsigned char 
 	}
 	call (ICC_Async_Transmit (reader, 5, command));		//Send header bytes
 	
+	INTERRUPT_SC8IN1_ECM
+
 	/* Initialise counters */
 	nulls = 0;
 	sent = 0;

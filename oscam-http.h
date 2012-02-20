@@ -1378,6 +1378,8 @@ provid=\"##APIPROVIDERPROVID##\">##APIPROVIDERNAME##</provider>\n"
 				<TR><TD>##TPLHELPPREFIX##server#deprecated##TPLHELPSUFFIX##Deprecated:</A><input name=\"deprecated\" type=\"hidden\" value=\"0\"></TD><TD><input name=\"deprecated\" type=\"checkbox\" value=\"1\" ##DEPRECATEDCHECKED##></TD></TR>\n\
 				<TR><TD>##TPLHELPPREFIX##server#smargopatch##TPLHELPSUFFIX##Smargopatch:</A><input name=\"smargopatch\" type=\"hidden\" value=\"0\"></TD><TD><input name=\"smargopatch\" type=\"checkbox\" value=\"1\" ##SMARGOPATCHCHECKED##></TD></TR>\n\
 				<TR><TD>##TPLHELPPREFIX##server#sc8in1_dtrrts_patch##TPLHELPSUFFIX##SC8in1 DTR/RTS Patch:</A><input name=\"sc8in1_dtrrts_patch\" type=\"hidden\" value=\"0\"></TD><TD><input name=\"sc8in1_dtrrts_patch\" type=\"checkbox\" value=\"1\" ##SC8IN1DTRRTSPATCHCHECKED##></TD></TR>\n\
+				<TR><TD>##TPLHELPPREFIX##server#sc8in1_time_ecm_max##TPLHELPSUFFIX##SC8in1 ECM Time Max:</A></TD><TD><input name=\"sc8in1_time_ecm_max\" type=\"text\" size=\"10\" maxlength=\"4\" value=\"##SC8IN1TIMEECMMAX##\"></TD></TR>\n\
+				<TR><TD>##TPLHELPPREFIX##server#sc8in1_time_ecm_min##TPLHELPSUFFIX##SC8in1 ECM Time Min:</A></TD><TD><input name=\"sc8in1_time_ecm_min\" type=\"text\" size=\"10\" maxlength=\"4\" value=\"##SC8IN1TIMEECMMIN##\"></TD></TR>\n\
 				<TR><TD>##TPLHELPPREFIX##server#device_out_endpoint##TPLHELPSUFFIX##Device Out Endpoint:</A></TD><TD>##DEVICEEP##</TD></TR>\n"
 
 #ifdef LIBUSB

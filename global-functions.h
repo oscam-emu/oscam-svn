@@ -511,3 +511,59 @@ extern int32_t reader_get_emm_type(EMM_PACKET *ep, struct s_reader * reader);
 extern struct s_cardsystem *get_cardsystem_by_caid(uint16_t caid);
 extern void reader_device_close(struct s_reader * reader);
 extern int8_t cs_emmlen_is_blocked(struct s_reader *rdr, int16_t len);
+
+/* ===========================
+ *       reader-sc8in1
+ * =========================== */
+#ifdef WITH_CARDREADER
+#define LOCK_SC8IN1 \
+{ \
+	if (reader->typ == R_SC8in1) { \
+		sc8in1_rwlock_int(&reader->sc8in1_config->sc8in1_lock, reader, SC8IN1_LOCK_DEFAULT); \
+		cs_debug_mask(D_ATR, "SC8in1: locked for global access (slot %i)", reader->slot); \
+	} \
+}
+
+#define LOCK_SC8IN1_WITH_SLOT \
+{ \
+	if (reader->typ == R_SC8in1) { \
+		sc8in1_rwlock_int(&reader->sc8in1_config->sc8in1_lock, reader, SC8IN1_LOCK_DEFAULT); \
+		cs_debug_mask(D_ATR, "SC8in1: locked for access of slot %i", reader->slot); \
+		Sc8in1_Selectslot(reader, reader->slot); \
+	} \
+}
+
+#define UNLOCK_SC8IN1 \
+{	\
+	if (reader->typ == R_SC8in1) { \
+		sc8in1_rwunlock_int(&reader->sc8in1_config->sc8in1_lock, reader, SC8IN1_LOCK_DEFAULT); \
+		cs_debug_mask(D_ATR, "SC8in1: unlocked for access of slot %i", reader->slot); \
+	} \
+}
+
+#define INTERRUPT_SC8IN1_ECM \
+{	\
+	if (reader->typ == R_SC8in1 && reader->sc8in1_interrupt == SC8IN1_LOCK_ECM && (reader->sc8in1_time_ecm.min - reader->sc8in1_config->slot_max_change_time > 0)) { \
+		sc8in1_rwunlock_int(&reader->sc8in1_config->sc8in1_lock, reader, SC8IN1_LOCK_ECM); \
+		cs_debug_mask(D_ATR, "SC8in1: unlocked for interrupting access (slot %i)", reader->slot); \
+		cs_sleepms(reader->sc8in1_time_ecm.min - reader->sc8in1_config->slot_max_change_time); \
+		sc8in1_rwlock_int(&reader->sc8in1_config->sc8in1_lock, reader, SC8IN1_LOCK_ECM); \
+		cs_debug_mask(D_ATR, "SC8in1: locked after interrupting access (slot %i)", reader->slot); \
+		Sc8in1_Selectslot(reader, reader->slot); \
+	} \
+}
+#define SC8IN1_INTERRUPT_PRE_ECM \
+{	\
+	if (reader->typ == R_SC8in1) { \
+		reader->sc8in1_interrupt = SC8IN1_LOCK_ECM; \
+	} \
+}
+#define SC8IN1_INTERRUPT_POST_ACTION \
+{	\
+	if (reader->typ == R_SC8in1) { \
+		reader->sc8in1_interrupt = SC8IN1_LOCK_DEFAULT; \
+	} \
+}
+extern void sc8in1_rwunlock_int(CS_MUTEX_LOCK *l, struct s_reader *reader, uint8_t interrupt);
+extern void sc8in1_rwlock_int(CS_MUTEX_LOCK *l, struct s_reader *reader, uint8_t interrupt);
+#endif
