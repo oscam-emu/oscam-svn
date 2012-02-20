@@ -497,6 +497,8 @@ int32_t Protocol_T14_ExchangeTPDU (struct s_reader *reader, unsigned char * cmd_
 		call (ICC_Async_Transmit (reader, cmd_len+2, buffer));//send apdu
 	}
 	
+	INTERRUPT_SC8IN1_ECM
+
 	if(cmd_raw[0] == 0x02 && cmd_raw[1] == 0x09)
 		cs_sleepms(2500); //FIXME why wait?
 	call (ICC_Async_Receive (reader, 8, buffer));				//Read one procedure byte
