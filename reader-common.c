@@ -382,6 +382,7 @@ void reader_post_process(struct s_reader * reader)
 int32_t reader_ecm(struct s_reader * reader, ECM_REQUEST *er, struct s_ecm_answer *ea)
 {
   int32_t rc=-1;
+  SC8IN1_INTERRUPT_MODE_ECM_START
 	if( (rc=reader_checkhealth(reader)) ) {
 		struct s_client *cl = reader->client;
 		if (cl) {
@@ -390,11 +391,12 @@ int32_t reader_ecm(struct s_reader * reader, ECM_REQUEST *er, struct s_ecm_answe
 			cl->last=time((time_t*)0);
 		}
 
-		if (reader->csystem.active && reader->csystem.do_ecm) 
+		if (reader->csystem.active && reader->csystem.do_ecm)
 			rc=reader->csystem.do_ecm(reader, er, ea);
 		else
 			rc=0;
 	}
+	SC8IN1_INTERRUPT_MODE_ECM_STOP
 	return(rc);
 }
 #endif

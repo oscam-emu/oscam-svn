@@ -972,8 +972,8 @@ uint32_t sc8in1_lock_safe(struct s_reader *reader) {
 	sc8in1_get_last_request(reader, &latest_request);
 	if ( ! latest_request ) {
 		// there are no requests --> good to go
-		if (reader->sc8in1_interrupt == SC8IN1_LOCK_ECM) {
-			cs_log("SC8in1: lock safe 1");
+		if (reader->sc8in1_interrupt & SC8IN1_LOCK_MODE_ECM) {
+			cs_log("SC8in1: lock safe 1 slot%i", reader->slot);
 		}
 		return 1;
 	}
@@ -981,8 +981,8 @@ uint32_t sc8in1_lock_safe(struct s_reader *reader) {
 		// we are back from an interrupted operation
 		// and we are the the latest request
 		sc8in1_request_pop(reader);
-		if (reader->sc8in1_interrupt == SC8IN1_LOCK_ECM) {
-			cs_log("SC8in1: lock safe 2");
+		if (reader->sc8in1_interrupt & SC8IN1_LOCK_MODE_ECM) {
+			cs_log("SC8in1: lock safe 2 slot%i", reader->slot);
 		}
 		return 1;
 	}
@@ -990,9 +990,14 @@ uint32_t sc8in1_lock_safe(struct s_reader *reader) {
 		// we are back from an interrupted operation,
 		// but there is some other reader waiting for a response
 		// since we are not the latest request (this shouldn't happen)
-		if (reader->sc8in1_interrupt == SC8IN1_LOCK_ECM) {
-			cs_log("SC8in1: lock safe 3");
+		if (reader->sc8in1_interrupt & SC8IN1_LOCK_MODE_ECM) {
+			cs_log("SC8in1: lock safe 3 slot%i", reader->slot);
 		}
+		return 0;
+	}
+	else if (reader->sc8in1_interrupt & SC8IN1_LOCK_MODE_ECM != SC8IN1_LOCK_MODE_ECM) {
+		// this is some other lock request, i.e. getStatus
+		// Not ok to go, since we are in interrupt mode
 		return 0;
 	}
 	else {
@@ -1007,7 +1012,7 @@ uint32_t sc8in1_lock_safe(struct s_reader *reader) {
 		}
 		else {
 			// we don't fit into the request
-			cs_log("SC8in1: Fastmode request not possible (not interrupting slot%i with slot%i, slotchangetime=%ims)", latest_request->reader->slot, reader->slot, reader->sc8in1_config->slot_max_change_time);
+			// cs_log("SC8in1: Fastmode request not possible (not interrupting slot%i with slot%i, slotchangetime=%ims)", latest_request->reader->slot, reader->slot, reader->sc8in1_config->slot_max_change_time);
 			return 0;
 		}
 	}

@@ -1024,7 +1024,8 @@ struct ecmrl {
 #ifdef WITH_CARDREADER
 
 #define SC8IN1_LOCK_DEFAULT 0
-#define SC8IN1_LOCK_ECM 1
+#define SC8IN1_LOCK_MODE_ECM 1
+#define SC8IN1_LOCK_ECM 2
 
 struct s_sc8in1_display {
 	char *text;
