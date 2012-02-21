@@ -543,13 +543,18 @@ extern int8_t cs_emmlen_is_blocked(struct s_reader *rdr, int16_t len);
 
 #define INTERRUPT_SC8IN1_ECM \
 {	\
-	if (reader->typ == R_SC8in1 && reader->sc8in1_interrupt == SC8IN1_LOCK_ECM && (reader->sc8in1_time_ecm.min - reader->sc8in1_config->slot_max_change_time > 0)) { \
-		sc8in1_rwunlock_int(&reader->sc8in1_config->sc8in1_lock, reader, SC8IN1_LOCK_ECM); \
-		cs_debug_mask(D_ATR, "SC8in1: unlocked for interrupting access (slot %i)", reader->slot); \
-		cs_sleepms(reader->sc8in1_time_ecm.min - reader->sc8in1_config->slot_max_change_time); \
-		sc8in1_rwlock_int(&reader->sc8in1_config->sc8in1_lock, reader, SC8IN1_LOCK_ECM); \
-		cs_debug_mask(D_ATR, "SC8in1: locked after interrupting access (slot %i)", reader->slot); \
-		Sc8in1_Selectslot(reader, reader->slot); \
+	if (reader->typ == R_SC8in1 && reader->sc8in1_interrupt == SC8IN1_LOCK_ECM) { \
+		if (reader->sc8in1_time_ecm.min - reader->sc8in1_config->slot_max_change_time * 2 > 0) { \
+			sc8in1_rwunlock_int(&reader->sc8in1_config->sc8in1_lock, reader, SC8IN1_LOCK_ECM); \
+			cs_debug_mask(D_ATR, "SC8in1: unlocked for interrupting access (slot %i)", reader->slot); \
+			cs_sleepms(reader->sc8in1_time_ecm.min - reader->sc8in1_config->slot_max_change_time * 2); \
+			sc8in1_rwlock_int(&reader->sc8in1_config->sc8in1_lock, reader, SC8IN1_LOCK_ECM); \
+			cs_debug_mask(D_ATR, "SC8in1: locked after interrupting access (slot %i)", reader->slot); \
+			Sc8in1_Selectslot(reader, reader->slot); \
+		} \
+		else { \
+			cs_log("SC8in1: interrupting access on slot %i not possible (slotchangetime=%ims)", reader->slot, reader->sc8in1_config->slot_max_change_time); \
+		} \
 	} \
 }
 #define SC8IN1_INTERRUPT_PRE_ECM \

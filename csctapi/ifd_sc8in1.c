@@ -993,10 +993,12 @@ uint32_t sc8in1_lock_safe(struct s_reader *reader) {
 		uint32_t elapsed_ms = ((now.tv_sec-latest_request->start_time.tv_sec)*1000000 + now.tv_usec-latest_request->start_time.tv_usec)/1000;
 		if (latest_request->duration.min > elapsed_ms + reader->sc8in1_time_ecm.max + reader->sc8in1_config->slot_max_change_time * 2) {
 			// we do fit into the request
+			cs_log("SC8in1: Doing fastmode request (interrupting slot%i with slot%i, slotchangetime=%ims)", latest_request->reader->slot, reader->slot, reader->sc8in1_config->slot_max_change_time);
 			return 1;
 		}
 		else {
 			// we don't fit into the request
+			cs_log("SC8in1: Fastmode request not possible (not interrupting slot%i with slot%i, slotchangetime=%ims)", latest_request->reader->slot, reader->slot, reader->sc8in1_config->slot_max_change_time);
 			return 0;
 		}
 	}
