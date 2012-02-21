@@ -40,7 +40,7 @@ int32_t Sc8in1_SetSlotForReader(struct s_reader *reader);
 int32_t Sc8in1_Card_Changed (struct s_reader * reader);
 void sc8in1_request_pop(struct s_reader *reader);
 void sc8in1_request_push(struct s_reader *reader, struct s_sc8in1_time time);
-void sc8in1_get_last_request(struct s_reader *reader, struct s_sc8in1_request *request);
+void sc8in1_get_last_request(struct s_reader *reader, void *request);
 uint32_t sc8in1_request_pending(struct s_reader *reader);
 
 
@@ -969,21 +969,30 @@ uint32_t sc8in1_lock_safe(struct s_reader *reader) {
 
 	// check if there are any requests currently running
 	struct s_sc8in1_request *latest_request = NULL;
-	sc8in1_get_last_request(reader, latest_request);
+	sc8in1_get_last_request(reader, &latest_request);
 	if ( ! latest_request ) {
 		// there are no requests --> good to go
+		if (reader->sc8in1_interrupt == SC8IN1_LOCK_ECM) {
+			cs_log("SC8in1: lock safe 1");
+		}
 		return 1;
 	}
 	else if (reader == latest_request->reader) {
 		// we are back from an interrupted operation
 		// and we are the the latest request
 		sc8in1_request_pop(reader);
+		if (reader->sc8in1_interrupt == SC8IN1_LOCK_ECM) {
+			cs_log("SC8in1: lock safe 2");
+		}
 		return 1;
 	}
 	else if (sc8in1_request_pending(reader)) {
 		// we are back from an interrupted operation,
 		// but there is some other reader waiting for a response
 		// since we are not the latest request (this shouldn't happen)
+		if (reader->sc8in1_interrupt == SC8IN1_LOCK_ECM) {
+			cs_log("SC8in1: lock safe 3");
+		}
 		return 0;
 	}
 	else {
@@ -1063,14 +1072,14 @@ uint32_t sc8in1_request_pending(struct s_reader *reader) {
 	return 0;
 }
 
-void sc8in1_get_last_request(struct s_reader *reader, struct s_sc8in1_request *request) {
+void sc8in1_get_last_request(struct s_reader *reader, void *request) {
 	// returns in request the last active request
-	struct s_sc8in1_request *req;
-	req = reader->sc8in1_config->request;
-	request = NULL;
-	while (req) {
-		request = req;
-		req = req->next;
+	void **req = (void *)request;
+	struct s_sc8in1_request *req2 = NULL;
+	req2 = reader->sc8in1_config->request;
+	while (req2) {
+		*req = (void *)req2;
+		req2 = req2->next;
 	}
 }
 
