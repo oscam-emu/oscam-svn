@@ -3733,7 +3733,9 @@ void * work_thread(void *ptr) {
 				reader_reset(reader);
 				break;
 			case ACTION_READER_CHECK_HEALTH:
+				LOCK_SC8IN1
 				reader_checkhealth(reader);
+				UNLOCK_SC8IN1
 				break;
 #endif
 			case ACTION_CLIENT_UDP:

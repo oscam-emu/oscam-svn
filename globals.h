@@ -1023,10 +1023,18 @@ struct ecmrl {
 //sc8in1
 #ifdef WITH_CARDREADER
 
-#define SC8IN1_LOCK_DEFAULT 0
-#define SC8IN1_LOCK_MODE_ECM 1
-#define SC8IN1_LOCK_ECM 2
+#define SC8IN1_LOCK_DEFAULT 0x0
+#define SC8IN1_LOCK_MODE_ECM 0x1
+#define SC8IN1_LOCK_ECM 0x2
 
+typedef struct sc8in1_mutexlock {
+	int32_t		timeout;
+	pthread_mutex_t	lock;
+	pthread_cond_t	writecond, readcond;
+	const char	*name;
+	int16_t		writelock, readlock;
+	struct s_reader* reader[8];
+} SC8IN1_MUTEX_LOCK;
 struct s_sc8in1_display {
 	char *text;
 	uint16_t text_length;
@@ -1042,7 +1050,7 @@ struct s_sc8in1_config {
 	struct s_reader *current_reader;
 	unsigned char cardstatus;
 	unsigned char mcr_type;
-	CS_MUTEX_LOCK sc8in1_lock;
+	SC8IN1_MUTEX_LOCK sc8in1_lock;
 	struct s_sc8in1_display *display;
 	CS_MUTEX_LOCK sc8in1_display_lock;
 	unsigned char display_running;

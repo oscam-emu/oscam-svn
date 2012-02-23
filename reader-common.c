@@ -107,7 +107,6 @@ static int32_t reader_card_inserted(struct s_reader * reader)
 			cl->init_done = 0;
 			cs_log("WARNING: reader %s was disabled because of too many errors", reader->label);
 		}
- 
 		return 0; //corresponds with no card inside!!
 	}
 	return (card);
@@ -122,7 +121,9 @@ static int32_t reader_activate_card(struct s_reader * reader, ATR * atr, uint16_
 
   /* Activate card */
   for (i=0; i<3; i++) {
+		LOCK_SC8IN1_WITH_SLOT
 		ret = ICC_Async_Activate(reader, atr, deprecated);
+		UNLOCK_SC8IN1
 		if (!ret)
 			break;
 		cs_log("Error activating card.");
@@ -214,7 +215,9 @@ void reader_card_info(struct s_reader * reader)
 		cs_ri_brk(reader, 0);
 
 		if (reader->csystem.active && reader->csystem.card_info) {
+			LOCK_SC8IN1_WITH_SLOT
 			reader->csystem.card_info(reader);
+			UNLOCK_SC8IN1
 		}
 	}
 }
@@ -222,6 +225,7 @@ void reader_card_info(struct s_reader * reader)
 #ifdef WITH_CARDREADER
 static int32_t reader_get_cardsystem(struct s_reader * reader, ATR atr)
 {
+	LOCK_SC8IN1_WITH_SLOT
 	int32_t i;
 	for (i=0; i<CS_MAX_MOD; i++) {
 		if (cardsystem[i].card_init) {
@@ -241,6 +245,8 @@ static int32_t reader_get_cardsystem(struct s_reader * reader, ATR atr)
 			}
 		}
 	}
+
+	UNLOCK_SC8IN1
 
 	if (reader->csystem.active==0) 
 	{
@@ -331,10 +337,12 @@ int32_t reader_device_init(struct s_reader * reader)
 	if (!stat(DEV_MULTICAM, &st))
 		reader->typ = reader_device_type(reader);
 #endif
+	LOCK_SC8IN1
 	if (ICC_Async_Device_Init(reader))
 		cs_log("Cannot open device: %s", reader->device);
 	else
 		rc = OK;
+	UNLOCK_SC8IN1
   return((rc!=OK) ? 2 : 0); //exit code 2 means keep retrying, exit code 0 means all OK
 }
 
@@ -374,7 +382,9 @@ void reader_post_process(struct s_reader * reader)
   // some systems eg. nagra2/3 needs post process after receiving cw from card
   // To save ECM/CW time we added this function after writing ecm answer
 	if (reader->csystem.active && reader->csystem.post_process) {
+		LOCK_SC8IN1_WITH_SLOT
 		reader->csystem.post_process(reader);
+		UNLOCK_SC8IN1
 	}
 }
 
@@ -382,6 +392,7 @@ void reader_post_process(struct s_reader * reader)
 int32_t reader_ecm(struct s_reader * reader, ECM_REQUEST *er, struct s_ecm_answer *ea)
 {
   int32_t rc=-1;
+  LOCK_SC8IN1_WITH_SLOT
   SC8IN1_INTERRUPT_MODE_ECM_START
 	if( (rc=reader_checkhealth(reader)) ) {
 		struct s_client *cl = reader->client;
@@ -397,6 +408,7 @@ int32_t reader_ecm(struct s_reader * reader, ECM_REQUEST *er, struct s_ecm_answe
 			rc=0;
 	}
 	SC8IN1_INTERRUPT_MODE_ECM_STOP
+	UNLOCK_SC8IN1
 	return(rc);
 }
 #endif
@@ -433,16 +445,21 @@ int32_t reader_emm(struct s_reader * reader, EMM_PACKET *ep)
 {
   int32_t rc=-1;
 
+  LOCK_SC8IN1_WITH_SLOT
+
   rc=reader_checkhealth(reader);
   if (rc) {
-	if ((1<<(ep->emm[0] % 0x80)) & reader->b_nano)
+	if ((1<<(ep->emm[0] % 0x80)) & reader->b_nano) {
+		UNLOCK_SC8IN1
 		return 3;
+	}
 
 	if (reader->csystem.active && reader->csystem.do_emm) 
 		rc=reader->csystem.do_emm(reader, ep);
 	else
 		rc=0;
   }
+  UNLOCK_SC8IN1
   return(rc);
 }
 #endif

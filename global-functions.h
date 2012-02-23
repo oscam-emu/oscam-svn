@@ -543,7 +543,7 @@ extern int8_t cs_emmlen_is_blocked(struct s_reader *rdr, int16_t len);
 
 #define INTERRUPT_SC8IN1_ECM \
 {	\
-	if (reader->typ == R_SC8in1 && (reader->sc8in1_interrupt & SC8IN1_LOCK_ECM == SC8IN1_LOCK_ECM)) { \
+	if (reader->typ == R_SC8in1 && ((reader->sc8in1_interrupt & SC8IN1_LOCK_ECM) == SC8IN1_LOCK_ECM)) { \
 		if (reader->sc8in1_time_ecm.min - reader->sc8in1_config->slot_max_change_time * 2 > 0) { \
 			sc8in1_rwunlock_int(&reader->sc8in1_config->sc8in1_lock, reader, SC8IN1_LOCK_ECM); \
 			cs_log("SC8in1: unlocked for interrupting access (slot %i)", reader->slot); \
@@ -581,6 +581,7 @@ extern int8_t cs_emmlen_is_blocked(struct s_reader *rdr, int16_t len);
 		reader->sc8in1_interrupt &= ~SC8IN1_LOCK_ECM; \
 	} \
 }
-extern void sc8in1_rwunlock_int(CS_MUTEX_LOCK *l, struct s_reader *reader, uint8_t interrupt);
-extern void sc8in1_rwlock_int(CS_MUTEX_LOCK *l, struct s_reader *reader, uint8_t interrupt);
+extern void sc8in1_rwunlock_int(SC8IN1_MUTEX_LOCK *l, struct s_reader *reader, uint8_t interrupt);
+extern void sc8in1_rwlock_int(SC8IN1_MUTEX_LOCK *l, struct s_reader *reader, uint8_t interrupt);
+extern void sc8in1_lock_create(SC8IN1_MUTEX_LOCK *l, int16_t timeout, const char *name);
 #endif
