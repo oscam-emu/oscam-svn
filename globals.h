@@ -1023,9 +1023,11 @@ struct ecmrl {
 //sc8in1
 #ifdef WITH_CARDREADER
 
-#define SC8IN1_LOCK_DEFAULT 0x0
-#define SC8IN1_LOCK_MODE_ECM 0x1
-#define SC8IN1_LOCK_ECM 0x2
+#define SC8IN1_LOCK_DEFAULT		0x0
+#define SC8IN1_LOCK_MODE_ECM	0x1
+#define SC8IN1_LOCK_ECM			0x2
+#define SC8IN1_LOCK_MODE_EMM	0x4
+#define SC8IN1_LOCK_EMM			0x8
 
 typedef struct sc8in1_mutexlock {
 	int32_t		timeout;
@@ -1066,6 +1068,7 @@ struct s_sc8in1_request {
 	struct timeval start_time;
 	struct s_sc8in1_time duration;
 	struct s_reader *reader;
+	struct s_reader *interrupting_reader;
 	struct s_sc8in1_request *next;
 };
 #endif
@@ -1289,6 +1292,7 @@ struct s_reader  									//contains device info, reader info and card info
 	struct s_sc8in1_config *sc8in1_config;
 	uint8_t			sc8in1_dtrrts_patch; // fix for kernel commit 6a1a82df91fa0eb1cc76069a9efe5714d087eccd
 	struct s_sc8in1_time sc8in1_time_ecm;
+	struct s_sc8in1_time sc8in1_time_emm;
 	uint8_t			sc8in1_interrupt;
 #endif
 

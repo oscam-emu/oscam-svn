@@ -356,7 +356,7 @@ static int32_t Protocol_T0_ExchangeTPDU (struct s_reader *reader, unsigned char 
 	}
 	call (ICC_Async_Transmit (reader, 5, command));		//Send header bytes
 	
-	INTERRUPT_SC8IN1_ECM
+	INTERRUPT_SC8IN1
 
 	/* Initialise counters */
 	nulls = 0;
@@ -418,7 +418,6 @@ static int32_t Protocol_T0_ExchangeTPDU (struct s_reader *reader, unsigned char 
 				/* 
 				* Le <= PROTOCOL_T0_MAX_SHORT_RESPONSE - 2 for short commands 
 				*/
-				
 				/* Read remaining data bytes */
 				call (ICC_Async_Receive(reader, MAX (Le - recv, 0), buffer + recv));
 				recv = Le;
@@ -496,15 +495,16 @@ int32_t Protocol_T14_ExchangeTPDU (struct s_reader *reader, unsigned char * cmd_
 		/* Send apdu */
 		call (ICC_Async_Transmit (reader, cmd_len+2, buffer));//send apdu
 	}
-	
-	INTERRUPT_SC8IN1_ECM
 
 	if(cmd_raw[0] == 0x02 && cmd_raw[1] == 0x09)
 		cs_sleepms(2500); //FIXME why wait?
+	INTERRUPT_SC8IN1 //TODO: Interrupt here?
 	call (ICC_Async_Receive (reader, 8, buffer));				//Read one procedure byte
 	recv = (int32_t)buffer[7];
-	if(recv)
+	if(recv) {
+		//INTERRUPT_SC8IN1 //or here?
 		call (ICC_Async_Receive (reader, recv, buffer + 8));
+	}
 	call (ICC_Async_Receive (reader, 1, &ixor));
 	for(i=0; i<8+recv; i++)		
 		ixor1^=buffer[i];

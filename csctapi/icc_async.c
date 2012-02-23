@@ -312,6 +312,8 @@ int32_t ICC_Async_Activate (struct s_reader *reader, ATR * atr, uint16_t depreca
 			case R_DB2COM1:
 			case R_DB2COM2:
 			case R_SC8in1:
+				call (Sc8in1_Reset(reader, atr));
+				break;
 			case R_MOUSE:
 				call (Phoenix_Reset(reader, atr));
 				break;

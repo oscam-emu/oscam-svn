@@ -963,6 +963,55 @@ int32_t Sc8in1_SetSlotForReader(struct s_reader *reader) {
 	return OK;
 }
 
+int32_t Sc8in1_Reset (struct s_reader * reader, ATR * atr)
+{
+		cs_debug_mask (D_IFD, "IFD: Resetting card:\n");
+		int32_t ret;
+		int32_t i;
+		unsigned char buf[ATR_MAX_SIZE];
+		int32_t parity[3] = {PARITY_EVEN, PARITY_ODD, PARITY_NONE};
+
+		if ( ! reader->ins7e11_fast_reset ) {
+			call (Sc8in1_SetBaudrate (reader, DEFAULT_BAUDRATE, NULL, 0));
+		}
+		else {
+			cs_log("Doing fast reset");
+		}
+
+		for(i=0; i<3; i++) {
+			IO_Serial_Flush(reader);
+			call (IO_Serial_SetParity (reader, parity[i]));
+
+			ret = ERROR;
+			//cs_sleepms(500); //smartreader in mouse mode needs this
+			IO_Serial_Ioctl_Lock(reader, 1);
+
+			IO_Serial_RTS_Set(reader);
+
+			cs_sleepms(50);
+
+			IO_Serial_RTS_Clr(reader);
+
+			cs_sleepms(50);
+			IO_Serial_Ioctl_Lock(reader, 0);
+
+			int32_t n=0;
+			while(n<ATR_MAX_SIZE && !IO_Serial_Read(reader, ATR_TIMEOUT, 1, buf+n))
+				n++;
+			if(n==0)
+				continue;
+			if (ATR_InitFromArray (atr, buf, n) == ATR_OK)
+				ret = OK;
+			// Succesfully retrieve ATR
+			if (ret == OK)
+				break;
+		}
+		IO_Serial_Flush(reader);
+
+		return ret;
+}
+
+
 void sc8in1_int_request_push(struct s_reader *reader, struct s_sc8in1_time time) {
 	// append a request
 	struct s_sc8in1_request *req = NULL;
@@ -1025,11 +1074,24 @@ uint32_t sc8in1_int_request_pending(struct s_reader *reader) {
 void sc8in1_get_last_int_request(struct s_reader *reader, void *request) {
 	// returns in request the last active request
 	void **req = (void *)request;
+	*req = NULL;
 	struct s_sc8in1_request *req2 = NULL;
 	req2 = reader->sc8in1_config->request;
 	while (req2) {
 		*req = (void *)req2;
 		req2 = req2->next;
+	}
+}
+
+void sc8in1_int_request_clear(struct s_reader *reader) {
+	struct s_sc8in1_request *req;
+	req = reader->sc8in1_config->request;
+	while (req) {
+		if (req->interrupting_reader == reader) {
+			req->interrupting_reader = NULL;
+			break;
+		}
+		req = req->next;
 	}
 }
 
@@ -1041,11 +1103,26 @@ void sc8in1_lock_deactivate(SC8IN1_MUTEX_LOCK *l, struct s_reader *reader) {
 	l->reader[reader->slot-1] = NULL;
 }
 
+uint32_t sc8in1_int_request_time_ok(struct s_reader *reader, struct s_sc8in1_request *latest_request, struct s_sc8in1_time *current_request, uint32_t elapsed_ms) {
+	// returns 1 if we fit completely into the latest request, 0 otherwise
+	// Are the variables set?
+	if (current_request->max == 0 || current_request->min == 0) {
+		return 0;
+	}
+	// Do we fit into the current request?
+	if (latest_request->duration.min > elapsed_ms + current_request->max + reader->sc8in1_config->slot_max_change_time * 2) {
+		// we do fit into the request
+		return 1;
+	}
+	return 0;
+}
+
 uint32_t sc8in1_candidate_for_int_request(struct s_reader *reader, struct s_sc8in1_request *latest_request, uint32_t elapsed_ms, uint8_t interrupt) {
 	// Are we in interrupt mode?
-	if ((reader->sc8in1_interrupt & SC8IN1_LOCK_MODE_ECM) == SC8IN1_LOCK_MODE_ECM) {
+	if ((reader->sc8in1_interrupt & SC8IN1_LOCK_MODE_ECM)
+		|| (reader->sc8in1_interrupt & SC8IN1_LOCK_MODE_EMM)) {
 		// Are we the latest request returning from interrupt mode?
-		if (latest_request->reader == reader && (interrupt == SC8IN1_LOCK_ECM)) {
+		if (latest_request->reader == reader && (interrupt == SC8IN1_LOCK_ECM || interrupt == SC8IN1_LOCK_EMM) && ( ! latest_request->interrupting_reader )) {
 			sc8in1_int_request_pop(reader);
 			cs_log("SC8in1: Return from interrupt mode(interrupting slot%i with slot%i, slotchangetime=%ims)", latest_request->reader->slot, reader->slot, reader->sc8in1_config->slot_max_change_time);
 			return 1;
@@ -1057,10 +1134,29 @@ uint32_t sc8in1_candidate_for_int_request(struct s_reader *reader, struct s_sc8i
 			return 0;
 		}
 		// Do we fit into the current request?
-		if (latest_request->duration.min > elapsed_ms + reader->sc8in1_time_ecm.max + reader->sc8in1_config->slot_max_change_time * 2) {
-			// we do fit into the request
-			cs_log("SC8in1: Doing fastmode request (interrupting slot%i with slot%i, slotchangetime=%ims)", latest_request->reader->slot, reader->slot, reader->sc8in1_config->slot_max_change_time);
-			return 1;
+		if (reader->sc8in1_interrupt & SC8IN1_LOCK_MODE_ECM) {
+			if (sc8in1_int_request_time_ok(reader, latest_request, &reader->sc8in1_time_ecm, elapsed_ms)) {
+				// we do fit into the request
+				cs_log("SC8in1: Doing ecm fastmode request (interrupting slot%i with slot%i, slotchangetime=%ims)", latest_request->reader->slot, reader->slot, reader->sc8in1_config->slot_max_change_time);
+				latest_request->interrupting_reader = reader;
+				tcdrain(reader->handle);
+				return 1;
+			}
+			else {
+				cs_log("SC8in1: Fastmode request not possible (interrupting slot%i with slot%i, slotchangetime=%ims)", latest_request->reader->slot, reader->slot, reader->sc8in1_config->slot_max_change_time);
+			}
+		}
+		else if (reader->sc8in1_interrupt & SC8IN1_LOCK_MODE_EMM) {
+			if (sc8in1_int_request_time_ok(reader, latest_request, &reader->sc8in1_time_emm, elapsed_ms)) {
+				// we do fit into the request
+				cs_log("SC8in1: Doing emm fastmode request (interrupting slot%i with slot%i, slotchangetime=%ims)", latest_request->reader->slot, reader->slot, reader->sc8in1_config->slot_max_change_time);
+				latest_request->interrupting_reader = reader;
+				tcdrain(reader->handle);
+				return 1;
+			}
+			else {
+				cs_log("SC8in1: Fastmode request not possible (interrupting slot%i with slot%i, slotchangetime=%ims)", latest_request->reader->slot, reader->slot, reader->sc8in1_config->slot_max_change_time);
+			}
 		}
 	}
 	// Not in interrupt mode, so we wait.
@@ -1078,7 +1174,19 @@ void sc8in1_rwlock_int(SC8IN1_MUTEX_LOCK *l, struct s_reader *reader, uint8_t in
 	ts.tv_sec = time(NULL) + l->timeout;
 	ts.tv_nsec = 0;
 
+	if ((interrupt & SC8IN1_LOCK_MODE_ECM)
+			|| (interrupt & SC8IN1_LOCK_MODE_EMM)) {
+		cs_log("SC8in1: Waiting for lock (slot%i)", reader->slot);
+	}
+
 	pthread_mutex_lock(&l->lock);
+
+	if (interrupt == SC8IN1_LOCK_MODE_ECM) {
+		SC8IN1_INTERRUPT_MODE_ECM_START
+	}
+	else if (interrupt == SC8IN1_LOCK_MODE_EMM) {
+		SC8IN1_INTERRUPT_MODE_EMM_START
+	}
 
 	l->writelock++;
 
@@ -1086,11 +1194,15 @@ void sc8in1_rwlock_int(SC8IN1_MUTEX_LOCK *l, struct s_reader *reader, uint8_t in
 
 	do {
 
-		if ((l->writelock > 1 || ! safe ) && (interrupt != SC8IN1_LOCK_ECM))
+		struct s_sc8in1_request *latest_request = NULL;
+		sc8in1_get_last_int_request(reader, &latest_request);
+
+		if ((l->writelock > 1 || ! safe )
+				&& ((interrupt != SC8IN1_LOCK_ECM && interrupt != SC8IN1_LOCK_EMM)
+					|| ((interrupt == SC8IN1_LOCK_ECM || interrupt == SC8IN1_LOCK_EMM) && ( latest_request && latest_request->interrupting_reader && latest_request->interrupting_reader != reader))))
 			ret = pthread_cond_timedwait(&l->writecond, &l->lock, &ts);
 
 		// Are we in interrupt mode or not?
-		struct s_sc8in1_request *latest_request = NULL;
 		sc8in1_get_last_int_request(reader, &latest_request);
 		if (latest_request) {
 			struct timeval now;
@@ -1159,6 +1271,17 @@ void sc8in1_rwunlock_int(SC8IN1_MUTEX_LOCK *l, struct s_reader *reader, uint8_t 
 	if (interrupt == SC8IN1_LOCK_ECM) {
 		// create a new request for our interrupt
 		sc8in1_int_request_push(reader, reader->sc8in1_time_ecm);
+	}
+	else if (interrupt == SC8IN1_LOCK_EMM) {
+		sc8in1_int_request_push(reader, reader->sc8in1_time_emm);
+	}
+	else if (interrupt == SC8IN1_LOCK_MODE_ECM) {
+		SC8IN1_INTERRUPT_MODE_ECM_STOP
+		sc8in1_int_request_clear(reader);
+	}
+	else if (interrupt == SC8IN1_LOCK_MODE_EMM) {
+		SC8IN1_INTERRUPT_MODE_EMM_STOP
+		sc8in1_int_request_clear(reader);
 	}
 
 	// waiting writelocks always have priority. If one is waiting, signal it

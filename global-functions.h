@@ -533,6 +533,24 @@ extern int8_t cs_emmlen_is_blocked(struct s_reader *rdr, int16_t len);
 	} \
 }
 
+#define LOCK_SC8IN1_WITH_SLOT_FOR_ECM \
+{ \
+	if (reader->typ == R_SC8in1) { \
+		sc8in1_rwlock_int(&reader->sc8in1_config->sc8in1_lock, reader, SC8IN1_LOCK_MODE_ECM); \
+		cs_debug_mask(D_ATR, "SC8in1: locked for ecm access of slot %i", reader->slot); \
+		Sc8in1_Selectslot(reader, reader->slot); \
+	} \
+}
+
+#define LOCK_SC8IN1_WITH_SLOT_FOR_EMM \
+{ \
+	if (reader->typ == R_SC8in1) { \
+		sc8in1_rwlock_int(&reader->sc8in1_config->sc8in1_lock, reader, SC8IN1_LOCK_MODE_EMM); \
+		cs_debug_mask(D_ATR, "SC8in1: locked for emm access of slot %i", reader->slot); \
+		Sc8in1_Selectslot(reader, reader->slot); \
+	} \
+}
+
 #define UNLOCK_SC8IN1 \
 {	\
 	if (reader->typ == R_SC8in1) { \
@@ -541,22 +559,57 @@ extern int8_t cs_emmlen_is_blocked(struct s_reader *rdr, int16_t len);
 	} \
 }
 
-#define INTERRUPT_SC8IN1_ECM \
+#define UNLOCK_SC8IN1_ECM \
 {	\
-	if (reader->typ == R_SC8in1 && ((reader->sc8in1_interrupt & SC8IN1_LOCK_ECM) == SC8IN1_LOCK_ECM)) { \
-		if (reader->sc8in1_time_ecm.min - reader->sc8in1_config->slot_max_change_time * 2 > 0) { \
-			sc8in1_rwunlock_int(&reader->sc8in1_config->sc8in1_lock, reader, SC8IN1_LOCK_ECM); \
-			cs_log("SC8in1: unlocked for interrupting access (slot %i)", reader->slot); \
-			cs_sleepms(reader->sc8in1_time_ecm.min - reader->sc8in1_config->slot_max_change_time * 2); \
-			sc8in1_rwlock_int(&reader->sc8in1_config->sc8in1_lock, reader, SC8IN1_LOCK_ECM); \
-			cs_log("SC8in1: locked after interrupting access (slot %i)", reader->slot); \
-			Sc8in1_Selectslot(reader, reader->slot); \
-		} \
-		else { \
-			cs_log("SC8in1: interrupting access on slot %i not possible (slotchangetime=%ims)", reader->slot, reader->sc8in1_config->slot_max_change_time); \
-		} \
+	if (reader->typ == R_SC8in1) { \
+		sc8in1_rwunlock_int(&reader->sc8in1_config->sc8in1_lock, reader, SC8IN1_LOCK_MODE_ECM); \
+		cs_debug_mask(D_ATR, "SC8in1: unlocked for access of slot %i", reader->slot); \
 	} \
 }
+
+#define UNLOCK_SC8IN1_EMM \
+{	\
+	if (reader->typ == R_SC8in1) { \
+		sc8in1_rwunlock_int(&reader->sc8in1_config->sc8in1_lock, reader, SC8IN1_LOCK_MODE_EMM); \
+		cs_debug_mask(D_ATR, "SC8in1: unlocked for access of slot %i", reader->slot); \
+	} \
+}
+
+#define INTERRUPT_SC8IN1 \
+{	\
+	if (reader->typ == R_SC8in1) { \
+		if ((reader->sc8in1_interrupt & SC8IN1_LOCK_ECM) == SC8IN1_LOCK_ECM) { \
+			if (reader->sc8in1_time_ecm.min - reader->sc8in1_config->slot_max_change_time * 2 > 0) { \
+				if (reader->written > 0) { \
+					call (Phoenix_Receive (reader, NULL, 0, reader->read_timeout)); \
+				} \
+				sc8in1_rwunlock_int(&reader->sc8in1_config->sc8in1_lock, reader, SC8IN1_LOCK_ECM); \
+				cs_log("SC8in1: unlocked for interrupting ecm access (slot %i)", reader->slot); \
+				cs_sleepms(reader->sc8in1_time_ecm.min - reader->sc8in1_config->slot_max_change_time * 2); \
+				sc8in1_rwlock_int(&reader->sc8in1_config->sc8in1_lock, reader, SC8IN1_LOCK_ECM); \
+				cs_log("SC8in1: locked after interrupting ecm access (slot %i)", reader->slot); \
+				Sc8in1_Selectslot(reader, reader->slot); \
+			} \
+			else { \
+				cs_log("SC8in1: interrupting ecm access on slot %i not possible (slotchangetime=%ims)", reader->slot, reader->sc8in1_config->slot_max_change_time); \
+			} \
+		} \
+		/*else if ((reader->sc8in1_interrupt & SC8IN1_LOCK_EMM) == SC8IN1_LOCK_EMM) { \
+			if (reader->sc8in1_time_emm.min - reader->sc8in1_config->slot_max_change_time * 2 > 0) { \
+				sc8in1_rwunlock_int(&reader->sc8in1_config->sc8in1_lock, reader, SC8IN1_LOCK_EMM); \
+				cs_log("SC8in1: unlocked for interrupting emm access (slot %i)", reader->slot); \
+				cs_sleepms(reader->sc8in1_time_emm.min - reader->sc8in1_config->slot_max_change_time * 2); \
+				sc8in1_rwlock_int(&reader->sc8in1_config->sc8in1_lock, reader, SC8IN1_LOCK_EMM); \
+				cs_log("SC8in1: locked after interrupting emm access (slot %i)", reader->slot); \
+				Sc8in1_Selectslot(reader, reader->slot); \
+			} \
+			else { \
+				cs_log("SC8in1: interrupting emm access on slot %i not possible (slotchangetime=%ims)", reader->slot, reader->sc8in1_config->slot_max_change_time); \
+			} \
+		}*/ \
+	} \
+}
+
 #define SC8IN1_INTERRUPT_MODE_ECM_START \
 {	\
 	if (reader->typ == R_SC8in1) { \
@@ -575,10 +628,34 @@ extern int8_t cs_emmlen_is_blocked(struct s_reader *rdr, int16_t len);
 		reader->sc8in1_interrupt |= SC8IN1_LOCK_ECM; \
 	} \
 }
-#define SC8IN1_INTERRUPT_POST_ACTION \
+#define SC8IN1_INTERRUPT_ECM_POST_ACTION \
 {	\
 	if (reader->typ == R_SC8in1) { \
 		reader->sc8in1_interrupt &= ~SC8IN1_LOCK_ECM; \
+	} \
+}
+#define SC8IN1_INTERRUPT_MODE_EMM_START \
+{	\
+	if (reader->typ == R_SC8in1) { \
+		reader->sc8in1_interrupt |= SC8IN1_LOCK_MODE_EMM; \
+	} \
+}
+#define SC8IN1_INTERRUPT_MODE_EMM_STOP \
+{	\
+	if (reader->typ == R_SC8in1) { \
+		reader->sc8in1_interrupt &= ~SC8IN1_LOCK_MODE_EMM; \
+	} \
+}
+#define SC8IN1_INTERRUPT_PRE_EMM \
+{	\
+	if (reader->typ == R_SC8in1) { \
+		reader->sc8in1_interrupt |= SC8IN1_LOCK_EMM; \
+	} \
+}
+#define SC8IN1_INTERRUPT_EMM_POST_ACTION \
+{	\
+	if (reader->typ == R_SC8in1) { \
+		reader->sc8in1_interrupt &= ~SC8IN1_LOCK_EMM; \
 	} \
 }
 extern void sc8in1_rwunlock_int(SC8IN1_MUTEX_LOCK *l, struct s_reader *reader, uint8_t interrupt);

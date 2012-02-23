@@ -1014,7 +1014,7 @@ static int32_t nagra2_do_ecm(struct s_reader * reader, const ECM_REQUEST *er, st
 		SC8IN1_INTERRUPT_PRE_ECM
 		if (HAS_CW() && (do_cmd(reader, 0x1C,0x02,0x9C,0x36,NULL,cta_res,&cta_lr)))
 		{
-			SC8IN1_INTERRUPT_POST_ACTION
+			SC8IN1_INTERRUPT_ECM_POST_ACTION
 			unsigned char v[8];
 			memset(v,0,sizeof(v));
 			idea_cbc_encrypt(&cta_res[30],ea->cw,8,&reader->ksSession,v,IDEA_DECRYPT);
@@ -1030,7 +1030,7 @@ static int32_t nagra2_do_ecm(struct s_reader * reader, const ECM_REQUEST *er, st
 		    	}
 			return OK;
 		}
-		SC8IN1_INTERRUPT_POST_ACTION
+		SC8IN1_INTERRUPT_ECM_POST_ACTION
 	}
 	else
 	{
@@ -1046,7 +1046,7 @@ static int32_t nagra2_do_ecm(struct s_reader * reader, const ECM_REQUEST *er, st
 		SC8IN1_INTERRUPT_PRE_ECM
 		if(do_cmd(reader, er->ecm[3],er->ecm[4]+5,0x53,0x16, ecm_trim,cta_res,&cta_lr)) 
 		{
-			SC8IN1_INTERRUPT_POST_ACTION
+			SC8IN1_INTERRUPT_ECM_POST_ACTION
 			if(cta_res[2] == 0x01)
 			{
 
@@ -1060,7 +1060,7 @@ static int32_t nagra2_do_ecm(struct s_reader * reader, const ECM_REQUEST *er, st
 			cs_debug_mask(D_READER, "[nagra-reader] can't decode ecm");
 			return ERROR;
 		}
-		SC8IN1_INTERRUPT_POST_ACTION
+		SC8IN1_INTERRUPT_ECM_POST_ACTION
 	}
 	return ERROR;
 }

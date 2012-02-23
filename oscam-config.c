@@ -2884,6 +2884,12 @@ int32_t write_server()
 			if ((rdr->sc8in1_time_ecm.min || cfg.http_full_cfg) && isphysical)
 				fprintf_conf(f, "sc8in1_time_ecm_min", "%d\n", rdr->sc8in1_time_ecm.min);
 
+			if ((rdr->sc8in1_time_emm.max || cfg.http_full_cfg) && isphysical)
+				fprintf_conf(f, "sc8in1_time_emm_max", "%d\n", rdr->sc8in1_time_emm.max);
+
+			if ((rdr->sc8in1_time_emm.min || cfg.http_full_cfg) && isphysical)
+				fprintf_conf(f, "sc8in1_time_emm_min", "%d\n", rdr->sc8in1_time_emm.min);
+
 			if ((rdr->show_cls != 10 || cfg.http_full_cfg) && isphysical)
 				fprintf_conf(f, "showcls", "%d\n", rdr->show_cls);
 
@@ -4174,6 +4180,16 @@ void chk_reader(char *token, char *value, struct s_reader *rdr)
 
 	if (!strcmp(token, "sc8in1_time_ecm_min")) {
 		rdr->sc8in1_time_ecm.min  = strToIntVal(value, 0);
+		return;
+	}
+
+	if (!strcmp(token, "sc8in1_time_emm_max")) {
+		rdr->sc8in1_time_emm.max  = strToIntVal(value, 0);
+		return;
+	}
+
+	if (!strcmp(token, "sc8in1_time_emm_min")) {
+		rdr->sc8in1_time_emm.min  = strToIntVal(value, 0);
 		return;
 	}
 

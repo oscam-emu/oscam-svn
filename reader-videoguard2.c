@@ -670,7 +670,7 @@ static int32_t videoguard2_do_ecm(struct s_reader * reader, const ECM_REQUEST *e
   } else {
 	SC8IN1_INTERRUPT_PRE_ECM
 	l = do_cmd(reader,ins54,NULL,rbuff,cta_res);
-	SC8IN1_INTERRUPT_POST_ACTION
+	SC8IN1_INTERRUPT_ECM_POST_ACTION
     if(l<0 || !status_ok(cta_res+l)) {
       cs_log("classD3 ins54: (%d) status not ok %02x %02x",l,cta_res[0],cta_res[1]);
       return ERROR;
