@@ -1139,7 +1139,6 @@ uint32_t sc8in1_candidate_for_int_request(struct s_reader *reader, struct s_sc8i
 				// we do fit into the request
 				cs_log("SC8in1: Doing ecm fastmode request (interrupting slot%i with slot%i, slotchangetime=%ims)", latest_request->reader->slot, reader->slot, reader->sc8in1_config->slot_max_change_time);
 				latest_request->interrupting_reader = reader;
-				tcdrain(reader->handle);
 				return 1;
 			}
 			else {
@@ -1151,7 +1150,6 @@ uint32_t sc8in1_candidate_for_int_request(struct s_reader *reader, struct s_sc8i
 				// we do fit into the request
 				cs_log("SC8in1: Doing emm fastmode request (interrupting slot%i with slot%i, slotchangetime=%ims)", latest_request->reader->slot, reader->slot, reader->sc8in1_config->slot_max_change_time);
 				latest_request->interrupting_reader = reader;
-				tcdrain(reader->handle);
 				return 1;
 			}
 			else {
