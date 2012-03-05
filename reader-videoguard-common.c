@@ -766,9 +766,7 @@ int32_t videoguard_do_emm(struct s_reader * reader, EMM_PACKET *ep, unsigned cha
             if (ep->type == GLOBAL || vdrsc_fix || position == ua_position)
             {
                ins42[4] = ep->emm[offs];
-               SC8IN1_INTERRUPT_PRE_EMM
                int32_t l = (*docmd)(reader, ins42, &ep->emm[offs+1], NULL, cta_res);
-               SC8IN1_INTERRUPT_EMM_POST_ACTION
                rc = (l > 0 && status_ok(cta_res)) ? OK : ERROR;
                cs_debug_mask(D_EMM, "EMM request return code : %02X%02X", cta_res[0], cta_res[1]);
                if (status_ok(cta_res) && (cta_res[1] & 0x01))

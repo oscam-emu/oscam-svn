@@ -743,6 +743,11 @@ void chk_t_global(const char *token, char *value)
 		cfg.lb_auto_betatunnel_prefer_beta = strToIntVal(value, DEFAULT_LB_AUTO_BETATUNNEL_PREFER_BETA);
 		return;
 	}
+
+	if (!strcmp(token, "sc8in1_fastmode")) {
+		cfg.sc8in1_fastmode = strToIntVal(value, 0);
+		return;
+	}
 #endif
 
 	if (!strcmp(token, "resolvegethostbyname")) {
@@ -2271,6 +2276,8 @@ int32_t write_config()
 		fprintf_conf(f, "lb_auto_betatunnel", "%d\n", cfg.lb_auto_betatunnel);
 	if (cfg.lb_auto_betatunnel_prefer_beta != DEFAULT_LB_AUTO_BETATUNNEL_PREFER_BETA || cfg.http_full_cfg)
 		fprintf_conf(f, "lb_auto_betatunnel_prefer_beta", "%d\n", cfg.lb_auto_betatunnel_prefer_beta);
+	if (cfg.sc8in1_fastmode || cfg.http_full_cfg)
+		fprintf_conf(f, "sc8in1_fastmode", "%d\n", cfg.sc8in1_fastmode);
 #endif
 
 	if (cfg.resolve_gethostbyname || cfg.http_full_cfg)
@@ -2877,18 +2884,6 @@ int32_t write_server()
 
 			if ((rdr->sc8in1_dtrrts_patch || cfg.http_full_cfg) && isphysical)
 				fprintf_conf(f, "sc8in1_dtrrts_patch", "%d\n", rdr->sc8in1_dtrrts_patch);
-
-			if ((rdr->sc8in1_time_ecm.max || cfg.http_full_cfg) && isphysical)
-				fprintf_conf(f, "sc8in1_time_ecm_max", "%d\n", rdr->sc8in1_time_ecm.max);
-
-			if ((rdr->sc8in1_time_ecm.min || cfg.http_full_cfg) && isphysical)
-				fprintf_conf(f, "sc8in1_time_ecm_min", "%d\n", rdr->sc8in1_time_ecm.min);
-
-			if ((rdr->sc8in1_time_emm.max || cfg.http_full_cfg) && isphysical)
-				fprintf_conf(f, "sc8in1_time_emm_max", "%d\n", rdr->sc8in1_time_emm.max);
-
-			if ((rdr->sc8in1_time_emm.min || cfg.http_full_cfg) && isphysical)
-				fprintf_conf(f, "sc8in1_time_emm_min", "%d\n", rdr->sc8in1_time_emm.min);
 
 			if ((rdr->show_cls != 10 || cfg.http_full_cfg) && isphysical)
 				fprintf_conf(f, "showcls", "%d\n", rdr->show_cls);
@@ -4170,26 +4165,6 @@ void chk_reader(char *token, char *value, struct s_reader *rdr)
 
 	if (!strcmp(token, "sc8in1_dtrrts_patch")) {
 		rdr->sc8in1_dtrrts_patch  = strToIntVal(value, 0);
-		return;
-	}
-
-	if (!strcmp(token, "sc8in1_time_ecm_max")) {
-		rdr->sc8in1_time_ecm.max  = strToIntVal(value, 0);
-		return;
-	}
-
-	if (!strcmp(token, "sc8in1_time_ecm_min")) {
-		rdr->sc8in1_time_ecm.min  = strToIntVal(value, 0);
-		return;
-	}
-
-	if (!strcmp(token, "sc8in1_time_emm_max")) {
-		rdr->sc8in1_time_emm.max  = strToIntVal(value, 0);
-		return;
-	}
-
-	if (!strcmp(token, "sc8in1_time_emm_min")) {
-		rdr->sc8in1_time_emm.min  = strToIntVal(value, 0);
 		return;
 	}
 

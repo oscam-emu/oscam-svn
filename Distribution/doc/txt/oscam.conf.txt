@@ -6,7 +6,7 @@ NAME
        oscam.conf - main configuration file for OSCam
 
 SYNOPSIS
-       The  main  configuration file for OSCam contains global parameters such as debugging, logging, monitor, proto‐
+       The  main  configuration file for OSCam contains global parameters such as debugging, logging, monitor, protoâ€�
        cols and anti-cascading.  sections in oscam.conf are nonrecurring. The [global] section is required. All other
        sections are optional.
 
@@ -238,6 +238,9 @@ DESCRIPTIONS
 
        lb_auto_betatunnel_prefer_beta = time factor
 	  set automatic Betacrypt tunneling time factor prefering Betacrypt over Nagravision in percent, default: 50
+	  
+	  sc8in1_fastmode = 0|1
+	  enable/disable parallel slot usage for SC8IN1 and MCR devices
 
        cacheexwaittime = milli-seconds
 	  cache waiting time in milli-seconds for cache exchange, default:50
@@ -384,7 +387,7 @@ DESCRIPTIONS
 	  bind service to specified IP address, default:all
 
        suppresscmd08 = 0|1
-	  0 = tell camd 3.5x / 3.57x clients not to request again for rejected CAID, service ID and provider ID  com‐
+	  0 = tell camd 3.5x / 3.57x clients not to request again for rejected CAID, service ID and provider ID  comâ€�
 	  bination, 1 = disable, can be overwritten per user in oscam.user, default:0
 
    The [cs378x] section
@@ -635,73 +638,73 @@ DESCRIPTIONS
 MONITOR
        monitor commands:
 
-       ·  login <user> <password>
+       Â·  login <user> <password>
 
 	  login (for unencrypted connections only)
 
 
-       ·  getuser <user> <parameter>=<value>
+       Â·  getuser <user> <parameter>=<value>
 
 	  get parameter for user
 
 
-       ·  setuser <user> <parameter>=<value>
+       Â·  setuser <user> <parameter>=<value>
 
 	  set parameter for user
 
 
-       ·  setserver <parameter>=<value>
+       Â·  setserver <parameter>=<value>
 
 	  set parameter for server
 
 
-       ·  exit
+       Â·  exit
 
 	  exit monitor
 
 
-       ·  log <on|onwohist|off>
+       Â·  log <on|onwohist|off>
 
 	  enable|enable without hitory|disable logging for 2 minutes
 
 
-       ·  status
+       Â·  status
 
 	  list of current processes and clients
 
 
-       ·  shutdown
+       Â·  shutdown
 
 	  shutdown OSCam
 
 
-       ·  restart
+       Â·  restart
 
 	  restart OSCam
 
 
-       ·  keepalive
+       Â·  keepalive
 
 	  send keepalive
 
 
-       ·  reload
+       Â·  reload
 
 	  reinit  user	db,  clients  and  anti-cascading, for newcamd connections: after reloading the provid, please
 	  restart newcamd client
 
 
-       ·  details <PID>
+       Â·  details <PID>
 
 	  details about selected PID
 
 
-       ·  reread
+       Â·  reread
 
 	  read again
 
 
-       ·  debug <level>
+       Â·  debug <level>
 
 	  set debug level (monlevel > 3 required)
 
@@ -715,17 +718,17 @@ MONITOR
 	    64 = EMM logging
 	   255 = debug all
 
-       ·  version
+       Â·  version
 
 	  show OSCam version
 
 
-       ·  commands
+       Â·  commands
 
 	  show all valid monitor commands
 
 WEB INTERFACE
-       ·  template system
+       Â·  template system
 
 	  The web interface allows you to create your own template. For developing  your  own  template  request  the
 	  orignal  template  with  the	non-linked  page savetemplates.html. Store your own template in the directory
@@ -734,11 +737,11 @@ WEB INTERFACE
 CACHING
        types of ECM caching:
 
-       ·  cache1
+       Â·  cache1
 
 	  ECM and CW in cache already.
 
-       ·  cache2
+       Â·  cache2
 
 	  ECM and checksum in cache already.
 

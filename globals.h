@@ -1024,10 +1024,10 @@ struct ecmrl {
 #ifdef WITH_CARDREADER
 
 #define SC8IN1_LOCK_DEFAULT		0x0
-#define SC8IN1_LOCK_MODE_ECM	0x1
-#define SC8IN1_LOCK_ECM			0x2
-#define SC8IN1_LOCK_MODE_EMM	0x4
-#define SC8IN1_LOCK_EMM			0x8
+#define SC8IN1_LOCK_MODE		0x1
+#define SC8IN1_LOCK_ACTION		0x2
+
+#define SC8IN1_INTERRUPT_GUARD_TIME 25
 
 typedef struct sc8in1_mutexlock {
 	int32_t		timeout;
@@ -1060,13 +1060,9 @@ struct s_sc8in1_config {
 	struct s_sc8in1_request *request;
 	uint16_t slot_max_change_time;
 };
-struct s_sc8in1_time {
-	uint16_t min;
-	uint16_t max;
-};
 struct s_sc8in1_request {
 	struct timeval start_time;
-	struct s_sc8in1_time duration;
+	uint32_t duration;
 	struct s_reader *reader;
 	struct s_reader *interrupting_reader;
 	struct s_sc8in1_request *next;
@@ -1257,6 +1253,7 @@ struct s_reader  									//contains device info, reader info and card info
 	time_t			lb_usagelevel_time;				//time for counting ecms, this creates usagelevel
 	struct timeb	lb_last;						//time for oldest reader
 	LLIST			*lb_stat;						//loadbalancer reader statistics
+	uint8_t			sc8in1_interrupt;
 #endif
 
 	AES_ENTRY		*aes_list;						// multi AES linked list
@@ -1291,9 +1288,6 @@ struct s_reader  									//contains device info, reader info and card info
 	int8_t			ins7e11_fast_reset;
 	struct s_sc8in1_config *sc8in1_config;
 	uint8_t			sc8in1_dtrrts_patch; // fix for kernel commit 6a1a82df91fa0eb1cc76069a9efe5714d087eccd
-	struct s_sc8in1_time sc8in1_time_ecm;
-	struct s_sc8in1_time sc8in1_time_emm;
-	uint8_t			sc8in1_interrupt;
 #endif
 
 #ifdef MODULE_PANDORA
@@ -1590,6 +1584,7 @@ struct s_config
 	int32_t			lb_max_readers;					// limit the amount of readers during learning
 	int32_t			lb_auto_betatunnel;				// automatic selection of betatunnel convertion based on learned data
 	int32_t			lb_auto_betatunnel_prefer_beta; // prefer-beta-over-nagra factor
+	int8_t			sc8in1_fastmode;				// use sc8in1 slots in parallel
 #endif
 	int32_t			resolve_gethostbyname;
 	int8_t double_check;							// schlocke: Double checks each ecm+dcw from two (or more) readers

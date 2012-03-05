@@ -392,7 +392,7 @@ void reader_post_process(struct s_reader * reader)
 int32_t reader_ecm(struct s_reader * reader, ECM_REQUEST *er, struct s_ecm_answer *ea)
 {
   int32_t rc=-1;
-  LOCK_SC8IN1_WITH_SLOT_FOR_ECM
+  LOCK_SC8IN1_WITH_SLOT_AND_INTERRUPT
 	if( (rc=reader_checkhealth(reader)) ) {
 		struct s_client *cl = reader->client;
 		if (cl) {
@@ -406,7 +406,7 @@ int32_t reader_ecm(struct s_reader * reader, ECM_REQUEST *er, struct s_ecm_answe
 		else
 			rc=0;
 	}
-	UNLOCK_SC8IN1_ECM
+  UNLOCK_SC8IN1_AFTER_INTERRUPT
 	return(rc);
 }
 #endif
@@ -442,11 +442,11 @@ struct s_cardsystem *get_cardsystem_by_caid(uint16_t caid) {
 int32_t reader_emm(struct s_reader * reader, EMM_PACKET *ep)
 {
   int32_t rc=-1;
-  LOCK_SC8IN1_WITH_SLOT_FOR_EMM
+  LOCK_SC8IN1_WITH_SLOT_AND_INTERRUPT
   rc=reader_checkhealth(reader);
   if (rc) {
 	if ((1<<(ep->emm[0] % 0x80)) & reader->b_nano) {
-		UNLOCK_SC8IN1_EMM
+		UNLOCK_SC8IN1_AFTER_INTERRUPT
 		return 3;
 	}
 
@@ -455,7 +455,7 @@ int32_t reader_emm(struct s_reader * reader, EMM_PACKET *ep)
 	else
 		rc=0;
   }
-  UNLOCK_SC8IN1_EMM
+  UNLOCK_SC8IN1_AFTER_INTERRUPT
   return(rc);
 }
 #endif

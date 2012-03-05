@@ -1378,10 +1378,6 @@ provid=\"##APIPROVIDERPROVID##\">##APIPROVIDERNAME##</provider>\n"
 				<TR><TD>##TPLHELPPREFIX##server#deprecated##TPLHELPSUFFIX##Deprecated:</A><input name=\"deprecated\" type=\"hidden\" value=\"0\"></TD><TD><input name=\"deprecated\" type=\"checkbox\" value=\"1\" ##DEPRECATEDCHECKED##></TD></TR>\n\
 				<TR><TD>##TPLHELPPREFIX##server#smargopatch##TPLHELPSUFFIX##Smargopatch:</A><input name=\"smargopatch\" type=\"hidden\" value=\"0\"></TD><TD><input name=\"smargopatch\" type=\"checkbox\" value=\"1\" ##SMARGOPATCHCHECKED##></TD></TR>\n\
 				<TR><TD>##TPLHELPPREFIX##server#sc8in1_dtrrts_patch##TPLHELPSUFFIX##SC8in1 DTR/RTS Patch:</A><input name=\"sc8in1_dtrrts_patch\" type=\"hidden\" value=\"0\"></TD><TD><input name=\"sc8in1_dtrrts_patch\" type=\"checkbox\" value=\"1\" ##SC8IN1DTRRTSPATCHCHECKED##></TD></TR>\n\
-				<TR><TD>##TPLHELPPREFIX##server#sc8in1_time_ecm_max##TPLHELPSUFFIX##SC8in1 ECM Time Max:</A></TD><TD><input name=\"sc8in1_time_ecm_max\" type=\"text\" size=\"10\" maxlength=\"4\" value=\"##SC8IN1TIMEECMMAX##\"></TD></TR>\n\
-				<TR><TD>##TPLHELPPREFIX##server#sc8in1_time_ecm_min##TPLHELPSUFFIX##SC8in1 ECM Time Min:</A></TD><TD><input name=\"sc8in1_time_ecm_min\" type=\"text\" size=\"10\" maxlength=\"4\" value=\"##SC8IN1TIMEECMMIN##\"></TD></TR>\n\
-				<TR><TD>##TPLHELPPREFIX##server#sc8in1_time_emm_max##TPLHELPSUFFIX##SC8in1 EMM Time Max:</A></TD><TD><input name=\"sc8in1_time_emm_max\" type=\"text\" size=\"10\" maxlength=\"4\" value=\"##SC8IN1TIMEEMMMAX##\"></TD></TR>\n\
-				<TR><TD>##TPLHELPPREFIX##server#sc8in1_time_emm_min##TPLHELPSUFFIX##SC8in1 EMM Time Min:</A></TD><TD><input name=\"sc8in1_time_emm_min\" type=\"text\" size=\"10\" maxlength=\"4\" value=\"##SC8IN1TIMEEMMMIN##\"></TD></TR>\n\
 				<TR><TD>##TPLHELPPREFIX##server#device_out_endpoint##TPLHELPSUFFIX##Device Out Endpoint:</A></TD><TD>##DEVICEEP##</TD></TR>\n"
 
 #ifdef LIBUSB
@@ -1830,6 +1826,7 @@ provid=\"##APIPROVIDERPROVID##\">##APIPROVIDERNAME##</provider>\n"
 			<TR><TD>##TPLHELPPREFIX##conf#lb_noproviderforcaid##TPLHELPSUFFIX##Ignore provider for:</A></TD><TD><input name=\"lb_noproviderforcaid\" type=\"text\" size=\"63\" maxlength=\"160\" value=\"##LBNOPROVIDERFORCAID##\"></TD></TR>\n\
 			<TR><TD>##TPLHELPPREFIX##conf#lb_auto_betatunnel##TPLHELPSUFFIX##Auto Betatunnel:</A></TD><TD><SELECT NAME=\"lb_auto_betatunnel\"><OPTION VALUE=\"0\">NO</OPTION><OPTION VALUE=\"1\" ##LBAUTOBETATUNNEL##>YES</OPTION></SELECT></TD></TR>\n\
 			<TR><TD>##TPLHELPPREFIX##conf#lb_auto_betatunnel_prefer_beta##TPLHELPSUFFIX##Prefer Beta over Nagra %:</A></TD><TD><input name=\"lb_auto_betatunnel_prefer_beta\" type=\"text\" size=\"5\" maxlength=\"5\" value=\"##LBPREFERBETA##\"></TD></TR>\n\
+			<TR><TD>##TPLHELPPREFIX##conf#sc8in1_fastmode##TPLHELPSUFFIX##SC8IN1/MCR Fastmode:</A></TD><TD><SELECT NAME=\"sc8in1_fastmode\"><OPTION VALUE=\"0\">NO</OPTION><OPTION VALUE=\"1\" ##SC8IN1FASTMODECHECKED##>YES</OPTION></SELECT></TD></TR>\n\
 			<TR><TD colspan=\"2\" align=\"right\"><input type=\"submit\" value=\"Save\" ##BTNDISABLED##></TD></TR>\n\
 		</TABLE>\n\
 	</form>\n\

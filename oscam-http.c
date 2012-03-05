@@ -361,6 +361,8 @@ static char *send_oscam_config_loadbalancer(struct templatevars *vars, struct ur
 	if (cfg.lb_auto_betatunnel) tpl_addVar(vars, TPLADD, "LBAUTOBETATUNNEL", "selected");
 	tpl_printf(vars, TPLADD, "LBPREFERBETA", "%d", cfg.lb_auto_betatunnel_prefer_beta);
 
+	if (cfg.sc8in1_fastmode) tpl_addVar(vars, TPLADD, "SC8IN1FASTMODECHECKED", "selected");
+
 	return tpl_getTpl(vars, "CONFIGLOADBALANCER");
 }
 #endif
@@ -1352,18 +1354,6 @@ static char *send_oscam_reader_config(struct templatevars *vars, struct uriparam
 	} else {
 		tpl_addVar(vars, TPLADD, "SC8IN1DTRRTSPATCHVALUE", (rdr->sc8in1_dtrrts_patch == 1) ? "1" : "0");
 	}
-
-	// sc8in1_time_ecm
-	if (rdr->sc8in1_time_ecm.max)
-		tpl_printf(vars, TPLAPPEND, "SC8IN1TIMEECMMAX", "%d", rdr->sc8in1_time_ecm.max);
-	if (rdr->sc8in1_time_ecm.min)
-			tpl_printf(vars, TPLAPPEND, "SC8IN1TIMEECMMIN", "%d", rdr->sc8in1_time_ecm.min);
-
-	// sc8in1_time_emm
-	if (rdr->sc8in1_time_emm.max)
-		tpl_printf(vars, TPLAPPEND, "SC8IN1TIMEEMMMAX", "%d", rdr->sc8in1_time_emm.max);
-	if (rdr->sc8in1_time_emm.min)
-			tpl_printf(vars, TPLAPPEND, "SC8IN1TIMEEMMMIN", "%d", rdr->sc8in1_time_emm.min);
 
 	// Detect
 	if (rdr->detect&0x80)

@@ -492,9 +492,9 @@ int32_t irdeto_do_ecm(struct s_reader * reader, const ECM_REQUEST *er, struct s_
 		if ((reader->caid == 0x0648) || (reader->caid == 0x0666) || (reader->caid == 0x0624))
 			cta_cmd[er->ecm[2]+2]=XorSum(cta_cmd, (er->ecm[2]+2)) ^ 0x3f ^ (cta_cmd[0]&0xf0);
 
-		SC8IN1_INTERRUPT_PRE_ECM
+		SC8IN1_INTERRUPT_ACTION_START
 		irdeto_do_cmd(reader, cta_cmd, 0, cta_res, &cta_lr);
-		SC8IN1_INTERRUPT_ECM_POST_ACTION
+		SC8IN1_INTERRUPT_ACTION_STOP
 		int32_t acslength=cta_res[cta_lr-1];
 		// If acslength != 0x1F you don't have the entitlements or you camkey is bad
 		if(acslength!=0x1F){
@@ -522,9 +522,9 @@ int32_t irdeto_do_ecm(struct s_reader * reader, const ECM_REQUEST *er, struct s_
 		do {
 			if (try >1)
 				snprintf( ea->msglog, MSGLOGSIZE, "%s irdeto_do_cmd try nr %i", reader->label, try);
-			SC8IN1_INTERRUPT_PRE_ECM
+			SC8IN1_INTERRUPT_ACTION_START
 			ret = (irdeto_do_cmd(reader, cta_cmd, 0x9D00, cta_res, &cta_lr));
-			SC8IN1_INTERRUPT_ECM_POST_ACTION
+			SC8IN1_INTERRUPT_ACTION_STOP
 			ret = ret || (cta_lr < 24);
 			if (ret)
 					snprintf( ea->msglog, MSGLOGSIZE, "%s irdeto_do_cmd [%d] %02x %02x", reader->label, cta_lr, cta_res[cta_lr - 2], cta_res[cta_lr - 1] );
