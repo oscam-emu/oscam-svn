@@ -1135,7 +1135,6 @@ uint32_t sc8in1_candidate_for_int_request(struct s_reader *reader, struct s_sc8i
 		if (sc8in1_int_request_time_ok(reader, latest_request, sc8in1_get_average_ecm_time(reader) + SC8IN1_INTERRUPT_GUARD_TIME, elapsed_ms)) {
 			// we do fit into the request
 			cs_log("SC8in1: Doing fastmode request (interrupting slot%i with slot%i, slotchangetime=%ims)", latest_request->reader->slot, reader->slot, reader->sc8in1_config->slot_max_change_time);
-			latest_request->interrupting_reader = reader;
 			return 1;
 		}
 		else {
@@ -1171,14 +1170,14 @@ void sc8in1_rwlock_int(SC8IN1_MUTEX_LOCK *l, struct s_reader *reader, uint8_t in
 
 	sc8in1_lock_activate(l, reader);
 
+	struct s_sc8in1_request *latest_request = NULL;
+	sc8in1_get_last_int_request(reader, &latest_request);
+
 	do {
 
-		struct s_sc8in1_request *latest_request = NULL;
-		sc8in1_get_last_int_request(reader, &latest_request);
-
-		if ((l->writelock > 1 || ! safe )
-			&& ((interrupt != SC8IN1_LOCK_MODE)
-				|| ((interrupt == SC8IN1_LOCK_MODE) && ( latest_request && latest_request->interrupting_reader && latest_request->interrupting_reader != reader))))
+		if ((l->writelock > 1 || ! safe ) // wait if there are others waiting, or if its not safe to go (interrupting access not possible)
+			&& ((interrupt != SC8IN1_LOCK_ACTION) // only SC8IN1_LOCK_ACTION requests must not wait
+				|| ((interrupt == SC8IN1_LOCK_ACTION) && ( latest_request && latest_request->interrupting_reader && latest_request->interrupting_reader != reader))))
 			ret = pthread_cond_timedwait(&l->writecond, &l->lock, &ts);
 
 		// Are we in interrupt mode or not?
@@ -1192,6 +1191,7 @@ void sc8in1_rwlock_int(SC8IN1_MUTEX_LOCK *l, struct s_reader *reader, uint8_t in
 			if (sc8in1_candidate_for_int_request(reader, latest_request, elapsed_ms, interrupt)) {
 				// we do fit into the request
 				safe = 1;
+				latest_request->interrupting_reader = reader;
 			}
 			else {
 				// we are not a candidate for an interrupting access
@@ -1248,7 +1248,9 @@ void sc8in1_rwunlock_int(SC8IN1_MUTEX_LOCK *l, struct s_reader *reader, uint8_t 
 	if (l->writelock < 0) l->writelock = 0;
 
 	if (interrupt == SC8IN1_LOCK_MODE) {
+		// Unlock after EMM/ECM operation
 		SC8IN1_INTERRUPT_MODE_STOP
+		// remove us from any interrupting request
 		sc8in1_int_request_clear(reader);
 	}
 

@@ -573,14 +573,14 @@ extern int8_t cs_emmlen_is_blocked(struct s_reader *rdr, int16_t len);
 			elapsed1 = ((tv_end1.tv_sec-tv_start1.tv_sec)*1000000 + tv_end1.tv_usec-tv_start1.tv_usec) / 1000; \
 			if (min_ecm_time - reader->sc8in1_config->slot_max_change_time * 2 - elapsed1 > 0) { \
 				sc8in1_int_request_push(reader, min_ecm_time - elapsed1); \
-				sc8in1_rwunlock_int(&reader->sc8in1_config->sc8in1_lock, reader, SC8IN1_LOCK_MODE); \
+				sc8in1_rwunlock_int(&reader->sc8in1_config->sc8in1_lock, reader, SC8IN1_LOCK_ACTION); \
 				gettimeofday(&tv_end1,0); \
 				elapsed1 = ((tv_end1.tv_sec-tv_start1.tv_sec)*1000000 + tv_end1.tv_usec-tv_start1.tv_usec) / 1000; \
 				cs_log("SC8in1: unlocked for interrupting ecm access (slot %i, sleeptime %ims)", reader->slot, min_ecm_time - reader->sc8in1_config->slot_max_change_time * 2 - elapsed1); \
 				if (min_ecm_time - reader->sc8in1_config->slot_max_change_time * 2 - elapsed1 > 0) { \
 					cs_sleepms(min_ecm_time - reader->sc8in1_config->slot_max_change_time * 2 - elapsed1); \
 				} \
-				sc8in1_rwlock_int(&reader->sc8in1_config->sc8in1_lock, reader, SC8IN1_LOCK_MODE); \
+				sc8in1_rwlock_int(&reader->sc8in1_config->sc8in1_lock, reader, SC8IN1_LOCK_ACTION); \
 				sc8in1_int_request_pop(reader); \
 				gettimeofday(&tv_end1,0); \
 				elapsed1 = ((tv_end1.tv_sec-tv_start1.tv_sec)*1000000 + tv_end1.tv_usec-tv_start1.tv_usec) / 1000; \
