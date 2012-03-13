@@ -1027,7 +1027,7 @@ struct ecmrl {
 #define SC8IN1_LOCK_MODE		0x1
 #define SC8IN1_LOCK_ACTION		0x2
 
-#define SC8IN1_INTERRUPT_GUARD_TIME 25
+#define SC8IN1_INTERRUPT_GUARD_TIME 100
 
 typedef struct sc8in1_mutexlock {
 	int32_t		timeout;

@@ -560,36 +560,42 @@ extern int8_t cs_emmlen_is_blocked(struct s_reader *rdr, int16_t len);
 #ifdef WITH_LB
 #define INTERRUPT_SC8IN1 \
 {	\
-	if (reader->typ == R_SC8in1 && cfg.sc8in1_fastmode && reader->sc8in1_interrupt & SC8IN1_LOCK_ACTION) { \
+	if (reader->typ == R_SC8in1 && cfg.sc8in1_fastmode && (reader->sc8in1_interrupt & SC8IN1_LOCK_ACTION)) { \
 		int32_t min_ecm_time = sc8in1_get_average_min_ecm_time(reader); \
 		if (min_ecm_time - reader->sc8in1_config->slot_max_change_time * 2 > 0) { \
 			struct timeval tv_start1, tv_end1; \
-			uint32_t elapsed1 = 0; \
+			int32_t elapsed1 = 0; \
 			gettimeofday(&tv_start1,0); \
 			if (reader->written > 0) { \
 				call (Phoenix_Receive (reader, NULL, 0, reader->read_timeout)); \
 			} \
 			gettimeofday(&tv_end1,0); \
 			elapsed1 = ((tv_end1.tv_sec-tv_start1.tv_sec)*1000000 + tv_end1.tv_usec-tv_start1.tv_usec) / 1000; \
-			if (min_ecm_time - reader->sc8in1_config->slot_max_change_time * 2 - elapsed1 > 0) { \
-				sc8in1_int_request_push(reader, min_ecm_time - elapsed1); \
+			int32_t available_time = min_ecm_time - reader->sc8in1_config->slot_max_change_time * 2 - elapsed1 - SC8IN1_INTERRUPT_GUARD_TIME; \
+			if (available_time > 0) { \
+				sc8in1_int_request_push(reader, available_time); \
+				cs_debug_mask(D_TRACE, "SC8in1: adding interrupting request (slot %i, time %ims)", reader->slot, available_time); \
 				sc8in1_rwunlock_int(&reader->sc8in1_config->sc8in1_lock, reader, SC8IN1_LOCK_ACTION); \
 				gettimeofday(&tv_end1,0); \
 				elapsed1 = ((tv_end1.tv_sec-tv_start1.tv_sec)*1000000 + tv_end1.tv_usec-tv_start1.tv_usec) / 1000; \
-				cs_log("SC8in1: unlocked for interrupting ecm access (slot %i, sleeptime %ims)", reader->slot, min_ecm_time - reader->sc8in1_config->slot_max_change_time * 2 - elapsed1); \
-				if (min_ecm_time - reader->sc8in1_config->slot_max_change_time * 2 - elapsed1 > 0) { \
-					cs_sleepms(min_ecm_time - reader->sc8in1_config->slot_max_change_time * 2 - elapsed1); \
+				available_time = min_ecm_time - reader->sc8in1_config->slot_max_change_time * 2 - elapsed1 - SC8IN1_INTERRUPT_GUARD_TIME; \
+				cs_log("SC8in1: unlocked for interrupting ecm access (slot %i, sleeptime %ims)", reader->slot, available_time); \
+				if (available_time > 0) { \
+					cs_sleepms(available_time); \
 				} \
 				sc8in1_rwlock_int(&reader->sc8in1_config->sc8in1_lock, reader, SC8IN1_LOCK_ACTION); \
 				sc8in1_int_request_pop(reader); \
 				gettimeofday(&tv_end1,0); \
 				elapsed1 = ((tv_end1.tv_sec-tv_start1.tv_sec)*1000000 + tv_end1.tv_usec-tv_start1.tv_usec) / 1000; \
-				cs_log("SC8in1: locked after interrupting ecm access (slot %i, time past %ims)", reader->slot, elapsed1); \
+				cs_log("SC8in1: locked after interrupting ecm access (slot %i, time passed %ims)", reader->slot, elapsed1); \
 				Sc8in1_Selectslot(reader, reader->slot); \
+			} \
+			else { \
+				cs_log("SC8in1: interrupting ecm access on slot %i not possible (slotchangetime=%ims, min_ecm=%ims, elapsed=%ims, available=%ims)", reader->slot, reader->sc8in1_config->slot_max_change_time, min_ecm_time, elapsed1, available_time); \
 			} \
 		} \
 		else { \
-			cs_log("SC8in1: interrupting ecm access on slot %i not possible (slotchangetime=%ims)", reader->slot, reader->sc8in1_config->slot_max_change_time); \
+			cs_log("SC8in1: interrupting ecm access on slot %i not possible (slotchangetime=%ims, min_ecm=%ims)", reader->slot, reader->sc8in1_config->slot_max_change_time, min_ecm_time); \
 		} \
 	} \
 }
