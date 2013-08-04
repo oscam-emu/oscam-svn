@@ -1,45 +1,54 @@
 ##TPLHEADER##
 ##TPLMENU##
-<DIV CLASS="filterform">
-	<form action="status.html" method="get">
-		<select name="hideidle">
-			<option value="0" ##HIDEIDLECLIENTSSELECTED0##>Show idle clients</option>
-			<option value="1" ##HIDEIDLECLIENTSSELECTED1##>Hide idle clients</option>
-			<option value="2">Show hidden clients</option>
-		</select>
-		<input type="submit" value="Update">
-	</form>
+<DIV class="statusrefresh">
+    <script language="JavaScript">var countDownInterval=##REFRESHTIME##,c_reloadwidth=200;$("#timersub").click(function(){countDownTime=$("#timertxt").val()});</script>
+    <script language="JavaScript">var countDownTime=countDownInterval+1;function countDown(){countDownTime--; 0>=countDownTime?(countDownTime=countDownInterval,clearTimeout(counter),history.pushState(null, null, './status.html'),window.location.reload()):(document.all?document.all.countDownText.innerText=countDownTime+" ":document.getElementById?document.getElementById("countDownText").innerHTML=countDownTime+" ":document.layers&&(document.c_reload.document.c_reload2.document.write('Next <a href="status.html">refresh</a> in <b id="countDownText">'+countDownTime+" </b> seconds"),document.c_reload.document.c_reload2.document.close()), counter=setTimeout("countDown()",1E3))}function startit(){(document.all||document.getElementById)&&document.write('Next page refresh<br>in <b class="countDownText" id="countDownText">'+countDownTime+" </b> seconds");countDown()}document.all||document.getElementById?startit():window.onload=startit;</script>
 </DIV>
+<DIV class="statusinfo">
+	<B>Date :</B> ##CURDATE## - ##CURTIME## | <B>Start :</B> ##STARTDATE## - ##STARTTIME## | <B>UpTime :</B> ##UPTIME##<BR><B><FONT COLOR="yellow">Access from : ##CURIP##</B></FONT>
+</DIV>
+<DIV>
 	<TABLE WIDTH="100%" class="status">
 		<TR>
 			<TH class="statuscol0">hide</TH>
-			<TH class="statuscol1">Thread ID</TH>
-			<TH class="statuscol2">Type</TH>
-			<TH class="statuscol3">ID</TH>
+			<TH class="statuscol1">reset</TH>
 			<TH class="statuscol4">Label</TH>
 			<TH class="statuscol5">AU</TH>
-			<TH class="statuscol6">Crypted</TH>
 			<TH class="statuscol7">Address</TH>
 			<TH class="statuscol8">Port</TH>
 			<TH class="statuscol9">Protocol</TH>
+			<TH class="statuscol12">CAID:SRVID</TH>
+			<TH class="statuscol13">Last Channel</TH>
+			<TH class="statuscol14">LB Value/ Reader</TH>
 			<TH class="statuscol10">Login</TH>
 			<TH class="statuscol11">Online</TH>
-			<TH class="statuscol12">CAID:SRVID</TH>
-			<TH class="statuscol13">Current Channel</TH>
-			<TH class="statuscol14">LB Value/ Reader</TH>
 			<TH class="statuscol15">Idle</TH>
 			<TH class="statuscol16">Status</TH>
 		</TR>
-##SERVERSTATUS##
 ##READERHEADLINE##
-##READERSTATUS##
+		##READERSTATUS##
 ##PROXYHEADLINE##
-##PROXYSTATUS##
+		##PROXYSTATUS##
+		<TR>
+    		<TD colspan="14" class="select">
+				<form action="status.html" method="get">
+	    			<select name="hideidle">
+					<option value="0" ##HIDEIDLECLIENTSSELECTED0##>Show idle clients</option>
+					<option value="1" ##HIDEIDLECLIENTSSELECTED1##>Hide idle clients</option>
+					<option value="2">Show hidden clients</option>
+	    			</select><input type="submit" value="Update">
+				</form>
+    		</TD>
+		</TR>
 ##CLIENTHEADLINE##
-##CLIENTSTATUS##
-	</TABLE><BR>
-	<DIV class="log">
+		##CLIENTSTATUS##
+		<TR>
+			<TD colspan="14" class="log">
+			<DIV class="log">
 ##LOGHISTORY##
-	</DIV><BR>
+			</TD>
+		</TR>
+	</TABLE>
+</DIV><BR>
 ##SDEBUG##
 ##TPLFOOTER##

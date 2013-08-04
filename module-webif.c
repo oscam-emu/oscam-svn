@@ -3023,7 +3023,7 @@ static char *send_oscam_status(struct templatevars *vars, struct uriparams *para
 	char picon_name[32];
 	snprintf(picon_name, sizeof(picon_name)/sizeof(char) - 1, "oscamlogo");
 	if (picon_exists(picon_name)) {
-		tpl_printf(vars, TPLADD, "OSCAMLOGO", "<A HREF=\"http://www.streamboard.tv/oscam/timeline\"><img class=\"oscamlogo\" src=\"image?i=IC_oscamlogo\" alt=\"Oscam %s\" title=\"Oscam %s\"></A>", CS_SVN_VERSION, CS_SVN_VERSION);
+		tpl_printf(vars, TPLADD, "OSCAMLOGO", "<A HREF=\"http://www.streamboard.tv/oscam/timeline\"><img class=\"oscamlogo\" src=\"image?i=IC_oscamlogo\">Oscam r%s</A>", CS_SVN_VERSION);
 	} else {
 		tpl_printf(vars, TPLADD, "OSCAMLOGO", "<A HREF=\"http://www.streamboard.tv/oscam/timeline\">Oscam r%s</A>", CS_SVN_VERSION);
 	}
@@ -3247,11 +3247,11 @@ static char *send_oscam_status(struct templatevars *vars, struct uriparams *para
 				} else {
 					if (cl->typ == 'c') {
 						tpl_printf(vars, TPLADD, "STATUSUSERICON",
-						"<A HREF=\"user_edit.html?user=%s\" TITLE=\"Edit this User\">%s</A>",
+						"<A class=\"statususericon\" HREF=\"user_edit.html?user=%s\" TITLE=\"Edit this User\">%s</A>",
 						xml_encode(vars, usr), xml_encode(vars, usr));
 					} else {
 						tpl_printf(vars, TPLADD, "STATUSUSERICON",
-						"<A HREF=\"readerconfig.html?label=%s\" TITLE=\"Edit this Reader\">%s</A>",
+						"<A class=\"statususericon\" HREF=\"readerconfig.html?label=%s\" TITLE=\"Edit this Reader\">%s</A>",
 						xml_encode(vars, usr), xml_encode(vars, usr));
 					}
 				}
@@ -3304,8 +3304,27 @@ static char *send_oscam_status(struct templatevars *vars, struct uriparams *para
 						tpl_printf(vars, TPLADD, "CLIENTSRVID", "%04X", cl->last_srvid);
 					else
 						tpl_printf(vars, TPLADD, "CLIENTSRVID", "none");
-					tpl_printf(vars, TPLADD, "CLIENTLASTRESPONSETIME", "%d", cl->cwlastresptime?cl->cwlastresptime:1);
 
+					char *lastchannel;char channame[32];
+					if (cl->last_caid != NO_CAID_VALUE && cl->last_srvid != NO_SRVID_VALUE){
+						int32_t actual_caid=cl->last_caid;
+						int32_t actual_srvid=cl->last_srvid;
+						snprintf(picon_name, sizeof(picon_name)/sizeof(char) - 1, "%04X_%04X", actual_caid, actual_srvid);
+						lastchannel = xml_encode(vars, get_servicename(cl, actual_srvid, actual_caid, channame));
+						tpl_printf(vars, TPLADD, "CAIDSRVID", "%04X:%04X", actual_caid, actual_srvid);
+						if (cfg.http_showpicons && picon_exists(picon_name)) {
+							tpl_printf(vars, TPLADD, "CLIENTCURRENTPICON",
+							"<img class=\"clientcurrentpicon\" src=\"image?i=IC_%04X_%04X\">",
+							actual_caid, actual_srvid);
+						} else {
+							tpl_printf(vars, TPLADD, "CLIENTCURRENTPICON", "%s", lastchannel);
+						}
+					} else {
+						tpl_addVar(vars, TPLADD, "CLIENTCURRENTPICON", "");
+						tpl_printf(vars, TPLADD, "CAIDSRVID", "none:none");
+					}
+
+					tpl_printf(vars, TPLADD, "CLIENTLASTRESPONSETIME", "%d", cl->cwlastresptime?cl->cwlastresptime:1);
 					tpl_printf(vars, TPLADD, "CLIENTSRVPROVIDER","%s%s", cl->last_srvidptr && cl->last_srvidptr->prov ? xml_encode(vars, cl->last_srvidptr->prov) : "", cl->last_srvidptr && cl->last_srvidptr->prov ? ": " : "");
 					tpl_addVar(vars, TPLADD, "CLIENTSRVNAME", cl->last_srvidptr && cl->last_srvidptr->name ? xml_encode(vars, cl->last_srvidptr->name) : "");
 					tpl_addVar(vars, TPLADD, "CLIENTSRVTYPE", cl->last_srvidptr && cl->last_srvidptr->type ? xml_encode(vars, cl->last_srvidptr->type) : "");
@@ -3314,13 +3333,14 @@ static char *send_oscam_status(struct templatevars *vars, struct uriparams *para
 				} else {
 					tpl_addVar(vars, TPLADD, "CLIENTCAID", "0000");
 					tpl_addVar(vars, TPLADD, "CLIENTSRVID", "0000");
+					tpl_addVar(vars, TPLADD, "CAIDSRVID", "0000:0000");
+					tpl_addVar(vars, TPLADD, "CLIENTCURRENTPICON", "");
 					tpl_addVar(vars, TPLADD, "CLIENTSRVPROVIDER","");
 					tpl_addVar(vars, TPLADD, "CLIENTSRVNAME","");
 					tpl_addVar(vars, TPLADD, "CLIENTSRVTYPE","");
 					tpl_addVar(vars, TPLADD, "CLIENTSRVDESCRIPTION","");
 					tpl_addVar(vars, TPLADD, "CLIENTLBVALUE","");
 					tpl_addVar(vars, TPLADD, "CLIENTTIMEONCHANNEL", "");
-
 				}
 
 				if (!apicall) {

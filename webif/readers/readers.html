@@ -1,9 +1,18 @@
 ##TPLHEADER##
 ##TPLMENU##
-##TPLMESSAGE##
-	<TABLE CLASS="configmenu"><TR><TD CLASS="configmenu"><A HREF="scanusb.html">Scan USB</A></TD><TD CLASS="configmenu"><A TARGET="_blank" HREF="graph.svg?type=servers">Show Graphs</A></TD></TR></TABLE>
+	<DIV class="subnav subnav-fixed">
+    <UL id="sub">
+      <LI CLASS="configmenu"><A HREF="scanusb.html">Scan USB</A></LI>
+      <LI CLASS="configmenu"><A TARGET="_blank" HREF="graph.svg?type=servers">Show Graphs</A></LI>
+    </UL>
+  </DIV>
+  <TABLE CLASS="filter">
+    <TR>
+      <TD>Search: <input type="text" id="searchTerm" class="search_box" onkeyup="doSearch()" onClick="cdpause()" onBlur="countDown()"/></TD>
+    </TR>
+  </TABLE>
 	<form action="readerconfig.html" method="get">
-		<TABLE CLASS="readers">
+		<TABLE CLASS="readers" id="dataTable">
 			<TR>
 				<TH>Enabled</TH>
 				<TH>Reader</TH>
@@ -20,12 +29,13 @@
 			</TR>
 ##READERLIST##
 			<TR>
-				<TD>&nbsp;</TD>				<TD COLSPAN="2" class="centered">New Reader</TD>
+				<TD>&nbsp;</TD>
+				<TD COLSPAN="2" class="centered">New Reader</TD>
 				<TD COLSPAN="2" class="centered">Label:&nbsp;&nbsp;<input type="text" name="label" value="##NEXTREADER##"></TD>
 				<TD COLSPAN="2" class="centered">Protocol:&nbsp;&nbsp;
-					<select name="protocol">
+				<select name="protocol">
 ##ADDPROTOCOL##
-					</select>
+				</select>
 				</TD>
 				<TD COLSPAN="4" class="centered"><input type="submit" name="action" value="Add" ##BTNDISABLED##></TD>
 				<TD COLSPAN="6"></TD>

@@ -1,17 +1,36 @@
 ##TPLHEADER##
 ##TPLMENU##
-##TPLMESSAGE##
-	<TABLE CLASS="configmenu">
-		<TR>
-			<TD CLASS="configmenu"><A HREF="userconfig.html?part=adduser">Add User</A></TD>
-			<TD CLASS="configmenu"><A HREF="userconfig.html?action=reinit">Reinit User DB</A></TD>
-			<TD CLASS="configmenu"><A HREF="userconfig.html?action=resetalluserstats">Reset Userstats</A></TD>
-			<TD CLASS="configmenu"><A TARGET="_blank" HREF="graph.svg?type=users&hidelabels=1">Show Graphs</A></TD>
-		</TR>
+	<DIV class="subnav subnav-fixed">
+	    <UL id="sub">
+		<LI CLASS="configmenu"><A HREF="#" onclick="adduser();">Add User</A></LI>
+		<LI CLASS="configmenu"><A HREF="userconfig.html?action=reinit">Reinit User DB</A></LI>
+		<LI CLASS="configmenu"><A HREF="userconfig.html?action=resetalluserstats">Reset Userstats</A></LI>
+		<LI CLASS="configmenu"><A TARGET="_blank" HREF="graph.svg?type=users&hidelabels=1">Show Graphs</A></LI>
+	    </UL>
+	</DIV>
+    <DIV CLASS="statusrefresh">
+	<SPAN id="timer">Refreshing has been stopped!</SPAN><script language="JavaScript">var countDownInterval=##REFRESHTIME##;var countDownTime=countDownInterval+1;function adduser(){document.getElementById("newuser").style.display="block";document.getElementById("searchTable").style.display="none";cdpause();document.getElementById("timer").innerHTML='Refreshing has been stopped!'};function countDown(){ countDownTime--; if (countDownTime <=0){ countDownTime=countDownInterval; clearTimeout(counter); window.location.href="userconfig.html"; return }; if (document.all) document.all.countDownText.innerText = countDownTime+" "; else if (document.getElementById) document.getElementById("countDownText").innerHTML=countDownTime+" ";counter=setTimeout("countDown()", 1000); };function startit() { if (document.all||document.getElementById)document.getElementById("timer").innerHTML='Next refresh<br>in <b id="countDownText" class="countDownText">'+countDownTime+' </b> seconds'; countDown(); } if (document.all||document.getElementById) startit(); else  window.document.onload=startit;function cdpause() {clearTimeout(counter);};
+    </script>
+    </DIV>
+    <DIV CLASS="newuser" ID="newuser">
+	<TABLE>
+	    <TR>
+		<FORM action="user_edit.html" method="get">
+		<TD CLASS="newuser">New User:&nbsp;&nbsp;<input name="user" type="text"><input type="submit" value=" Add User " ##BTNDISABLED##></TD>
+		</FORM>
+	    </TR>
 	</TABLE>
-	<TABLE CLASS="users">
+    </DIV>
+    <DIV id="searchTable">
+	<TABLE CLASS="filter">
+	    <TR>
+		<TD>Search: <input type="text" id="searchTerm" class="search_box" onkeyup="doSearch()" onClick="cdpause()" onBlur="countDown()"/></TD>
+	    </TR>
+	</TABLE>
+    </DIV>
+	<TABLE CLASS="users" id="dataTable">
 		<TR>
-			<TH>Enabled</TH>
+			<TH></TH>
 			<TH>Label</TH>
 			<TH>Status</TH>
 			<TH>Address</TH>
@@ -23,7 +42,7 @@
 			<TH TITLE="Delivered ECM with status not OK">NOK</TH>
 			<TH TITLE="Ignored ECM by filters, part of NOK">IGN</TH>
 			<TH TITLE="Timeout ECM, part of NOK">TOUT</TH>
-##TPLCWCYCLETHV##
+			##TPLCWCYCLETHV##
 			<TH TITLE="Delivered ECM from cache, part of OK">CACHE</TH>
 			<TH TITLE="Delivered ECM from tunneled, part of OK">TUN</TH>
 			<TH TITLE="Last ECM Time">LTIME</TH>
@@ -32,10 +51,9 @@
 			<TH TITLE="CW rate since Server start (CW rate current Session)">CW Rate</TH>
 			<TH TITLE="Different services during last 60s">CASC USERS</TH>
 			<TH TITLE="Expiration date of account">Exp. Date</TH>
-			<TH colspan="3" class="centered">Action</TH>
+			<TH colspan="3"></TH>
 		</TR>
-##USERCONFIGS##
-##NEWUSERFORM##
+	##USERCONFIGS##
 	</TABLE><BR>
 	<SPAN CLASS = "user_totals_headline">Totals for the server:</SPAN>
 	<TABLE CLASS="user_totals">
